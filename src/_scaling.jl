@@ -1,0 +1,33 @@
+struct Converter
+    system ::String
+    l      ::Float64
+    d      ::Float64
+    t      ::Float64
+    u      ::Float64
+    m      ::Float64
+    p      ::Float64
+    ee     ::Float64
+    e      ::Float64
+    mu     ::Float64
+    b      ::Float64
+    k_B    ::Float64
+    m_H    ::Float64
+    m_He   ::Float64
+end
+
+function StaggerCGS(system = "cgs",                                   
+                    l  = 1e8,                                        
+                    d  = 1e-7,                                        
+                    t  = 1e2,                                       
+                    u  = l/t,                               
+                    m  = d*l^3,                            
+                    p  = d*u^2,                           
+                    ee = u^2,    
+                    e  = d*ee,
+                    mu = 1.3,
+                    b = u*sqrt(π*4.0*d),
+                    k_B  = 1.380658E-16,
+                    m_H  = 1.6726219E-24,
+                    m_He = 6.65e-24)
+    Converter(system,l,d,t,u,m,p,ee,e,mu,b,k_B,m_H,m_He)
+end
