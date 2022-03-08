@@ -92,13 +92,13 @@ MUST.Box type object
 """
 function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:AbstractFloat}
     # filter the space to match the 3d cube
-    region_mask = (row) ->  (minimum(x) < row.x < maximum(x)) &
-                            (minimum(y) < row.y < maximum(y)) &
-                            (minimum(z) < row.x < maximum(z))
+    region_mask = (row) ->  (minimum(x) <= row.x <= maximum(x)) &
+                            (minimum(y) <= row.y <= maximum(y)) &
+                            (minimum(z) <= row.z <= maximum(z))
     s_masked = filter(region_mask,s)
 
     # 3D Mesh of the new coordinate Box
-    x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z)
+    x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
 
     # result dict
     results::Dict{Symbol,Array{T,3}} = Dict(q=>similar(x_grid) for q in Symbol.(names(s.data)) if !(q in [:x,:y,:z,:i_patch]))
@@ -106,16 +106,22 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
     # Interpolate the Space onto the given grid
     for quantity in Symbol.(names(s.data))
         quantity in [:x,:y,:z,:i_patch] ? continue : nothing
-        results[quantity] .= scipy_interpolate.griddata((s_masked.data.x, s_masked.data.y, s_masked.data.z), 
+        if length(z) > 1
+            results[quantity] .= scipy_interpolate.griddata((s_masked.data.x, s_masked.data.y, s_masked.data.z), 
                                                             s_masked.data[:,quantity], 
                                                             (x_grid, y_grid, z_grid))
+        else
+            results[quantity][:,:,1] = scipy_interpolate.griddata( (s_masked.data.x, s_masked.data.y), 
+                                                                    s_masked.data[:,quantity], 
+                                                                    (x_grid,y_grid) )
+        end
     end
 
     Box(x_grid,y_grid,z_grid,results)
 end
 
 @inline uniform_grid(s::Space, N::Int,axis=:x) = begin
-    data = getfield(s,axis)
+    data = s.data[:,axis]
     maxd = maximum(data)
     mind = minimum(data)
     extd = maxd-mind
@@ -124,12 +130,14 @@ end
     maxd -= extd*0.01
     extd = maxd-mind
     step = extd/N
-    Vector(mind:step:maxd)
+    Vector(mind:max(step,eps(1.0)):maxd)
 end
-Box(s::Space, N::Int, args...; kwargs...) = Box(s,
+
+Box(s::Space, N::Int, args...; kwargs...) = begin Box(s,
                             uniform_grid(s, N, :x), 
                             uniform_grid(s, N, :y), 
                             uniform_grid(s, N, :z), args...; kwargs...)
+end
 
 """
 Interpolate a Space object on an regular grid and save as new Space object.
@@ -161,30 +169,32 @@ function spacebox(s::MUST.Space,x::Vector{T}, y::Vector{T}, z::Vector{T}, args..
     
     Space(DataFrame(q_dict),p_dim)
 end
-spacebox(s::Space, N::Int, args...; kwargs...) = spacebox(s,
+
+spacebox(s::Space, N::Int, args...; kwargs...) = begin spacebox(s,
                                                     uniform_grid(s, N, :x), 
                                                     uniform_grid(s, N, :y), 
                                                     uniform_grid(s, N, :z), args...; kwargs...)
+end
 
 """
 Convert Space to Box, assuming that the space has already uniform grid (No interpolation)
 """
-function spacebox(s::Space)    
+function Box(s::Space)   
     # create x,y,z from unique s.data -> meshgrid x,y,z -> pick data from dataframe where coordinates match
     x = unique(s.data.x)
     y = unique(s.data.y)
     z = unique(s.data.z)
 
-    x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z)
-    results::Dict{Symbol,Array{T,3}} = Dict(q=>similar(x_grid) for q in Symbol.(names(s.data)) if !(q in [:x,:y,:z,:i_patch]))
+    x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
+    results::Dict{Symbol,Array{typeof(x[1]),3}} = Dict(q=>similar(x_grid) for q in Symbol.(names(s.data)) if !(q in [:x,:y,:z,:i_patch]))
 
     for quantity in Symbol.(names(s.data))
         quantity in [:x,:y,:z,:i_patch] ? continue : nothing
         # go though the data points and save the quantity
-        for row in s.data
+        for row in eachrow(s.data)
             p        = (row.x, row.y, row.z)
             ix,iy,iz = _find_in_meshgrid(p, x, y, z)
-            results[quantity][ix,iy,iz] = getfield(row,quantity)
+            results[quantity][ix,iy,iz] = row[quantity]
         end
     end
 

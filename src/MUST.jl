@@ -3,6 +3,8 @@ module MUST
 #= Julia modules =#
 using PyCall
 using DataFrames
+using FortranFiles: FortranFile, read, readlines
+using Printf
 import Base.filter, Base.filter!
 import Base.getindex
 
