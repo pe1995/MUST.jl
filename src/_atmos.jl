@@ -171,7 +171,32 @@ Convert Space to Box, assuming that the space has already uniform grid (No inter
 """
 function spacebox(s::Space)    
     # create x,y,z from unique s.data -> meshgrid x,y,z -> pick data from dataframe where coordinates match
-end                                            
+    x = unique(s.data.x)
+    y = unique(s.data.y)
+    z = unique(s.data.z)
+
+    x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z)
+    results::Dict{Symbol,Array{T,3}} = Dict(q=>similar(x_grid) for q in Symbol.(names(s.data)) if !(q in [:x,:y,:z,:i_patch]))
+
+    for quantity in Symbol.(names(s.data))
+        quantity in [:x,:y,:z,:i_patch] ? continue : nothing
+        # go though the data points and save the quantity
+        for row in s.data
+            p        = (row.x, row.y, row.z)
+            ix,iy,iz = _find_in_meshgrid(p, x, y, z)
+            results[quantity][ix,iy,iz] = getfield(row,quantity)
+        end
+    end
+
+    Box(x_grid, y_grid, z_grid, results)
+end 
+
+@inline _find_in_meshgrid(p, x, y, z) = begin
+    ix = findfirst(p[1] .≈ x)
+    iy = findfirst(p[2] .≈ y)
+    iz = findfirst(p[3] .≈ z)
+    (ix,iy,iz)
+end                                           
 
 """
 Filter the Space object.
