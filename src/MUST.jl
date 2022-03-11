@@ -5,6 +5,8 @@ using PyCall
 using DataFrames
 using FortranFiles: FortranFile, read, readlines
 using Printf
+using Statistics
+using HDF5
 import Base.filter, Base.filter!
 import Base.getindex
 
@@ -22,6 +24,9 @@ export import_dispatch, in_dispatch
 export Space, spacebox, Box
 
 #= Julia code files =#
+include("_help.jl")
+include("_scaling.jl")
+include("_stagger.jl")
 include("_dispatch.jl")
 include("_atmos.jl")
 

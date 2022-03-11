@@ -1,7 +1,7 @@
 abstract type AbstractSpace end
 
 mutable struct Space <:AbstractSpace
-    data             ::DataFrames.DataFrame
+    data             ::Dict{Symbol,Vector{Any}}
     patch_dimensions ::Array{Int,2}
 end
 
@@ -43,7 +43,7 @@ function Space(snapshot::PyCall.PyObject, quantities::Symbol...)
         patch_dimensions[i,3] = length(patch.zi)
         
         # extract the quantites for this patch
-        for q in quantities
+        for (iq,q) in enumerate(quantities)
             q_matrix = patch.var(String(q))
             q_array  = zeros(Float32, prod(patch_size))
             coords   = zeros(Float32, (prod(patch_size),3))
@@ -60,14 +60,72 @@ function Space(snapshot::PyCall.PyObject, quantities::Symbol...)
                 end
             end
             append!(qs[q], q_array)
-            append!(qs[:x],coords[:,1])
-            append!(qs[:y],coords[:,2])
-            append!(qs[:z],coords[:,3])
-            append!(qs[:i_patch],[i for _ in 1:length(q_array)])
+            if iq==1
+                append!(qs[:x],coords[:,1])
+                append!(qs[:y],coords[:,2])
+                append!(qs[:z],coords[:,3])
+                append!(qs[:i_patch],[i for _ in 1:length(q_array)])
+            end
         end
     end
 
-    Space(DataFrame(qs), patch_dimensions)
+    Space(qs, patch_dimensions)
+end
+
+"""
+Create a Space object from a Legacy Stagger Snapshot.
+
+Parameters
+----------
+snapshot: PyObject
+    A dispatch snapshot.
+quantites: Symbols
+    Variables to extract from the snapshot
+
+Returns
+-------
+MUST.Space type object
+
+"""
+function Space(snapshot::MUST.StaggerLegacySnap, quantities::Symbol...)
+    snap = snapshot.snap
+    qs = Dict{Symbol,Vector{Float32}}(q=>Float32[] for q in quantities)
+    qs[:x] = Float32[]; qs[:y] = Float32[]; qs[:z] = Float32[]
+    qs[:i_patch] = Int[]
+    patch_dimensions = zeros(Int, (1,3))
+    patch_dimensions[1,1] = snap.nx*snap.ny*snap.nz
+    patch_dimensions[1,2] = snap.nx*snap.ny*snap.nz
+    patch_dimensions[1,3] = snap.nx*snap.ny*snap.nz
+
+    qm = zeros(Float32, (snap.nx, snap.ny, snap.nz))
+    for (i,q) in enumerate(quantities)
+        qm = snap.read_mem(String(q))
+        qs[q] = zeros(Float32, snap.nx*snap.ny*snap.nz)
+        if i==1
+            coords = zeros(Float32, (snap.nx*snap.ny*snap.nz,3))
+        end
+        c=1
+        for k in 1:snap.nz
+        for j in 1:snap.ny
+        for n in 1:snap.nx
+            qs[q][c] = qm[n,j,k]
+            if i==1
+                coords[c,1] = snap.xx[n]
+                coords[c,2] = snap.yy[j]
+                coords[c,3] = snap.zz[k]
+            end
+            c+=1
+        end
+        end
+        end
+        if i==1
+            append!(qs[:x],coords[:,1])
+            append!(qs[:y],coords[:,2])
+            append!(qs[:z],coords[:,3])
+            append!(qs[:i_patch],[1 for _ in size(coords,1)])
+        end
+    end
+    Space(qs, patch_dimensions)
 end
 
 """
@@ -101,33 +159,46 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
     x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
 
     # result dict
-    results::Dict{Symbol,Array{T,3}} = Dict(q=>similar(x_grid) for q in Symbol.(names(s.data)) if !(q in [:x,:y,:z,:i_patch]))
+    results::Dict{Symbol,Array{T,3}} = Dict(q=>similar(x_grid) for q in keys(s.data) if !(q in [:x,:y,:z,:i_patch]))
+
+    mask_data = []
+    grid_data = []
+    if length(x) > 1
+        append!(mask_data, [s_masked.data.x])
+        append!(grid_data, [x_grid])
+    end
+    if length(y) > 1
+        append!(mask_data, [s_masked.data.y])
+        append!(grid_data, [y_grid])
+    end
+    if length(z) > 1
+        append!(mask_data, [s_masked.data.z])
+        append!(grid_data, [z_grid])
+    end
+
 
     # Interpolate the Space onto the given grid
     for quantity in Symbol.(names(s.data))
         quantity in [:x,:y,:z,:i_patch] ? continue : nothing
-        if length(z) > 1
-            results[quantity] .= scipy_interpolate.griddata((s_masked.data.x, s_masked.data.y, s_masked.data.z), 
-                                                            s_masked.data[:,quantity], 
-                                                            (x_grid, y_grid, z_grid))
-        else
-            results[quantity][:,:,1] = scipy_interpolate.griddata( (s_masked.data.x, s_masked.data.y), 
-                                                                    s_masked.data[:,quantity], 
-                                                                    (x_grid,y_grid) )
-        end
+        results[quantity][1:length(x),1:length(y),1:length(z)] = scipy_interpolate.griddata(Tuple(mask_data), 
+                                                                                            s_masked.data[quantity], 
+                                                                                            Tuple(grid_data))
     end
 
-    Box(x_grid,y_grid,z_grid,results)
+    Box(x_grid[2:end-1,2:end-1,2:end-1],
+        y_grid[2:end-1,2:end-1,2:end-1],
+        z_grid[2:end-1,2:end-1,2:end-1],
+        Dict(q=>results[q][2:end-1,2:end-1,2:end-1] for q in keys(results)))
 end
 
 @inline uniform_grid(s::Space, N::Int,axis=:x) = begin
-    data = s.data[:,axis]
+    data = s.data[axis]
     maxd = maximum(data)
     mind = minimum(data)
     extd = maxd-mind
 
-    mind += extd*0.01
-    maxd -= extd*0.01
+    mind += extd*0.001
+    maxd -= extd*0.001
     extd = maxd-mind
     step = extd/N
     Vector(mind:max(step,eps(1.0)):maxd)
@@ -167,7 +238,7 @@ function spacebox(s::MUST.Space,x::Vector{T}, y::Vector{T}, z::Vector{T}, args..
     p_dim = ones(1,3)
     p_dim[1,1] = length(x); p_dim[1,2] = length(y); p_dim[1,3] = length(z)
     
-    Space(DataFrame(q_dict),p_dim)
+    Space(q_dict,p_dim)
 end
 
 spacebox(s::Space, N::Int, args...; kwargs...) = begin spacebox(s,
@@ -181,20 +252,23 @@ Convert Space to Box, assuming that the space has already uniform grid (No inter
 """
 function Box(s::Space)   
     # create x,y,z from unique s.data -> meshgrid x,y,z -> pick data from dataframe where coordinates match
-    x = unique(s.data.x)
-    y = unique(s.data.y)
-    z = unique(s.data.z)
+    x = unique(s.data[:x])
+    y = unique(s.data[:y])
+    z = unique(s.data[:z])
 
     x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
-    results::Dict{Symbol,Array{typeof(x[1]),3}} = Dict(q=>similar(x_grid) for q in Symbol.(names(s.data)) if !(q in [:x,:y,:z,:i_patch]))
+    results::Dict{Symbol,Array{typeof(x[1]),3}} = Dict(q=>similar(x_grid) for q in keys(s.data) if !(q in [:x,:y,:z,:i_patch]))
 
-    for quantity in Symbol.(names(s.data))
+    for quantity in keys(s.data)
         quantity in [:x,:y,:z,:i_patch] ? continue : nothing
         # go though the data points and save the quantity
-        for row in eachrow(s.data)
-            p        = (row.x, row.y, row.z)
+        p        = zeros(3) 
+        for irow in 1:length(s.data[quantity])
+            p[1] = s.data[:x][irow]
+            p[2] = s.data[:y][irow] 
+            p[3] = s.data[:z][irow] 
             ix,iy,iz = _find_in_meshgrid(p, x, y, z)
-            results[quantity][ix,iy,iz] = row[quantity]
+            results[quantity][ix,iy,iz] = s.data[quantity][irow]
         end
     end
 
@@ -224,28 +298,121 @@ MUST.Space type object
 
 """
 function Base.filter(f, s::MUST.Space)
-	new_frame = filter(f, s.data)
+    mask = f(s.data)
+	new_frame = Dict(q=>s.data[q][mask] for q in keys(s.data))
 	Space(new_frame, s.patch_dimensions)
 end
 
+function Base.filter!(f, s::MUST.Space)
+    mask = f(s.data)
+    for q in keys(s.data)
+        s.data[q] = s.data[q][mask]
+	end
+end
+
+Base.getindex(s::T,key) where {T<:Union{MUST.Box,MUST.Space}} = s.data[key]
+
 """
-Filter the Space object.
+Convert to given units using a AtmosUnits type.
 
 Parameters
 ----------
 s: Space
-    The space object to filter
+    The space object
+u: AstroUnits
+    Object containting the conversion factor
+params: Symbols
+    Map between Space entry and unit that should be applied
     
 Returns
 -------
 nothing
 
 """
-function Base.filter!(s::MUST.Space, args...; kwargs...)
-	new_frame = filter(s.data,args...; kwargs...)
-	s.data    = new_frame
+function convert!(s::Space, u::AtmosUnits; params...)
+    for (s_para, u_para) in params
+        s.data[s_para] .= s.data[s_para] .* getfield(u,u_para)
+    end
     nothing
 end
 
-Base.getindex(s::T,key) where {T<:MUST.Space} = s.data[:,key]
-Base.getindex(s::T,key) where {T<:MUST.Box}   = s.data[key]
+function convert(s::Space, u::AtmosUnits; params...)
+    s_new = deepcopy(s)
+    convert!(s_new, u; params...)
+    s_new
+end
+
+"""
+Add the given field from the EOS.
+
+Parameters
+----------
+s: Space
+    The space object
+eos: Dispatch EOS
+    EOS to convert the quantites
+    
+Returns
+-------
+nothing
+
+"""
+function add_from_EOS!(s::MUST.Space, eos, quantity::Symbol;
+                        EOS_paras=(:d,:ee), EOS_log=(true,true),
+                        convert_to=identity)
+    qframe = MUST.add_from_EOS(s, eos, quantity; 
+                                EOS_paras =EOS_paras, 
+                                EOS_log   =EOS_log, 
+                                convert_to=convert_to)
+    s.data[quantity] = qframe
+    nothing
+end
+function add_from_EOS(s::MUST.Space, eos, quantity::Symbol;
+    EOS_paras=(:d,:ee), EOS_log=(true,true),
+    convert_to=identity)
+    f1 = EOS_log[1] ? log : indentity
+    f2 = EOS_log[2] ? log : indentity
+    convert_to.(eos.lookup.(String(quantity), f1.(s[EOS_paras[1]]), f2.(s[EOS_paras[2]])))
+end
+
+"""
+Compute the horizonal average of a Box object.
+
+Parameters
+----------
+s: Box
+    The space object
+q: Symbol
+    Quantity to compute average
+    
+Returns
+-------
+nothing
+
+"""
+function plane_average(b::MUST.Box, q::Symbol)
+    plane_statistic(Statistics.mean, b, q)
+end
+
+"""
+Compute the horizonal statistic of a Box object.
+
+Parameters
+----------
+s: Box
+    The space object
+q: Symbol
+    Quantity to compute average
+    
+Returns
+-------
+nothing
+
+"""
+function plane_statistic(stat::F, b::MUST.Box, q::Symbol) where {F<:Function}
+    av = zeros(typeof(b.z[1,1,1]), size(b.z,3))
+    for i in 1:size(b.z,3)
+        av[i] = stat(b.data[q][:,:,i])
+    end
+    av
+end

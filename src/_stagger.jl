@@ -1,68 +1,3 @@
-mutable struct StaggerSnap
-    mesh_file ::String
-    dat_file  ::String
-    mesh      ::Stagger.StaggerMesh
-    data      ::Dict{String,Array{Float32,3}}
-    order     ::Vector{String}
-end
-
-"""
-Read a Stagger Snapshot from .msh and .dat files.
-"""
-function StaggerSnap(filename, folder="../input_data/")
-    mesh_file = joinpath(folder,filename*".msh")
-    dat_file  = joinpath(folder,filename*".dat")
-    @show mesh_file
-    mesh      = Stagger.StaggerMesh(mesh_file)
-    result    = Dict{String,Array{Float32,3}}()
-    order    = ["r","px","py","pz","e","d","Bx","By","Bz"]
-    for para in order
-        result[para] = permutedims(Stagger.br_arr_ffile(dat_file,mesh; 	
-                                            rpos=findfirst(para .==order)),[3,1,2])
-    end
-    result["ee"] = result["e"] ./ result["r"] 
-    StaggerSnap(mesh_file,dat_file,mesh,result,order)
-end
-
-"""
-Apply the scaling in converters to snap (This is not ideal yet, should make it more flexible)
-"""
-function normalize!(snap, converter::Converter, paras...; reverse=false)
-	operation(a,b) = reverse ? a ./ b : a .* b
-	for p in paras 
-		p == "r" ? 
-		snap.data["r"] = operation(snap.data["r"],converter.d) : nothing
-		p == "ee" ? 
-		snap.data["ee"] = operation(snap.data["ee"],converter.ee) : nothing
-		p == "e" ? 
-		snap.data["e"] = operation(snap.data["e"],converter.e) : nothing
-	end
-end
-
-"""
-Lookup para in the given EOS using use_paras as variables.
-"""
-function get_from_eos(snap::StaggerSnap,eos,para="T",use_paras=["r","e"]; use_log=[true,true])
-    snap_size = size(snap.data[snap.order[1]])
-    result    = similar(snap.data[snap.order[1]])
-    result   .= 0.0
-    do_log    = [i ? x->log(x) : identity for i in use_log]
-    @inbounds for k in 1:snap_size[3]
-        @inbounds for j in 1:snap_size[2]
-            @inbounds for i in 1:snap_size[1]
-                try
-                    result[i,j,k] = eos.lookup(para,
-                                            do_log[1](snap.data[use_paras[1]][i,j,k]),
-                                            do_log[2](snap.data[use_paras[2]][i,j,k]))
-                catch 
-                    result[i,j,k] = NaN32
-                end
-            end
-        end
-    end
-    result
-end
-
 #=========== Stagger module from Mikolaj ===========#
 
 struct StaggerMesh
@@ -120,7 +55,7 @@ struct StaggerMesh
             mesh.mz,mesh.dzm,mesh.dzmdn,mesh.z,mesh.zmdn,mesh.dzidzup,mesh.dzidzdn,
             mesh.mx*new_my*mesh.mz);
     end;
-end;
+end
 
 struct StaggerEOS
 
@@ -190,30 +125,30 @@ struct StaggerEOS
             mtable,
             tab)
     end;
-end;
+end
 
 function br_squeeze( A :: AbstractArray )
     keepdims = Tuple(i for i in size(A) if i != 1);
     return reshape( A, keepdims );
-end;
+end
 
 function br_heatmap_xz(A :: AbstractArray, M :: StaggerMesh; kwargs...)
     return heatmap(M.x,M.z,br_squeeze(A)',yflip=true; kwargs...)
-end;
+end
 
 function br_heatmap_yz(A :: AbstractArray, M :: StaggerMesh; kwargs...)
     return heatmap(M.y,M.z,br_squeeze(A)',yflip=true; kwargs...)
-end;
+end
 
 function br_heatmap_xy(A :: AbstractArray, M :: StaggerMesh; kwargs...)
     return heatmap(M.x,M.y,br_squeeze(A); kwargs...)
-end;
+end
 
 function br_arr_ffile(file_name::String, mesh::StaggerMesh; rpos::Int)
     f = FortranFile(file_name,"r",access="direct",recl=mesh.n*4);
     var = read(f,rec=rpos,(Float32,(mesh.mx,mesh.my,mesh.mz)));
     return var
-end;
+end
 
 function StaggerMesh2BifrostMesh(M :: StaggerMesh, cutlb::Int64 = 0, cutub::Int64 = 0)
 
@@ -237,7 +172,7 @@ function StaggerMesh2BifrostMesh(M :: StaggerMesh, cutlb::Int64 = 0, cutub::Int6
         println(io,join([@sprintf "%e" x for x in M.dyidyup[1+cutlb:end-cutub]], " "))
         println(io,join([@sprintf "%e" x for x in M.dyidydn[1+cutlb:end-cutub]], " "))
     end
-end;
+end
 
 function StaggerSnap2BifrostSnap(file_name::String, mesh::StaggerMesh, do_mhd::Bool = true, cutlb::Int64 = 0, cutub::Int64 = 0)
     # create new mesh if cuts are needed
@@ -267,5 +202,76 @@ function StaggerSnap2BifrostSnap(file_name::String, mesh::StaggerMesh, do_mhd::B
         tmp = br_arr_ffile(file_name, mesh, rpos=8) # legacy by -> bz
         write(f, rec=8, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
     end
-end;
+end
 
+
+mutable struct StaggerSnap
+    mesh_file ::String
+    dat_file  ::String
+    mesh      ::StaggerMesh
+    data      ::Dict{String,Array{Float32,3}}
+    order     ::Vector{String}
+end
+
+"""
+Read a Stagger Snapshot from .msh and .dat files.
+"""
+function StaggerSnap(filename, folder="../input_data/")
+    mesh_file = joinpath(folder,filename*".msh")
+    dat_file  = joinpath(folder,filename*".dat")
+    mesh      = Stagger.StaggerMesh(mesh_file)
+    result    = Dict{String,Array{Float32,3}}()
+    order    = ["r","px","py","pz","e","d","Bx","By","Bz"]
+    for para in order
+        result[para] = permutedims(Stagger.br_arr_ffile(dat_file,mesh; 	
+                                            rpos=findfirst(para .==order)),[3,1,2])
+    end
+    result["ee"] = result["e"] ./ result["r"] 
+    StaggerSnap(mesh_file,dat_file,mesh,result,order)
+end
+
+"""
+Apply the scaling in converters to snap (This is not ideal yet, should make it more flexible)
+"""
+function normalize!(snap, converter::AtmosUnits, paras...; reverse=false)
+	operation(a,b) = reverse ? a ./ b : a .* b
+	for p in paras 
+		p == "r" ? 
+		snap.data["r"] = operation(snap.data["r"],converter.d) : nothing
+		p == "ee" ? 
+		snap.data["ee"] = operation(snap.data["ee"],converter.ee) : nothing
+		p == "e" ? 
+		snap.data["e"] = operation(snap.data["e"],converter.e) : nothing
+	end
+end
+
+"""
+Lookup para in the given EOS using use_paras as variables.
+"""
+function get_from_eos(snap::StaggerSnap,eos,para="T",use_paras=["r","e"]; use_log=[true,true])
+    snap_size = size(snap.data[snap.order[1]])
+    result    = similar(snap.data[snap.order[1]])
+    result   .= 0.0
+    do_log    = [i ? x->log(x) : identity for i in use_log]
+    @inbounds for k in 1:snap_size[3]
+        @inbounds for j in 1:snap_size[2]
+            @inbounds for i in 1:snap_size[1]
+                try
+                    result[i,j,k] = eos.lookup(para,
+                                            do_log[1](snap.data[use_paras[1]][i,j,k]),
+                                            do_log[2](snap.data[use_paras[2]][i,j,k]))
+                catch 
+                    result[i,j,k] = NaN32
+                end
+            end
+        end
+    end
+    result
+end
+
+"""
+Container for Python stagger snap (usefull for dispatching)
+"""
+struct StaggerLegacySnap
+    snap::PyCall.PyObject
+end

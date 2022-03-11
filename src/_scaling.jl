@@ -1,4 +1,4 @@
-struct Converter
+struct AtmosUnits
     system ::String
     l      ::Float64
     d      ::Float64
@@ -8,6 +8,7 @@ struct Converter
     p      ::Float64
     ee     ::Float64
     e      ::Float64
+    k      ::Float64
     mu     ::Float64
     b      ::Float64
     k_B    ::Float64
@@ -24,10 +25,19 @@ function StaggerCGS(system = "cgs",
                     p  = d*u^2,                           
                     ee = u^2,    
                     e  = d*ee,
+                    k  = l^2/m,
                     mu = 1.3,
                     b = u*sqrt(π*4.0*d),
                     k_B  = 1.380658E-16,
                     m_H  = 1.6726219E-24,
                     m_He = 6.65e-24)
-    Converter(system,l,d,t,u,m,p,ee,e,mu,b,k_B,m_H,m_He)
+    AtmosUnits(system,l,d,t,u,m,p,ee,e,k,mu,b,k_B,m_H,m_He)
+end
+
+function StaggerCGS(snap::T) where {T<:PyCall.PyObject}
+    l = snap.params_list["scaling_params"]["l_cgs"]
+    d = snap.params_list["scaling_params"]["d_cgs"]
+    v = snap.params_list["scaling_params"]["v_cgs"]
+    t = snap.scaling.t
+    StaggerCGS("cgs",l,d,t,v)
 end
