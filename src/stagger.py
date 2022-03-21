@@ -75,4 +75,4 @@ class stag(object):
         return vz
 
     def read_mem(self, field):
-        return getattr(self,field)[:,:,:]
+        return np.array(getattr(self,field))

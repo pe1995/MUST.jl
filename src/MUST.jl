@@ -7,8 +7,12 @@ using FortranFiles: FortranFile, read, readlines
 using Printf
 using Statistics
 using HDF5
+using Random
+using Interpolations
 import Base.filter, Base.filter!
 import Base.getindex
+import Base.length
+import Base.keys
 
 #= Python modules =#
 const numpy             = PyNULL()
@@ -21,7 +25,7 @@ end
 
 #= MUST interface =#
 export import_dispatch, in_dispatch
-export Space, spacebox, Box
+export Space, spacebox, Box, add!
 
 #= Julia code files =#
 include("_help.jl")
