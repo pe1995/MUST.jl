@@ -52,10 +52,24 @@ function _import_dispatch(location::Union{Nothing,String}=nothing, submodules=[]
 end
 
 """
-The given path is converted from relative to the expermiment to absolte.
+The given path is converted from relative to the expermiment to absolute.
 """
 macro in_dispatch(relative_path)
 	relative_path_l = esc(relative_path)
 	:(_in_dispatch($(relative_path_l)))
 end
 _in_dispatch(relative_path) = abspath(joinpath(dispatch_location,experiment_location,relative_path))
+
+function list_of_snapshots(list_of_files)
+	los = []
+	for i in 1:length(list_of_files)
+		if (isdir(list_of_files[i]))
+			try
+				append!(los, [parse(Int, basename(dirname(list_of_files[i])))])
+			catch
+				continue
+			end
+		end
+	end
+	los
+end
