@@ -39,3 +39,23 @@ macro get_help_py(mod, dir)
     mod_s = :($mod)
     :($(mod_e) = _get_help_py($(QuoteNode(mod_s)), $path_esc))
 end
+
+"""
+Split array arr in nsplits roughly equal junks.
+If mask=true the indices will be returned.
+"""
+function split_similar(arr, nsplits; mask=false)
+    splits      = div(length(arr), nsplits)
+    split_masks = []
+    for i in 1:nsplits-1
+        append!(split_masks, [[((i-1)*splits+1:(i)*splits)...]])
+    end
+    
+    append!(split_masks, [[((nsplits-1)*splits+1:length(arr))...]])
+
+    if mask
+        return split_masks
+    else
+        return [arr[mask] for mask in split_masks]
+    end
+end
