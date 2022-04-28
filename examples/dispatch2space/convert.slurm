@@ -1,8 +1,9 @@
 #!/bin/sh
 #SBATCH --job-name=convert
-#SBATCH --nodes=2
-#SBATCH --ntasks=64
-#SBATCH --partition=debug
-#SBATCH --time=7-00:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=32
+#SBATCH --partition=medium
+#SBATCH --mem=64gb                     # Job memory request
+#SBATCH --time=01:00:00                # Time limit hrs:min:sec
 
-julia convert.jl data/stellar_i120/
+julia convert.jl data/stellar_i80/
