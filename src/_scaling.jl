@@ -39,9 +39,14 @@ function StaggerCGS(system = "cgs",
 end
 
 function StaggerCGS(snap::T) where {T<:PyCall.PyObject}
-    l = snap.params_list["scaling_params"]["l_cgs"]
-    d = snap.params_list["scaling_params"]["d_cgs"]
-    v = snap.params_list["scaling_params"]["v_cgs"]
+    pnames = keys(snap.params_list["scaling_params"])
+    l_name = "l_cgs" in pnames ? "l_cgs" : "l"
+    d_name = "d_cgs" in pnames ? "d_cgs" : "d"
+    v_name = "v_cgs" in pnames ? "v_cgs" : "v"
+
+    l = snap.params_list["scaling_params"][l_name]
+    d = snap.params_list["scaling_params"][d_name]
+    v = snap.params_list["scaling_params"][v_name]
     t = snap.scaling.t
     StaggerCGS("cgs",l,d,t,v)
 end
