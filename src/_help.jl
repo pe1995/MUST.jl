@@ -45,13 +45,21 @@ Split array arr in nsplits roughly equal junks.
 If mask=true the indices will be returned.
 """
 function split_similar(arr, nsplits; mask=false)
-    splits      = div(length(arr), nsplits)
-    split_masks = []
-    for i in 1:nsplits-1
-        append!(split_masks, [[((i-1)*splits+1:(i)*splits)...]])
-    end
+    nsplits = length(arr) < nsplits ? length(arr) : nsplits
+    splits  = div(length(arr), nsplits)
+    nrest   = length(arr) % nsplits
+    split_sizes = Int[splits for _ in 1:nsplits]
     
-    append!(split_masks, [[((nsplits-1)*splits+1:length(arr))...]])
+    for i in 1:nrest
+        split_sizes[i] = split_sizes[i] + 1
+    end
+
+    split_masks = []
+    last_idx    = 0
+    for i in 1:nsplits
+        append!(split_masks, [[ (last_idx+1:last_idx+split_sizes[i])... ]])
+        last_idx = last_idx+split_sizes[i]
+    end
 
     if mask
         return split_masks

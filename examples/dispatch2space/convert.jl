@@ -86,12 +86,15 @@ MUST.sendsync(workers(), folder=folder)
 end
 
 futures = Distributed.Future[]
+wrk     = sort(workers())
 for (i,split) in enumerate(MUST.split_similar(snapshots, nworkers()))
     # Send the split to the worker
-    MUST.sendsync(workers()[i], split_l=split)
+    MUST.sendsync(wrk[i], split_l=split)
+
+    @show split wrk[i]
 
     # Execute the function convert_snapshots on the passed split
-    append!(futures, [@spawnat workers()[i] convert_snapshots(split_l)])
+    append!(futures, [@spawnat wrk[i] convert_snapshots(split_l)])
 end
 
 # Wait for the execution to finish
