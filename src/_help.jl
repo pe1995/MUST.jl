@@ -67,3 +67,11 @@ function split_similar(arr, nsplits; mask=false)
         return [arr[mask] for mask in split_masks]
     end
 end
+
+"""
+create random number between a and b
+"""
+randrange(a,b,args...) = begin
+    xmin,xmax = min(a,b),max(a,b)
+    rand(args...) .* (xmax-xmin) .+ xmin
+end
