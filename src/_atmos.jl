@@ -390,7 +390,7 @@ function add_from_EOS(s::MUST.Space, eos, quantity::Symbol;
                         convert_to=Base.identity)
     f1 = EOS_log[1] ? log : Base.identity
     f2 = EOS_log[2] ? log : Base.identity
-    convert_to.(eos.lookup.(String(quantity), f1.(s[EOS_paras[1]]), f2.(s[EOS_paras[2]])))
+    convert_to.(eos.lookup(String(quantity), f1.(s[EOS_paras[1]]), f2.(s[EOS_paras[2]])))
 end
 
 """

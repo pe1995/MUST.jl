@@ -60,7 +60,7 @@ macro in_dispatch(relative_path)
 end
 _in_dispatch(relative_path) = abspath(joinpath(dispatch_location,experiment_location,relative_path))
 
-function list_of_snapshots(list_of_files)
+function list_of_snapshots(list_of_files::Vector{String})
 	los = []
 	for i in 1:length(list_of_files)
 		if (isdir(list_of_files[i]))

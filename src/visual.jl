@@ -1,3 +1,8 @@
+using PyPlot
+using Glob
+using MUST
+using PyCall
+
 const visual = true
 
 function basic_subplot(nrows,ncols;
@@ -148,3 +153,126 @@ function basic_plot!(ax;
         end
     end
 end
+
+function gif_by_plane(stat::Function, folder::Vector{String}, labels::Vector{String}; 
+                                    color=["k" for _ in folder], ls=["-" for _ in folder],
+                                    ylim=(4000, 22000), duration=0.2,
+                                    ylabel="", xlabel="z [cm]",
+                                    names=["box" for _ in folder], variable=:temp, path_ext="box_stat")
+    n_curves = length(folder)
+    @assert length(folder) == length(labels) 
+    @assert length(folder) == length(names) 
+
+    iw    = zeros(Int64, n_curves)
+    stats = []
+    zs    = []
+
+    n_snaps   = argmax([length(list_of_snapshots(f, n)) for (f,n) in zip(folder, names)])
+
+    filenames = String[]
+
+    for i in list_of_snapshots(folder[n_snaps], names[n_snaps])
+        plt.title("snapshot $(i)")
+        plt.ylabel(ylabel)
+        plt.xlabel(xlabel)
+        plt.ylim(ylim...)
+
+        for j in 1:n_curves
+            try
+                b     = MUST.Box("$(names[j])_sn$(i)", folder=MUST.@in_dispatch(folder[j]))
+                stats = MUST.plane_statistic(stat, b, variable)
+                zs    = b.z[1,1,:]
+
+                iw[j] = i
+            catch
+                if iw[j] == 0
+                    continue
+                else
+                    b     = MUST.Box("$(names[j])_sn$(iw[j])", folder=MUST.@in_dispatch(folder[j]))
+                    stats = MUST.plane_statistic(stat, b, variable)
+                    zs    = b.z[1,1,:]
+                end
+            end
+        
+            if iw[j] == 0
+                continue
+            else
+                plt.plot(zs, stats, color=color[j],label=labels[j], ls=ls[j])
+            end
+        end
+        plt.legend()
+        plt.savefig("$(path_ext)_sn$(i).png", bbox_inches="tight")        
+        plt.close()
+        append!(filenames, ["$(path_ext)_sn$(i).png"])
+    end
+
+    gif_from_pngs(filenames, "$(path_ext).gif", duration=duration)
+end
+
+function gif_by_value(stat::Function, folder::String, label::String; 
+                                    cmap="Greys_r",
+                                    duration=0.2,
+                                    names="box", variable=:temp, path_ext="box_val", 
+                                    clabel="", 
+                                    kwargs...)
+    iw    = 0
+    n_snaps   = length(list_of_snapshots(folder, names))
+    filenames = String[]
+
+    for i in list_of_snapshots(folder, names)
+        plt.title("$(label), snapshot $(i)")
+
+        try
+            b     = MUST.Box("$(names)_sn$(i)", folder=MUST.@in_dispatch(folder))
+            bv = MUST.reduce_by_value(stat, b; kwargs...)
+
+            im   = plt.imshow(bv.data[variable][:,:,1], origin="lower", cmap=cmap);
+            cb   = plt.colorbar(im)
+            cb.set_label(clabel)
+
+            iw = i
+        catch
+            if iw == 0
+                continue
+            else
+                b     = MUST.Box("$(names)_sn$(iw)", folder=MUST.@in_dispatch(folder))
+                bv = MUST.reduce_by_value(stat, b; kwargs...)
+
+                im   = plt.imshow(bv.data[variable][:,:,1], origin="lower", cmap=cmap);
+                cb   = plt.colorbar(im)
+                cb.set_label(clabel)
+            end
+        end
+    
+        plt.savefig("$(path_ext)_sn$(i).png", bbox_inches="tight")        
+        plt.close()
+        append!(filenames, ["$(path_ext)_sn$(i).png"])
+    end
+
+    gif_from_pngs(filenames, "$(path_ext).gif", duration=duration)
+end
+
+"""
+Look for files starting with name in folder
+"""
+list_of_snapshots(folder::String, name::String) = begin
+    f    = glob("$(name)*.hdf5", folder)
+    sort([parse(Int64, fi[last(findlast("sn", fi))+1:end-5]) for fi in f])
+end
+
+gif_from_pngs(list_of_filenames, save_path; duration=0.2) = py"""
+import imageio
+import glob
+import os
+import sys
+
+images = []
+
+for filename in $(list_of_filenames):
+    images.append(imageio.imread(filename))
+
+imageio.mimsave($(save_path), images, duration=$(duration))
+
+for f in $(list_of_filenames):
+    os.remove(f)
+"""
