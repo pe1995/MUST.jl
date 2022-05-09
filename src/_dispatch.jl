@@ -73,3 +73,25 @@ function list_of_snapshots(list_of_files::Vector{String})
 	end
 	los
 end
+
+function _snapshot_folder(i_snap::Int, list_of_files::Vector{String})
+	snap_int = -1
+	snap_str = ""
+	for i in 1:length(list_of_files)
+		if (isdir(list_of_files[i]))
+			try
+				snap_int = parse(Int, basename(dirname(list_of_files[i])))
+			catch
+				continue
+			end
+			
+			if (snap_int == i_snap) 
+				snap_str=list_of_files[i] 
+				break 
+			end
+		end
+	end
+	
+	(snap_str == "") ? error("Snapshot $(i_snap) not found.") : nothing
+	snap_str
+end

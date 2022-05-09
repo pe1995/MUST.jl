@@ -1,3 +1,8 @@
 [deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 MUST = "78ff202f-d08f-4a78-aa4d-c8e96fa3dcb9"
+Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"

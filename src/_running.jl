@@ -15,7 +15,7 @@ mutable struct StellarNamelist <: AbstractNamelist
     gravity_params       ::Dict{String,Any}  
     pressure_node_params ::Dict{String,Any}  
     rt_integral_params   ::Dict{String,Any}  
-    sc_rt_params         ::Dict{String,Any}                   
+    sc_rt_params         ::Dict{String,Any}           
     restart_params       ::Dict{String,Any}  
     io_params            ::Dict{String,Any}                  
     aux_params           ::Dict{String,Any}  
@@ -26,7 +26,15 @@ mutable struct StellarNamelist <: AbstractNamelist
     divb_clean_params    ::Dict{String,Any}  
     halo_params          ::Dict{String,Any}  
     timer_params         ::Dict{String,Any}  
-    lock_params          ::Dict{String,Any}  
+    lock_params          ::Dict{String,Any} 
+    task_list_params     ::Dict{String,Any} 
+    dispatcher0_params   ::Dict{String,Any} 
+end
+
+mutable struct SnapshotNamelist <: AbstractNamelist
+    io_nml       ::Dict{String,Any}  
+    snapshot_nml ::Dict{String,Any}  
+    idx_nml      ::Dict{String,Any}  
 end
 
 StellarNamelist() = StellarNamelist([Dict{String,Any}() for f in fieldnames(StellarNamelist)]...)
@@ -35,6 +43,22 @@ StellarNamelist(path::String) = begin
     read!(s, path)
     s
 end
+
+SnapshotNamelist() = SnapshotNamelist([Dict{String,Any}() for f in fieldnames(SnapshotNamelist)]...)
+SnapshotNamelist(path::String) = begin 
+    s = SnapshotNamelist()
+    read!(s, path)
+    for field in fieldnames(typeof(s))
+        d = getfield(s, field)
+        for key in keys(d)
+            !(typeof(d[key])<:AbstractArray) ? continue : nothing
+            d[key] = parse_from_namelist.(d[key][1:end-1])
+        end
+    end
+    s
+end
+
+#=== Functions ===#
 
 """
 Read a namelist from path.
@@ -50,7 +74,7 @@ function read!(nml::AbstractNamelist, path::String)
         
         # If there is a & it is a new parameter, then remove this from the line
         if occursin("&", line) 
-            para          = Symbol(split(line)[1][2:end]) 
+            para          = Symbol(lowercase(split(line)[1][2:end]))
             content[para] = Dict{String, Any}()
             line          = line[length(String(para))+2:end]
         end
@@ -58,7 +82,7 @@ function read!(nml::AbstractNamelist, path::String)
         # Split the lines at the = sign. Every second entry is value then
         line_s = split_namelist_line(line)
         for i in 1:2:length(line_s)
-            (length(line_s) >= 2) ? key = strip(line_s[i]) : continue
+            (length(line_s) >= 2) ? key = lowercase(strip(line_s[i])) : continue
             content[para][key] = parse_from_namelist(strip(line_s[i+1])) 
         end
     end
@@ -73,6 +97,9 @@ function read!(nml::AbstractNamelist, path::String)
 end
 
 function parse_from_namelist(value_string)
+    if length(value_string) == 0
+        return ""
+    end
     value_string = ("$(strip(value_string)[end])" == "/") ? strip(strip(value_string)[1:end-1]) : value_string
     val = nothing 
     if occursin(",", value_string) 
@@ -175,3 +202,38 @@ function write(nml::AbstractNamelist, path::String; soft_line_limit=85)
 
     close(f)
 end
+
+function check_success(nml::AbstractNamelist, output_folder::String)
+    # Check if the simulation reached close to the end
+    end_point = floor(nml.io_params["end_time"] / nml.io_params["out_time"])
+
+    content_of_folder = glob("*/", output_folder)
+    snapshots         = sort(MUST.list_of_snapshots(content_of_folder))
+
+    @show length(snapshots) end_point
+    length(snapshots) -2 >= end_point
+end
+
+function check_success(nml::StellarNamelist, output_folder::String)
+    # Check if it is a restart
+    i_restart = ("run" in keys(nml.restart_params)) ? 
+                first(get_restart_snap_nml(nml).snapshot_nml["time"]) : 0
+
+    # Check if the simulation reached close to the end
+    end_point = floor((nml.io_params["end_time"]-i_restart) / nml.io_params["out_time"])
+
+    content_of_folder = glob("*/", output_folder)
+    snapshots         = sort(MUST.list_of_snapshots(content_of_folder))
+
+    length(snapshots) -2 >= end_point
+end
+
+function get_restart_snap_nml(nml::StellarNamelist)
+    # the restart snapshot
+    i_snap    = nml.restart_params["snapshot"]
+    folder    = @in_dispatch "data/$(strip(nml.restart_params["run"], [''', ' ']))"
+    s = SnapshotNamelist(joinpath(_snapshot_folder(i_snap, glob("*/", folder)), "snapshot.nml"))
+    s
+end
+
+
