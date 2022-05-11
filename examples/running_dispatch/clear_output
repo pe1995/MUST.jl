@@ -1,0 +1,2 @@
+rm -r ../../../dispatch2/experiments/stellar_atmospheres/grid*.nml
+rm -r ../../../dispatch2/experiments/stellar_atmospheres/data/grid*

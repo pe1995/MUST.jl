@@ -15,6 +15,7 @@ import Base.filter, Base.filter!
 import Base.getindex
 import Base.length
 import Base.keys
+import Base.read!, Base.write
 
 #= Python modules =#
 const numpy             = PyNULL()
@@ -28,7 +29,7 @@ end
 #= MUST interface =#
 export import_dispatch, in_dispatch
 export Space, spacebox, Box, add!
-export read!, write
+#export read!, write
 
 #= Julia code files =#
 include("_parallel.jl")
@@ -37,6 +38,8 @@ include("_scaling.jl")
 include("_stagger.jl")
 include("_dispatch.jl")
 include("_atmos.jl")
+include("_namelist.jl")
+include("_mustgrid.jl")
 include("_running.jl")
 
 end
