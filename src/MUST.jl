@@ -11,6 +11,7 @@ using Random
 using Interpolations
 using Glob
 using Distributed
+using ArgParse
 import Base.filter, Base.filter!
 import Base.getindex
 import Base.length
@@ -32,6 +33,7 @@ export Space, spacebox, Box, add!
 #export read!, write
 
 #= Julia code files =#
+include("_argparse.jl")
 include("_parallel.jl")
 include("_help.jl")
 include("_scaling.jl")

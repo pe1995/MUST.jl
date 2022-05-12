@@ -14,4 +14,4 @@ export OMP_PROC_BIND=spread
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OMP_STACKSIZE=516M
 
-julia create_MUSTGrid.jl -i [1,50] -p summary_j1
+julia create_MUSTGrid.jl -i [51,100] -p summary_j2

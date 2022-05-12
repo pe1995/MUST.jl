@@ -107,7 +107,8 @@ end
 #========== Grid <-> Namelist creation ==========#
 
 """Create ngrid namelists from existing namelist."""
-function create_namelists!(grid::AbstractMUSTGrid; default_nml::Union{Nothing, StellarNamelist}=nothing)
+function create_namelists!(grid::AbstractMUSTGrid; 
+                            default_nml::Union{Nothing, StellarNamelist}=nothing, start_index::Int=1)
     ngrid = nrow(grid.info)
     phase = grid.name
 
@@ -118,7 +119,7 @@ function create_namelists!(grid::AbstractMUSTGrid; default_nml::Union{Nothing, S
 
     for i in 1:ngrid
         # name of namelists
-        id = "grid$(i)"
+        id = "grid$(start_index-1+i)"
         name = "$(id)_$(phase).nml"
 
         # copy the dummy namelist
