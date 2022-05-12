@@ -4,8 +4,11 @@ using CSV
 using DataFrames
 MUST.@import_dispatch "../../../dispatch2/"
 
-# How large should the grid be
-ngrid = parse(Int, ARGS[1])
+arguments   = MUST.MUSTGridArgs()
+ngrid       = last(arguments[:index_range]) - (first(arguments[:index_range]) -1)   # How large should the grid be
+start_index = first(arguments[:index_range])                                        # Where the namelist naming should start
+                                                                                    #   this is important if more than 1 instance is running 
+info_path   = "$(arguments[:info_path]).csv"                                        # Where the info should be stored    
 
 # Slurm setup
 threads, tasks, mem = MUST.slurm_setup()
@@ -18,12 +21,12 @@ threads, tasks, mem = MUST.slurm_setup()
 phase1_nml_template = MUST.StellarNamelist(MUST.@in_dispatch("stellar.nml"))
 phase2_nml_template = MUST.StellarNamelist(MUST.@in_dispatch("restart.nml"))
 
-MUST.set!(phase1_nml_template, io_params=("print_seconds" => 120,
-                                          "print_every"   => 120,
+MUST.set!(phase1_nml_template, io_params=("print_seconds" => 5,
+                                          "print_every"   => 0,
                                           "end_time"      => 50.0,
                                           "out_time"      => 5.0))
-MUST.set!(phase2_nml_template, io_params=("print_seconds" => 120,
-                                          "print_every"   => 120,
+MUST.set!(phase2_nml_template, io_params=("print_seconds" => 5,
+                                          "print_every"   => 0,
                                           "end_time"      => 80.0,
                                           "out_time"      => 5.0),
                                 restart_params=("snapshot" => 8,))
@@ -31,17 +34,17 @@ MUST.set!(phase2_nml_template, io_params=("print_seconds" => 120,
 #========== PHASE 1 ==========#
 # Create a random grid from central seeds
 central_seeds = Dict{Symbol, Dict{String, Float32}}(   
-                        :stellar_params => Dict{String, Float32}("tt_k" => 9000.0, "d_cgs" => log(1.6397e-7), "ee_min" => 5.5), 
+                        :stellar_params => Dict{String, Float32}("tt_k" => 11500.0, "d_cgs" => log(1.48120e-7), "ee_min" => 5.5), 
                         :newton_params  => Dict{String, Float32}("ee0"=>5.3)
                     )
 
 relative_lims = Dict{Symbol, Dict{String, Float32}}(   
-                        :stellar_params => Dict{String, Float32}("tt_k" => 0.3, "d_cgs" => 0.1, "ee_min" => 0.0001), 
+                        :stellar_params => Dict{String, Float32}("tt_k" => 0.1, "d_cgs" => 0.1, "ee_min" => 0.0001), 
                         :newton_params  => Dict{String, Float32}("ee0"=>0.0001)
                     )
 
 # The grid can be constructed using e.g. a RangeMUSTGrid
-phase1_grid = MUST.RangeMUSTGrid(central_seeds, relative_lims)
+phase1_grid = MUST.RangeMUSTGrid(central_seeds, relative_lims, phase="phase1")
 MUST.randomgrid!(phase1_grid, ngrid)
 
 # Anything that is log spaced can now be turned into linear again
@@ -50,16 +53,16 @@ MUST.modify!(phase1_grid, :stellar_params, "d_cgs") do x
 end
 
 # Create the namelists of this grid (in the dispatch folder)
-MUST.create_namelists!(phase1_grid, phase="phase1", default_nml=phase1_nml_template)
+MUST.create_namelists!(phase1_grid, default_nml=phase1_nml_template, start_index=start_index)
 
 # Save the intermediate results
-CSV.write("summary.csv", phase1_grid.info)
+CSV.write(info_path, phase1_grid.info)
 
 # Run the first phase and check for completion
 MUST.run!(phase1_grid, threads=threads, memMB=mem, timeout="00:40:00")
 
 # Save the intermediate results
-CSV.write("summary.csv", phase1_grid.info)
+CSV.write(info_path, phase1_grid.info)
 
 @info "Phase 1 completed."
 
@@ -67,13 +70,13 @@ CSV.write("summary.csv", phase1_grid.info)
 # In the second phase take the first phase grid and add the restart information
 # Also take over the grid parameters to the new grid. If you dont want the 
 # new namelists to have the parameters of the old namelist you can leave out the last parameter.
-phase2_grid = MUST.RestartMUSTGrid(phase1_grid, from_phase="phase1", grid=phase1_grid.grid)
+phase2_grid = MUST.RestartMUSTGrid(phase1_grid, phase="phase2", grid=phase1_grid.grid)
 
 # Also create the namelists for this grid
-MUST.create_namelists!(phase2_grid, phase="phase2", default_nml=phase2_nml_template)
+MUST.create_namelists!(phase2_grid, default_nml=phase2_nml_template, start_index=start_index)
 
 # Save the intermediate results
-CSV.write("summary.csv", phase2_grid.info)
+CSV.write(info_path, phase2_grid.info)
 
 # Run the first phase and check for completion
 MUST.run!(phase2_grid, threads=threads, memMB=mem, timeout="03:00:00")
@@ -83,4 +86,4 @@ MUST.run!(phase2_grid, threads=threads, memMB=mem, timeout="03:00:00")
 #========== COMPLETION ==========#
 # One can add as many phases as needed.
 # The last phase contains the info from all phases
-CSV.write("summary.csv", phase2_grid.info)
+CSV.write(info_path, phase2_grid.info)

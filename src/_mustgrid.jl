@@ -35,13 +35,16 @@ end
 
 #========== Constructors ==========#
 
-RangeMUSTGrid(seeds::T, limits::T) where {F<:AbstractFloat, T<:Dict{Symbol, Dict{String, F}}} = begin
-    RangeMUSTGrid(seeds, limits,  0, Dict{Symbol, Dict{String, Vector{F}}}(), "", DataFrame())
+RangeMUSTGrid(seeds::T, limits::T; phase="phase1") where {F<:AbstractFloat, T<:Dict{Symbol, Dict{String, F}}} = begin
+    RangeMUSTGrid(seeds, limits,  0, Dict{Symbol, Dict{String, Vector{F}}}(), phase, DataFrame())
 end
 
-IdentityMUSTGrid() = IdentityMUSTGrid("", DataFrame())
+RangeMUSTGrid(info::DataFrame; t::Type=Float64, phase="phase1") = RangeMUSTGrid(Dict{Symbol, Dict{String, t}}(), Dict{Symbol, Dict{String, t}}(), 0, Dict{Symbol, Dict{String, Vector{t}}}(), phase, info)
 
-RestartMUSTGrid(from::AbstractMUSTGrid; from_phase::String="phase1", grid::T=T()) where {F, T<:Dict{Symbol, Dict{String, Vector{F}}}} = begin
+IdentityMUSTGrid(; phase="phase_identity") = IdentityMUSTGrid(phase, DataFrame())
+
+RestartMUSTGrid(from::AbstractMUSTGrid; grid::T=T(), phase="phase2") where {F, T<:Dict{Symbol, Dict{String, Vector{F}}}} = begin
+    from_phase = from.name
     grid_in = Dict{Symbol, Dict{String, Vector{Any}}}()
     grid    = deepcopy(grid)
 
@@ -55,7 +58,7 @@ RestartMUSTGrid(from::AbstractMUSTGrid; from_phase::String="phase1", grid::T=T()
     !(:restart_params in keys(grid_in)) ? grid_in[:restart_params] = Dict{String, Vector{Any}}() : nothing
     grid_in[:restart_params]["run"] = [split(n, ".nml")[1] for n in from.info[!,"$(from_phase)_name"]]
 
-    RestartMUSTGrid(grid_in, from_phase, "", deepcopy(from.info))
+    RestartMUSTGrid(grid_in, from_phase, phase, deepcopy(from.info))
 end
 
 #========== Functionality of the types ==========#
@@ -105,10 +108,9 @@ end
 
 """Create ngrid namelists from existing namelist."""
 function create_namelists!(grid::AbstractMUSTGrid; 
-                                    default_nml::Union{Nothing, StellarNamelist}=nothing,
-                                    phase="phase1")
-
+                            default_nml::Union{Nothing, StellarNamelist}=nothing, start_index::Int=1)
     ngrid = nrow(grid.info)
+    phase = grid.name
 
     dummy_nml = isnothing(default_nml) ? 
                 MUST.StellarNamelist(MUST.@in_dispatch("stellar.nml")) : default_nml
@@ -117,7 +119,7 @@ function create_namelists!(grid::AbstractMUSTGrid;
 
     for i in 1:ngrid
         # name of namelists
-        id = "grid$(i)"
+        id = "grid$(start_index-1+i)"
         name = "$(id)_$(phase).nml"
 
         # copy the dummy namelist
