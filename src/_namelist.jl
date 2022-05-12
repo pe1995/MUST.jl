@@ -58,7 +58,7 @@ SnapshotNamelist(path::String) = begin
     s
 end
 
-#=== Functions for Namelists ===#
+#========== Functions for Namelists ==========#
 
 """
 Read a namelist from path.
@@ -209,4 +209,18 @@ function get_restart_snap_nml(nml::StellarNamelist)
     folder    = @in_dispatch "data/$(strip(nml.restart_params["run"], [''', ' ']))"
     s = SnapshotNamelist(joinpath(_snapshot_folder(i_snap, glob("*/", folder)), "snapshot.nml"))
     s
+end
+
+"""Set fields of the Namelist. Enter field=(parameter=>value,...)"""
+function set!(nml::AbstractNamelist; kwargs...)
+    for (field,paras) in kwargs
+        if !(typeof(paras) <: Tuple) 
+            @warn "Argument to $(field) is not a Tuple. Add trailing comma if there is only one entry."
+            continue
+        end
+
+        for (p,v) in paras
+            getfield(nml, field)[p] = v
+        end
+    end
 end
