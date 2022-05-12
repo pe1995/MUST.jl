@@ -2,6 +2,8 @@
 examples/*/Manifest.toml
 examples/*/slurm*
 examples/*/core.cobra*
+examples/*/*.pdf
+examples/*/*.png
 examples/running_dispatch/*.csv
 *.pyc
 **/__pycache__/

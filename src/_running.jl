@@ -58,19 +58,25 @@ function check_success(grid::AbstractMUSTGrid, nml::AbstractNamelist, output_fol
     content_of_folder = glob("*/", output_folder)
     snapshots         = sort(MUST.list_of_snapshots(content_of_folder))
 
-    @show length(snapshots) end_point
     length(snapshots) -2 >= end_point
 end
 
 function check_success(grid::RestartMUSTGrid, nml::AbstractNamelist, output_folder::String)
     nml_name  = split(output_folder, "/")[end]*".nml"
     idx       = findfirst(grid.info[!,"$(grid.name)_name"] .== nml_name)
-    if grid.info[idx,"$(grid.from_name)_success"] 
+
+    if !grid.info[idx,"$(grid.from_name)_success"] 
         return false
     end
 
-    i_restart = first(get_restart_snap_nml(nml).snapshot_nml["time"])
-    
+    i_restart = 0.0
+    try
+        i_restart = first(get_restart_snap_nml(nml).snapshot_nml["time"])
+    catch
+        @warn "Restart Snapshot not found for $(nml_name) (after checking for $(grid.from_name) success)."
+        return false
+    end
+
     # Check if the simulation reached close to the end
     end_point = floor((nml.io_params["end_time"]-i_restart) / nml.io_params["out_time"])
 
