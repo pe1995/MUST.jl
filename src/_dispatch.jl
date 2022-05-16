@@ -40,14 +40,19 @@ function _import_dispatch(location::Union{Nothing,String}=nothing, submodules=[]
 	global dispatch_location = abspath(os.getenv("D", location))
 	dispatch_python_path = os."path".join(abspath(os.getenv("D", location)),
 											"utilities/python/")
+	
 	isdir(dispatch_python_path) ? nothing : throw(error("$(dispatch_python_path) is not a dispatch installation."))
-	dispatch_python_path in sys."path" ? nothing :
-										append!(sys."path",[dispatch_python_path])
+	
+	if !(dispatch_python_path in sys."path")
+		append!(sys."path",[dispatch_python_path])
+		append!(sys."path",[joinpath(dispatch_python_path, "dispatch")])
+	end
+	
 	
 	if length(submodules) == 0
 		return pyimport("dispatch")
 	else
-		return [pyimport("dispatch.$(String(m))") for m in submodules]
+		return [pyimport("$(String(m))") for m in submodules]
 	end
 end
 
