@@ -211,7 +211,7 @@ end
 
 function gif_by_value(stat::Function, folder::String, label::String; 
                                     cmap="Greys_r",
-                                    duration=0.2,
+                                    duration=0.2, vmin=-99999999, vmax=-99999999,
                                     names="box", variable=:temp, path_ext="box_val", 
                                     clabel="", 
                                     kwargs...)
@@ -223,10 +223,13 @@ function gif_by_value(stat::Function, folder::String, label::String;
         plt.title("$(label), snapshot $(i)")
 
         try
-            b     = MUST.Box("$(names)_sn$(i)", folder=MUST.@in_dispatch(folder))
+            b  = MUST.Box("$(names)_sn$(i)", folder=MUST.@in_dispatch(folder))
             bv = MUST.reduce_by_value(stat, b; kwargs...)
 
-            im   = plt.imshow(bv.data[variable][:,:,1], origin="lower", cmap=cmap);
+            im = ((vmin != -1) & (vmax != -1)) ? 
+                        plt.imshow(bv.data[variable][:,:,1], origin="lower", cmap=cmap, vmin=vmin, vmax=vmax) :
+                        plt.imshow(bv.data[variable][:,:,1], origin="lower", cmap=cmap)
+
             cb   = plt.colorbar(im)
             cb.set_label(clabel)
 
@@ -235,10 +238,13 @@ function gif_by_value(stat::Function, folder::String, label::String;
             if iw == 0
                 continue
             else
-                b     = MUST.Box("$(names)_sn$(iw)", folder=MUST.@in_dispatch(folder))
+                b  = MUST.Box("$(names)_sn$(iw)", folder=MUST.@in_dispatch(folder))
                 bv = MUST.reduce_by_value(stat, b; kwargs...)
 
-                im   = plt.imshow(bv.data[variable][:,:,1], origin="lower", cmap=cmap);
+                im = ((vmin != -99999999) & (vmax != -99999999)) ? 
+                        plt.imshow(bv.data[variable][:,:,1], origin="lower", cmap=cmap, vmin=vmin, vmax=vmax) :
+                        plt.imshow(bv.data[variable][:,:,1], origin="lower", cmap=cmap)
+                        
                 cb   = plt.colorbar(im)
                 cb.set_label(clabel)
             end

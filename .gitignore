@@ -3,6 +3,7 @@ examples/*/Manifest.toml
 examples/*/slurm*
 examples/*/core.cobra*
 examples/*/*.pdf
+examples/*/*.gif
 examples/*/*.png
 examples/running_dispatch/*.csv
 *.pyc

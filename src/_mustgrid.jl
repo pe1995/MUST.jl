@@ -56,7 +56,7 @@ RestartMUSTGrid(from::AbstractMUSTGrid; grid::T=T(), phase="phase2") where {F, T
     end
 
     !(:restart_params in keys(grid_in)) ? grid_in[:restart_params] = Dict{String, Vector{Any}}() : nothing
-    grid_in[:restart_params]["run"] = [split(n, ".nml")[1] for n in from.info[!,"$(from_phase)_name"]]
+    grid_in[:restart_params]["run"] = ["'"*String(split(n, ".nml")[1])*"'" for n in from.info[!,"$(from_phase)_name"]]
 
     RestartMUSTGrid(grid_in, from_phase, phase, deepcopy(from.info))
 end

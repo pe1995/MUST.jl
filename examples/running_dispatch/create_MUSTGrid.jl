@@ -23,25 +23,23 @@ phase2_nml_template = MUST.StellarNamelist(MUST.@in_dispatch("restart.nml"))
 
 MUST.set!(phase1_nml_template, io_params=("print_seconds" => 5,
                                           "print_every"   => 0,
-                                          "end_time"      => 50.0,
+                                          "end_time"      => 30.0,
                                           "out_time"      => 5.0))
 MUST.set!(phase2_nml_template, io_params=("print_seconds" => 5,
                                           "print_every"   => 0,
-                                          "end_time"      => 80.0,
+                                          "end_time"      => 60.0,
                                           "out_time"      => 5.0),
-                                restart_params=("snapshot" => 8,))
+                                restart_params=("snapshot" => 4,))
 
 #========== PHASE 1 ==========#
 # Create a random grid from central seeds
 central_seeds = Dict{Symbol, Dict{String, Float32}}(   
-                        :stellar_params => Dict{String, Float32}("tt_k" => 11500.0, "d_cgs" => log(1.48120e-7), "ee_min" => 5.5), 
-                        :newton_params  => Dict{String, Float32}("ee0"=>5.3)
-                    )
+                        :stellar_params => Dict{String, Float32}("tt_k" => 14940.443588092769, "d_cgs" => log(2.6138129873767868e-8), "ee_min" => 5.5), 
+                        :newton_params  => Dict{String, Float32}("ee0"=>5.3))
 
 relative_lims = Dict{Symbol, Dict{String, Float32}}(   
-                        :stellar_params => Dict{String, Float32}("tt_k" => 0.1, "d_cgs" => 0.1, "ee_min" => 0.0001), 
-                        :newton_params  => Dict{String, Float32}("ee0"=>0.0001)
-                    )
+                        :stellar_params => Dict{String, Float32}("tt_k" => 0.2, "d_cgs" => 0.1, "ee_min" => 0.0001), 
+                        :newton_params  => Dict{String, Float32}("ee0"=>0.0001))
 
 # The grid can be constructed using e.g. a RangeMUSTGrid
 phase1_grid = MUST.RangeMUSTGrid(central_seeds, relative_lims, phase="phase1")
@@ -78,8 +76,8 @@ MUST.create_namelists!(phase2_grid, default_nml=phase2_nml_template, start_index
 # Save the intermediate results
 CSV.write(info_path, phase2_grid.info)
 
-# Run the first phase and check for completion
-MUST.run!(phase2_grid, threads=threads, memMB=mem, timeout="03:00:00")
+# Run the second phase and check for completion
+MUST.run!(phase2_grid, threads=threads, memMB=mem, timeout="02:00:00")
 
 @info "Phase 2 completed."
 
