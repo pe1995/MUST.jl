@@ -224,3 +224,12 @@ function set!(nml::AbstractNamelist; kwargs...)
         end
     end
 end
+
+read_eos_params(path::String) = begin 
+    open(path, "r") do f
+        lines = readlines(f)
+    end
+
+    lines = [strip.(split(strip(l), "=")) for l in lines]
+    lines = Dict(k=>v for (k,v) in lines)
+end

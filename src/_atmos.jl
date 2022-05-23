@@ -1,8 +1,16 @@
 abstract type AbstractSpace end
 
+mutable struct AtmosphericParameters{T<:AbstractFloat} 
+    time             ::T
+    teff             ::T
+    logg             ::T
+    composition      ::Dict{Symbol,T}
+end
+
 mutable struct Space <:AbstractSpace
     data             ::Dict{Symbol,Vector{<:Union{Float32, Float64, Int16, Int32, Int64}}}
     patch_dimensions ::Array{Int,2}
+    parameter        ::AtmosphericParameters
 end
 
 mutable struct Box <:AbstractSpace
@@ -10,6 +18,51 @@ mutable struct Box <:AbstractSpace
     y                ::Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}
     z                ::Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}
     data             ::Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}
+    parameter        ::AtmosphericParameters
+end
+
+#==== Functionality ====#
+"""
+Atmospheric parameters of a dispatch snapshot.
+Creates a link between the patch time, teff as well as physical parameters.
+"""
+function set!(atmp::AtmosphericParameters, teff_function, ini_namelist)
+    teff    = teff_function(atmp.time)
+    logg    = log10(ini_namelist.stellar_params["g_cgs"])
+
+    epn = MUST.@in_dispatch(String(strip(ini_namelist.eos_params["table_loc"])[2:end-1]))
+    eos_params_path = joinpath(epn, "tabparam.in")
+    
+    composition = composition_from_eos(eos_params_path)
+
+    atmp.teff = teff
+    atmp.logg = logg
+    atmp.composition = composition
+
+    nothing
+end
+
+read_teff(path) = begin
+    path = joinpath(path)
+    if !ispath(path) @warn "$(path) does not exist."
+        return nothing
+    end
+    data = readdlm(path)
+end 
+
+teff_interpolated(path) = begin
+    teff = read_teff(path)
+    LinearInterpolation(teff[:,1], teff[:,2], extrapolation_bc=Flat())
+end
+
+function composition_from_eos(path)
+    content = read_eos_params(path)
+    el      = split(content["cel"][2:end-1], " ")
+    el      = [String(s) for s in el if length(s)>0]
+    vl      = String.(split(content["abund"][2:end-1], " "))
+    vl      = [s for s in vl if length(s)>0]
+    vl      = parse.(Float64, vl)
+    Dict(Symbol(c)=>v for (c,v) in zip(el,vl))
 end
 
 """
@@ -69,7 +122,12 @@ function Space(snapshot::PyCall.PyObject, quantities::Symbol...)
         end
     end
 
-    Space(qs, patch_dimensions)
+    time = snapshot.nml_list["snapshot_nml"]["time"]
+    Space(qs, patch_dimensions, AtmosphericParameters(time, 
+                                                        Base.convert(typeof(time), -99.0), 
+                                                        Base.convert(typeof(time), -99.0), 
+                                                        Dict{Symbol, typeof(time)}())
+        )
 end
 
 """
@@ -127,7 +185,7 @@ function Space(snapshot::MUST.StaggerLegacySnap, quantities::Symbol...)
             append!(qs[:i_patch], Int[1 for _ in 1:size(coords,1)])
         end
     end
-    Space(qs, patch_dimensions)
+    Space(qs, patch_dimensions, AtmosphericParameters(-99.0, -99.0, -99.0, Dict{Symbol, Float64}()))
 end
 
 """
@@ -190,7 +248,7 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
     Box(x_grid[2:end-1,2:end-1,2:end-1],
         y_grid[2:end-1,2:end-1,2:end-1],
         z_grid[2:end-1,2:end-1,2:end-1],
-        Dict(q=>results[q][2:end-1,2:end-1,2:end-1] for q in keys(results)))
+        Dict(q=>results[q][2:end-1,2:end-1,2:end-1] for q in keys(results)), s.parameter)
 end
 
 @inline uniform_grid(s::Space, N::Int,axis=:x) = begin
@@ -276,7 +334,7 @@ function Box(s::Space)
         end
     end
 
-    Box(x_grid, y_grid, z_grid, results)
+    Box(x_grid, y_grid, z_grid, results, s.parameter)
 end 
 
 function Space(box::MUST.Box)
@@ -286,7 +344,7 @@ function Space(box::MUST.Box)
     
     p_dim = ones(1,3)
     p_dim[1,1] = length(x); p_dim[1,2] = length(y); p_dim[1,3] = length(z)
-    Space(q_dict, p_dim)
+    Space(q_dict, p_dim, box.parameter)
 end
 
 @inline _find_in_meshgrid(p, x, y, z) = begin
@@ -314,7 +372,7 @@ MUST.Space type object
 function Base.filter(f, s::MUST.Space)
     mask = f(;s.data...)
 	new_frame = Dict(q=>s.data[q][mask] for q in keys(s.data))
-	Space(new_frame, s.patch_dimensions)
+	Space(new_frame, s.patch_dimensions, s.parameter)
 end
 
 function Base.filter!(f, s::MUST.Space)
@@ -514,6 +572,10 @@ function save(s::MUST.Space; folder=nothing, name=nothing)
         fid[String(q)] = s.data[q]
     end
     fid["patch_dimensions"] = s.patch_dimensions
+
+    # Save the parameters
+    save(s.parameter, fid)
+
     close(fid)
     path
 end
@@ -527,8 +589,22 @@ function save(s::MUST.Box; folder=nothing, name=nothing)
     fid["x"] = s.x
     fid["y"] = s.y
     fid["z"] = s.z
+
+    # Save the parameters
+    save(s.parameter, fid)
+
     close(fid)
     path
+end
+
+function save(p::AtmosphericParameters, fid)
+    eles = [keys(p.composition)...]
+    vals = [p.composition[e] for e in eles]
+    fid["time"] = p.time
+    fid["teff"] = p.teff
+    fid["logg"] = p.logg
+    fid["composition_e"] = String.(eles)
+    fid["composition_v"] = vals
 end
 
 """
@@ -556,14 +632,20 @@ function Space(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
 
     fid = HDF5.h5open(path, "r")
     res = Dict{Symbol,Vector{<:Union{Float32, Float64, Int16, Int32, Int64}}}()
+
+    aux_fieldnames = _get_para_fieldnames(AtmosphericParameters)
+    append!(aux_fieldnames, ["patch_dimensions"])
+
     for q in keys(fid)
-        q == "patch_dimensions" ? continue : nothing
+        q in aux_fieldnames ? continue : nothing
         res[Symbol(q)] = HDF5.readmmap(fid[q])
     end
     patch_dimensions = HDF5.readmmap(fid["patch_dimensions"])
+    params           = _read_params(AtmosphericParameters, fid)
+    
     close(fid)
 
-    Space(res, patch_dimensions)
+    Space(res, patch_dimensions, params)
 end
 
 function Box(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
@@ -576,17 +658,28 @@ function Box(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
 
     fid = HDF5.h5open(path, "r")
     res = Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}()
+
+    aux_fieldnames = _get_para_fieldnames(AtmosphericParameters)
+    append!(aux_fieldnames, ["x","y","z"])
+
     for q in keys(fid)
-        q in ["x","y","z"] ? continue : nothing
+        q in aux_fieldnames ? continue : nothing
         res[Symbol(q)] = HDF5.readmmap(fid[q])
     end
     x = HDF5.readmmap(fid["x"])
     y = HDF5.readmmap(fid["y"])
     z = HDF5.readmmap(fid["z"])
+
+    params = _read_params(AtmosphericParameters, fid)
+
     close(fid)
 
-    Box(x, y, z, res)
+    Box(x, y, z, res, params)
 end
+
+_get_para_fieldnames(t::Type{AtmosphericParameters}) = ["time", "teff", "logg", "composition_e", "composition_v", "parameter_type"]
+_read_params(T::Type{AtmosphericParameters}, res) = T(HDF5.read(res["time"]), HDF5.read(res["teff"]), HDF5.read(res["logg"]), 
+                                                Dict(Symbol(e) => v for (e,v) in zip(HDF5.read(res["composition_e"]), HDF5.read(res["composition_v"]))) )
 
 """
 Reduce a Box object to one single plane by applying the function f to each column in x,y
@@ -669,7 +762,7 @@ function reduce_by_column(f::F, b::MUST.Box; index=false) where {F<:Function}
         end
     end
 
-    Box(x_new, y_new, z_new, data_new)
+    Box(x_new, y_new, z_new, data_new, b.parameter)
 end
 
 
@@ -744,7 +837,7 @@ function reduce_by_plane(f::F, b::MUST.Box; index=false) where {F<:Function}
         end
     end
 
-    Box(x_new, y_new, z_new, data_new)
+    Box(x_new, y_new, z_new, data_new, b.parameter)
 end
 
 """
