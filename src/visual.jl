@@ -226,7 +226,7 @@ function gif_by_value(stat::Function, folder::String, label::String;
             b  = MUST.Box("$(names)_sn$(i)", folder=MUST.@in_dispatch(folder))
             bv = MUST.reduce_by_value(stat, b; kwargs...)
 
-            im = ((vmin != -1) & (vmax != -1)) ? 
+            im = ((vmin != -99999999) & (vmax != -99999999)) ? 
                         plt.imshow(bv.data[variable][:,:,1], origin="lower", cmap=cmap, vmin=vmin, vmax=vmax) :
                         plt.imshow(bv.data[variable][:,:,1], origin="lower", cmap=cmap)
 

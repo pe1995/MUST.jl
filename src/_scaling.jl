@@ -18,6 +18,11 @@ struct AtmosUnits
     m_He   ::Float64
 end
 
+"""
+StaggerCGS units (dispatch code units). 
+    code -> cgs: var * Stagger.cgs.var
+    code <- cgs: var / Stagger.cgs.var
+"""
 function StaggerCGS(system = "cgs",                                   
                     l  = 1e8,                                        
                     d  = 1e-7,                                        

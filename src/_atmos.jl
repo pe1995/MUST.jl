@@ -193,7 +193,7 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
         Dict(q=>results[q][2:end-1,2:end-1,2:end-1] for q in keys(results)))
 end
 
-@inline uniform_grid(s::Space, N::Int,axis=:x) = begin
+uniform_grid(s::Space, N::Int,axis=:x) = begin
     data = s.data[axis]
     maxd = maximum(data)
     mind = minimum(data)

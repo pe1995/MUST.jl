@@ -34,6 +34,7 @@ export Space, spacebox, Box, add!
 
 #= Julia code files =#
 include("_argparse.jl")
+include("_eos.jl")
 include("_parallel.jl")
 include("_help.jl")
 include("_scaling.jl")
