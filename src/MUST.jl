@@ -12,6 +12,8 @@ using Interpolations
 using Glob
 using Distributed
 using ArgParse
+using Interpolations
+using DelimitedFiles
 import Base.filter, Base.filter!
 import Base.getindex
 import Base.length
@@ -40,8 +42,8 @@ include("_help.jl")
 include("_scaling.jl")
 include("_stagger.jl")
 include("_dispatch.jl")
-include("_atmos.jl")
 include("_namelist.jl")
+include("_atmos.jl")
 include("_mustgrid.jl")
 include("_running.jl")
 
