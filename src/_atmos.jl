@@ -433,23 +433,21 @@ Returns
 nothing
 
 """
-function add_from_EOS!(s::MUST.Space, eos, quantity::Symbol;
-                        EOS_paras=(:d,:ee), EOS_log=(true,true),
+function add_from_EOS!(s::MUST.Space, eos::AbstractEOS, quantity::Symbol;
+                        EOS_paras=(:d,:ee), 
                         convert_to=Base.identity, switch_name_to=nothing)
     qframe = MUST.add_from_EOS(s, eos, quantity; 
                                 EOS_paras =EOS_paras, 
-                                EOS_log   =EOS_log, 
                                 convert_to=convert_to)
     isnothing(switch_name_to) ? s.data[quantity] = qframe : s.data[switch_name_to] = qframe
     nothing
 end
-function add_from_EOS(s::MUST.Space, eos, quantity::Symbol;
-                        EOS_paras=(:d,:ee), EOS_log=(true,true),
+function add_from_EOS(s::MUST.Space, eos::AbstractEOS, quantity::Symbol;
+                        EOS_paras=(:d,:ee), 
                         convert_to=Base.identity)
-    f1 = EOS_log[1] ? log : Base.identity
-    f2 = EOS_log[2] ? log : Base.identity
-    convert_to.(eos.lookup(String(quantity), f1.(s[EOS_paras[1]]), f2.(s[EOS_paras[2]])))
+    convert_to.(lookup(eos, String(quantity), s[EOS_paras[1]], s[EOS_paras[2]]))
 end
+
 
 """
 Add the given field from the given array.
@@ -531,7 +529,7 @@ nothing
 function plane_statistic(stat::F, b::MUST.Box, q::Symbol) where {F<:Function}
     av = zeros(typeof(b.z[1,1,1]), size(b.z,3))
     for i in 1:size(b.z,3)
-        av[i] = stat(b.data[q][:,:,i])
+        av[i] = stat(b[q][:,:,i])
     end
     av
 end
@@ -598,8 +596,8 @@ function save(s::MUST.Box; folder=nothing, name=nothing)
 end
 
 function save(p::AtmosphericParameters, fid)
-    eles = [keys(p.composition)...]
-    vals = [p.composition[e] for e in eles]
+    eles = String[keys(p.composition)...]
+    vals = eltype(values(p.composition))[p.composition[e] for e in eles]
     fid["time"] = p.time
     fid["teff"] = p.teff
     fid["logg"] = p.logg
@@ -719,7 +717,7 @@ function reduce_by_column(f::F, b::MUST.Box; index=false) where {F<:Function}
             yv = @view b.y[i,j,:] 
             qv = Dict(q => @view(b.data[q][i,j,:]) for q in keys(b.data))
 
-            mm = (.!(isnan.(zv))) .& (.!(isnan.(zv))) .& (.!(isnan.(zv))) 
+            mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv))) 
             for q in keys(qv)
                 mm = mm .& .!(isnan.(qv[q]))
             end
@@ -763,6 +761,103 @@ function reduce_by_column(f::F, b::MUST.Box; index=false) where {F<:Function}
     end
 
     Box(x_new, y_new, z_new, data_new, b.parameter)
+end
+
+"""Linear Interpolate the columns of the Box as a function of height. For every column a Function is returned."""
+function interpolate_by_column(b::MUST.Box)
+    shape    = (size(b.x,1),size(b.x,2),1)
+    data_new = Dict{Symbol, Matrix{Interpolations.Extrapolation}}(q => Matrix{Any}(undef,shape[1:2]...) for q in keys(b.data))
+    
+    data_new[:x] = Matrix{Interpolations.Extrapolation}(undef,shape[1:2]...)
+    data_new[:y] = Matrix{Interpolations.Extrapolation}(undef,shape[1:2]...)
+
+    @inbounds for j in 1:shape[2]
+        @inbounds for i in 1:shape[1]
+            zv = @view b.z[i,j,:]
+            xv = @view b.x[i,j,:] 
+            yv = @view b.y[i,j,:] 
+            qv = Dict(q => @view(b.data[q][i,j,:]) for q in keys(b.data))
+
+            mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv))) 
+            for q in keys(qv)
+                mm = mm .& .!(isnan.(qv[q]))
+            end
+
+            qv = Dict(q => @view(b.data[q][i,j,mm]) for q in keys(b.data))
+            zv = @view b.z[i,j,mm]
+            xv = @view b.x[i,j,mm] 
+            yv = @view b.y[i,j,mm]
+
+            szv = sortperm(zv)
+            for q in keys(b.data)
+                data_new[q][i,j] = LinearInterpolation(zv[szv], qv[q][szv], extrapolation_bc=Flat())
+            end
+            data_new[:x][i,j] = LinearInterpolation(zv[szv], xv[szv], extrapolation_bc=Flat())
+            data_new[:y][i,j] = LinearInterpolation(zv[szv], yv[szv], extrapolation_bc=Flat())
+        end
+    end
+
+    data_new
+end
+
+function apply_by_column(f::Function, b::MUST.Box; check_nan=false, return_type=Any) 
+    res = Array{return_type,2}(undef,size(b.x)[1:2]) 
+    zv = zeros(size(b.z,3))
+    xv = zeros(size(b.z,3))
+    yv = zeros(size(b.z,3))
+    qv = Dict(q => zeros(size(b.data[q],3)) for q in keys(b.data))
+    apply_by_column!(f, res, xv, yv, zv, qv, b; check_nan=check_nan)
+
+    res
+end
+
+"""Apply the function f to every column of the Box and save the result in res."""
+function apply_by_column!(f::Function, res::T, b::MUST.Box; check_nan=false) where {T<:AbstractArray,A<:AbstractArray}
+    
+    #zv = zeros(size(b.z,3))
+    #xv = zeros(size(b.z,3))
+    #yv = zeros(size(b.z,3))
+    #qv = Dict(q => zeros(size(b.data[q],3)) for q in keys(b.data))
+
+    qv = Dict{Symbol, AbstractVector{eltype(b.x)}}()
+    zv = AbstractVector{eltype(b.x)}
+    xv = AbstractVector{eltype(b.x)}
+    yv = AbstractVector{eltype(b.x)}
+
+    if check_nan
+        @inbounds for j in 1:size(b.x,2)
+            @inbounds for i in 1:size(b.x,1)
+                zv = @view b.z[i,j,:]
+                xv = @view b.x[i,j,:] 
+                yv = @view b.y[i,j,:] 
+                qv = Dict(q => @view(b.data[q][i,j,:]) for q in keys(b.data))
+
+                mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv))) 
+                for q in keys(qv)
+                    mm = mm .& .!(isnan.(qv[q]))
+                end
+
+                qv = Dict(q => @view(b.data[q][i,j,mm]) for q in keys(b.data))
+                zv = @view b.z[i,j,mm]
+                xv = @view b.x[i,j,mm] 
+                yv = @view b.y[i,j,mm]
+
+                res[i,j] = f(; qv..., x=xv, y=yv, z=zv) 
+            end
+        end
+    else
+        @inbounds for j in 1:size(b.x,2)
+            @inbounds for i in 1:size(b.x,1)
+                zv = @view b.z[i,j,:]
+                xv = @view b.x[i,j,:] 
+                yv = @view b.y[i,j,:] 
+                for q in keys(b.data)
+                    qv[q] = @view b.data[q][i,j,:]
+                end
+                res[i,j] = f(; qv..., x=xv, y=yv, z=zv) 
+            end
+        end
+    end
 end
 
 
@@ -862,3 +957,119 @@ function reduce_by_value(f::F, b::MUST.Box; remove_nan=true, kwargs...) where {F
 
     reduce_by_plane(f_mod, b; index=false)
 end
+
+"""
+Switch the height scale of a box. Creates a new box by reducing the old box by column for every new height value.
+"""
+function height_scale(b::MUST.Box, new_scale)
+    # create a new height scale 
+    min_plane = MUST.plane_statistic(minimum, b, new_scale)
+    max_plane = MUST.plane_statistic(maximum, b, new_scale)
+
+    N_points = size(b.z, 3)
+    
+    TT = eltype(b.z)
+   
+    h_scale  = range( TT(maximum(min_plane)), TT(minimum(max_plane)); length=N_points)
+
+    new_box = deepcopy(b)
+    interp  = MUST.interpolate_by_column(b)
+
+    # Save loop allocations
+    Nx = size(b.x,1)
+    Ny = size(b.x,2)
+    #xv = zeros(eltype(b.x), N_points); yv=zeros(eltype(b.x), N_points); zv=zeros(eltype(b.x), N_points)
+    #qv = Dict(q => zeros(eltype(b.x), size(b.data[q],3)) for q in keys(b.data))
+    z_int = zeros(eltype(b.x), Nx,Ny)
+
+    # Step by step construct a box object from individual planes
+    @inbounds for i in 1:N_points
+        @inline scale_column(; z, kwargs...) = linear_interpolate(kwargs[new_scale], z, h_scale[i])
+
+        apply_by_column!(scale_column, z_int, b; check_nan=false)
+        
+        @inbounds for j in 1:Ny
+            @inbounds for k in 1:Nx
+                for q in keys(new_box.data)
+                    new_box[q][k,j,i] = interp[q][k,j](z_int[k,j])
+                end
+                new_box.x[k,j,i] = interp[:x][k,j](z_int[k,j])
+                new_box.y[k,j,i] = interp[:y][k,j](z_int[k,j])
+                new_box.z[k,j,i] = z_int[k,j]
+            end
+        end
+    end 
+
+    new_box
+end
+
+@inline function linear_interpolate(x::A, y::B, x0::T) where {T<:AbstractFloat, A<:AbstractArray{T,1}, B<:AbstractArray{T,1}}
+    i_min::Int64 = argmin(abs.(x .- x0))
+    i_min = if i_min == length(x)
+        i_min -1
+    elseif i_min == 1
+        i_min +1
+    else
+        i_min
+    end
+
+    i_min2::Int64 = i_min
+    if x[i_min] > x0
+        # If i_min is larger than the desired value, pick the smaller neighbor
+        i_min2 = argmin([x[i_min-1], x[i_min+1]])
+    elseif x[i_min] < x0
+        # If i_min is smaller than the desired value, pick the larger neighbor
+        i_min2 = argmax([x[i_min-1], x[i_min+1]])
+    else 
+        return y[i_min]
+    end
+
+    m::T = (y[i_min+(-1)^i_min2] - y[i_min]) / (x[i_min+(-1)^i_min2] - x[i_min])
+    return m * x0 + (y[i_min] - m* x[i_min])
+end
+
+#=== Specific functions ===#
+
+"""Compute the optical depth from opacity+density or rk"""
+optical_depth(b::MUST.Box; kwargs... ) = begin
+    if :rk in keys(kwargs)
+        return optical_depth(b, b.data[kwargs[:rk]])
+    else
+        return optical_depth(b, b.data[kwargs[:opacity]], b.data[kwargs[:density]])
+    end
+end
+
+optical_depth(b::MUST.Box, k, rho) = optical_depth(b, k .* rho)
+
+function optical_depth(b::MUST.Box, rk)
+    τ(z,ix,iy) = begin
+        mask   = b.z[ix,iy,:] .>= z
+        count(mask) < 2 ? 
+            0.0 : 
+            integrate(b.z[ix,iy,mask],rk[ix,iy,mask])
+    end
+
+    Nx = size(b.x,1)
+    Ny = size(b.x,2)
+    Nz = size(b.x,3)
+    optical_depth = ones(Nx,Ny,Nz)
+    for k in Nz-1:-1:1
+        for j in 1:Ny
+            for i in 1:Nx
+                z = b.z[i,j,k]
+                optical_depth[i,j,k] = τ(z, i, j)
+            end
+        end
+    end
+
+    # Always compute the log, makes the extrapolation easier
+    optical_depth = log10.(optical_depth)
+
+    # Last point extrapolate
+    m = (optical_depth[:,:,end-2] .- optical_depth[:,:,end-1]) ./ (b.z[:,:,end-2] .- b.z[:,:,end-1])
+    a = optical_depth[:,:,end-1] .- m .* b.z[:,:,end-1]
+    optical_depth[:,:,end] = m .* b.z[:,:,end] .+ a
+
+    optical_depth
+end
+

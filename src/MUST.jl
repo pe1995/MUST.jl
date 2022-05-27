@@ -11,9 +11,10 @@ using Random
 using Interpolations
 using Glob
 using Distributed
+using NumericalIntegration
 using ArgParse
-using Interpolations
 using DelimitedFiles
+using TimerOutputs
 import Base.filter, Base.filter!
 import Base.getindex
 import Base.length

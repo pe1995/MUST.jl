@@ -2,6 +2,7 @@ abstract type AbstractEOS end
 
 # Type for squaregas EOS tables
 SqGTable = Union{Nothing, Array{F,N} where {N,F<:AbstractFloat}}
+RangeOrVector = Union{R where {R<:AbstractRange}, Vector{F} where {F<:Integer}}
 
 """
 Wrapper for python EOS.
@@ -43,7 +44,8 @@ end
 Create a SquareGasEOS from the Tabgen input file.
 """
 function SquareGasEOS(para_path)
-    d = dirname(para_path)
+    d         = para_path
+    para_path = joinpath(d, "tabparam.in")
     p = read_squaregas_params(para_path)
 
     # Record length
@@ -154,24 +156,18 @@ function lookup(eos::SquareGasEOS, parameter::Symbol, d::Vector{T}, ee::Vector{T
     end
     
     # The EOS table is searched based on the regular grid imposed by the corresponding axis
-    if ((parameter == :P) || (parameter == :Pg))
-        result = exp.(interpolate_in_table(eos, eos.eostable, d, ee, index=1))
+    result = if ((parameter == :P) || (parameter == :Pg))
+        exp.(interpolate_in_table(eos, eos.eostable, d, ee, 1))
     elseif ((parameter == :T) || (parameter == :Temp))
-        result =      interpolate_in_table(eos, eos.eostable, d, ee, index=2)
+             interpolate_in_table(eos, eos.eostable, d, ee, 2)
     elseif parameter == :Ne
-        result = exp.(interpolate_in_table(eos, eos.eostable, d, ee, index=3))
+        exp.(interpolate_in_table(eos, eos.eostable, d, ee, 3))
     elseif ((parameter == :kr) || (parameter == :ross))
-        result = exp.(interpolate_in_table(eos, eos.eostable, d, ee, index=4))
+        exp.(interpolate_in_table(eos, eos.eostable, d, ee, 4))
     elseif ((parameter == :src) || (parameter == :Src))
-        result = zeros(length(d), eos.params["nRadBins"])
-        for i in 1:size(result,2)
-            result[:,i] = exp.(interpolate_in_table(eos, eos.temtable, d, ee, index=i))
-        end
+        exp.(interpolate_in_table(eos, eos.temtable, d, ee, 1:eos.params["nRadBins"]))
     elseif parameter == :rk
-        result = zeros(length(d), eos.params["nRadBins"])
-        for i in 1:size(result,2)
-            result[:,i] = exp.(interpolate_in_table(eos, eos.opatable, d, ee, index=i))
-        end
+        exp.(interpolate_in_table(eos, eos.opatable, d, ee, 1:eos.params["nRadBins"]))
     else
         error("The given parameter $(parameter) is not implemented for the SquareGasEOS.")
     end
@@ -182,8 +178,8 @@ end
 """
 Interpolate in the given table using the axis in the EOS. 
 """
-function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::Vector{T}, ee::Vector{T}; index) where {T<:AbstractFloat}
-    result = zeros(eltype(d), length(d))
+function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::Vector{T}, ee::Vector{T}, index::RangeOrVector) where {T<:AbstractFloat}
+    result = zeros(eltype(d), length(d), length(index))
 
     ei_min  = eos.lnEi_axis[1]
     rho_min = eos.lnRho_axis[1]
@@ -205,24 +201,27 @@ function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::Vector{T}, 
         m1u = 1.0 - u
 
         if ((ifr<0) || (jfr<0))
-            result[i] = Base.convert(eltype(d),NaN) 
+            result[i,:] = Base.convert(eltype(d),NaN) 
         else
-            result[i] = m1t * m1u * table[il,  jl  ,index] +
-                        tt  * m1u * table[il+1,jl  ,index] +
-                        tt  *   u * table[il+1,jl+1,index] +
-                        m1t *   u * table[il  ,jl+1,index] 
+            result[i,:] = m1t .* m1u .* table[il,  jl  ,index] +
+                          tt  .* m1u .* table[il+1,jl  ,index] +
+                          tt  .*   u .* table[il+1,jl+1,index] +
+                          m1t .*   u .* table[il  ,jl+1,index] 
         end
     end
 
     result
 end
 
-lookup(eos::SquareGasEOS, parameter::Symbol, d::T, ee::T; to_log=true) where {T<:AbstractFloat} = lookup(eos, parameter, [d], [ee]; to_log=to_log)
+interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::Vector{T}, ee::Vector{T}, index::I) where {T<:AbstractFloat, I<:Integer} = interpolate_in_table(eos, table, d, ee, [index])[:,1]
+
+lookup(eos::SquareGasEOS, parameter::Symbol, d::T, ee::T; to_log=true) where {T<:AbstractFloat} = first(lookup(eos, parameter, [d], [ee]; to_log=to_log))
+lookup(eos::SquareGasEOS, parameter::String, args...; kwargs...) = lookup(eos, Symbol(parameter), args...; kwargs...)
 
 """
 Inverse lookup parameter in the EOS tables. 
 """
-function inverse_lookup()
+function inverse_lookup(eos::SquareGasEOS, iterations=50, antilinear=false; kwargs...)
 end
 
 #=== Python EOS aliases ===#
