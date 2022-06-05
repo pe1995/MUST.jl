@@ -47,7 +47,7 @@ read_teff(path) = begin
     if !ispath(path) @warn "$(path) does not exist."
         return nothing
     end
-    data = readdlm(path)
+    readdlm(path)
 end 
 
 teff_interpolated(path) = begin
@@ -57,9 +57,15 @@ end
 
 function composition_from_eos(path)
     content = read_eos_params(path)
-    el      = split(content["cel"][2:end-1], " ")
+    k       = [keys(content)...]
+    cel     = findfirst(occursin.("cel",k))
+    cel     = k[cel]
+    el      = split(content[cel][2:end-1], " ")
     el      = [String(s) for s in el if length(s)>0]
-    vl      = String.(split(content["abund"][2:end-1], " "))
+    
+    cel     = findfirst(occursin.("abund",k))
+    cel     = k[cel]
+    vl      = String.(split(content[cel][2:end-1], " "))
     vl      = [s for s in vl if length(s)>0]
     vl      = parse.(Float64, vl)
     Dict(Symbol(c)=>v for (c,v) in zip(el,vl))
@@ -596,12 +602,12 @@ function save(s::MUST.Box; folder=nothing, name=nothing)
 end
 
 function save(p::AtmosphericParameters, fid)
-    eles = String[keys(p.composition)...]
+    eles = [keys(p.composition)...]
     vals = eltype(values(p.composition))[p.composition[e] for e in eles]
     fid["time"] = p.time
     fid["teff"] = p.teff
     fid["logg"] = p.logg
-    fid["composition_e"] = String.(eles)
+    fid["composition_e"] = String[String(e) for e in eles]
     fid["composition_v"] = vals
 end
 

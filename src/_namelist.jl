@@ -228,8 +228,7 @@ end
 read_eos_params(path::String) = begin 
     open(path, "r") do f
         lines = readlines(f)
+        lines = [strip.(split(strip(l), "=")) for l in lines]
+        lines = Dict(kv[1]=>kv[2] for kv in lines if length(kv)==2)
     end
-
-    lines = [strip.(split(strip(l), "=")) for l in lines]
-    lines = Dict(k=>v for (k,v) in lines)
 end

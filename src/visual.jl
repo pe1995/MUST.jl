@@ -275,10 +275,12 @@ import sys
 images = []
 
 for filename in $(list_of_filenames):
-    images.append(imageio.imread(filename))
+    if os.path.exists(filename):
+        images.append(imageio.imread(filename))
 
 imageio.mimsave($(save_path), images, duration=$(duration))
 
 for f in $(list_of_filenames):
-    os.remove(f)
+    if os.path.exists(f):
+        os.remove(f)
 """

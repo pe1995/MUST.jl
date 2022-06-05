@@ -18,8 +18,8 @@ threads, tasks, mem = MUST.slurm_setup()
 # the others to copy. We make sure that the namelists are
 # correctly setup for our needs. If nothing is given, stellar.nml and restart.nml are
 # assumed to be the default setting
-phase1_nml_template = MUST.StellarNamelist(MUST.@in_dispatch("stellar.nml"))
-phase2_nml_template = MUST.StellarNamelist(MUST.@in_dispatch("restart.nml"))
+phase1_nml_template = MUST.StellarNamelist(MUST.@in_dispatch("stellar_relaxing3.nml"))
+phase2_nml_template = MUST.StellarNamelist(MUST.@in_dispatch("restart_relaxing3.nml"))
 
 MUST.set!(phase1_nml_template, io_params=("print_seconds" => 5,
                                           "print_every"   => 0,
@@ -27,19 +27,17 @@ MUST.set!(phase1_nml_template, io_params=("print_seconds" => 5,
                                           "out_time"      => 5.0))
 MUST.set!(phase2_nml_template, io_params=("print_seconds" => 5,
                                           "print_every"   => 0,
-                                          "end_time"      => 60.0,
+                                          "end_time"      => 90.0,
                                           "out_time"      => 5.0),
                                 restart_params=("snapshot" => 4,))
 
 #========== PHASE 1 ==========#
 # Create a random grid from central seeds
 central_seeds = Dict{Symbol, Dict{String, Float32}}(   
-                        :stellar_params => Dict{String, Float32}("tt_k" => 14940.443588092769, "d_cgs" => log(2.6138129873767868e-8), "ee_min" => 5.5), 
-                        :newton_params  => Dict{String, Float32}("ee0"=>5.3))
+                        :stellar_params => Dict{String, Float32}("tt_k" => 1.0e4, "d_cgs" => log10(3.0445492234271924e-7)))
 
 relative_lims = Dict{Symbol, Dict{String, Float32}}(   
-                        :stellar_params => Dict{String, Float32}("tt_k" => 0.2, "d_cgs" => 0.1, "ee_min" => 0.0001), 
-                        :newton_params  => Dict{String, Float32}("ee0"=>0.0001))
+                        :stellar_params => Dict{String, Float32}("tt_k" => 0.2, "d_cgs" => 0.02))
 
 # The grid can be constructed using e.g. a RangeMUSTGrid
 phase1_grid = MUST.RangeMUSTGrid(central_seeds, relative_lims, phase="phase1")
@@ -47,7 +45,7 @@ MUST.randomgrid!(phase1_grid, ngrid)
 
 # Anything that is log spaced can now be turned into linear again
 MUST.modify!(phase1_grid, :stellar_params, "d_cgs") do x
-    exp(x)
+    10.0 .^(x)
 end
 
 # Create the namelists of this grid (in the dispatch folder)
