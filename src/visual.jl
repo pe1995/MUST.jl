@@ -209,6 +209,35 @@ function gif_by_plane(stat::Function, folder::Vector{String}, labels::Vector{Str
     gif_from_pngs(filenames, "$(path_ext).gif", duration=duration)
 end
 
+function gif_by_column(f, boxes, variable; 
+                        vmin=nothing, vmax=nothing, cmap="Greys_r", clabel="$(variable)",
+                        path_ext="box_val", duration=0.2, transformers...)
+
+    filenames = String[]
+
+    for i in eachindex(boxes)
+        plt.title("snapshot $(i)")
+        bv = boxes[i]
+        surface = MUST.reduce_by_column(f, bv) 
+        v = view(surface.data[variable], :, :, 1)
+
+        v = length(keys(transformers)) > 0 ? transformers[variable].(v) : v
+        if !isnothing(vmin)
+            im = plt.imshow(v, origin="lower", cmap=cmap, vmin=vmin, vmax=vmax)
+            cb = plt.colorbar(im, boundaries=[range(vmin, vmax; length=100)...])
+        else
+            im = plt.imshow(v, origin="lower", cmap=cmap)
+            cb = plt.colorbar(im)
+        end
+
+        plt.savefig("$(path_ext)_sn$(i).png", bbox_inches="tight")        
+        plt.close()
+        append!(filenames, ["$(path_ext)_sn$(i).png"])
+    end
+
+    gif_from_pngs(filenames, "$(path_ext).gif", duration=duration)
+end
+
 function gif_by_value(stat::Function, folder::String, label::String; 
                                     cmap="Greys_r",
                                     duration=0.2, vmin=-99999999, vmax=-99999999,

@@ -806,17 +806,6 @@ function interpolate_by_column(b::MUST.Box)
     data_new
 end
 
-function apply_by_column(f::Function, b::MUST.Box; check_nan=false, return_type=Any) 
-    res = Array{return_type,2}(undef,size(b.x)[1:2]) 
-    zv = zeros(size(b.z,3))
-    xv = zeros(size(b.z,3))
-    yv = zeros(size(b.z,3))
-    qv = Dict(q => zeros(size(b.data[q],3)) for q in keys(b.data))
-    apply_by_column!(f, res, xv, yv, zv, qv, b; check_nan=check_nan)
-
-    res
-end
-
 """Apply the function f to every column of the Box and save the result in res."""
 function apply_by_column!(f::Function, res::T, b::MUST.Box; check_nan=false) where {T<:AbstractArray,A<:AbstractArray}
     
@@ -866,6 +855,20 @@ function apply_by_column!(f::Function, res::T, b::MUST.Box; check_nan=false) whe
     end
 end
 
+height_where(; kwargs...) = begin
+    @assert length(keys(kwargs)) == 1
+    col = keys(kwargs)[1]
+    val = values(kwargs)[1]
+
+    f_mod(; kw...) = begin
+        res = kw[col]
+        mask  = (.!isnan.(res)) .&  (.!isnan.(kw[:z]))
+        smask = sortperm(res[mask])
+        LinearInterpolation(res[mask][smask], kw[:z][mask][smask], extrapolation_bc=Flat())(val)
+    end
+
+    return f_mod
+end
 
 """
 Reduce a Box object to one single plane by applying the function f to each plane x,y in z
@@ -967,16 +970,18 @@ end
 """
 Switch the height scale of a box. Creates a new box by reducing the old box by column for every new height value.
 """
-function height_scale(b::MUST.Box, new_scale)
-    # create a new height scale 
-    min_plane = MUST.plane_statistic(minimum, b, new_scale)
-    max_plane = MUST.plane_statistic(maximum, b, new_scale)
-
+function height_scale(b::MUST.Box, new_scale, limits=nothing)
     N_points = size(b.z, 3)
-    
     TT = eltype(b.z)
-   
-    h_scale  = range( TT(maximum(min_plane)), TT(minimum(max_plane)); length=N_points)
+
+    if isnothing(limits)
+        # create a new height scale 
+        min_plane = MUST.plane_statistic(minimum, b, new_scale)
+        max_plane = MUST.plane_statistic(maximum, b, new_scale)
+        h_scale   = range( TT(maximum(min_plane)), TT(minimum(max_plane)); length=N_points)
+    else
+        h_scale = range( TT(limits[1]), TT(limits[2]); length=N_points)
+    end
 
     new_box = deepcopy(b)
     interp  = MUST.interpolate_by_column(b)
@@ -1079,3 +1084,26 @@ function optical_depth(b::MUST.Box, rk)
     optical_depth
 end
 
+function Boxes(folder::String)
+    content_of_folder = glob("*/", folder)
+    snapshots         = sort(MUST.list_of_snapshots(content_of_folder));
+    boxes  = []
+    boxesT = []
+    for (i_s,snap) in enumerate(snapshots)
+        try
+            append!(boxes, [MUST.Box("box_sn$(snapshots[i_s])", folder=folder)])
+        catch
+            nothing
+        end
+
+        try
+            append!(boxesT, [MUST.Box("box_tau_sn$(snapshots[i_s])", folder=folder)])
+        catch
+            nothing
+        end
+
+    end
+    boxes, boxesT
+end
+
+axis(b::Box, which, dimension=3) = view(b[which], [i==dimension ? Base.Colon() : 1 for i in 1:3]...)

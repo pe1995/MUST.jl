@@ -28,6 +28,7 @@ mutable struct StellarNamelist <: AbstractNamelist
     timer_params         ::Dict{String,Any}  
     lock_params          ::Dict{String,Any} 
     task_list_params     ::Dict{String,Any} 
+    an_params            ::Dict{String,Any} 
     dispatcher0_params   ::Dict{String,Any} 
 end
 

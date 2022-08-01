@@ -1,14 +1,14 @@
 using Pkg; Pkg.activate(".");# Pkg.update()
 using MUST
 
-MUST.@import_dispatch "../../../dispatch2" EOS
+MUST.@import_dispatch "../../../dispatch2_clean/dispatch2" EOS
 
 units = MUST.StaggerCGS()
 
-#leEos = MUST.@legacyPythonEOS MUST.dispatch_location
-sqEos = MUST.SquareGasEOS(MUST.@in_dispatch("input_data/square_gas_1/"))
+leEos = MUST.@legacyPythonEOS MUST.dispatch_location
+sqEos = MUST.SquareGasEOS(MUST.@in_dispatch("input_data/solar_stagsnap/"))
 
-#le_ee_range = [5., 30.] 
+le_ee_range = [5., 30.] 
 sq_ee_range = [Float32(sqEos.params["EiMin"]), Float32(sqEos.params["EiMax"])] 
 
 # MARCS model, ini: Tau=1, cool: Tau=-5
@@ -42,7 +42,26 @@ d_cool = 10^(-9.598085)
 t_min  = 3875.567139
 d_min  = 10^(-9.598085)
 
+# MARCS model 3, ini: Tau=1.5, cool: Tau=-5, min: Tau=-5
+t_ini  = 9574.467773
+d_ini  = 10^(-6.516477)
+t_cool = 3900.0
+d_cool = 10^(-8.770844)
+t_min  = 4152.377930
+d_min  = 10^(-8.770844)
+
+# MARCS model 4, ini: Tau=1.5, cool: Tau=0, min: Tau=0
+#=t_ini  = 9574.467773
+d_ini  = 10^(-6.516477)
+t_cool = 6422.082031
+d_cool = 10^(-6.530671)
+t_min  = 6422.082031
+d_min  = 10^(-6.530671)=#
 
 @info "SquareG: Internal Energy (code) at initial point ($(t_ini),$(d_ini)): $(MUST.bisect(  sqEos; ee=sq_ee_range, d=d_ini,  T=t_ini) ./units.ee)"
 @info "SquareG: Internal Energy (code) at cooling point ($(t_cool),$(d_cool)): $(MUST.bisect(sqEos; ee=sq_ee_range, d=d_cool, T=t_cool) ./units.ee)"
-@info "SquareG: Internal Energy (code) at minimum point ($(t_min),$(d_min)): $(MUST.bisect(sqEos; ee=sq_ee_range, d=d_min, T=t_min) ./units.ee)"
+@info "SquareG: Internal Energy (code) at minimum point ($(t_min),$(d_min)): $(MUST.bisect(  sqEos; ee=sq_ee_range, d=d_min, T=t_min) ./units.ee)"
+
+@info "Stagger: Internal Energy (code) at initial point ($(t_ini),$(d_ini)): $(MUST.bisect(  leEos; ee=le_ee_range, d=d_ini ./units.d,  T=t_ini) )"
+@info "Stagger: Internal Energy (code) at cooling point ($(t_cool),$(d_cool)): $(MUST.bisect(leEos; ee=le_ee_range, d=d_cool ./units.d, T=t_cool))"
+@info "Stagger: Internal Energy (code) at minimum point ($(t_min),$(d_min)): $(MUST.bisect(  leEos; ee=le_ee_range, d=d_min ./units.d,  T=t_min) )"

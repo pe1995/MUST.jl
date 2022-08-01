@@ -75,3 +75,13 @@ randrange(a,b,args...) = begin
     xmin,xmax = min(a,b),max(a,b)
     rand(args...) .* (xmax-xmin) .+ xmin
 end
+
+function meshgrid(ax...)
+    grids = []
+    space = Iterators.product(ax...)
+    for i in eachindex(ax)
+        append!(grids, [getindex.(space, i)])
+    end
+
+    grids
+end

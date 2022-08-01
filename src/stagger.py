@@ -34,12 +34,12 @@ class stag(object):
         datmem = np.transpose(datmem, axes=(0,1,3,2))
         datmem = datmem[..., s.gz:-s.gz]
         datmem = datmem[..., ::-1]
-        s.rho  = datmem[0]
-        s.ipx  = datmem[1]
-        s.ipz  = datmem[2]
-        s.ipy  = datmem[3]
-        s.iie  = datmem[4]
-        s.temp = datmem[5]
+        s.rho  = np.array(datmem[0])
+        s.ipx  = np.array(datmem[1][:,:,:])
+        s.ipz  = np.array(datmem[2][:,:,:])
+        s.ipy  = np.array(datmem[3][:,:,:])
+        s.iie  = np.array(datmem[4][:,:,:])
+        s.temp = np.array(datmem[5][:,:,:])
         dat.close()
         
         aux = FortranFile(s.aux_file, 'r', header_dtype='>i4')
@@ -49,12 +49,12 @@ class stag(object):
         auxmem = np.transpose(auxmem, axes=(0,1,3,2))
         auxmem = auxmem[..., s.gz:-s.gz]
         auxmem = auxmem[..., ::-1]
-        s.lpp     = auxmem[0]
-        s.lross   = auxmem[1]
-        s.ltemp   = auxmem[2]
-        s.lne     = auxmem[3]
-        s.lplanck = auxmem[4]
-        s.ltau    = auxmem[5]
+        s.lpp     = np.array(auxmem[0][:,:,:])
+        s.lross   = np.array(auxmem[1][:,:,:])
+        s.ltemp   = np.array(auxmem[2][:,:,:])
+        s.lne     = np.array(auxmem[3][:,:,:])
+        s.lplanck = np.array(auxmem[4][:,:,:])
+        s.ltau    = np.array(auxmem[5][:,:,:])
         aux.close()
         
         self.nz = s.zz.size

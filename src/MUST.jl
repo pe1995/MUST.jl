@@ -3,7 +3,7 @@ module MUST
 #= Julia modules =#
 using PyCall
 using DataFrames
-using FortranFiles: FortranFile, read, readlines
+using FortranFiles: FortranFile, read, readlines, write
 using Printf
 using Statistics
 using HDF5

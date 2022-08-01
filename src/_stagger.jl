@@ -1,5 +1,5 @@
 #=========== Stagger module from Mikolaj ===========#
-
+const stagger_endian = Ref("big-endian")
 struct StaggerMesh
     mx::Int64
     dxm::Vector{Float32}
@@ -25,7 +25,7 @@ struct StaggerMesh
     n::Int64
 
     function StaggerMesh(mesh_file::String)
-        f = FortranFile(mesh_file);
+        f = FortranFile(mesh_file, "r", convert=stagger_endian[]);
         dims = read(f,(Int32,3))
         # -- x direction
         mx = dims[1]
@@ -127,6 +127,17 @@ struct StaggerEOS
     end;
 end
 
+
+mutable struct StaggerSnap
+    mesh_file ::String
+    dat_file  ::String
+    aux_file  ::String
+    mesh      ::StaggerMesh
+    data      ::Dict{String,Array{Float32,3}}
+    order     ::Vector{String}
+end
+
+
 function br_squeeze( A :: AbstractArray )
     keepdims = Tuple(i for i in size(A) if i != 1);
     return reshape( A, keepdims );
@@ -145,16 +156,18 @@ function br_heatmap_xy(A :: AbstractArray, M :: StaggerMesh; kwargs...)
 end
 
 function br_arr_ffile(file_name::String, mesh::StaggerMesh; rpos::Int)
-    f = FortranFile(file_name,"r",access="direct",recl=mesh.n*4);
+    f = FortranFile(file_name,"r",access="direct",recl=mesh.n*4, convert=stagger_endian[])
     var = read(f,rec=rpos,(Float32,(mesh.mx,mesh.my,mesh.mz)));
+    close(f)
     return var
 end
 
-function StaggerMesh2BifrostMesh(M :: StaggerMesh, cutlb::Int64 = 0, cutub::Int64 = 0)
+function StaggerMesh2BifrostMesh(snap::StaggerSnap; cutlb::Int64 = 0, cutub::Int64 = 0)
 
+    M = snap.mesh
     my  = size(M.y[1+cutlb:end-cutub])[1]
 
-    open("bifrost.mesh","w") do io
+    open(bifrost_name(snap.mesh_file),"w") do io
         println(io,@sprintf "%d" M.mz)
         println(io,join([@sprintf "%e" x for x in M.z], " "))
         println(io,join([@sprintf "%e" x for x in M.zmdn], " "))
@@ -174,7 +187,7 @@ function StaggerMesh2BifrostMesh(M :: StaggerMesh, cutlb::Int64 = 0, cutub::Int6
     end
 end
 
-function StaggerSnap2BifrostSnap(file_name::String, mesh::StaggerMesh, do_mhd::Bool = true, cutlb::Int64 = 0, cutub::Int64 = 0)
+function StaggerSnap2BifrostSnap(file_name::String, mesh::StaggerMesh; do_mhd::Bool = false, cutlb::Int64 = 0, cutub::Int64 = 0)
     # create new mesh if cuts are needed
     if (cutlb > 0 || cutub > 0)
         fmesh = StaggerMesh(mesh,cutlb,cutub);
@@ -185,32 +198,119 @@ function StaggerSnap2BifrostSnap(file_name::String, mesh::StaggerMesh, do_mhd::B
     # order of vars in Legacy Stagger: r,px,py,pz,e,d,Bx,By,Bz
     f = FortranFile("bifrost.snap","w",access="direct",recl=fmesh.n*4);
     tmp = br_arr_ffile(file_name, mesh, rpos=1) # r
-    write(f, rec=1, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])   # permute: x,y,z --> z,x,y
+    write(f, 1, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])   # permute: x,y,z --> z,x,y
     tmp = br_arr_ffile(file_name, mesh, rpos=4) # legacy pz -> px
-    write(f, rec=2, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
+    write(f, 2, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
     tmp = br_arr_ffile(file_name, mesh, rpos=2) # legacy px -> py
-    write(f, rec=3, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
+    write(f, 3, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
     tmp = br_arr_ffile(file_name, mesh, rpos=3) # legacy py -> pz
-    write(f, rec=4, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
+    write(f, 4, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
     tmp = br_arr_ffile(file_name, mesh, rpos=5) # e
-    write(f, rec=5, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
+    write(f, 5, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
     if do_mhd
         tmp = br_arr_ffile(file_name, mesh, rpos=9) # legacy bz -> bx
-        write(f, rec=6, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
+        write(f, 6, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
         tmp = br_arr_ffile(file_name, mesh, rpos=7) # legacy bz -> by
-        write(f, rec=7, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
+        write(f, 7, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
         tmp = br_arr_ffile(file_name, mesh, rpos=8) # legacy by -> bz
-        write(f, rec=8, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
+        write(f, 8, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
     end
 end
 
+function StaggerSnap2BifrostSnap(snap::StaggerSnap; do_mhd::Bool = false, cutlb::Int64 = 0, cutub::Int64 = 0)
+    # create new mesh if cuts are needed
+    if (cutlb > 0 || cutub > 0)
+        fmesh = StaggerMesh(snap.mesh,cutlb,cutub);
+        #StaggerMesh2BifrostMesh(snap.mesh;cutlb,cutub);
+    else
+        fmesh = snap.mesh;
+    end
 
-mutable struct StaggerSnap
-    mesh_file ::String
-    dat_file  ::String
-    mesh      ::StaggerMesh
-    data      ::Dict{String,Array{Float32,3}}
-    order     ::Vector{String}
+    # order of vars in Legacy Stagger: r,px,py,pz,e,d,Bx,By,Bz
+    f = FortranFile(bifrost_name(snap.dat_file), "w", access="direct", recl=fmesh.n*4);
+
+    tmp = snap.data["r"]
+    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=1)   # permute: x,y,z --> z,x,y
+    tmp = snap.data["pz"] # legacy pz -> px
+    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=2)
+    tmp = snap.data["px"] # legacy px -> py
+    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=3)
+    tmp = snap.data["py"] # legacy py -> pz
+    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=4)
+    tmp = snap.data["e"] # e
+    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=5)
+
+    if do_mhd
+        tmp = snap.data["bz"] # legacy bz -> bx
+        write(f, tmp[:,:,1+cutlb:end-cutub]; rec=6)
+        tmp = snap.data["bx"] # legacy bx -> by
+        write(f, tmp[:,:,1+cutlb:end-cutub]; rec=7)
+        tmp = snap.data["by"] # legacy by -> bz
+        write(f, tmp[:,:,1+cutlb:end-cutub]; rec=8)
+    end
+
+    close(f)
+end
+
+function StaggerAux2BifrostAux(snap::StaggerSnap; cutlb::Int64 = 0, cutub::Int64 = 0)
+    # create new mesh if cuts are needed
+    if (cutlb > 0 || cutub > 0)
+        fmesh = StaggerMesh(snap.mesh,cutlb,cutub);
+        #StaggerMesh2BifrostMesh(mesh,cutlb,cutub);
+    else
+        fmesh = snap.mesh;
+    end
+
+    # order of vars in Legacy Stagger: r,px,py,pz,e,d,Bx,By,Bz
+    f = FortranFile(bifrost_name(snap.aux_file), "w", access="direct", recl=fmesh.n*4);
+
+    tmp = exp.(snap.data["lpp"])
+    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=1)   
+
+    tmp = exp.(snap.data["ltemp"])
+    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=2);
+
+    close(f)
+
+    nothing
+end
+
+function BifrostSnap(filename, folder="../input_data/")
+    mesh_file = joinpath(folder,filename*".msh")
+    dat_file  = joinpath(folder,filename*".dat")
+    aux_file  = joinpath(folder,filename*".aux")
+    mesh      = StaggerMesh(mesh_file)
+    result    = Dict{String,Array{Float32,3}}()
+    order    = ["r","px","py","pz","e","bx","by","bz"]
+    for (i,para) in enumerate(order)
+        try
+            result[para] = br_arr_ffile(dat_file,mesh, rpos=i)
+            #reverse!(result[para]; dims=3)
+        catch e
+            if isa(e, EOFError)
+                @warn "$(para) not present."
+            else
+                error("Reading Failed.")
+            end
+        end
+    end
+    result["ee"] = result["e"] ./ result["r"] 
+
+    aux_order = ["lpp", "ltemp"]
+    for (i,para) in enumerate(aux_order)
+        try
+            result[para] = br_arr_ffile(aux_file, mesh, rpos=i)
+            #reverse!(result[para]; dims=3)
+        catch e
+            if isa(e, EOFError)
+                @warn "$(para) not present."
+            else
+                throw(e)
+            end
+        end
+    end
+
+    StaggerSnap(mesh_file, dat_file, aux_file, mesh, result, order)
 end
 
 """
@@ -219,15 +319,39 @@ Read a Stagger Snapshot from .msh and .dat files.
 function StaggerSnap(filename, folder="../input_data/")
     mesh_file = joinpath(folder,filename*".msh")
     dat_file  = joinpath(folder,filename*".dat")
-    mesh      = Stagger.StaggerMesh(mesh_file)
+    aux_file  = joinpath(folder,filename*".aux")
+    mesh      = StaggerMesh(mesh_file)
     result    = Dict{String,Array{Float32,3}}()
-    order    = ["r","px","py","pz","e","d","Bx","By","Bz"]
-    for para in order
-        result[para] = permutedims(Stagger.br_arr_ffile(dat_file,mesh; 	
-                                            rpos=findfirst(para .==order)),[3,1,2])
+    order    = ["r","px","py","pz","e","d","bx","by","bz"]
+    for (i,para) in enumerate(order)
+        try
+            result[para] = permutedims(br_arr_ffile(dat_file,mesh, rpos=i),[3,1,2])
+            #reverse!(result[para]; dims=3)
+        catch e
+            if isa(e, EOFError)
+                @warn "$(para) not present."
+            else
+                error("Reading Failed.")
+            end
+        end
     end
     result["ee"] = result["e"] ./ result["r"] 
-    StaggerSnap(mesh_file,dat_file,mesh,result,order)
+
+    aux_order = ["lpp", "lross", "ltemp", "lne", "lplanck", "ltau"]
+    for (i,para) in enumerate(aux_order)
+        try
+            result[para] = permutedims(br_arr_ffile(aux_file, mesh, rpos=i),[3,1,2])
+            #reverse!(result[para]; dims=3)
+        catch e
+            if isa(e, EOFError)
+                @warn "$(para) not present."
+            else
+                throw(e)
+            end
+        end
+    end
+
+    StaggerSnap(mesh_file, dat_file, aux_file, mesh, result, order)
 end
 
 """
@@ -274,4 +398,11 @@ Container for Python stagger snap (usefull for dispatching)
 """
 struct StaggerLegacySnap
     snap::PyCall.PyObject
+end
+
+bifrost_name(stagger_name::String) = begin
+    i_ext     = first(findlast(".", stagger_name))
+    path, ext = stagger_name[1:i_ext-1], stagger_name[i_ext+1:end]
+
+    path*"_bifrost.$(ext)"
 end
