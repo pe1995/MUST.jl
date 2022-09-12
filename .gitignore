@@ -5,6 +5,10 @@ examples/*/core.cobra*
 examples/*/*.pdf
 examples/*/*.gif
 examples/*/*.png
+examples/*/*.aux
+examples/*/*.msh
+examples/*/*.snap
+examples/*/*.hdf5
 examples/running_dispatch/*.csv
 *.pyc
 **/__pycache__/

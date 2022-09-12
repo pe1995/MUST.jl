@@ -18,15 +18,14 @@ threads, tasks, mem = MUST.slurm_setup()
 # the others to copy. We make sure that the namelists are
 # correctly setup for our needs. If nothing is given, stellar.nml and restart.nml are
 # assumed to be the default setting
-phase1_nml_template = MUST.StellarNamelist(MUST.@in_dispatch("phase1_hllc_c15.nml"))
-
-MUST.set!(phase1_nml_template, io_params=("end_time"      => 120.0,
-                                          "out_time"      => 5.0))
+phase1_nml_template = MUST.StellarNamelist(MUST.@in_dispatch("p10105.nml"))
+MUST.set!(phase1_nml_template, io_params=("end_time" => 120.0,
+                                          "out_time" => 5.0))
 
 #========== PHASE 1 ==========#
 # Create a random grid from central seeds
 central_seeds = Dict{Symbol, Dict{String, Float32}}(   
-                        :stellar_params => Dict{String, Float32}("tt_k" => 1.15e4, "d_cgs" => log10(3.0445492234271924e-7)))
+                        :stellar_params => Dict{String, Float32}("tt_k" => 11000.0, "d_cgs" => log10(3.0445492234271924e-7)))
 
 relative_lims = Dict{Symbol, Dict{String, Float32}}(   
                         :stellar_params => Dict{String, Float32}("tt_k" => 0.1, "d_cgs" => 0.005))

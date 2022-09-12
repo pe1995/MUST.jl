@@ -325,7 +325,7 @@ function StaggerSnap(filename, folder="../input_data/")
     order    = ["r","px","py","pz","e","d","bx","by","bz"]
     for (i,para) in enumerate(order)
         try
-            result[para] = permutedims(br_arr_ffile(dat_file,mesh, rpos=i),[3,1,2])
+            result[para] = permutedims(br_arr_ffile(dat_file,mesh, rpos=i),[3,1,2])[:,:,2:end-1]
             #reverse!(result[para]; dims=3)
         catch e
             if isa(e, EOFError)
@@ -340,7 +340,7 @@ function StaggerSnap(filename, folder="../input_data/")
     aux_order = ["lpp", "lross", "ltemp", "lne", "lplanck", "ltau"]
     for (i,para) in enumerate(aux_order)
         try
-            result[para] = permutedims(br_arr_ffile(aux_file, mesh, rpos=i),[3,1,2])
+            result[para] = permutedims(br_arr_ffile(aux_file, mesh, rpos=i),[3,1,2])[:,:,2:end-1]
             #reverse!(result[para]; dims=3)
         catch e
             if isa(e, EOFError)
@@ -351,7 +351,7 @@ function StaggerSnap(filename, folder="../input_data/")
         end
     end
 
-    StaggerSnap(mesh_file, dat_file, aux_file, mesh, result, order)
+    StaggerSnap(mesh_file, dat_file, aux_file, StaggerMesh(mesh, 1, 1), result, order)
 end
 
 """
@@ -405,4 +405,26 @@ bifrost_name(stagger_name::String) = begin
     path, ext = stagger_name[1:i_ext-1], stagger_name[i_ext+1:end]
 
     path*"_bifrost.$(ext)"
+end
+
+function getindex(s::StaggerSnap, key::Symbol)
+    return if key == :px
+        s.data["pz"]
+    elseif key == :py
+        s.data["px"]
+    elseif key == :pz
+        s.data["py"] 
+    elseif key == :x
+        s.mesh.z
+    elseif key == :y
+        s.mesh.x
+    elseif key == :z
+        s.mesh.y
+    elseif key == :T
+        exp.(s.data["ltemp"])
+    elseif key in Symbol.(["pp", "ross", "temp", "ne", "planck", "tau"])
+        exp.(s.data["l$(key)"])
+    else
+        s.data[String(key)]
+    end
 end

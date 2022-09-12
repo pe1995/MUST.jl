@@ -4,6 +4,8 @@ using MUST
 using PyCall
 
 const visual = true
+const cbar_fraction = 0.046
+const cbar_pad = 0.04
 
 function basic_subplot(nrows,ncols;
                         figsize=(6,6),
@@ -154,6 +156,17 @@ function basic_plot!(ax;
     end
 end
 
+basic_colorbar!(cax) = begin
+    basic_plot!(cax.ax)
+end
+
+add_cbar(im, ax, args...; fraction=cbar_fraction, pad=cbar_pad, kwargs...) = begin
+    cax = plt.colorbar(im, ax=ax, args..., fraction=fraction, pad=pad, kwargs...)
+    basic_plot!(cax.ax)
+
+    cax
+end
+
 function gif_by_plane(stat::Function, folder::Vector{String}, labels::Vector{String}; 
                                     color=["k" for _ in folder], ls=["-" for _ in folder],
                                     ylim=(4000, 22000), duration=0.2,
@@ -230,6 +243,45 @@ function gif_by_column(f, boxes, variable;
             cb = plt.colorbar(im)
         end
 
+        cb.set_label(clabel)
+        plt.savefig("$(path_ext)_sn$(i).png", bbox_inches="tight")        
+        plt.close()
+        append!(filenames, ["$(path_ext)_sn$(i).png"])
+    end
+
+    gif_from_pngs(filenames, "$(path_ext).gif", duration=duration)
+end
+
+function gif_by_yindex(yindex, boxes, variable; 
+    vmin=nothing, vmax=nothing, cmap="Greys_r", clabel="$(variable)",
+    path_ext="box_val", duration=0.2, zrange=nothing, transformers...)
+
+    filenames = String[]
+
+    for i in eachindex(boxes)
+        plt.title("snapshot $(i)")
+        surface = boxes[i]
+
+        v = isnothing(zrange) ? view(surface.data[variable], :, yindex, :)' : view(surface.data[variable], :, yindex, zrange)'
+        z = isnothing(zrange) ? view(surface.z, 1, yindex, :) : view(surface.z, 1, yindex, zrange)
+        x = view(surface.x, :, yindex, 1) 
+    
+        minx, maxx = minimum(x)*1e-8, maximum(x)*1e-8
+        minz, maxz = minimum(z)*1e-8, maximum(z)*1e-8
+        extent = [minx, maxx, minz, maxz]
+
+        v = length(keys(transformers)) > 0 ? transformers[variable].(v) : v
+        if !isnothing(vmin)
+            im = plt.imshow(v, origin="lower", cmap=cmap, vmin=vmin, vmax=vmax, aspect="auto", extent=extent)
+            cb = plt.colorbar(im, boundaries=[range(vmin, vmax; length=100)...])
+        else
+            im = plt.imshow(v, origin="lower", cmap=cmap, aspect="auto", extent=extent)
+            cb = plt.colorbar(im)
+        end
+
+        cb.set_label(clabel, fontsize="large")
+        plt.xlabel("x [Mm]", fontsize="large")
+        plt.ylabel("z [Mm]", fontsize="large")
         plt.savefig("$(path_ext)_sn$(i).png", bbox_inches="tight")        
         plt.close()
         append!(filenames, ["$(path_ext)_sn$(i).png"])
@@ -313,3 +365,4 @@ for f in $(list_of_filenames):
     if os.path.exists(f):
         os.remove(f)
 """
+;

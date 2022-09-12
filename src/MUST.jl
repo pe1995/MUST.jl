@@ -3,7 +3,7 @@ module MUST
 #= Julia modules =#
 using PyCall
 using DataFrames
-using FortranFiles: FortranFile, read, readlines, write
+using FortranFiles
 using Printf
 using Statistics
 using HDF5
@@ -20,6 +20,7 @@ import Base.getindex
 import Base.length
 import Base.keys
 import Base.read!, Base.write
+import Base.size, Base.axes
 
 #= Python modules =#
 const numpy             = PyNULL()
@@ -29,6 +30,9 @@ __init__() = begin
     copy!(scipy_interpolate,pyimport("scipy.interpolate"))
     copy!(numpy,pyimport("numpy"))
 end
+
+#= Abstract types =#
+abstract type AbstractSpace end
 
 #= MUST interface =#
 export import_dispatch, in_dispatch
@@ -47,5 +51,6 @@ include("_namelist.jl")
 include("_atmos.jl")
 include("_mustgrid.jl")
 include("_running.jl")
+include("_atmos2legacy.jl")
 
 end

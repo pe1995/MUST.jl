@@ -85,3 +85,5 @@ function meshgrid(ax...)
 
     grids
 end
+
+uniqueidx(v) = unique(i -> v[i], eachindex(v))

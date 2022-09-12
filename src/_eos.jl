@@ -62,9 +62,15 @@ function SquareGasEOS(para_path)
     # Ne - Tg Rad tables
     if p["NeTgRadTable_recl"] != -1
         path = joinpath(d, p["NeTgRadTableFile"])
-        ne_epstable = read_squaregas_table(path, record = 1, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2))  
-        ne_temtable = read_squaregas_table(path, record = 2, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2))  
-        ne_opatable = read_squaregas_table(path, record = 3, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2)) 
+        try
+            ne_epstable = read_squaregas_table(path, record = 1, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2))  
+            ne_temtable = read_squaregas_table(path, record = 2, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2))  
+            ne_opatable = read_squaregas_table(path, record = 3, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2)) 
+        catch
+            ne_epstable = nothing
+            ne_temtable = nothing
+            ne_opatable = nothing
+        end
     else
         ne_epstable = nothing
         ne_temtable = nothing
@@ -73,9 +79,9 @@ function SquareGasEOS(para_path)
     
     # Rho - Ei - rad tables
     path = joinpath(d, p["RhoEiRadTableFile"])
-    epstable = read_squaregas_table(path, record = 1, recl = p["RhoEi_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))  
-    temtable = read_squaregas_table(path, record = 2, recl = p["RhoEi_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))  
-    opatable = read_squaregas_table(path, record = 3, recl = p["RhoEi_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))  
+    epstable = read_squaregas_table(path, record = 1, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))  
+    temtable = read_squaregas_table(path, record = 2, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))  
+    opatable = read_squaregas_table(path, record = 3, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))  
 
     # EOS tables
     path = joinpath(d, p["EOSTableFile"])
@@ -96,7 +102,11 @@ function SquareGasEOS(para_path)
     end
 
     if haskey(p,"NeMin") && haskey(p,"NeMax")
-        lnNe_axis  = Vector(range(TT(log(p["NeMin"])),  TT(log(p["NeMax"]));  length=p["nNeBin"]))
+        try
+            lnNe_axis  = Vector(range(TT(log(p["NeMin"])),  TT(log(p["NeMax"]));  length=p["nNeBin"]))
+        catch
+            lnNe_axis = nothing
+        end
     else
         lnNe_axis = nothing
     end
@@ -227,7 +237,6 @@ lookup(eos::AbstractEOS, parameter::Symbol, d::AbstractArray{T,2}, ee::AbstractA
         di  = view(d,  :, i)
         eei = view(ee, :, i)
 
-        @show lookup(eos, parameter, di, eei, args...; kwargs...)
         dp > 1 ? 
             result[:,i,:] .= lookup(eos, parameter, di, eei, args...; kwargs...) : 
             result[:,i,1] .= lookup(eos, parameter, di, eei, args...; kwargs...)
@@ -235,6 +244,24 @@ lookup(eos::AbstractEOS, parameter::Symbol, d::AbstractArray{T,2}, ee::AbstractA
     end
 
     dp > 1 ? result : result[:,:,1]
+end
+
+lookup(eos::AbstractEOS, parameter::Symbol, d::AbstractArray{T,3}, ee::AbstractArray{T,3}, args...; kwargs...) where {T<:AbstractFloat} = begin
+    dp     = dimension(eos, parameter)
+    result = rand(eltype(d), size(d)..., dp)
+
+    @inbounds for k in 1:size(d, 3)
+        @inbounds for j in 1:size(d, 2)
+            di  = view(d, :, j, k)
+            eei = view(ee, :, j, k)
+
+            dp > 1 ? 
+                result[:,j,k,:] .= lookup(eos, parameter, di, eei, args...; kwargs...) : 
+                result[:,j,k,1] .= lookup(eos, parameter, di, eei, args...; kwargs...)
+        end   
+    end
+
+    dp > 1 ? result : result[:,:,:,1]
 end
 
 dimension(eos::SquareGasEOS, parameter::Symbol) = begin
@@ -349,3 +376,56 @@ function bisect(eos::AbstractEOS, iterations=50, antilinear=false; kwargs...)
     return bisect_res
 end
 
+
+function bisect_cube(eos::AbstractEOS; iterations=20, kwargs...)
+    key_values = [[],[],[]]
+    i = 1
+    for (key,value) in kwargs
+        if ndims(value) == 4
+            key_values[3] = [key, value]
+        else
+            key_values[i] = [key, value]
+            i += 1
+        end
+    end
+    s = size(key_values[1][2])
+    r = zeros(eltype(key_values[1][2]), s...)
+
+    p = zeros(2)
+    @inbounds for k in 1:s[3]
+        @inbounds for j in 1:s[2]
+            @inbounds for i in 1:s[1]
+                p   .= key_values[3][2][i, j, k, :]
+                args = (key_values[1][1]=>key_values[1][2][i,j,k], key_values[2][1]=>key_values[2][2][i,j,k], key_values[3][1]=>p)
+
+                r[i,j,k] = bisect(eos, iterations; args...)
+            end
+        end
+    end
+
+    r
+end
+
+bisect_energy(eos::SquareGasEOS, s, args...; kwargs...) = begin
+    _, _, eemin, eemax = limits(eos)
+    e_cube_lims = zeros(s..., 2)
+    e_cube_lims[:,:,:,1] .= eemin
+    e_cube_lims[:,:,:,2] .= eemax
+    bisect_cube(eos, args...; ee=e_cube_lims, kwargs...)
+end
+
+limits(eos::PythonEOS) = begin
+    d0 = eos.eos.scale0.min
+    d1 = eos.eos.scale0.max
+    e0 = eos.eos.scale1.min
+    e1 = eos.eos.scale1.max
+    return d0,d1,e0,e1
+end
+
+limits(eos::SquareGasEOS) = begin
+    emin = exp(eos.lnEi_axis[1])
+    emax = exp(eos.lnEi_axis[end])
+    dmin = exp(eos.lnRho_axis[1])
+    dmax = exp(eos.lnRho_axis[end])
+    return dmin, dmax, emin, emax
+end

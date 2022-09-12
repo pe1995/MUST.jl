@@ -1,5 +1,3 @@
-abstract type AbstractSpace end
-
 mutable struct AtmosphericParameters{T<:AbstractFloat} 
     time             ::T
     teff             ::T
@@ -22,6 +20,8 @@ mutable struct Box <:AbstractSpace
 end
 
 #==== Functionality ====#
+AtmosphericParameters() = AtmosphericParameters(-99.0, -99.0, -99.0, Dict{Symbol,Float64}())
+
 """
 Atmospheric parameters of a dispatch snapshot.
 Creates a link between the patch time, teff as well as physical parameters.
@@ -411,14 +411,14 @@ Returns
 nothing
 
 """
-function convert!(s::Space, u::AtmosUnits; params...)
+function convert!(s::AbstractSpace, u::AtmosUnits; params...)
     for (s_para, u_para) in params
-        s.data[s_para] .= s.data[s_para] .* getfield(u,u_para)
+        s[s_para] .= s[s_para] .* getfield(u,u_para)
     end
     nothing
 end
 
-function convert(s::Space, u::AtmosUnits; params...)
+function convert(s::AbstractSpace, u::AtmosUnits; params...)
     s_new = deepcopy(s)
     convert!(s_new, u; params...)
     s_new
@@ -864,9 +864,9 @@ height_where(; kwargs...) = begin
         res = kw[col]
         mask  = (.!isnan.(res)) .&  (.!isnan.(kw[:z]))
         smask = sortperm(res[mask])
-        LinearInterpolation(res[mask][smask], kw[:z][mask][smask], extrapolation_bc=Flat())(val)
+        umask = uniqueidx(res[mask][smask])
+        LinearInterpolation(res[mask][smask][umask], kw[:z][mask][smask][umask], extrapolation_bc=Flat())(val)
     end
-
     return f_mod
 end
 
@@ -970,7 +970,7 @@ end
 """
 Switch the height scale of a box. Creates a new box by reducing the old box by column for every new height value.
 """
-function height_scale(b::MUST.Box, new_scale, limits=nothing)
+function height_scale(b::MUST.Box, new_scale, limits=nothing, logspace=true)
     N_points = size(b.z, 3)
     TT = eltype(b.z)
 
@@ -978,9 +978,17 @@ function height_scale(b::MUST.Box, new_scale, limits=nothing)
         # create a new height scale 
         min_plane = MUST.plane_statistic(minimum, b, new_scale)
         max_plane = MUST.plane_statistic(maximum, b, new_scale)
-        h_scale   = range( TT(maximum(min_plane)), TT(minimum(max_plane)); length=N_points)
+        low_lim   = maximum(min_plane)
+        high_lim  = minimum(max_plane)
     else
-        h_scale = range( TT(limits[1]), TT(limits[2]); length=N_points)
+        low_lim  = limits[1]
+        high_lim = limits[2]
+    end
+
+    if !logspace
+        h_scale = range( TT(low_lim), TT(high_lim); length=N_points)
+    else
+        h_scale = Base.convert.(TT, 10.0 .^ range( log(10, TT(low_lim)), log(10, TT(high_lim)); length=N_points))
     end
 
     new_box = deepcopy(b)
@@ -991,7 +999,7 @@ function height_scale(b::MUST.Box, new_scale, limits=nothing)
     Ny = size(b.x,2)
     #xv = zeros(eltype(b.x), N_points); yv=zeros(eltype(b.x), N_points); zv=zeros(eltype(b.x), N_points)
     #qv = Dict(q => zeros(eltype(b.x), size(b.data[q],3)) for q in keys(b.data))
-    z_int = zeros(eltype(b.x), Nx,Ny)
+    z_int = zeros(eltype(b.x), Nx, Ny)
 
     # Step by step construct a box object from individual planes
     @inbounds for i in 1:N_points
@@ -1063,7 +1071,7 @@ function optical_depth(b::MUST.Box, rk)
     Nx = size(b.x,1)
     Ny = size(b.x,2)
     Nz = size(b.x,3)
-    optical_depth = ones(Nx,Ny,Nz)
+    optical_depth = zeros(Nx,Ny,Nz)
     for k in Nz-1:-1:1
         for j in 1:Ny
             for i in 1:Nx
@@ -1074,21 +1082,24 @@ function optical_depth(b::MUST.Box, rk)
     end
 
     # Always compute the log, makes the extrapolation easier
-    optical_depth = log10.(optical_depth)
+    #optical_depth = log10.(optical_depth)
 
     # Last point extrapolate
-    m = (optical_depth[:,:,end-2] .- optical_depth[:,:,end-1]) ./ (b.z[:,:,end-2] .- b.z[:,:,end-1])
-    a = optical_depth[:,:,end-1] .- m .* b.z[:,:,end-1]
-    optical_depth[:,:,end] = m .* b.z[:,:,end] .+ a
+    #m = (optical_depth[:,:,end-2] .- optical_depth[:,:,end-1]) ./ (b.z[:,:,end-2] .- b.z[:,:,end-1])
+    #a = optical_depth[:,:,end-1] .- m .* b.z[:,:,end-1]
+    #optical_depth[:,:,end] = m .* b.z[:,:,end] .+ a
 
     optical_depth
 end
 
-function Boxes(folder::String)
+function Boxes(folder::String; snaps=nothing)
+    snaps = isnothing(snaps) ? Base.Colon() : snaps
     content_of_folder = glob("*/", folder)
-    snapshots         = sort(MUST.list_of_snapshots(content_of_folder));
-    boxes  = []
-    boxesT = []
+    snapshots = sort(MUST.list_of_snapshots(content_of_folder))[snaps]
+    
+    boxes     = []
+    boxesT    = []
+
     for (i_s,snap) in enumerate(snapshots)
         try
             append!(boxes, [MUST.Box("box_sn$(snapshots[i_s])", folder=folder)])
@@ -1103,7 +1114,30 @@ function Boxes(folder::String)
         end
 
     end
-    boxes, boxesT
+
+    return if length(boxes) == 1
+        boxes[1], boxesT[1]
+    else
+        boxes, boxesT
+    end
 end
 
-axis(b::Box, which, dimension=3) = view(b[which], [i==dimension ? Base.Colon() : 1 for i in 1:3]...)
+axis(b::Box, which, dimension::Int=0) = begin
+    if which in [:x, :y, :z]
+        dim = findfirst(which .== [:x, :y, :z])
+    else
+        dim = dimension
+    end
+
+    return if dim==0
+        sb = size(b)
+        view(b[which], [sb[i] > 1 ? Base.Colon() : 1 for i in 1:length(sb)]...)
+    else
+        view(b[which], [i==dim ? Base.Colon() : 1 for i in 1:3]...)
+    end
+end
+
+Base.axes(b::Box, args...; kwargs...) = axes(b.z, args...; kwargs...)
+Base.size(b::Box, args...; kwargs...) = size(b.z, args...; kwargs...)
+
+closest(a, v) = argmin(abs.(a .- v))
