@@ -33,7 +33,11 @@ function set!(atmp::AtmosphericParameters, teff_function, ini_namelist)
     epn = MUST.@in_dispatch(String(strip(ini_namelist.eos_params["table_loc"])[2:end-1]))
     eos_params_path = joinpath(epn, "tabparam.in")
     
-    composition = composition_from_eos(eos_params_path)
+    composition = try
+        composition_from_eos(eos_params_path)
+    catch
+        Dict{Symbol,typeof(logg)}()
+    end
 
     atmp.teff = teff
     atmp.logg = logg
@@ -1061,25 +1065,39 @@ end
 optical_depth(b::MUST.Box, k, rho) = optical_depth(b, k .* rho)
 
 function optical_depth(b::MUST.Box, rk)
-    τ(z,ix,iy) = begin
+    #=τ(z,ix,iy) = begin
         mask   = b.z[ix,iy,:] .>= z
         count(mask) < 2 ? 
             0.0 : 
             integrate(b.z[ix,iy,mask],rk[ix,iy,mask])
-    end
+    end=#
 
     Nx = size(b.x,1)
     Ny = size(b.x,2)
     Nz = size(b.x,3)
     optical_depth = zeros(Nx,Ny,Nz)
-    for k in Nz-1:-1:1
+
+    for j in 1:Ny
+        for i in 1:Nx
+            z = b.z[i,j,:]
+            for k in Nz:-1:1
+                optical_depth[i,j,k] = if k==Nz
+                    0 + abs(z[Nz-1] - z[Nz]) * 0.5 * (rk[i, j, k])
+                else
+                    optical_depth[i,j,k+1] + abs(z[k] - z[k+1]) * 0.5 * (rk[i, j, k] + rk[i, j, k+1])
+                end
+            end
+        end
+    end
+
+    #=for k in Nz-1:-1:1
         for j in 1:Ny
             for i in 1:Nx
                 z = b.z[i,j,k]
                 optical_depth[i,j,k] = τ(z, i, j)
             end
         end
-    end
+    end=#
 
     # Always compute the log, makes the extrapolation easier
     #optical_depth = log10.(optical_depth)

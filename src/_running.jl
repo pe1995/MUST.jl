@@ -1,4 +1,4 @@
-"""Submit dispatch job without waiting."""
+"""Submit dispatch job."""
 function srun_dispatch(nml_name, threads::Int, memMB::Int, timeout::String; wait=false)
     ddir    = MUST.@in_dispatch("")
     command = `srun -N 1 -n 1 -c $(threads) --mem=$(memMB)mb --time=$(timeout) --exclusive -D $(ddir) ./dispatch.x $(nml_name)`

@@ -24,11 +24,17 @@ MUST.set!(phase1_nml_template, io_params=("end_time" => 120.0,
 
 #========== PHASE 1 ==========#
 # Create a random grid from central seeds
-central_seeds = Dict{Symbol, Dict{String, Float32}}(   
+#=central_seeds = Dict{Symbol, Dict{String, Float32}}(   
                         :stellar_params => Dict{String, Float32}("tt_k" => 11000.0, "d_cgs" => log10(3.0445492234271924e-7)))
 
 relative_lims = Dict{Symbol, Dict{String, Float32}}(   
                         :stellar_params => Dict{String, Float32}("tt_k" => 0.1, "d_cgs" => 0.005))
+=#
+central_seeds = Dict{Symbol, Dict{String, Float32}}(   
+                            :stellar_params => Dict{String, Float32}("tt_k" => 12000.0, "d_cgs" => log10(4.5e-7)))
+    
+relative_lims = Dict{Symbol, Dict{String, Float32}}(   
+                            :stellar_params => Dict{String, Float32}("tt_k" => 0.1, "d_cgs" => 0.07))
 
 # The grid can be constructed using e.g. a RangeMUSTGrid
 phase1_grid = MUST.RangeMUSTGrid(central_seeds, relative_lims, phase="phase1")
@@ -46,7 +52,7 @@ MUST.create_namelists!(phase1_grid, default_nml=phase1_nml_template, start_index
 CSV.write(info_path, phase1_grid.info)
 
 # Run the first phase and check for completion
-MUST.run!(phase1_grid, threads=threads, memMB=mem, timeout="04:00:00")
+MUST.run!(phase1_grid, threads=threads, memMB=mem, timeout="03:00:00")
 
 # Save the intermediate results
 CSV.write(info_path, phase1_grid.info)

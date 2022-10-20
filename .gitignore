@@ -12,3 +12,6 @@ examples/*/*.hdf5
 examples/running_dispatch/*.csv
 *.pyc
 **/__pycache__/
+examples/dispatch2multi/*atmos
+examples/dispatch2multi/*mesh
+examples/solar_model/*.dat

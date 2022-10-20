@@ -74,8 +74,8 @@ randomgrid!(grid::RangeMUSTGrid{DF, F}, ngrid::Int) where {DF, F} = begin
         grid.grid[field] = Dict{String, Vector{F}}()
 
         for p in keys(grid.seeds[field])
-            lims = [ grid.seeds[field][p] - grid.seeds[field][p]*grid.limits[field][p], 
-                     grid.seeds[field][p] + grid.seeds[field][p]*grid.limits[field][p] ]
+            lims = [ grid.seeds[field][p] - abs(grid.seeds[field][p]*grid.limits[field][p]), 
+                     grid.seeds[field][p] + abs(grid.seeds[field][p]*grid.limits[field][p]) ]
 
             grid.grid[field][p] = MUST.randrange(lims..., F, ngrid) 
             

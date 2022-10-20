@@ -21,6 +21,7 @@ import Base.length
 import Base.keys
 import Base.read!, Base.write
 import Base.size, Base.axes
+import Base.Broadcast.broadcastable
 
 #= Python modules =#
 const numpy             = PyNULL()
@@ -52,5 +53,6 @@ include("_atmos.jl")
 include("_mustgrid.jl")
 include("_running.jl")
 include("_atmos2legacy.jl")
+include("_atmos2multi.jl")
 
 end

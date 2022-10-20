@@ -6,7 +6,7 @@ MUST.@import_dispatch "../../../dispatch2_clean/dispatch2" EOS
 units = MUST.StaggerCGS()
 
 leEos = MUST.@legacyPythonEOS MUST.dispatch_location
-sqEos = MUST.SquareGasEOS(MUST.@in_dispatch("input_data/solar_stagsnap/"))
+sqEos = MUST.SquareGasEOS(MUST.@in_dispatch("input_data/TSO_table_lines1/"))
 
 le_ee_range = [5., 30.] 
 sq_ee_range = [Float32(sqEos.params["EiMin"]), Float32(sqEos.params["EiMax"])] 

@@ -429,3 +429,6 @@ limits(eos::SquareGasEOS) = begin
     dmax = exp(eos.lnRho_axis[end])
     return dmin, dmax, emin, emax
 end
+
+# Avoid Broadcast over EoS
+broadcastable(eos::AbstractEOS) = Ref(eos)
