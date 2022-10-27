@@ -23,17 +23,17 @@ function _write_atmos_multi(b, path, eos; downsample_xy=1, downsamlpe_z=1)
     s = size(b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end])
     res::Array{Float32, 4} = zeros(Float32, s..., 6)
 
-    res[:, :, :, 1] .= Base.convert.(Float32, lookup(eos, :Ne, b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end], b[:ee][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]))
-    res[:, :, :, 2] .= b[:T][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
-    res[:, :, :, 3] .= b[:ux][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
-    res[:, :, :, 4] .= b[:uy][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
-    res[:, :, :, 5] .= b[:uz][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
-    res[:, :, :, 6] .= b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
+    res[:, :, :, 1] .= Base.convert.(Float32, lookup(eos, :Ne, b[:d][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end], b[:ee][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]))
+    res[:, :, :, 2] .= b[:T][ 1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]
+    res[:, :, :, 3] .= b[:ux][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
+    res[:, :, :, 4] .= b[:uy][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
+    res[:, :, :, 5] .= b[:uz][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
+    res[:, :, :, 6] .= b[:d][ 1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]
     
+    reverse!(res, dims=3)
+
     f = open(path, "w")
-    for i in axes(res, 4)
-        write(f, reverse(res[:,:,:,i], dims=3))
-    end
+    write(f, res)
     close(f)
 end
 
@@ -65,9 +65,7 @@ function _read_mesh_multi(path)
     end
 end
 
-function _read_atmos_multi(path, n)
-    #f = open(path, "r")
-    
+function _read_atmos_multi(path, n)    
     r  = zeros(Float32, n..., 6)
     ne = zeros(Float32, n...)
     T  = zeros(Float32, n...)
