@@ -34,6 +34,7 @@ end
 
 #= Abstract types =#
 abstract type AbstractSpace end
+abstract type AbstractInitialModel end
 
 #= MUST interface =#
 export import_dispatch, in_dispatch
@@ -51,6 +52,7 @@ include("_dispatch.jl")
 include("_namelist.jl")
 include("_atmos.jl")
 include("_mustgrid.jl")
+include("_initial_conditions.jl")
 include("_running.jl")
 include("_atmos2legacy.jl")
 include("_atmos2multi.jl")

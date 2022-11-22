@@ -170,7 +170,7 @@ end
 function gif_by_plane(stat::Function, folder::Vector{String}, labels::Vector{String}; 
                                     color=["k" for _ in folder], ls=["-" for _ in folder],
                                     ylim=(4000, 22000), duration=0.2,
-                                    ylabel="", xlabel="z [cm]",
+                                    ylabel="", xlabel="z [cm]",ax_start=nothing, f_start=nothing,
                                     names=["box" for _ in folder], variable=:temp, path_ext="box_stat")
     n_curves = length(folder)
     @assert length(folder) == length(labels) 
@@ -185,10 +185,17 @@ function gif_by_plane(stat::Function, folder::Vector{String}, labels::Vector{Str
     filenames = String[]
 
     for i in list_of_snapshots(folder[n_snaps], names[n_snaps])
-        plt.title("snapshot $(i)")
-        plt.ylabel(ylabel)
-        plt.xlabel(xlabel)
-        plt.ylim(ylim...)
+        
+        if isnothing(ax_start)
+            f, ax = plt.subplots(1,1)
+        else
+            f, ax = deepcopy(f_start), deepcopy(ax_start)
+        end
+        
+        ax.set_title("snapshot $(i)")
+        ax.set_ylabel(ylabel)
+        ax.set_xlabel(xlabel)
+        ax.set_ylim(ylim...)
 
         for j in 1:n_curves
             try
@@ -210,12 +217,12 @@ function gif_by_plane(stat::Function, folder::Vector{String}, labels::Vector{Str
             if iw[j] == 0
                 continue
             else
-                plt.plot(zs, stats, color=color[j],label=labels[j], ls=ls[j])
+                ax.plot(zs, stats, color=color[j],label=labels[j], ls=ls[j])
             end
         end
-        plt.legend()
-        plt.savefig("$(path_ext)_sn$(i).png", bbox_inches="tight")        
-        plt.close()
+        ax.legend()
+        f.savefig("$(path_ext)_sn$(i).png", bbox_inches="tight")        
+        plt.close(f)
         append!(filenames, ["$(path_ext)_sn$(i).png"])
     end
 

@@ -1,3 +1,5 @@
+## Methods for submitting dispatch jobs via a slurm submission 
+
 """Submit dispatch job."""
 function srun_dispatch(nml_name, threads::Int, memMB::Int, timeout::String; wait=false)
     ddir    = MUST.@in_dispatch("")
@@ -95,3 +97,4 @@ slurm_setup() = begin
     mem = floor(Int, mem / tasks)
     (threads, tasks, mem)
 end
+

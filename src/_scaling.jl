@@ -20,11 +20,11 @@ struct AtmosUnits
 end
 
 """
-StaggerCGS units (dispatch code units). 
+StandardUnits units (dispatch code units). 
     code -> cgs: var * Stagger.cgs.var
     code <- cgs: var / Stagger.cgs.var
 """
-function StaggerCGS(system = "cgs",                                   
+function StandardUnits(system = "cgs",                                   
                     l  = 1e8,                                        
                     d  = 1e-7,                                        
                     t  = 1e2,                                       
@@ -45,7 +45,8 @@ function StaggerCGS(system = "cgs",
     AtmosUnits(system,l,d,t,u,m,p,pm,ee,e,qr,k,rk,mu,b,k_B,m_H,m_He)
 end
 
-function StaggerCGS(snap::T) where {T<:PyCall.PyObject}
+"""Read Units from Dispatch snapshot and save the conversion to CGS."""
+function StandardUnits(snap::T) where {T<:PyCall.PyObject}
     pnames = keys(snap.params_list["scaling_params"])
     l_name = "l_cgs" in pnames ? "l_cgs" : "l"
     d_name = "d_cgs" in pnames ? "d_cgs" : "d"
@@ -64,10 +65,17 @@ function StaggerCGS(snap::T) where {T<:PyCall.PyObject}
     if v_name in keys(snap.params_list["scaling_params"])
         v = snap.params_list["scaling_params"][v_name]
         t = l / v
-    elseif t_name in keys(snap.params_list["scaling_params"])
+    end
+    if t_name in keys(snap.params_list["scaling_params"])
         t = snap.params_list["scaling_params"][t_name]
         v = l / t
     end
 
     StaggerCGS("cgs",l,d,t,v)
 end
+
+DispatchCGS(snap::T) where {T<:PyCall.PyObject} = StandardUnits(snap)
+StaggerCGS(snap::T) where {T<:PyCall.PyObject}  = StandardUnits(snap)
+StaggerCGS(args...; kwargs...)                  = StandardUnits(args...; kwargs...)
+
+GeneralUnits = StandardUnits()

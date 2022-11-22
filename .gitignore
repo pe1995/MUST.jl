@@ -1,4 +1,5 @@
 /Manifest.toml
+
 examples/*/Manifest.toml
 examples/*/slurm*
 examples/*/core.cobra*
@@ -15,3 +16,6 @@ examples/running_dispatch/*.csv
 examples/dispatch2multi/*atmos
 examples/dispatch2multi/*mesh
 examples/solar_model/*.dat
+examples/solar_model/*.mod
+examples/solar_model/*.simple
+examples/solar_model/solar_stagger_ext

@@ -28,7 +28,7 @@ end
     MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
     MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2" EOS select
 
-    add_selection = false
+    add_selection = true
 end
 
 folder = MUST.@in_dispatch ARGS[1]
@@ -115,7 +115,8 @@ MUST.sendsync(workers(), folder=folder, do_teff=save_info, ini_nml=nml, eos=eos_
 
             # NEW: Convert the height scale from cm to optical depth
             min_plane = MUST.plane_statistic(minimum, b_s, :τ_ross)
-            b_s       = MUST.height_scale(b_s, :τ_ross, Float32[maximum(min_plane), 10^(-6.0)])
+            b_s       = MUST.height_scale(b_s, :τ_ross)
+            #b_s       = MUST.height_scale(b_s, :τ_ross, Float32[maximum(min_plane), 10^(-6.0)])
 
             # Write to HDF5 file. Can easily be read as a Memory map later with the build-in functions
             #MUST.save(s;   name="space_sn$(snapshots[i_s])", folder=folder)
