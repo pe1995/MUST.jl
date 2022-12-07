@@ -36,7 +36,6 @@ end
 
 
 
-
 """
 Read a MARCS like model.
     k lgTauR  lgTau5    Depth     T        Pe          Pg         Prad       Pturb
@@ -66,7 +65,6 @@ end
 
 
 
-
 ## General Methods 
 
 mean_molecular_weight(X=0.73, Y=0.26, Z=0.01) = 1.0 /(2.0*X + 3.0/4.0*Y + 1.0/2.0*Z) 
@@ -89,8 +87,6 @@ end
 
 
 
-
-
 ## Methods for initial conditions
 ### Adiabatic intial conditions
 
@@ -106,13 +102,13 @@ function initial_adiabat(eos, t_ini=1e4, d_ini=3e-7, g_ini=2.75e4;
 												  nz = 200,
 												  i0 = 120,
                                                   z0_position=0.0,
-												  n_iter = 3 )
-	g0  = g_ini *scaling.t^2/scaling.l
+												  n_iter = 30 )
+	g0  = g_ini * scaling.t^2/scaling.l
     d0  = d_ini
 	tt0 = t_ini
 	p0  = d_ini / 1.6726219e-24 * 1.380658e-16 * t_ini
-	ee0 = 2.5  
-    ee1 = 30.
+	ee0 = 2.0  
+    ee1 = 35.
     for iter in 1:20
 		ee2 = (ee0+ee1)/2.
 		tt0 = MUST.lookup(eos, :T,  d0, ee2*scaling.ee)
@@ -136,6 +132,8 @@ function initial_adiabat(eos, t_ini=1e4, d_ini=3e-7, g_ini=2.75e4;
     ee[i0] = ee0 
     t[i0]  = MUST.lookup(eos, :T, d[i0] * scaling.d, ee[i0] * scaling.ee)
 	p[i0]  = MUST.lookup(eos, :P, d[i0] * scaling.d, ee[i0] * scaling.ee) / scaling.p
+
+    #@show z[i0] d[i0] ee[i0] t[i0] MUST.lookup(eos, :T, d[i0]*scaling.d, ee[i0]*scaling.ee)
 
     dee = 0.0
     for i in i0-1:-1:1
@@ -218,8 +216,6 @@ function initial_conditions(model::MarcsInitialModel; kwargs...)
 
     InitialConditions(ref_T, ref_ρ, exp10(model.logg), hp)
 end
-
-
 
 
 
