@@ -19,6 +19,8 @@ mutable struct Box <:AbstractSpace
     parameter        ::AtmosphericParameters
 end
 
+
+
 #==== Functionality ====#
 AtmosphericParameters() = AtmosphericParameters(-99.0, -99.0, -99.0, Dict{Symbol,Float64}())
 
@@ -443,19 +445,35 @@ Returns
 nothing
 
 """
-function add_from_EOS!(s::MUST.Space, eos::AbstractEOS, quantity::Symbol;
+function add_from_EOS!(s::SB, eos::AbstractEOS, quantity::Symbol;
                         EOS_paras=(:d,:ee), 
-                        convert_to=Base.identity, switch_name_to=nothing)
+                        convert_to=Base.identity, switch_name_to=nothing) where {SB<:Union{Space, Box}}
     qframe = MUST.add_from_EOS(s, eos, quantity; 
                                 EOS_paras =EOS_paras, 
                                 convert_to=convert_to)
     isnothing(switch_name_to) ? s.data[quantity] = qframe : s.data[switch_name_to] = qframe
     nothing
 end
+
 function add_from_EOS(s::MUST.Space, eos::AbstractEOS, quantity::Symbol;
                         EOS_paras=(:d,:ee), 
                         convert_to=Base.identity)
     convert_to.(lookup(eos, String(quantity), s[EOS_paras[1]], s[EOS_paras[2]]))
+end
+
+function add_from_EOS(b::MUST.Box, eos::AbstractEOS, quantity::Symbol;
+                EOS_paras=(:d,:ee), 
+                convert_to=Base.identity)
+    r = similar(b[EOS_paras[1]]) 
+    for j in axes(b.z, 2)
+        for i in axes(b.z ,1)
+            r[i, j, :] = convert_to.(lookup(eos, String(quantity), 
+                            view(b[EOS_paras[1]], i, j, :), 
+                            view(b[EOS_paras[2]], i, j, :)))
+        end
+    end
+
+    r
 end
 
 
@@ -1141,6 +1159,48 @@ function Boxes(folder::String; snaps=nothing)
         boxes, boxesT
     end
 end
+
+
+
+## functions between different boxes
+
+"""
+Compute the statistic between every box in boxes array. Need to be on the same grid for this!
+""" 
+function time_statistic(f::Function, boxes)
+    ### Loop through the box and average point by point
+    ### storage arrays
+    var = zeros(eltype(first(boxes).z), length(boxes))
+    mat_var = zeros(eltype(first(boxes).z), size(first(boxes).z))
+    storage = deepcopy(first(boxes))
+    x,y,z = deepcopy(first(boxes).x), deepcopy(first(boxes).y), deepcopy(first(boxes).z)
+
+    for variable in keys(storage.data) ### Loop through the variables
+        variable == :i_patch && continue
+        @assert all([ all(size(b.data[variable]) .== size(first(boxes).data[variable])) for b in boxes])
+    end
+
+    for variable in keys(storage.data) ### Loop through the variables
+        variable == :i_patch && continue
+        @inbounds for k in axes(z, 3)
+            @inbounds for j in axes(y, 2)
+                @inbounds for i in axes(x, 1) ### Loop through the box
+                    for b in eachindex(boxes)
+                        var[b] = boxes[b].data[variable][i,j,k] 
+                    end
+                    #### Save the statistic of those variables
+                    mat_var[i,j,k] = f(var)
+                end
+            end
+        end
+        storage.data[variable] .= mat_var
+    end
+
+    storage
+end
+
+
+## Helper functions
 
 axis(b::Box, which, dimension::Int=0) = begin
     if which in [:x, :y, :z]

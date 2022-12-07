@@ -7,6 +7,9 @@ struct InitialConditions
     hp
 end
 
+
+
+
 ## Initial models
 
 struct MarcsInitialModel{T<:AbstractFloat} <:AbstractInitialModel
@@ -30,6 +33,9 @@ struct SimpleInitialModel{T<:AbstractFloat} <:AbstractInitialModel
     T   ::Vector{T}
     lnρ ::Vector{T}
 end
+
+
+
 
 """
 Read a MARCS like model.
@@ -59,6 +65,8 @@ SimpleInitialModel(model::MarcsInitialModel) = begin
 end
 
 
+
+
 ## General Methods 
 
 mean_molecular_weight(X=0.73, Y=0.26, Z=0.01) = 1.0 /(2.0*X + 3.0/4.0*Y + 1.0/2.0*Z) 
@@ -80,6 +88,9 @@ function cut(model::SimpleInitialModel; kwargs...)
 end
 
 
+
+
+
 ## Methods for initial conditions
 ### Adiabatic intial conditions
 
@@ -96,7 +107,7 @@ function initial_adiabat(eos, t_ini=1e4, d_ini=3e-7, g_ini=2.75e4;
 												  i0 = 120,
                                                   z0_position=0.0,
 												  n_iter = 3 )
-	g0  = g_ini
+	g0  = g_ini *scaling.t^2/scaling.l
     d0  = d_ini
 	tt0 = t_ini
 	p0  = d_ini / 1.6726219e-24 * 1.380658e-16 * t_ini
@@ -207,6 +218,9 @@ function initial_conditions(model::MarcsInitialModel; kwargs...)
 
     InitialConditions(ref_T, ref_ρ, exp10(model.logg), hp)
 end
+
+
+
 
 
 ### 1D atmosphere initial conditions

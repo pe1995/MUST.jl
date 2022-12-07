@@ -44,16 +44,24 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing)
                         ee=:ee, e=:e,
                         x=:l, y=:l, z=:l)
 
-    τ = MUST.optical_depth(b, opacity=:ross, density=:d)
-    MUST.add!(b, τ, :τ_ross)
-    
     if !isnothing(eos)
+        @info "Recomputing Energy from EoS."
         # We compute the energy cube, which is needed to get the gas pressure from the EOS
         e_cube_stagger = MUST.bisect_energy(eos, size(b[:d]); d=b[:d], T=b[:T])
+        b.data[:ee] = e_cube_stagger
+        b.data[:e]  = e_cube_stagger .* b[:d]
         
         pg = MUST.lookup(eos, :Pg, b[:d], e_cube_stagger)
         MUST.add!(b, pg, :Pg);
+
+
+        MUST.add_from_EOS!(b, eos, :kr)
+        τ  = MUST.optical_depth(b, opacity=:kr, density=:d)
+        MUST.add!(b, τ,  :τ_ross)
     end
+
+    τ2 = MUST.optical_depth(b, opacity=:ross, density=:d)
+    MUST.add!(b, τ2, :τ_ross_stag)
 
     b
 end
