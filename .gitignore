@@ -19,3 +19,4 @@ examples/solar_model/*.dat
 examples/solar_model/*.mod
 examples/solar_model/*.simple
 examples/solar_model/solar_stagger_ext
+examples/stagger2bifrost/stagger_sun/*
