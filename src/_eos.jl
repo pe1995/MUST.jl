@@ -38,6 +38,10 @@ struct SquareGasEOS{NE<:SqGTable, RO<:SqGTable,
     theta_rho_table  ::TH
 end
 
+
+
+
+
 #=== Init routines ===#
 
 """
@@ -138,6 +142,10 @@ function read_squaregas_table(path; record, recl, dim, out_type=Float32)
     f = FortranFile(path,"r",access="direct",recl=recl*4);
     read(f,rec=record,(out_type,dim));
 end
+
+
+
+
 
 #=== Lookup routines ===#
 
@@ -285,6 +293,10 @@ Inverse lookup parameter in the EOS tables.
 function inverse_lookup(eos::SquareGasEOS, iterations=50, antilinear=false; kwargs...)
 end
 
+
+
+
+
 #=== Python EOS aliases ===#
 
 """
@@ -377,7 +389,7 @@ function bisect(eos::AbstractEOS, iterations=50, antilinear=false; kwargs...)
 end
 
 
-function bisect_cube(eos::AbstractEOS; iterations=20, kwargs...)
+function bisect_cube(eos::AbstractEOS; iterations=50, kwargs...)
     key_values = [[],[],[]]
     i = 1
     for (key,value) in kwargs

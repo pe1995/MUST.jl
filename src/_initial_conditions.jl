@@ -7,6 +7,9 @@ struct InitialConditions
     hp
 end
 
+
+
+
 ## Initial models
 
 struct MarcsInitialModel{T<:AbstractFloat} <:AbstractInitialModel
