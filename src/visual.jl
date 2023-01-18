@@ -7,6 +7,11 @@ const visual = true
 const cbar_fraction = 0.046
 const cbar_pad = 0.04
 
+function colors_map(cmap, n)
+    c = plt.get_cmap(cmap, n)
+    [c((i-1)/n) for i in 1:n]
+end
+
 function basic_subplot(nrows,ncols;
                         figsize=(6,6),
                         wspace=.1,hspace=.2,

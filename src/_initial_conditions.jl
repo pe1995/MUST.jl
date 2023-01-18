@@ -217,6 +217,21 @@ function initial_conditions(model::MarcsInitialModel; kwargs...)
     InitialConditions(ref_T, ref_ρ, exp10(model.logg), hp)
 end
 
+geometrical_depth(a_goal, a_ini, z) = begin
+    smask = sortperm(a_goal)
+    linear_interpolation(a_goal[smask], z[smask], extrapolation_bc=Line())(a_ini)
+end
+
+match(T_ini, ρ_ini, logg, z_goal, T_goal, d_goal, eos; ee_min=3.5, nz=400, i0=150, hotspot=z_goal[end-1]/1e8, which=:T) = begin
+    z0         = which==:T ? geometrical_depth(T_goal, T_ini, z_goal) / 1e8 : geometrical_depth(d_goal, ρ_ini, z_goal) / 1e8
+    z,d,ee,t,p = initial_adiabat(eos, T_ini, ρ_ini, exp(logg), ee_min=ee_min, nz=nz, i0=i0, z0_position=z0);
+    z_last     = hotspot
+    z_low      = argmin(abs.(z .- (z_last)))
+    z0        += which==:T ? geometrical_depth(T_goal, t[z_low], z_goal) / 1e8 - (z_last) : 
+                             geometrical_depth(d_goal, d[z_low], z_goal) / 1e8 - (z_last) ;
+
+    z0
+end
 
 
 ### 1D atmosphere initial conditions

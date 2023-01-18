@@ -11,7 +11,7 @@ using Random
 using Interpolations
 using Glob
 using Distributed
-using NumericalIntegration
+#using NumericalIntegration
 using ArgParse
 using DelimitedFiles
 using TimerOutputs
