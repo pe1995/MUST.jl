@@ -23,7 +23,19 @@ function _write_atmos_multi(b, path, eos; downsample_xy=1, downsamlpe_z=1)
     s = size(b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end])
     res::Array{Float32, 4} = zeros(Float32, s..., 6)
 
-    res[:, :, :, 1] .= Base.convert.(Float32, lookup(eos, :Ne, b[:d][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end], b[:ee][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]))
+    ee = similar(res, size(b[:d])[1:3]...)
+    ne = similar(res, size(b[:d])[1:3]...)
+
+    for k in axes(res, 3)
+        for j in axes(res,2 )
+            for i in axes(res, 1)
+                ee[i, j, k] = MUST.bisect(eos, ee=limits(eos)[3:4], d=b[:d][i, j, k], T=b[:T][i, j, k])
+                ne[i, j, k] = Base.convert(Float32, lookup(eos, :Ne, b[:d][i, j, k], ee[i, j, k]))
+            end
+        end
+    end
+
+    res[:, :, :, 1] .= ne[ 1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]
     res[:, :, :, 2] .= b[:T][ 1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]
     res[:, :, :, 3] .= b[:ux][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
     res[:, :, :, 4] .= b[:uy][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
