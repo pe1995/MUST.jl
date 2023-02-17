@@ -222,10 +222,10 @@ MUST.Box type object
 """
 function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:AbstractFloat}
     # filter the space to match the 3d cube
-    region_mask = (row) ->  (minimum(x) <= row.x <= maximum(x)) &
-                            (minimum(y) <= row.y <= maximum(y)) &
-                            (minimum(z) <= row.z <= maximum(z))
-    s_masked = filter(region_mask,s)
+    region_mask = (;row...) ->  (minimum(x) .<= row[:x] .<= maximum(x)) .&
+                                (minimum(y) .<= row[:y] .<= maximum(y)) .&
+                                (minimum(z) .<= row[:z] .<= maximum(z))
+    s_masked = filter(region_mask, s)
 
     # 3D Mesh of the new coordinate Box
     x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
@@ -236,21 +236,21 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
     mask_data = []
     grid_data = []
     if length(x) > 1
-        append!(mask_data, [s_masked.data.x])
+        append!(mask_data, [s_masked.data[:x]])
         append!(grid_data, [x_grid])
     end
     if length(y) > 1
-        append!(mask_data, [s_masked.data.y])
+        append!(mask_data, [s_masked.data[:y]])
         append!(grid_data, [y_grid])
     end
     if length(z) > 1
-        append!(mask_data, [s_masked.data.z])
+        append!(mask_data, [s_masked.data[:z]])
         append!(grid_data, [z_grid])
     end
 
 
     # Interpolate the Space onto the given grid
-    for quantity in Symbol.(names(s.data))
+    for quantity in Symbol.(keys(s.data))
         quantity in [:x,:y,:z,:i_patch] ? continue : nothing
         results[quantity][1:length(x),1:length(y),1:length(z)] = scipy_interpolate.griddata(Tuple(mask_data), 
                                                                                             s_masked.data[quantity], 
@@ -791,7 +791,9 @@ function reduce_by_column(f::F, b::MUST.Box; index=false) where {F<:Function}
     Box(x_new, y_new, z_new, data_new, b.parameter)
 end
 
-"""Linear Interpolate the columns of the Box as a function of height. For every column a Function is returned."""
+"""
+Linear Interpolate the columns of the Box as a function of height. For every column a Function is returned.
+    """
 function interpolate_by_column(b::MUST.Box)
     shape    = (size(b.x,1),size(b.x,2),1)
     data_new = Dict{Symbol, Matrix{Interpolations.Extrapolation}}(q => Matrix{Any}(undef,shape[1:2]...) for q in keys(b.data))
@@ -828,7 +830,9 @@ function interpolate_by_column(b::MUST.Box)
     data_new
 end
 
-"""Apply the function f to every column of the Box and save the result in res."""
+"""
+Apply the function f to every column of the Box and save the result in res.
+"""
 function apply_by_column!(f::Function, res::T, b::MUST.Box; check_nan=false) where {T<:AbstractArray,A<:AbstractArray}
     
     #zv = zeros(size(b.z,3))
@@ -1072,6 +1076,20 @@ end
 
 
 #=== Specific functions ===#
+
+optical_depth(ρ::Vector{T}, κ::Vector{T2}, z::Vector{T3}) where {T, T2, T3} = begin
+    τ_ross = zeros(T2, length(ρ)) 
+    ρκ = ρ .* κ
+    for j in eachindex(z)
+        if j==1 
+            τ_ross[1] = 0 + (z[2] - z[1]) * 0.5 * (ρκ[j])
+        else
+            τ_ross[j] = τ_ross[j-1] + (z[j] - z[j-1]) * 0.5 * (ρκ[j] + ρκ[j-1])
+        end
+    end
+
+    τ_ross
+end
 
 """Compute the optical depth from opacity+density or rk"""
 optical_depth(b::MUST.Box; kwargs... ) = begin

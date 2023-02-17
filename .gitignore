@@ -20,3 +20,8 @@ examples/solar_model/*.mod
 examples/solar_model/*.simple
 examples/solar_model/solar_stagger_ext
 examples/stagger2bifrost/stagger_sun/*
+examples/EoS/*
+!examples/EoS/*.ipynb
+!examples/EoS/Project.toml
+!examples/EoS/stagger_av.dat
+examples/initial_conditions/test
