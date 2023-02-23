@@ -28,7 +28,7 @@ end
     MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
     MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2" EOS select
 
-    add_selection = false
+    add_selection = true
 end
 
 folder = MUST.@in_dispatch ARGS[1]

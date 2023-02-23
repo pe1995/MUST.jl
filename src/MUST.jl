@@ -15,6 +15,7 @@ using Distributed
 using ArgParse
 using DelimitedFiles
 using TimerOutputs
+using NetCDF
 import Base.filter, Base.filter!
 import Base.getindex
 import Base.length

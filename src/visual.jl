@@ -377,4 +377,38 @@ for f in $(list_of_filenames):
     if os.path.exists(f):
         os.remove(f)
 """
+
+gif_from_pngs_transparent(list_of_filenames, save_path; duration=0.2) = py"""
+from PIL import Image
+import glob
+import os
+import sys
+
+images = []
+
+for filename in $(list_of_filenames):
+    if os.path.exists(filename):
+        images.append(Image.open(filename))
+
+images = [i.convert("RGBA") for i in images]
+
+for img in images:
+    pixdata = img.load()
+    width, height = img.size
+    for y in range(height):
+        for x in range(width):
+            if pixdata[x, y] == (255, 255, 255, 255):
+                pixdata[x, y] = (255, 255, 255, 0)
+    #images[i] = Image.fromarray(pixdata)
+
+images[0].save($(save_path), format='GIF',
+               append_images=images[1:],
+               save_all=True,
+               duration=$(duration*1000), loop=0, transparency=0)
+
+for f in $(list_of_filenames):
+    if os.path.exists(f):
+        os.remove(f)
+"""
+
 ;
