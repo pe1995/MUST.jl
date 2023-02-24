@@ -22,6 +22,7 @@ end
 
 
 #==== Functionality ====#
+
 AtmosphericParameters() = AtmosphericParameters(-99.0, -99.0, -99.0, Dict{Symbol,Float64}())
 
 """
@@ -76,6 +77,11 @@ function composition_from_eos(path)
     vl      = parse.(Float64, vl)
     Dict(Symbol(c)=>v for (c,v) in zip(el,vl))
 end
+
+
+
+
+
 
 """
 Create a Space object from a Dispatch simulation snapshot.
