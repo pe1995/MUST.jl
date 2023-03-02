@@ -21,7 +21,17 @@ examples/solar_model/*.simple
 examples/solar_model/solar_stagger_ext
 examples/stagger2bifrost/stagger_sun/*
 examples/EoS/*
+examples/Muram/*
+
+!examples/Muram/*.ipynb
+!examples/Muram/Project.toml
+!examples/Muram/*.slurm
+!examples/Muram/*.sh
+!examples/Muram/*.jl
+
+
 !examples/EoS/*.ipynb
 !examples/EoS/Project.toml
 !examples/EoS/stagger_av.dat
+
 examples/initial_conditions/test

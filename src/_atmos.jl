@@ -59,7 +59,9 @@ end
 
 teff_interpolated(path) = begin
     teff = read_teff(path)
-    LinearInterpolation(teff[:,1], teff[:,2], extrapolation_bc=Flat())
+    return isnothing(teff) ? 
+        (args...)->0.0 :
+        LinearInterpolation(teff[:,1], teff[:,2], extrapolation_bc=Flat())
 end
 
 function composition_from_eos(path)

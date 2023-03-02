@@ -66,11 +66,11 @@ function MURaMBox(model_path, opacity)
     b.data[:kr] = opacity
 
     ## optical depth form this
-    τ = MUST.optical_depth(b, opacity=:kr, density=:d)
+    τ = optical_depth(b, opacity=:kr, density=:d)
     b.data[:τ_ross] = τ
 
     ## Interpolate cube
-    b_t = MUST.height_scale(b, :τ_ross)
+    b_t = height_scale(b, :τ_ross)
 
     return b, b_t
 end
