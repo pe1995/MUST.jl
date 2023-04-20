@@ -24,7 +24,7 @@ StandardUnits units (dispatch code units).
     code -> cgs: var * Stagger.cgs.var
     code <- cgs: var / Stagger.cgs.var
 """
-function StandardUnits(system = "cgs",                                   
+function StandardUnits(;system = "cgs",                                   
                     l  = 1e8,                                        
                     d  = 1e-7,                                        
                     t  = 1e2,                                       
@@ -73,7 +73,7 @@ function StandardUnits(snap::T) where {T<:PyCall.PyObject}
         v = l / t
     end
 
-    StaggerCGS("cgs",l,d,t,v)
+    StaggerCGS(l=l,d=d,t=t,u=v)
 end
 
 DispatchCGS(snap::T) where {T<:PyCall.PyObject} = StandardUnits(snap)

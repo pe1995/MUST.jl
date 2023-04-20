@@ -3,6 +3,7 @@ module MUST
 #= Julia modules =#
 using PyCall
 using DataFrames
+using CSV
 using FortranFiles
 using Printf
 using Statistics
@@ -33,14 +34,26 @@ __init__() = begin
     copy!(numpy,pyimport("numpy"))
 end
 
+
 #= Abstract types =#
 abstract type AbstractSpace end
 abstract type AbstractInitialModel end
+
+"""
+Abstract MUSTGrid. Depending on the type of grid different methods are available.
+    All concrete types are required to have an info field:
+    name :: String
+    info :: DataFrame
+    So that a namelist can be constructed from the grid.
+"""
+abstract type AbstractMUSTGrid end
+
 
 #= MUST interface =#
 export import_dispatch, in_dispatch
 export Space, spacebox, Box, add!
 #export read!, write
+
 
 #= Julia code files =#
 include("_argparse.jl")
@@ -53,6 +66,7 @@ include("_dispatch.jl")
 include("_namelist.jl")
 include("_atmos.jl")
 include("_mustgrid.jl")
+include("_stagger_grid.jl")
 include("_initial_conditions.jl")
 include("_running.jl")
 include("_atmos2legacy.jl")

@@ -1,6 +1,6 @@
 #=========== Stagger module from Mikolaj ===========#
 const stagger_endian = Ref("big-endian")
-struct StaggerMesh
+mutable struct StaggerMesh
     mx::Int64
     dxm::Vector{Float32}
     dxmdn::Vector{Float32}
@@ -57,7 +57,7 @@ struct StaggerMesh
     end;
 end
 
-struct StaggerEOS
+mutable struct StaggerEOS
 
     mrho::Int32
     iupdte::Int32
@@ -320,6 +320,14 @@ function StaggerSnap(filename, folder="../input_data/")
     mesh_file = joinpath(folder,filename*".msh")
     dat_file  = joinpath(folder,filename*".dat")
     aux_file  = joinpath(folder,filename*".aux")
+
+    mesh_file = if !isfile(mesh_file)
+        f = filename[1:findlast('_', filename)-1]
+        joinpath(folder, f*".msh")
+    else
+        mesh_file
+    end
+
     mesh      = StaggerMesh(mesh_file)
     result    = Dict{String,Array{Float32,3}}()
     order    = ["r","px","py","pz","e","d","bx","by","bz"]
@@ -329,7 +337,8 @@ function StaggerSnap(filename, folder="../input_data/")
             #reverse!(result[para]; dims=3)
         catch e
             if isa(e, EOFError)
-                @warn "$(para) not present."
+                #@warn "$(para) not present."
+                nothing
             else
                 error("Reading Failed.")
             end
@@ -344,7 +353,8 @@ function StaggerSnap(filename, folder="../input_data/")
             #reverse!(result[para]; dims=3)
         catch e
             if isa(e, EOFError)
-                @warn "$(para) not present."
+                #@warn "$(para) not present."
+                nothing
             else
                 throw(e)
             end

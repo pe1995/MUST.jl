@@ -2,15 +2,6 @@
 
 #========== Type Definitions ==========#
 
-"""
-Abstract MUSTGrid. Depending on the type of grid different methods are available.
-    All concrete types are required to have an info field:
-    name :: String
-    info :: DataFrame
-    So that a namelist can be constructed from the grid.
-"""
-abstract type AbstractMUSTGrid end
-
 mutable struct RangeMUSTGrid{DF<:DataFrame,F<:AbstractFloat} <: AbstractMUSTGrid
     seeds  :: Dict{Symbol, Dict{String, F}}
     limits :: Dict{Symbol, Dict{String, F}}
@@ -106,7 +97,9 @@ end
 
 #========== Grid <-> Namelist creation ==========#
 
-"""Create ngrid namelists from existing namelist."""
+"""
+Create ngrid namelists from existing namelist.
+"""
 function create_namelists!(grid::AbstractMUSTGrid; 
                             default_nml::Union{Nothing, StellarNamelist}=nothing, start_index::Int=1)
     ngrid = nrow(grid.info)
