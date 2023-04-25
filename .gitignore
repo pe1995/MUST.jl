@@ -27,6 +27,14 @@ examples/solar_model/*.txt
 examples/solar_model/*.npz
 examples/dispatch2space/data
 
+examples/initial_models/*
+examples/initial_models/*.dat
+examples/initial_models/*.mgrid
+
+!examples/initial_models/*.ipynb
+!examples/initial_models/Project.toml
+!examples/initial_models/*.jl
+!examples/initial_models/*.slurm
 
 !examples/Muram/*.ipynb
 !examples/Muram/Project.toml

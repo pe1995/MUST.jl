@@ -143,6 +143,24 @@ function reverse_parse(value)
             val_str = val_str * "$(val),"
         end
         val_str = val_str[1:end-1]
+    elseif typeof(value) <:String
+        if (occursin('"', value)) | (value in ["t", "f", ".true.", ".false."]) | (occursin('*', value))
+            val_str = "$(value)"
+        else
+            can_be_float = try 
+                parse(Float64, value)
+                true
+            catch
+                false
+            end
+
+            if can_be_float
+                val_str = "$(value)"
+            else
+                val_str = "'$(value)'"
+            end
+        end
+
     else
         val_str = "$(value)"
     end
@@ -221,7 +239,7 @@ function set!(nml::AbstractNamelist; kwargs...)
         end
 
         for (p,v) in paras
-            getfield(nml, field)[p] = v
+            getfield(nml, field)[String(p)] = v
         end
     end
 end

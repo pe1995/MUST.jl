@@ -107,8 +107,7 @@ function initial_adiabat(eos, t_ini=1e4, d_ini=3e-7, g_ini=2.75e4;
     d0  = d_ini
 	tt0 = t_ini
 	p0  = d_ini / 1.6726219e-24 * 1.380658e-16 * t_ini
-	ee0 = 2.0  
-    ee1 = 35.
+    _, _, ee0, ee1 = limits(eos) ./ scaling.ee
     for iter in 1:20
 		ee2 = (ee0+ee1)/2.
 		tt0 = MUST.lookup(eos, :T,  d0, ee2*scaling.ee)
@@ -127,7 +126,7 @@ function initial_adiabat(eos, t_ini=1e4, d_ini=3e-7, g_ini=2.75e4;
 	t  = zeros(nz)
 	p  = zeros(nz)
 	
-	z[i0]  = z0_position
+	z[i0]  = z0_position #/ scaling.l
     d[i0]  = d0 / scaling.d
     ee[i0] = ee0 
     t[i0]  = MUST.lookup(eos, :T, d[i0] * scaling.d, ee[i0] * scaling.ee)

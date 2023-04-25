@@ -158,24 +158,42 @@ Interpolate a Stagger snapshot column wise to new equidistant grid. It assumes
 that the data is gridded and already unifrom in x and y.
 It will interpolate the cube column by column in z and keep the dimensions.
 """
-function uniform!(s::StaggerSnap)
+function uniform!(s::StaggerSnap, max_resolution=true)
     T     = eltype(valtype(s.data))
-    new_z = range(T(minimum(s[:z])), T(maximum(s[:z])), length=length(s[:z])) |> collect
     old_z = s[:z]
+    
+    N = if max_resolution
+        # point of highest resolution
+        dz_min = minimum(old_z[2:end] .- old_z[1:end-1])
+        Int(ceil(abs(maximum(old_z) - minimum(old_z)) / dz_min))
+    else
+        length(old_z)
+    end
+
+    @info "Increase number of points from $(length(old_z)) to $(N)"
+
+    new_z = range(T(minimum(s[:z])), T(maximum(s[:z])), length=N) |> collect
     v     = similar(old_z)
 
-    @show size(v) size(old_z)
+    #@show size(v) size(old_z)
+    data_new = deepcopy(s.data)
+    for q in keys(s.data)
+        if !(size(s.data[q], 3) == N)
+            data_new[q] = zeros(Float32, length(s[:x]), length(s[:y]), N)
+        end
+    end
 
     for j in eachindex(s[:y])
         for i in eachindex(s[:x])
             for q in keys(s.data)
                 v .= view(s.data[q], i, j, :)
-                s.data[q][i, j, :] .= linear_interpolation(old_z, v).(new_z)
+                data_new[q][i, j, :] .= linear_interpolation(old_z, v).(new_z)
             end
         end
     end
 
-    s.mesh.y .= new_z 
+    s.data = data_new
+    s.mesh.y = new_z 
 end
 
 function _write_aux(b, name)
