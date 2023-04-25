@@ -2,10 +2,29 @@ using PyPlot
 using Glob
 using MUST
 using PyCall
+#using Plots
 
 const visual = true
 const cbar_fraction = 0.046
 const cbar_pad = 0.04
+
+
+
+#function copy_ticks(sp::Plots.Subplot; minorticks=10)
+#    ptx = twinx(sp)
+#    plot!(ptx,xlims=xlims(sp),ylims=ylims(sp),xformatter=_->"",yformatter=_->"", minorticks=10)
+#    pty = twiny(sp)
+#    plot!(pty,xlims=xlims(sp),ylims=ylims(sp),xformatter=_->"",yformatter=_->"", minorticks=10)
+#end
+#copy_ticks(plt::Plots.Plot = current(); minorticks=10) = copy_ticks(plt[1], minorticks=10)
+#
+#
+#function basic_plot!(plot::Plots.Subplot=current(); minorticks=10, tickfontsize=12, legendfontsize=12, guidefontsize=12, size=(900,600), lm=5, rm=5)
+#    copy_ticks(plot, minorticks=15)
+#    plot!(plot, framestyle=:box, minorticks=minorticks, tickfontsize=tickfontsize, legendfontsize=legendfontsize, 
+#            grid=false, foreground_color_legend=nothing, size=size, leftmargin=lm*Plots.mm, bottommargin=rm*Plots.mm, guidefontsize=guidefontsize)
+#end
+
 
 function colors_map(cmap, n)
     c = plt.get_cmap(cmap, n)

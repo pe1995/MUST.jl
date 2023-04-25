@@ -1117,11 +1117,11 @@ function reduce_by_value(f::F, b::MUST.Box; remove_nan=true, kwargs...) where {F
     reduce_by_plane(f_mod, b; index=false)
 end
 
-function interpolate_to(box, v, logspace=true; kwargs...)
+function interpolate_to(box, v; logspace=true, kwargs...)
     z     = first(keys(kwargs))
     z_val = first(values(kwargs))
 
-    ips = interpolate_by_column(b, z, v, logspace=logspace)
+    ips = interpolate_by_column(box, z, v, logspace=logspace)
     ip  = ips[v]
 
     col_new = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
@@ -1138,7 +1138,7 @@ function interpolate_to(box, v, logspace=true; kwargs...)
         end
     end
 
-    Box(col_x, col_y, col_z, Dict{Symbol,Array{eltype(box.x),3}}(v=>col_new), deepcopy(b.parameter))
+    Box(col_x, col_y, col_z, Dict{Symbol,Array{eltype(box.x),3}}(v=>col_new), deepcopy(box.parameter))
 end
 
 """

@@ -23,6 +23,11 @@ examples/stagger2bifrost/stagger_sun/*
 examples/EoS/*
 examples/Muram/*
 
+examples/solar_model/*.txt
+examples/solar_model/*.npz
+examples/dispatch2space/data
+
+
 !examples/Muram/*.ipynb
 !examples/Muram/Project.toml
 !examples/Muram/*.slurm
