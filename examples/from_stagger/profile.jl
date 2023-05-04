@@ -29,7 +29,7 @@ md"All the models from the Stagger grid come with an average model that we can l
 
 # ╔═╡ 87b753e7-78e5-437a-9e5e-51693641bee7
 begin
-	name = "DIS_MARCS_E_t45g40m00_v0.1"
+	name = "DIS_MARCS_E_t5777g44m00_v0.1"
 	title_s = split(name[last(findfirst("DIS_MARCS_E_", name))+1:end], "_") |> first
 	title = String(title_s)
 	in_folder = MUST.@in_dispatch "input_data/grd/$(name)"
@@ -69,7 +69,7 @@ function pick_snapshot(snapshots, i)
 	else 
 		i
 	end
-	
+
 	snap = snapshots[i]
 	if isnothing(last(snap))
 		@info "snapshot $(i) loaded."
@@ -82,7 +82,7 @@ function pick_snapshot(snapshots, i)
 end
 
 # ╔═╡ 452a144e-b725-4de2-b3e1-2f614210d62e
-snapshot, snapshot_τ = pick_snapshot(converted_snapshots(out_folder), :recent)
+snapshot, snapshot_τ = pick_snapshot(converted_snapshots(out_folder), 61)
 
 # ╔═╡ 3e747391-ba4b-47bf-b363-abcb46a9309b
 begin
@@ -236,13 +236,20 @@ end
 md"## 3D result"
 
 # ╔═╡ 84bd1e80-ff21-4970-a5a3-fc7452da7e6f
-uz_τ_surf = MUST.interpolate_to(snapshot, :uz, τ_ross=1)
+uz_τ_surf = if !isnothing(snapshot_τ)
+	isurf = MUST.closest(log10.(MUST.axis(snapshot_τ, :τ_ross, 3)), 0)
+	snapshot_τ[:uz][:, :, isurf]
+else
+	@info "Interpolating Uz..."
+	uz_τ_surf = MUST.interpolate_to(snapshot, :uz, τ_ross=1)
+	MUST.axis(uz_τ_surf, :uz, 3)
+end
 
 # ╔═╡ e2dde825-4e66-42e2-b541-74ec0600fc81
 begin
 	heatmap(MUST.axis(snapshot, :x)./1e8, 
 			MUST.axis(snapshot, :y)./1e8,
-			MUST.axis(uz_τ_surf, :uz)./1e5,
+			uz_τ_surf ./1e5,
 				colormap=:hot,
 				colorbar_title= "\nvertical velocity [km/s]")
 	

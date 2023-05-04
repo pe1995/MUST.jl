@@ -19,6 +19,8 @@ downsample  = length(ARGS) > 2 ? parse(typeof(1), ARGS[3]) : 5
 
 model_box = MUST.Box(input_name);
 
+@info "old size: $(size(model_box.x))"
+
 #model_boxes = MUST.Boxes(input_name)
 #model_box   = MUST.time_statistic(MUST.mean, model_boxes[1][end-5:end-1]);
 

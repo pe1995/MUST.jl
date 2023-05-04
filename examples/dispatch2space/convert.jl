@@ -36,7 +36,7 @@ if length(ARGS) > 1
     snapshots = sort(parse.(Int, ARGS[2:end]))
 else
     content_of_folder = glob("*/", folder)
-    snapshots         = sort(MUST.list_of_snapshots(content_of_folder))#[1:3:end]
+    snapshots         = sort(MUST.list_of_snapshots(content_of_folder))[1:3:end]
 end
 
 # Name of the namelist of the current folder
