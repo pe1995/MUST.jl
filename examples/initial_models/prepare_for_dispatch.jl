@@ -268,17 +268,23 @@ end
     # Load a model for the transition between optically thin and thick regime
     model = Average3D(av_path, logg=logg)
 
-    bins_semistagger = StaggerBinning(TSO.SemiStaggerBins, 
-                                    opacities=opacities, 
-                                    formation_opacity=-log10.(formOpacities.κ_ross), κ_bins=3, Nbins=7)
+    #bins_semistagger = StaggerBinning(TSO.SemiStaggerBins, 
+    #                                opacities=opacities, 
+    #                                formation_opacity=-log10.(formOpacities.κ_ross), κ_bins=3, Nbins=7)
 
-    
+    #bins_tabgen = TabgenBinning(TSO.UniformTabgenBins, opacities=opacities, formation_opacity=-log10.(formOpacities.κ_ross), Nbins=5, line_bins=3)
+    TSO.Clustering.Random.seed!(42)    
+    bins = ClusterBinning(TSO.KmeansBins;
+                            opacities=opacities, 
+                            formation_opacity=-log10.(formOpacities.κ_ross), 
+                            Nbins=12, maxiter=1000, λ_split=(4.0, 5))
+
     if isdir("$(name_extension)_$(name)_v$(version)")
         @warn "skipping binning for $(name)"
         return
     end
 
-    bin8  = binning(bins_semistagger, opacities, -log10.(formOpacities.κ_ross)) 
+    bin8  = binning(bins, opacities, -log10.(formOpacities.κ_ross)) 
 
 
     # Save the binned opacities only
@@ -325,7 +331,7 @@ end
 
 @inline patches(res, patch_size) = Int(floor(res / patch_size))
 
-function create_namelist(name, x_resolution, z_resolution, x_size, z_size, patch_size, δz, l_cgs, d_cgs, logg, eemin, nz, initial_path, n_bin, eos_table)
+function create_namelist(name, x_resolution, z_resolution, x_size, z_size, patch_size, δz, l_cgs, d_cgs, logg, eemin, nz, initial_path, n_bin, eos_table, tscale)
     ngrid = nrow(grid.info)
     phase = grid.name
 
@@ -342,7 +348,23 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size, patch
     # shift the box down by the right amount (there needs to be a parameter from the initial model for this)
     # set the EoS and the number of bins correctly 
     # also set the path and size of the initial model (also an info for this needs to be added.)
-    dup = round(z_size /2 -δz, sigdigits=2) *1.1
+    dup = round(z_size /2 -δz, sigdigits=2) *1.
+    
+    courant_rt = if logg >= 4
+        1.0
+    elseif (logg < 4) & (logg >= 3)
+        0.5
+    else
+        0.2
+    end
+
+    courant_hd = if logg >= 4
+        0.35
+    elseif (logg < 4) & (logg >= 3)
+        0.25
+    else
+        0.2
+    end
 
     @show dup δz z_size/2
 
@@ -352,15 +374,18 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size, patch
                                                 patches(z_resolution, patch_size)],
                                     :position=>[0,0,round(-dup/l_cgs, digits=2)]),
                     patch_params=(:n=>[patch_size, patch_size, patch_size],),
-                    scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>l_cgs/1e6),
+                    scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
                     stellar_params=(:g_cgs=>round(exp10(logg), digits=5), 
                                     :ee_min_cgs=>round(log(eemin), digits=5), 
                                     :nz=>nz-1, 
                                     :initial_path=>initial_path),
                     gravity_params=(:constant=>-round(exp10(logg), digits=5),),
-                    newton_params=(:ee0_cgs=>round(log(eemin), digits=5), :position=>round((z_size/2 - 1.5*dup)/l_cgs, digits=2)),
+                    newton_params=(:ee0_cgs=>round(log(eemin), digits=5), :position=>round((z_size/2 - 1.2*dup)/l_cgs, digits=2)),
                     sc_rt_params=(  :rt_llc=>[-round(x_size/2/l_cgs, digits=2), -round(x_size/2/l_cgs, digits=2), -round((z_size/2 + dup)/l_cgs, digits=2)], 
-                                    :rt_urc=>[ round(x_size/2/l_cgs, digits=2),  round(x_size/2/l_cgs, digits=2),  round((z_size/2 - dup)/l_cgs, digits=2)], :n_bin=>n_bin),
+                                    :rt_urc=>[ round(x_size/2/l_cgs, digits=2),  round(x_size/2/l_cgs, digits=2),  round((z_size/2 - dup)/l_cgs, digits=2)], 
+                                    :n_bin=>n_bin,
+                                    :courant=>courant_rt),
+                    an_params=(:courant=>courant_hd,),
                     eos_params=(:table_loc=>eos_table,)
                 )
     
@@ -390,7 +415,8 @@ create_namelist!(grid::MUST.StaggerGrid) = begin
                                 g(i, "initial_model_size"),
                                 joinpath("input_data/grd/", g(i, "binned_E_tables"), "inim.dat"),
                                 g(i, "rad_bins"),
-                                joinpath("input_data/grd/", g(i, "binned_E_tables")))
+                                joinpath("input_data/grd/", g(i, "binned_E_tables")),
+                                g(i, "tscale"))
         append!(names, [name])
     end
 
@@ -410,7 +436,7 @@ begin
     grid = MUST.StaggerGrid("stagger_grid.mgrid")
 
     ## Check for opacity table field
-    mother_table_path = "/home/eitner/shared/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_v0.5"
+    mother_table_path = "/home/eitner/shared/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_v1.4"
     if !("eos_root" in names(grid.info))
         @warn "The given grid does not contain information about the root EoS and opacity source. Adding the fallback table."
         grid.info[!, "eos_root"] = [mother_table_path for _ in 1:nrow(grid.info)]
@@ -433,12 +459,12 @@ begin
     grid.info[!, "version"]          = [version for _ in 1:nrow(grid.info)]
     grid.info[!, "binned_tables"]    = ["$(name_extension)_$(grid.info[i, "name"])_v$(version)" for i in 1:nrow(grid.info)]
     grid.info[!, "binned_E_tables"]  = ["$(name_extension)_E_$(grid.info[i, "name"])_v$(version)" for i in 1:nrow(grid.info)]
-    grid.info[!, "rad_bins"]         = [7 for _ in 1:nrow(grid.info)]
+    grid.info[!, "rad_bins"]         = [12 for _ in 1:nrow(grid.info)]
 
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    resolution!(grid)
+    resolution!(grid, patch_size=25, cut_bottom=0.4)
     @show grid.info[!, "x_resolution"]  grid.info[!, "z_resolution"] grid.info[!, "x_size"]  grid.info[!, "z_size"]
   
 
