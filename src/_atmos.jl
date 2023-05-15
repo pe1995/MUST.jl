@@ -121,9 +121,9 @@ function Space(snapshot::PyCall.PyObject, quantities::Symbol...)
             q_array  = zeros(Float32, prod(patch_size))
             coords   = zeros(Float32, (prod(patch_size),3))
             j = 1
-            for iz in 1:patch_size[3]
-                for iy in 1:patch_size[3]
-                    for ix in 1:patch_size[3]
+            @inbounds for iz in 1:patch_size[3]
+                @inbounds for iy in 1:patch_size[2]
+                    @inbounds for ix in 1:patch_size[1]
                         q_array[j]  = q_matrix[ix,iy,iz]
                         coords[j,1] = x[ix]
                         coords[j,2] = y[iy]

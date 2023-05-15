@@ -29,7 +29,7 @@ md"All the models from the Stagger grid come with an average model that we can l
 
 # ╔═╡ 87b753e7-78e5-437a-9e5e-51693641bee7
 begin
-	name = "DIS_MARCS_E_t45g20m00_v0.1_test"
+	name = "DIS_MARCS_E_t45g20m00_v0.1_test2"
 	name_eos = MUST.@in_dispatch "input_data/grd/DIS_MARCS_E_t45g20m00_v0.1"
 	title_s = split(name[last(findfirst("DIS_MARCS_E_", name))+1:end], "_") |> first
 	title = String(title_s)
@@ -66,7 +66,7 @@ list_snapshots(snapshots) = sort([k for k in keys(snapshots) if k != "folder"])
 # ╔═╡ 01ab2753-515c-496f-a6fc-1c2a0e42ae25
 function pick_snapshot(snapshots, i)
 	i = if i == :recent 
-		last(list_snapshots(snapshots))
+		last(list_snapshots(snapshots)) - 1
 	else 
 		i
 	end
@@ -247,14 +247,21 @@ begin
 	@info "Δt = $(Δt) s (with courant = $(courant))"
 end
 
-# ╔═╡ 84bd1e80-ff21-4970-a5a3-fc7452da7e6f
-uz_τ_surf = MUST.interpolate_to(snapshot, :uz, τ_ross=1)
+# ╔═╡ d0ff7ba0-f978-485b-bcb6-c084ec1bc90d
+uz_τ_surf = if !isnothing(snapshot_τ)
+	isurf = MUST.closest(log10.(MUST.axis(snapshot_τ, :τ_ross, 3)), 0)
+	snapshot_τ[:uz][:, :, isurf]
+else
+	@info "Interpolating Uz..."
+	uz_τ_surf = MUST.interpolate_to(snapshot, :uz, τ_ross=1)
+	MUST.axis(uz_τ_surf, :uz, 3)
+end
 
 # ╔═╡ e2dde825-4e66-42e2-b541-74ec0600fc81
 begin
-	heatmap(MUST.axis(snapshot, :x)./1e8, 
-			MUST.axis(snapshot, :y)./1e8,
-			MUST.axis(uz_τ_surf, :uz)./1e5,
+	heatmap(MUST.axis(snapshot_τ, :x)./1e8, 
+			MUST.axis(snapshot_τ, :y)./1e8,
+			uz_τ_surf./1e5,
 				colormap=:hot,
 				colorbar_title= "\nvertical velocity [km/s]")	
 	
@@ -269,13 +276,13 @@ end
 # ╔═╡ Cell order:
 # ╟─9456066d-36b1-4e6d-8af9-b8f134fb6e24
 # ╠═1eac6457-238f-49ed-82dc-6f1c521930fc
-# ╠═931f7a1f-dccb-4727-9982-d04be9ffd688
+# ╟─931f7a1f-dccb-4727-9982-d04be9ffd688
 # ╟─2e04240c-981e-443f-826b-2b40eb4b1974
 # ╠═87b753e7-78e5-437a-9e5e-51693641bee7
 # ╟─957af12a-e77e-48a3-a2de-80b86512e5a8
 # ╟─1e0de50e-bb67-4d34-a038-e7437955ec73
 # ╟─01ab2753-515c-496f-a6fc-1c2a0e42ae25
-# ╟─452a144e-b725-4de2-b3e1-2f614210d62e
+# ╠═452a144e-b725-4de2-b3e1-2f614210d62e
 # ╟─3e747391-ba4b-47bf-b363-abcb46a9309b
 # ╟─d8693137-82f7-4ccb-b886-4115e3032392
 # ╟─6184a62b-4562-4c1c-bf9c-7f2cc57afe52
@@ -289,5 +296,5 @@ end
 # ╟─e10a8581-c0ab-4209-9e14-4d456dcf9a86
 # ╟─919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
 # ╟─6e178480-048a-4898-adf9-d526a15702cb
-# ╟─84bd1e80-ff21-4970-a5a3-fc7452da7e6f
+# ╟─d0ff7ba0-f978-485b-bcb6-c084ec1bc90d
 # ╟─e2dde825-4e66-42e2-b541-74ec0600fc81
