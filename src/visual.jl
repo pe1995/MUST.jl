@@ -34,8 +34,8 @@ end
 function basic_subplot(nrows,ncols;
                         figsize=(6,6),
                         wspace=.1,hspace=.2,
-                        label_fs="x-large",
-                        frame_linewidth=1.2,
+                        label_fs="medium",
+                        frame_linewidth=1.1,
                         tick_length=5.,
                         label_color="black",
                         keep_axis_color=false,
@@ -142,9 +142,9 @@ function basic_plot(;
 end
 
 function basic_plot!(ax;
-        label_fs="large",
-        frame_linewidth=1.1,
-        tick_length=5.,
+        label_fs="medium",
+        frame_linewidth=1.05,
+        tick_length=4.4,
         label_color="black",
         keep_axis_color=false,
         tick_direction="in")

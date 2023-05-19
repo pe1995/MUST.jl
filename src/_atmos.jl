@@ -342,7 +342,7 @@ function Box(s::Space)
 
     p        = zeros(3) 
     skip_q   = [:x,:y,:z]
-    for irow in 1:length(s.data[:x])
+    @inbounds for irow in eachindex(s.data[:x])
         p[1] = s.data[:x][irow]
         p[2] = s.data[:y][irow] 
         p[3] = s.data[:z][irow] 
@@ -368,11 +368,12 @@ function Space(box::MUST.Box)
 end
 
 @inline _find_in_meshgrid(p, x, y, z) = begin
-    ix = findfirst(p[1] .≈ x)
-    iy = findfirst(p[2] .≈ y)
-    iz = findfirst(p[3] .≈ z)
+    ix = findfirst(i->isapprox(p[1], i), x)
+    iy = findfirst(i->isapprox(p[2], i), y)
+    iz = findfirst(i->isapprox(p[3], i), z)
     (ix,iy,iz)
-end                                           
+end   
+
 
 """
 Filter the Space object.
