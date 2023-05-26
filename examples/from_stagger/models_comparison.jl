@@ -32,29 +32,25 @@ md"All the models from the Stagger grid come with an average model that we can l
 
 # ╔═╡ 486f5cac-8879-4084-9faf-6dc4ae115e43
 names = [
-		"DIS_MARCS_E_t5777g44m00_v0.1", 
 		"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
 		MUST.@in_dispatch(
-			"data/DIS_MARCS_E_t5777g44m00_v0.1_test4"),
-		MUST.@in_dispatch(
-			"data/DIS_MARCS_E_t5777g44m00_v0.1_test7")
+			"data/eitner3")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-		MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.30"),
-		MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+		MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
-labels = ["12 bins", "5 bins"]
+labels = ["RT test"]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
-colors = palette(:rainbow, length(names))
+colors = ["red"]#palette(:rainbow, length(names))
 
 # ╔═╡ 5856ad8f-b6ce-4175-a158-c415bd546a7e
 in_folder  = [MUST.@in_dispatch "input_data/grd/$(name)" for name in names]
@@ -117,7 +113,7 @@ begin
 	
 	for i in eachindex(names)
 		snapshot, snapshot_τ = pick_snapshot(converted_snapshots(out_folder[i]),
-									:recent)
+								1)
 		
 		append!(snapshots, [snapshot])
 		append!(snapshots_τ, [snapshot_τ])
@@ -376,12 +372,12 @@ end
 
 # ╔═╡ e654ada6-ce50-4a2b-a51c-eae3e7aa36d3
 begin
-	histogram(reshape(stagger[:uz], :) ./1e5, 
-				lw=2., color=:black, label="Stagger", ls=:dash, 
+	stephist(reshape(stagger[:uz], :) ./1e5, 
+				lw=2., color=:black, label="Stagger", 
 				normalize=:probability)
 	
 	for (i, snapshot) in enumerate(snapshots)
-		histogram!(reshape(snapshot[:uz], :) ./1e5, 
+		stephist!(reshape(snapshot[:uz], :) ./1e5, 
 				lw=1.5, color=colors[i], label=labels[i], 
 				normalize=:probability)
 	end
@@ -425,74 +421,17 @@ begin
 					MUST.axis(snapshot, :y)./1e8,
 					uz[i] ./1e5,
 						colormap=:hot, 
-						clim=(-8.0, 8.0))])
+						clim=(-8.0, 8.0), title="\n"*labels[i])])
 
 		#xlabel!("x [Mm]")
 		#ylabel!("y [Mm]")
 	
 	
-		basic_plot!(copyticks=false, bm=0, lm=0, rm=0, size=(600,500))
+		basic_plot!(copyticks=false, bm=3, lm=0, rm=0, tm=3, size=(600,500))
 	end
 	
-	plot(h..., link=:both, size=(1000, 500))
+	plot(h..., link=:both, size=(600, 500))
 end
-
-# ╔═╡ 114baaba-eaa6-4b1b-a928-fe1f337559c4
-md"## Animations"
-
-# ╔═╡ d62e64a3-c289-4843-bc70-5104b729094f
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	select_boxes = [1, 2]
-	boxes = [last(MUST.Boxes(out_folder[select_boxes[i]])) 
-				for i in eachindex(select_boxes)]
-	locations = []
-	xlabel_animation = "τ-ross [log]"
-	ylabel_animation = "Temperature [K]"
-	gif_name = "average_T.gif"
-
-	nboxes_min = argmin(length.(boxes))
-	
-	for i in eachindex(boxes[nboxes_min])
-		plot(profile(mean, stagger_τ, :log10τ_ross, :T)..., 
-					lw=1.5, color=:black, label="Stagger", ls=:dash)
-		
-		for j in eachindex(boxes)
-			snapshot_τ = boxes[j][i]
-
-			plot!(profile(mean, snapshot_τ, :log10τ_ross, :T)..., 
-					lw=2., color=colors[select_boxes[j]], 
-					label=labels[select_boxes[j]]*
-						" time: $(snapshot_τ.parameter.time)",
-					ls=:solid)
-		end
-
-		plot!(xlim=(-5,5), ylim=(2500, 15000), 
-			xlabel=xlabel_animation, 
-			ylabel=ylabel_animation)
-		
-		basic_plot!()
-		
-		savefig("mtemp_$(i).png")
-		append!(locations, ["mtemp_$(i).png"])
-		@info "Saved mtemp_$(i).png"
-	end
-
-	# One empty frame at the end to see when it restarts
-	plot(profile(mean, stagger_τ, :log10τ_ross, :T)..., 
-					lw=1.5, color=:black, label="Stagger", ls=:dash)
-	plot!(xlim=(-5,5), ylim=(2500, 15000), 
-			xlabel=xlabel_animation, 
-			ylabel=ylabel_animation)	
-	basic_plot!()
-	savefig("mtemp_$(length(boxes[nboxes_min]) + 1).png")
-	append!(locations, ["mtemp_$(length(boxes[nboxes_min]) + 1).png"])
-	
-
-	gifs.gifs_from_png(locations, gif_name, duration=0.8)
-end
-  ╠═╡ =#
 
 # ╔═╡ 5ca0a8ee-5fbf-4d76-8bfd-91c292e08cfa
 md"## Convert to M3D format"
@@ -517,7 +456,7 @@ ne = [lookup(aos[i], :lnNe, log.(model_box[:d]), log.(model_box[:ee]))
 for (i, model_box) in enumerate(snapshots)
 	model_box.data[:ne] = exp.(ne[i])
 	
-	MUST.multiBox(model_box, output_names[i], downsample_xy=downsample)
+	#MUST.multiBox(model_box, output_names[i], downsample_xy=downsample)
 	
 	@info "New size: $(size(@view(ne[i][1:downsample:end, 1:downsample:end, :])))"
 end
@@ -532,17 +471,17 @@ end
 # ╠═9a7ce3c5-45f6-4589-a838-daaddf89e94f
 # ╠═82a51f3d-9e49-44ab-ae36-0069b6bd405c
 # ╠═fe1d7b10-88a5-46c1-a244-589bacf75970
-# ╟─ee39604b-6bd0-434e-b06d-417a4ab8cb7e
+# ╠═ee39604b-6bd0-434e-b06d-417a4ab8cb7e
 # ╟─5856ad8f-b6ce-4175-a158-c415bd546a7e
 # ╟─957af12a-e77e-48a3-a2de-80b86512e5a8
 # ╟─1e0de50e-bb67-4d34-a038-e7437955ec73
 # ╟─01ab2753-515c-496f-a6fc-1c2a0e42ae25
-# ╟─452a144e-b725-4de2-b3e1-2f614210d62e
+# ╠═452a144e-b725-4de2-b3e1-2f614210d62e
 # ╟─3e747391-ba4b-47bf-b363-abcb46a9309b
 # ╟─ed6c250a-84d5-4ac6-bf54-9e8fcdbe55a3
 # ╟─d8693137-82f7-4ccb-b886-4115e3032392
 # ╟─4c8d357d-a41a-4274-b131-93ebb695b911
-# ╠═4a1730fb-1fbe-445a-b850-7539967dcbe2
+# ╟─4a1730fb-1fbe-445a-b850-7539967dcbe2
 # ╟─14dab588-7275-4a7e-bade-71375d3a16bc
 # ╟─0d72ddb5-0096-4430-8611-e843f0aa3c61
 # ╟─c3ab29bc-a61b-467c-b3ab-3fa919abd83d
@@ -560,14 +499,12 @@ end
 # ╟─83dc28ac-97f5-4833-8a6f-cd2d2624442a
 # ╟─e654ada6-ce50-4a2b-a51c-eae3e7aa36d3
 # ╟─919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
-# ╠═84bd1e80-ff21-4970-a5a3-fc7452da7e6f
-# ╠═e2dde825-4e66-42e2-b541-74ec0600fc81
-# ╟─114baaba-eaa6-4b1b-a928-fe1f337559c4
-# ╠═d62e64a3-c289-4843-bc70-5104b729094f
+# ╟─84bd1e80-ff21-4970-a5a3-fc7452da7e6f
+# ╟─e2dde825-4e66-42e2-b541-74ec0600fc81
 # ╟─5ca0a8ee-5fbf-4d76-8bfd-91c292e08cfa
 # ╠═7a023be5-46ea-4c25-857b-3f765c044a91
 # ╠═b1df1501-4033-4d8a-bd67-8130c095152a
 # ╠═fdf3a692-daab-49d5-8bf6-36996617349e
 # ╟─f3e705cf-a0a5-4905-9a07-aa6535985e01
 # ╟─52fa7b28-d846-4d1c-8142-1cc1e6c68b92
-# ╟─b3b294ca-9ac2-4083-bcb5-789b48e9cb0b
+# ╠═b3b294ca-9ac2-4083-bcb5-789b48e9cb0b

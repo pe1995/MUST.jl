@@ -31,6 +31,15 @@ examples/initial_models/*
 examples/initial_models/*.dat
 examples/initial_models/*.mgrid
 
+examples/from_stagger/.Conda*
+examples/from_stagger/*.atmos
+examples/from_stagger/*.mesh
+
+examples/Paper_I/.Conda*
+examples/Paper_I/*.atmos
+examples/Paper_I/*.mesh
+examples/Paper_I/models/*
+
 !examples/initial_models/*.ipynb
 !examples/initial_models/Project.toml
 !examples/initial_models/*.jl

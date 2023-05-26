@@ -52,6 +52,7 @@ abstract type AbstractMUSTGrid end
 #= MUST interface =#
 export import_dispatch, in_dispatch
 export Space, spacebox, Box, add!
+export pick_snapshot
 #export read!, write
 
 
