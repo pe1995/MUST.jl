@@ -570,7 +570,7 @@ md"## Extra) Convert to M3D format
 labels_new_res = [last(split(f, "/")) for f in deepcopy(out_folder_res)]
 
 # ╔═╡ 3128bf5c-151d-4f54-8a38-544833c65a37
-downsample_res = [10, 20, 40]
+downsample_res = [10, 20, 50]
 
 # ╔═╡ 8597a8f6-1fde-4bd5-867b-10f1a6cf20f4
 output_names_res = [

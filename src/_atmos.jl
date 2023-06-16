@@ -1431,9 +1431,14 @@ list_snapshots(snapshots) = sort([k for k in keys(snapshots) if k != "folder"])
 Pick the ith snapshot from the list of available snapshots. 
 If ``i == :recent``, pick the most recent available snapshot. 
 """
-function pick_snapshot(snapshots, i)
+function pick_snapshot(snapshots, i; skip_last_if_missing=true)
 	i = if i == :recent 
-		last(list_snapshots(snapshots))
+        if ((isnothing(last(snapshots[last(list_snapshots(snapshots))]))) & 
+                        skip_last_if_missing)
+            list_snapshots(snapshots)[end-1]
+        else 
+            last(list_snapshots(snapshots))
+        end
 	else 
 		i
 	end
