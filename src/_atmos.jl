@@ -1388,6 +1388,82 @@ function Boxes(folder::String; snaps=nothing)
 end
 
 
+"""
+    converted_snapshots(folder)
+
+Return a list of already converted snapshots in the convert.jl
+naming convention.
+"""
+function converted_snapshots(folder)
+	files_converted = glob("*.hdf5", folder)
+	snaps = Dict()
+	for file in files_converted
+		snname = basename(file)
+
+		
+		if occursin("tau", snname) 
+			continue 
+		end 
+		
+		snid   = parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
+		is_τ = isfile(joinpath(folder,"box_tau_sn$(snid).hdf5"))
+
+		snname  = String(split(snname, ".hdf5") |> first)
+		sntname = "box_tau_sn$(snid)"
+
+		if is_τ 
+			snaps[snid] = (snname, sntname) 
+		else
+			snaps[snid] = (snname, nothing) 
+		end
+	end
+
+	snaps["folder"] = folder
+	snaps
+end
+
+"""Sort converted snapshots."""
+list_snapshots(snapshots) = sort([k for k in keys(snapshots) if k != "folder"])
+
+"""
+    pick_snapshot(snapshots, i)
+
+Pick the ith snapshot from the list of available snapshots. 
+If ``i == :recent``, pick the most recent available snapshot. 
+"""
+function pick_snapshot(snapshots, i; skip_last_if_missing=true)
+	i = if i == :recent 
+        if ((isnothing(last(snapshots[last(list_snapshots(snapshots))]))) & 
+                        skip_last_if_missing)
+            list_snapshots(snapshots)[end-1]
+        else 
+            last(list_snapshots(snapshots))
+        end
+	else 
+		i
+	end
+
+	snap = snapshots[i]
+	if isnothing(last(snap))
+		@info "snapshot $(i) loaded."
+		MUST.Box(first(snap), folder=snapshots["folder"]), nothing
+	else
+		@info "snapshot $(i) + τ-shot loaded."
+		MUST.Box(first(snap), folder=snapshots["folder"]), 
+		MUST.Box(last(snap), folder=snapshots["folder"])
+	end
+end
+
+"""
+    pick_snapshot(folder, i)
+
+Pick ith snapshots from all available snapshots in ``folder``.
+"""
+pick_snapshot(folder::String, i) = pick_snapshot(converted_snapshots(folder), i)
+
+
+
+
 
 ## functions between different boxes
 

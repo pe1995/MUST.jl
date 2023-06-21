@@ -25,6 +25,7 @@ import Base.read!, Base.write
 import Base.size, Base.axes
 import Base.Broadcast.broadcastable
 
+
 #= Python modules =#
 const numpy             = PyNULL()
 const scipy_interpolate = PyNULL()
@@ -48,15 +49,33 @@ Abstract MUSTGrid. Depending on the type of grid different methods are available
 """
 abstract type AbstractMUSTGrid end
 
+# Gridding
+"""
+Abstract Grid of a MUST.Box object.
+"""
+abstract type AbstractBoxGrid
+end
+
+"""
+Abstract Axis of a MUST.Box object.
+"""
+abstract type AbstractBoxAxis
+end
+
+
 
 #= MUST interface =#
 export import_dispatch, in_dispatch
 export Space, spacebox, Box, add!
+export pick_snapshot
+export ginterpolate, gevaluate, gevaluate!
 #export read!, write
 
 
 #= Julia code files =#
 include("_argparse.jl")
+include("_grids.jl")
+include("_grid_interpolation.jl")
 include("_eos.jl")
 include("_parallel.jl")
 include("_help.jl")
@@ -65,6 +84,7 @@ include("_stagger.jl")
 include("_dispatch.jl")
 include("_namelist.jl")
 include("_atmos.jl")
+include("_grid_construction.jl")
 include("_mustgrid.jl")
 include("_stagger_grid.jl")
 include("_initial_conditions.jl")
