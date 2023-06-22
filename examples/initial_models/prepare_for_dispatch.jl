@@ -61,8 +61,9 @@ end
 
 #= Additional functionality =#
 
-@everywhere function resolution(av_model, min_x, max_x, min_z, max_z, patch_size=30; cut_bottom=0.3)
-    nz = ceil(length(av_model.z) * (1-cut_bottom)) * 0.85
+@everywhere function resolution(av_model, min_x, max_x, min_z, max_z, hres, 
+                                patch_size=30; cut_bottom=0.3)
+    nz = ceil(length(av_model.z) * (1-cut_bottom)) * 0.95
     dz = round((max_z - min_z) * (1-cut_bottom), sigdigits=2)
     target_res = round(dz/nz, sigdigits=2)
     @show target_res dz nz
@@ -110,7 +111,54 @@ end
     dx, nx, dz, nz
 end
 
-@everywhere resolution!(grid::MUST.AbstractMUSTGrid; patch_size=30, cut_bottom=0.3) = begin
+@everywhere function resolutionHD(av_model, min_x, max_x, min_z, max_z, hres, 
+                                    patch_size=30; cut_bottom=0.3)
+    nx = ceil(abs(max_x - min_x)/abs(hres)) 
+    dx = round((max_x - min_x) * (1-cut_bottom), sigdigits=2)
+    target_res = round(dx/nx, sigdigits=2)
+    nx = ceil(nx / patch_size) * patch_size
+
+    ## how many patches do we need then
+    n_patches = div(nx, patch_size)
+
+    ## So we need to make sure that we have an integer multiple of this number of
+    ## patches in the other dimensions
+    dz = round((max_z - min_z) * (1-cut_bottom), sigdigits=2)
+    
+    ## we need this many more patches in x dimension
+    dxz_frac = dz / dx
+    n_zpatches = dxz_frac * n_patches
+    n_zpatches_orig = n_zpatches
+
+    ## we round this to the next to_y
+    to_y = 0.1
+    n_zpatches_m = find_integer(-, dxz_frac, n_patches, to_y; digits=1)
+
+    dxz_frac = round(round_to_next(dz / dx, to_y), digits=1)
+    n_zpatches_p = find_integer(+, dxz_frac, n_patches, to_y; digits=1)
+
+    dxz_frac = round(round_to_next(dz / dx, to_y), digits=1)
+    n_zpatches_hr = find_integer(+, dxz_frac, n_patches+1, to_y; digits=1)
+
+    diff_orig(x) = abs(x / n_patches - n_zpatches_orig / n_patches)
+    n_zpatches = [n_zpatches_m, n_zpatches_p, n_zpatches_hr][argmin([diff_orig(n_zpatches_m), diff_orig(n_zpatches_p), diff_orig(n_zpatches_hr)])]
+
+
+    nx = n_patches * patch_size
+    nz = n_zpatches * patch_size
+
+    target_res = round(dx/nx, sigdigits=2)
+    dx = round(nx * target_res, sigdigits=2)
+    res_points = nz / nx
+    dz = res_points * dx
+    
+    @show dx, nx, dz, nz
+
+    dx, nx, dz, nz
+end
+
+@everywhere resolution!(grid::MUST.AbstractMUSTGrid; 
+                            patch_size=30, cut_bottom=0.3) = begin
     xr, zr = zeros(Int, nrow(grid.info)), zeros(Int, nrow(grid.info))
     xd, zd = zeros(Float64, nrow(grid.info)), zeros(Float64, nrow(grid.info))
 
@@ -139,15 +187,15 @@ end
 
     for i in 1:nrow(grid.info)
         ## What should the resolution be
-        xd[i], xr[i], zd[i], zr[i] = resolution(models[i], 
-                                                grid.info[i, "mi_x"], grid.info[i, "ma_x"], grid.info[i, "mi_z"], grid.info[i, "ma_z"], 
+        xd[i], xr[i], zd[i], zr[i] = resolutionHD(models[i], 
+                                                grid.info[i, "mi_x"], grid.info[i, "ma_x"], grid.info[i, "mi_z"], grid.info[i, "ma_z"], grid.info[i, "hres"],
                                                 patch_size; cut_bottom=cut_bottom)
         
         ## Where is the optical surface
         it0 = argmin(abs.(log10.(models[i].τ) .- 0.0))
 
         ## where is the upper edge (roughly)
-        itup = argmin(abs.(log10.(models[i].τ) .- -4))
+        itup = argmin(abs.(log10.(models[i].τ) .- -5))
 
         ## Where can we start with the adiabat
         itlo = argmin(abs.(log10.(models[i].τ) .- 5))
@@ -171,6 +219,8 @@ end
     grid.info[!, "x_size"] = xd
     grid.info[!, "z_size"] = zd
     grid.info[!, "patch_size"] = [patch_size for _ in 1:nrow(grid.info)]
+    grid.info[!, "rt_patch_size"] = [patch_size*2 for _ in 1:nrow(grid.info)]
+
 
     grid.info[!, "rho_norm"] = rho_norm
     grid.info[!, "l_norm"] = l_norm
@@ -212,6 +262,8 @@ end
     n_xpatches
 end
 
+
+
 @everywhere function formation_opacities(mother_table, av_path, logg, name)
 
     # The EoS has already been smoothed in the running process
@@ -238,10 +290,10 @@ end
 
 
     # Compute the optical depth scale + the formation height
-    if isfile(joinpath(table_folder, "combined_formation_opacities_$(name).hdf5"))
-        @warn "skipping formation opacities for $(name)"
-        return
-    end
+    #if isfile(joinpath(table_folder, "combined_formation_opacities_$(name).hdf5"))
+    #    @warn "skipping formation opacities for $(name)"
+    #    return
+    #end
 
     τ_ross, τ_λ = optical_depth(aos, opacities, model)
     d_ross, d_κ = formation_height(model, aos, opacities, τ_ross, τ_λ)
@@ -279,6 +331,11 @@ end
                             formation_opacity=-log10.(formOpacities.κ_ross), 
                             Nbins=12, maxiter=1000, λ_split=(4.0, 5))
 
+    bins = ClusterBinning(TSO.KmeansBins;
+                            opacities=opacities, 
+                            formation_opacity=-log10.(formOpacities.κ_ross), 
+                            Nbins=6, maxiter=1000)
+
     if isdir("$(name_extension)_$(name)_v$(version)")
         @warn "skipping binning for $(name)"
         return
@@ -290,13 +347,13 @@ end
     # Save the binned opacities only
     function save_table(binned_opacities, version)
         eos_table_name = "$(name_extension)_$(name)_v$(version)"
-        save(binned_opacities.opacities, "binned_opacities_$(name).hdf5")
 
         !isdir(eos_table_name) && mkdir(eos_table_name) 
 
+        save(binned_opacities.opacities, joinpath(eos_table_name, "binned_opacities.hdf5"))
+
         # Copy the eos for convenience. Usually not a big deal because rather small
         cp(joinpath(table_folder, "combined_ross_eos.hdf5"), joinpath(eos_table_name, "eos.hdf5"), force=true)
-        mv("binned_opacities_$(name).hdf5", joinpath(eos_table_name, "binned_opacities.hdf5"), force=true)
     end
 
     binned_opacities8 = tabulate(bin8, weights, eos, opacities, transition_model=model)
@@ -305,12 +362,14 @@ end
 
 @everywhere bin_opacities(args) = bin_opacities(args...)
 
-function fromT_toE(table_folder, folder_new)
+
+
+@everywhere function fromT_toE(table_folder, folder_new; upsample=1024)
     eos = reload(SqEoS,     joinpath(table_folder, "eos.hdf5"))
     opa = reload(SqOpacity, joinpath(table_folder, "binned_opacities.hdf5"));
 
     aos = @axed eos
-    eosE, opaE = switch_energy(aos, opa, upsample=1000);
+    eosE, opaE = switch_energy(aos, opa, upsample=upsample);
     aosE = @axed eosE
 
     TSO.fill_nan!(aosE, opaE)
@@ -318,20 +377,22 @@ function fromT_toE(table_folder, folder_new)
 
     !isdir(folder_new) && mkdir(folder_new) 
 
-    for_dispatch(eosE, opaE.κ, opaE.src, ones(eltype(opaE.src), size(opaE.src)...))
+    for_dispatch(eosE, opaE.κ, opaE.src, ones(eltype(opaE.src), size(opaE.src)...), folder_new)
 
     save(opaE, joinpath(folder_new, "binned_opacities.hdf5"))
     save(eosE, joinpath(folder_new, "eos.hdf5"))
 
-    mv("tabparam.in", joinpath(folder_new, "tabparam.in"), force=true)
-    mv("eostable.dat", joinpath(folder_new, "eostable.dat"), force=true)
-    mv("rhoei_radtab.dat", joinpath(folder_new, "rhoei_radtab.dat"), force=true);
+    #mv("tabparam.in", joinpath(folder_new, "tabparam.in"), force=true)
+    #mv("eostable.dat", joinpath(folder_new, "eostable.dat"), force=true)
+    #mv("rhoei_radtab.dat", joinpath(folder_new, "rhoei_radtab.dat"), force=true);
 
 end
 
 @inline patches(res, patch_size) = Int(floor(res / patch_size))
 
-function create_namelist(name, x_resolution, z_resolution, x_size, z_size, patch_size, δz, l_cgs, d_cgs, logg, eemin, nz, initial_path, n_bin, eos_table, tscale)
+function create_namelist(name, x_resolution, z_resolution, x_size, z_size, 
+                        patch_size, rt_patch_size, δz, l_cgs, d_cgs, logg, 
+                        eemin, nz, initial_path, n_bin, eos_table, tscale)
     ngrid = nrow(grid.info)
     phase = grid.name
 
@@ -359,7 +420,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size, patch
     end
 
     courant_hd = if logg >= 4
-        0.35
+        0.4
     elseif (logg < 4) & (logg >= 3)
         0.25
     else
@@ -382,9 +443,10 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size, patch
                     gravity_params=(:constant=>-round(exp10(logg), digits=5),),
                     newton_params=(:ee0_cgs=>round(log(eemin), digits=5), :position=>round((z_size/2 - 1.2*dup)/l_cgs, digits=2)),
                     sc_rt_params=(  :rt_llc=>[-round(x_size/2/l_cgs, digits=2), -round(x_size/2/l_cgs, digits=2), -round((z_size/2 + dup)/l_cgs, digits=2)], 
-                                    :rt_urc=>[ round(x_size/2/l_cgs, digits=2),  round(x_size/2/l_cgs, digits=2),  round((z_size/2 - dup)/l_cgs, digits=2)], 
+                                    :rt_urc=>[ round(x_size/2/l_cgs, digits=2),  round(x_size/2/l_cgs, digits=2),  round((z_size/2 - 1.1*dup)/l_cgs, digits=2)], 
                                     :n_bin=>n_bin,
-                                    :courant=>courant_rt),
+                                    :courant=>courant_rt,
+                                    :rt_res=>rt_patch_size),
                     an_params=(:courant=>courant_hd,),
                     eos_params=(:table_loc=>eos_table,)
                 )
@@ -407,15 +469,19 @@ create_namelist!(grid::MUST.StaggerGrid) = begin
                                 g(i, "x_size"),
                                 g(i, "z_size"),
                                 g(i, "patch_size"),
+                                g(i, "rt_patch_size"),
                                 g(i, "z_up"),
                                 g(i, "l_norm"),
                                 g(i, "rho_norm"),
                                 g(i, "logg"),
                                 g(i, "ee_min"),
                                 g(i, "initial_model_size"),
-                                joinpath("input_data/grd/", g(i, "binned_E_tables"), "inim.dat"),
+                                joinpath("input_data/grd/", 
+                                            g(i, "binned_E_tables"), 
+                                            "inim.dat"),
                                 g(i, "rad_bins"),
-                                joinpath("input_data/grd/", g(i, "binned_E_tables")),
+                                joinpath("input_data/grd/", 
+                                            g(i, "binned_E_tables")),
                                 g(i, "tscale"))
         append!(names, [name])
     end
@@ -451,7 +517,9 @@ begin
     end
 
     ## Do the binning in parallel across many workers, this is the most time consuming part
-    args = [(grid.info[i, "eos_root"], grid.info[i, "av_path"], grid.info[i, "logg"], grid.info[i, "name"]) for i in 1:nrow(grid.info)]
+    args = [(grid.info[i, "eos_root"], grid.info[i, "av_path"], 
+             grid.info[i, "logg"],     grid.info[i, "name"]) 
+                for i in 1:nrow(grid.info)]
     Distributed.pmap(bin_opacities, args)    
 
     ## Save the eos info
@@ -459,12 +527,12 @@ begin
     grid.info[!, "version"]          = [version for _ in 1:nrow(grid.info)]
     grid.info[!, "binned_tables"]    = ["$(name_extension)_$(grid.info[i, "name"])_v$(version)" for i in 1:nrow(grid.info)]
     grid.info[!, "binned_E_tables"]  = ["$(name_extension)_E_$(grid.info[i, "name"])_v$(version)" for i in 1:nrow(grid.info)]
-    grid.info[!, "rad_bins"]         = [12 for _ in 1:nrow(grid.info)]
+    grid.info[!, "rad_bins"]         = [6 for _ in 1:nrow(grid.info)]
 
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    resolution!(grid, patch_size=25, cut_bottom=0.4)
+    resolution!(grid, patch_size=20, cut_bottom=0.4)
     @show grid.info[!, "x_resolution"]  grid.info[!, "z_resolution"] grid.info[!, "x_size"]  grid.info[!, "z_size"]
   
 
