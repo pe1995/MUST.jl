@@ -89,6 +89,8 @@ begin
 				markershape=:circle, label="resample", markersize=4)
 	plot!(MUST.axis(snap, :z), haver(T_old), 
 				label="original", lw=2)
+
+	plot!(legendforegroundcolor=nothing)
 	
 end
 
@@ -100,7 +102,7 @@ begin
 	h1 = heatmap(T_new[:,:,i0_new])
 	h2 = heatmap(T_old[:,:,i0_old])
 
-	plot(h1, h2, size=(1300,600))
+	plot(h1, h2, size=(1800,600))
 	
 end
 
@@ -113,7 +115,7 @@ end
 # ╟─04fb3d30-9bd5-47f9-b58f-f0a8124b7593
 # ╠═6c4f3c3b-302c-480d-ab00-c257dc4ca9f5
 # ╟─6154b79e-405f-47ab-a23a-5805b5fad950
-# ╠═ceb266ff-7069-48b4-b395-d89f8e1d4158
+# ╟─ceb266ff-7069-48b4-b395-d89f8e1d4158
 # ╠═58d7df98-b3a9-4846-8d0d-d2f1506953ec
 # ╟─3cad6318-3fb1-4061-bf98-e347f8cda6d5
 # ╠═ca9a1b49-26e0-4925-a186-c27903ac3c75
@@ -121,6 +123,6 @@ end
 # ╠═b48a0e3e-5358-4028-b536-3009223ef7f4
 # ╠═f1601c61-a499-4e59-ae84-74278b3d85e6
 # ╠═92b25162-7264-4cf9-bda4-37847fb2bde3
-# ╠═05807cbb-e21d-4635-b88d-e7d10ead9ce3
+# ╟─05807cbb-e21d-4635-b88d-e7d10ead9ce3
 # ╟─502fb3e2-9036-4637-ac17-759aaeea675a
 # ╟─36f3d298-2aec-48dc-a305-18b19fb6d3b3
