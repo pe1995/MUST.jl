@@ -1524,3 +1524,28 @@ Base.axes(b::Box, args...; kwargs...) = axes(b.z, args...; kwargs...)
 Base.size(b::Box, args...; kwargs...) = size(b.z, args...; kwargs...)
 
 closest(a, v) = argmin(abs.(a .- v))
+
+is_log(x) = begin
+	sx = String(x)
+	
+	xnew, f = if occursin("log10", sx)
+		Symbol(sx[findfirst("log10", sx)[end]+1:end]), log10
+	elseif occursin("log", sx)
+		Symbol(sx[findfirst("log", sx)[end]+1:end]), log
+	else
+		x, identity
+	end
+
+	xnew, f
+end
+
+profile(f, model, x=:z, y=:T) = begin
+	xs, logx = is_log(x)
+	ys, logy = is_log(y)
+	
+	if xs == :τ_ross
+		logx.(axis(model, xs, 3)), logy.(plane_statistic(f, model, ys)) 
+	else
+		logx.(axis(model, xs)), logy.(plane_statistic(f, model, ys))
+	end
+end

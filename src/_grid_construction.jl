@@ -25,6 +25,7 @@ Grid(x, y, z) = RegularBoxGrid(
 
 
 
+
 #= Utilities =#
 
 check_uniform(b::Box) = begin
@@ -55,4 +56,74 @@ check_uniform(b::Box) = begin
     end
 
     true
+end
+
+"""
+    scale_axis(axis, factor)
+
+Scale the number of points on an axis by the given factor or to a specific number.
+"""
+function scale_axis(axis; factor=nothing, N=nothing)
+    if isnothing(factor) & isnothing(N)
+        error("N or factor required.")
+    end
+
+    len = if isnothing(N)
+        Int(ceil(length(axis).*factor))
+    else
+        N
+    end
+
+	axis_new = range(first(axis), last(axis), length=len)
+	Base.convert.(eltype(axis), axis_new)
+end
+
+
+
+
+
+#= Scaling a box in resolution =#
+
+function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
+	if (nx==size(b, 1)) & (ny==size(b, 2)) & (nz==size(b, 3))
+		@warn "Size of new box = size of old box."
+		deepcopy(b)
+	end
+
+	# The coordinate grid of the input box
+	grid = Grid(b)
+
+	# build the new axis
+	x_new = scale_axis(axis(snap, :x), N=nx)
+	y_new = scale_axis(axis(snap, :y), N=ny)
+	z_new = scale_axis(axis(snap, :z), N=nz)
+	target_grid = MUST.Grid(x_new, y_new, z_new)
+
+	# interpolate 
+	ip = MUST.ginterpolate(grid, target_grid)
+
+	# compute the interpolate quantities
+	data_new = Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}()
+
+	for f in keys(snap.data)
+		d = if all(snap.data[f] .> 0.0) & (eltype(snap.data[f]) <: AbstractFloat)
+			log.(snap.data[f])
+		else
+			snap.data[f]
+		end
+		
+        # interpolate
+		data_new[f] = MUST.gevaluate!(ip, d)
+
+        # apply exp again if needed
+		data_new[f] .= if all(snap.data[f] .> 0.0) & 
+							(eltype(snap.data[f]) <: AbstractFloat)
+			exp.(data_new[f])
+		else
+			data_new[f]
+		end
+	end
+
+	xx, yy, zz = meshgrid(x_new, y_new, z_new)
+	Box(xx, yy, zz, data_new, deepcopy(snap.parameter))
 end

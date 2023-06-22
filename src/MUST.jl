@@ -68,7 +68,7 @@ end
 export import_dispatch, in_dispatch
 export Space, spacebox, Box, add!
 export pick_snapshot
-export ginterpolate, gevaluate, gevaluate!
+export ginterpolate, gevaluate, gevaluate!, gresample
 #export read!, write
 
 
