@@ -12,7 +12,7 @@ if "SLURM_NTASKS" in keys(ENV)
     end
 else
     @warn "No Slurm environment detected. Using default addprocs."
-    addprocs(2)
+    addprocs(3)
 end
 
 @everywhere begin
@@ -38,8 +38,10 @@ else
     content_of_folder = glob("*/", folder)
     snapshots         = sort(MUST.list_of_snapshots(content_of_folder))
     
-    #istart = max(1, length(snapshots)-2)
-    #snapshots = snapshots[istart:end-1]
+    if !("SLURM_NTASKS" in keys(ENV))
+        istart = max(1, length(snapshots)-4)
+        snapshots = snapshots[istart:end-2]
+    end
 end
 
 # Name of the namelist of the current folder
