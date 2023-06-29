@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.25
+# v0.19.26
 
 using Markdown
 using InteractiveUtils
@@ -32,79 +32,30 @@ md"All the models from the Stagger grid come with an average model that we can l
 
 # ╔═╡ 486f5cac-8879-4084-9faf-6dc4ae115e43
 names = [
-		"DIS_MARCS_E_t5777g44m00_v0.1"
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-		MUST.@in_dispatch(
-			"data/eitner3")
+	MUST.@in_dispatch("data/sun_gold_lres"),
+	MUST.@in_dispatch("data/sun_gold")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-		MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
-labels = ["RT test"]
+labels = ["HD 280x280x140 - RT 350x350x280", "HD 350x350x175 - RT 350x350x280"]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
-colors = ["red"]#palette(:rainbow, length(names))
+colors = length(names) == 1 ? [:red] : palette(:rainbow, length(names))
 
 # ╔═╡ 5856ad8f-b6ce-4175-a158-c415bd546a7e
-in_folder  = [MUST.@in_dispatch "input_data/grd/$(name)" for name in names]
-
-# ╔═╡ 957af12a-e77e-48a3-a2de-80b86512e5a8
-function converted_snapshots(folder)
-	files_converted = glob("*.hdf5", folder)
-	snaps = Dict()
-	for file in files_converted
-		snname = basename(file)
-
-		
-		if occursin("tau", snname) 
-			continue 
-		end 
-		
-		snid   = parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
-		is_τ = isfile(joinpath(folder,"box_tau_sn$(snid).hdf5"))
-
-		snname  = String(split(snname, ".hdf5") |> first)
-		sntname = "box_tau_sn$(snid)"
-
-		if is_τ 
-			snaps[snid] = (snname, sntname) 
-		else
-			snaps[snid] = (snname, nothing) 
-		end
-	end
-
-	snaps["folder"] = folder
-	snaps
-end
-
-# ╔═╡ 1e0de50e-bb67-4d34-a038-e7437955ec73
-list_snapshots(snapshots) = sort([k for k in keys(snapshots) if k != "folder"])
-
-# ╔═╡ 01ab2753-515c-496f-a6fc-1c2a0e42ae25
-function pick_snapshot(snapshots, i)
-	i = if i == :recent 
-		last(list_snapshots(snapshots))
-	else 
-		i
-	end
-
-	snap = snapshots[i]
-	if isnothing(last(snap))
-		@info "snapshot $(i) loaded."
-		MUST.Box(first(snap), folder=snapshots["folder"]), nothing
-	else
-		@info "snapshot $(i) + τ-shot loaded."
-		MUST.Box(first(snap), folder=snapshots["folder"]), 
-		MUST.Box(last(snap), folder=snapshots["folder"])
-	end
-end
+in_folder  = [MUST.@in_dispatch "input_data/$(name)" for name in names]
 
 # ╔═╡ 452a144e-b725-4de2-b3e1-2f614210d62e
 begin
@@ -112,8 +63,12 @@ begin
 	snapshots_τ = []
 	
 	for i in eachindex(names)
-		snapshot, snapshot_τ = pick_snapshot(converted_snapshots(out_folder[i]),
-								1)
+		snapshot, snapshot_τ = MUST.pick_snapshot(
+			MUST.converted_snapshots(
+				out_folder[i]
+			),
+			:recent
+		)
 		
 		append!(snapshots, [snapshot])
 		append!(snapshots_τ, [snapshot_τ])
@@ -136,20 +91,20 @@ end
 # ╔═╡ d8693137-82f7-4ccb-b886-4115e3032392
 # ╠═╡ show_logs = false
 initial_model = [
-	@optical(Average3D(eos[i], joinpath(in_folder[i], "inim.dat")), eos[i], opa[i])
+	@optical(Average3D(eos[i], MUST.@in_dispatch("input_data/sun_stagger.dat")), eos[i], opa[i])
 		for i in eachindex(eos)
 ]
 
 # ╔═╡ 4c8d357d-a41a-4274-b131-93ebb695b911
 stagger_model = [
-	@optical(Average3D(eos[i], MUST.@in_dispatch("input_data/solar_stagger_ext")), 
+	@optical(Average3D(eos[i], MUST.@in_dispatch("input_data/sun_stagger.dat")), 
 		eos[i], opa[i])
 	for i in eachindex(eos)
 ]
 
 # ╔═╡ 4a1730fb-1fbe-445a-b850-7539967dcbe2
 begin
-	folder_stagger = "/ptmp/peitner/model_grid/MUST.jl/examples/stagger2bifrost"
+	folder_stagger = "/u/peitner/DISPATCH/MUST.jl/examples/stagger2bifrost"
 	stagger = MUST.Box("box_solar_stagger_MARCS_v1.4.31", 
 							folder=folder_stagger)
 	stagger_τ = MUST.Box("box_solar_stagger_MARCS_v1.4.31_t", 
@@ -169,6 +124,9 @@ end
 
 # ╔═╡ c3ab29bc-a61b-467c-b3ab-3fa919abd83d
 md"## Compare models to their initial condition"
+
+# ╔═╡ cd81869e-c954-4526-a52f-31aedb64cb5f
+2.3/(7*35)
 
 # ╔═╡ fa90d92b-d1b3-491e-872b-23f57da6dace
 begin
@@ -259,8 +217,8 @@ end
 
 # ╔═╡ 8a8a40e0-5b03-4c17-93a3-4eccf12e3717
 begin
-	plot(profile(mean, stagger, :z, :T)..., 
-				lw=1.5, color=:black, label="Stagger", ls=:dash)
+	plot(-initial_model[1].z, exp.(initial_model[1].lnT), 
+				lw=1.5, color=:black, label="initial condition", ls=:dash)
 
 	for (i, snapshot) in enumerate(snapshots)
 		plot!(profile(mean, snapshot, :z, :T)..., 
@@ -461,6 +419,37 @@ for (i, model_box) in enumerate(snapshots)
 	@info "New size: $(size(@view(ne[i][1:downsample:end, 1:downsample:end, :])))"
 end
 
+# ╔═╡ 5b28c9b8-a991-45d6-a2d1-15f24142d277
+md"## Compute a time average"
+
+# ╔═╡ 7837df1e-e220-4a60-944d-876b523300ad
+number_of_timeslots = [10]
+
+# ╔═╡ 09d3fbbb-c636-4f8a-8409-0eba2ea9a242
+do_time = false
+
+# ╔═╡ b564b2bf-61d9-44e4-a785-fa66db6b10e5
+if do_time
+	for i in eachindex(names)
+		eos_i = reload(SqEoS, joinpath(eos_folder[i], "eos.hdf5"))
+		#opa = reload(SqOpacity, joinpath(eos_folder[i], "binned_opacity.hdf5"))
+		
+		snaps = MUST.converted_snapshots(out_folder[i])
+		isnap = MUST.list_snapshots(snaps)
+	
+		time_isnaps = isnap[end-number_of_timeslots[i]:end-1]
+		
+		time_snaps = [pick_snapshot(snaps, j) |> first for j in time_isnaps]
+		time_av = MUST.time_statistic(mean, time_snaps)
+		MUST.save(time_av, folder=out_folder[i], name="box_tav")
+	
+	
+		time_snaps = [pick_snapshot(snaps, j) |> last for j in time_isnaps]
+		time_av = MUST.time_statistic(mean, time_snaps)
+		MUST.save(time_av, folder=out_folder[i], name="box_tau_tav")
+	end
+end
+
 # ╔═╡ Cell order:
 # ╟─9456066d-36b1-4e6d-8af9-b8f134fb6e24
 # ╠═1eac6457-238f-49ed-82dc-6f1c521930fc
@@ -473,23 +462,21 @@ end
 # ╠═fe1d7b10-88a5-46c1-a244-589bacf75970
 # ╠═ee39604b-6bd0-434e-b06d-417a4ab8cb7e
 # ╟─5856ad8f-b6ce-4175-a158-c415bd546a7e
-# ╟─957af12a-e77e-48a3-a2de-80b86512e5a8
-# ╟─1e0de50e-bb67-4d34-a038-e7437955ec73
-# ╟─01ab2753-515c-496f-a6fc-1c2a0e42ae25
 # ╠═452a144e-b725-4de2-b3e1-2f614210d62e
 # ╟─3e747391-ba4b-47bf-b363-abcb46a9309b
 # ╟─ed6c250a-84d5-4ac6-bf54-9e8fcdbe55a3
-# ╟─d8693137-82f7-4ccb-b886-4115e3032392
-# ╟─4c8d357d-a41a-4274-b131-93ebb695b911
-# ╟─4a1730fb-1fbe-445a-b850-7539967dcbe2
+# ╠═d8693137-82f7-4ccb-b886-4115e3032392
+# ╠═4c8d357d-a41a-4274-b131-93ebb695b911
+# ╠═4a1730fb-1fbe-445a-b850-7539967dcbe2
 # ╟─14dab588-7275-4a7e-bade-71375d3a16bc
 # ╟─0d72ddb5-0096-4430-8611-e843f0aa3c61
 # ╟─c3ab29bc-a61b-467c-b3ab-3fa919abd83d
+# ╠═cd81869e-c954-4526-a52f-31aedb64cb5f
 # ╟─fa90d92b-d1b3-491e-872b-23f57da6dace
 # ╟─9fd5896c-8d4f-499d-9f97-c589d8d256c2
 # ╟─85d4b142-1529-495a-bc6d-64f5f0efa3b9
 # ╟─3d1e1cd9-5601-468d-a3f1-a3dd51177a37
-# ╟─8a8a40e0-5b03-4c17-93a3-4eccf12e3717
+# ╠═8a8a40e0-5b03-4c17-93a3-4eccf12e3717
 # ╟─d3ef4193-11e7-478d-aa11-ba3b8adbce55
 # ╟─05a4e3ef-58b5-4f96-94b8-51991c971451
 # ╟─0a726cbb-1309-4071-9df1-93cd4355fb71
@@ -508,3 +495,7 @@ end
 # ╟─f3e705cf-a0a5-4905-9a07-aa6535985e01
 # ╟─52fa7b28-d846-4d1c-8142-1cc1e6c68b92
 # ╠═b3b294ca-9ac2-4083-bcb5-789b48e9cb0b
+# ╟─5b28c9b8-a991-45d6-a2d1-15f24142d277
+# ╠═7837df1e-e220-4a60-944d-876b523300ad
+# ╠═09d3fbbb-c636-4f8a-8409-0eba2ea9a242
+# ╠═b564b2bf-61d9-44e4-a785-fa66db6b10e5

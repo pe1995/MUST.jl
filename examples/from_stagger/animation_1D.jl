@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.25
+# v0.19.26
 
 using Markdown
 using InteractiveUtils
@@ -27,16 +27,6 @@ md"## Code Setup"
 
 # ╔═╡ 338a10a4-5283-4b5b-9989-080d28ccb60c
 md"### Plotting defaults"
-
-# ╔═╡ e7b79c35-7df1-49c0-96b4-dd25262b52f8
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	#plt.style.use("dark_background")
-	rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-	rcParams["font.size"] = 10
-end
-  ╠═╡ =#
 
 # ╔═╡ 1781d460-5fce-4a88-81c5-d9ba09971c7c
 begin
@@ -143,10 +133,10 @@ end
 names_res = "DIS_MARCS_E_t5777g44m00_v0.1"
 
 # ╔═╡ d97ab00a-ba3f-4457-a97b-2ae22a90f21f
-out_folder_res = MUST.@in_dispatch "data/test_rtres_mpi_3"
+out_folder_res = MUST.@in_dispatch "data/sun_gold_lres"
 
 # ╔═╡ 9a6c9eb2-f0c0-41aa-851d-a2038896bc97
-in_folder_res = MUST.@in_dispatch "input_data/grd/$(names_res)"
+in_folder_res = MUST.@in_dispatch "input_data/"
 
 # ╔═╡ 35de1998-70fc-4685-ad37-91c19a79c714
 eos_folder_res = MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
@@ -164,8 +154,19 @@ end
 @info "Opacity table size: $(size(opa_res.κ))"
 
 # ╔═╡ f38476e4-d2eb-46fb-8a07-c7e4e2bd4e46
-initial_model = @optical(Average3D(eos_res, joinpath(in_folder_res, "inim.dat")),
-							eos_res, opa_res)
+# ╠═╡ show_logs = false
+initial_model = @optical(
+	Average3D(eos_res, joinpath(in_folder_res, "sun_stagger.dat")),
+				eos_res, opa_res)
+
+# ╔═╡ df40139a-6c67-412a-8fa8-8e45ff4dba23
+begin
+	folder_stagger = "/u/peitner/DISPATCH/MUST.jl/examples/stagger2bifrost"
+	stagger = MUST.Box("box_solar_stagger_MARCS_v1.4.31", 
+							folder=folder_stagger)
+	stagger_τ = MUST.Box("box_solar_stagger_MARCS_v1.4.31_t", 
+							folder=folder_stagger)
+end
 
 # ╔═╡ 5fd204d9-ccd3-4683-aa0c-03dbf958e435
 resolution(snap) = @sprintf "%.1f km" first(diff(MUST.axis(snap, :z) ./1e5))
@@ -184,30 +185,114 @@ begin
 	snaps = MUST.converted_snapshots(out_folder_res)
 	isnaps = MUST.list_snapshots(snaps)
 	f = []
+
+	isnaps_done = []
+	for i in isnaps
+		s, st = pick_snapshot(snaps, i)
+		isnothing(st) && continue 
+		append!(isnaps_done, [i])
+	end
+
+	plot()
+
+	for i in isnaps_done			
+		s, st = pick_snapshot(snaps, i)
+
+		isnothing(st) && continue 
+
+		if i == first(isnaps_done)
+			plot!(profile(mean, stagger_τ, :log10τ_ross, :T)..., 
+					lw=1.5, color=:black, label="Stagger", ls=:dash)
+		end
+
+		if i == last(isnaps_done)
+			plot!(profile(mean, st, :log10τ_ross, :T)..., 
+					lw=2., color=:red, label="M3DIS (t=$(s.parameter.time))")
+		elseif i == first(isnaps_done)
+			plot!(profile(mean, st, :log10τ_ross, :T)..., 
+					lw=2., color=:black, alpha=0.2, label="M3DIS - time evolution")
+		else
+			plot!(profile(mean, st, :log10τ_ross, :T)..., 
+					lw=2., color=:black, alpha=0.2, label=nothing)
+		end
+
+		if i == first(isnaps_done)			
+			xlabel!("log τ")
+			ylabel!("T [K]")
 	
-	for i in isnaps			
-		s, _ = pick_snapshot(snaps, i)
-
-		
-		plot(-initial_model.z, exp.(initial_model.lnT), 
-				lw=1.5, color=:black, label="Initial model", ls=:dash)
-
-		
-		plot!(profile(mean, s, :z, :T)..., 
-				lw=2., color="red", label="t: $(s.parameter.time)")
-		
-	
-		xlabel!("z [cm]")
-		ylabel!("T [K]")
-
-		plot!(ylim=(4000,22000))
-		basic_plot!()
+			plot!(ylim=(4000,22000))
+			basic_plot!()
+		end
 		
 		savefig("profile_$(i).png")
 		append!(f, ["profile_$(i).png"])
 	end
 	
-	gifs.gifs_from_png(f, "average_t_rtres.gif", duration=0.4)
+	gifs.gifs_from_png(f, "average_taut_vlres.gif", duration=2.0)
+end
+
+# ╔═╡ 8e362634-766e-4688-9995-054ecd5764f7
+begin
+	f2 = []
+	
+	for i in isnaps			
+		s, st = pick_snapshot(snaps, i)
+
+		isnothing(st) && continue 
+		
+		plot(profile(rms, stagger_τ, :log10τ_ross, :uz)..., 
+				lw=1.5, color=:black, label="Stagger", ls=:dash)
+
+		
+		plot!(profile(rms, st, :log10τ_ross, :uz)..., 
+				lw=2., color="red", label="t: $(s.parameter.time)")
+		
+	
+		xlabel!("log τ")
+		ylabel!("rms(Uz) [cm × s-1]")
+
+		plot!(ylim=(0,3.5e5))
+		basic_plot!()
+		
+		savefig("profile_$(i).png")
+		append!(f2, ["profile_$(i).png"])
+	end
+	
+	gifs.gifs_from_png(f, "average_tauuz_vlres.gif", duration=2.0)
+end
+
+# ╔═╡ c9369187-a6c1-4b86-83f3-371f7d46e0f8
+begin
+	f3 = []
+	
+	for i in isnaps			
+		s, st = pick_snapshot(snaps, i)
+
+		isnothing(st) && continue 
+		
+		plot(
+			log10.(MUST.plane_statistic(mean, stagger_τ, :d)),
+			MUST.plane_statistic(mean, stagger_τ, :T),
+			lw=1.5, color=:black, label="Stagger", ls=:dash
+		)
+		
+		plot!(
+			log10.(MUST.plane_statistic(mean, st, :d)),
+			MUST.plane_statistic(mean, st, :T),
+			lw=2., color="red", label="t: $(s.parameter.time)"
+		)
+		
+	
+		ylabel!("T")
+		xlabel!("log ρ")
+
+		basic_plot!()
+		
+		savefig("profile_$(i).png")
+		append!(f3, ["profile_$(i).png"])
+	end
+	
+	gifs.gifs_from_png(f, "average_trho_vlres.gif", duration=2.0)
 end
 
 # ╔═╡ Cell order:
@@ -216,16 +301,15 @@ end
 # ╟─e138b8b9-ecd5-4023-b594-eb57b350e354
 # ╟─7e5757f5-63e1-4cad-90b4-fc21b9a8ce79
 # ╟─338a10a4-5283-4b5b-9989-080d28ccb60c
-# ╠═e7b79c35-7df1-49c0-96b4-dd25262b52f8
 # ╟─1781d460-5fce-4a88-81c5-d9ba09971c7c
 # ╠═1c220eed-89ad-4298-bdca-5570dbfcad66
 # ╟─761025f4-b29a-4685-b2ff-c750331450fb
-# ╠═41e28c24-b0d3-4f04-9403-4a68ddaf2a07
-# ╠═6e7d0b12-93db-4767-8ca5-04c95060ade3
+# ╟─41e28c24-b0d3-4f04-9403-4a68ddaf2a07
+# ╟─6e7d0b12-93db-4767-8ca5-04c95060ade3
 # ╠═db5ddb63-de7e-4a20-871e-324fd963c185
-# ╠═7630938a-0aac-4841-a5fc-cfb2eb836b2d
-# ╠═90686e9d-99fc-453c-afdb-ddff63a573b5
-# ╠═add9584d-b0f4-42a0-9414-5a9a9eb5b206
+# ╟─7630938a-0aac-4841-a5fc-cfb2eb836b2d
+# ╟─90686e9d-99fc-453c-afdb-ddff63a573b5
+# ╟─add9584d-b0f4-42a0-9414-5a9a9eb5b206
 # ╠═ae145d37-f463-49aa-914c-a3cd8fd1a650
 # ╠═d97ab00a-ba3f-4457-a97b-2ae22a90f21f
 # ╠═9a6c9eb2-f0c0-41aa-851d-a2038896bc97
@@ -234,8 +318,11 @@ end
 # ╠═d9f80869-a8ae-4ace-b92d-61a54419e717
 # ╟─870e623b-9c32-43d3-b3af-f8bb75aa8caf
 # ╠═f38476e4-d2eb-46fb-8a07-c7e4e2bd4e46
+# ╠═df40139a-6c67-412a-8fa8-8e45ff4dba23
 # ╠═5fd204d9-ccd3-4683-aa0c-03dbf958e435
 # ╟─9e5d5453-9a6e-457d-a50f-c5558b10562d
 # ╠═3f3da68e-37ae-4044-a215-d6ab44789d35
 # ╟─b3aa6e35-24dc-4370-9b42-7992bb742277
 # ╠═f37aca05-14c5-4803-ac6f-526bcc3453c0
+# ╠═8e362634-766e-4688-9995-054ecd5764f7
+# ╠═c9369187-a6c1-4b86-83f3-371f7d46e0f8

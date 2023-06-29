@@ -1404,6 +1404,10 @@ function converted_snapshots(folder)
 		if occursin("tau", snname) 
 			continue 
 		end 
+
+        if occursin("tav", snname) 
+			continue 
+		end 
 		
 		snid   = parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
 		is_τ = isfile(joinpath(folder,"box_tau_sn$(snid).hdf5"))
@@ -1430,6 +1434,7 @@ list_snapshots(snapshots) = sort([k for k in keys(snapshots) if k != "folder"])
 
 Pick the ith snapshot from the list of available snapshots. 
 If ``i == :recent``, pick the most recent available snapshot. 
+If ``i == :time_average``, pick the time average, if available.
 """
 function pick_snapshot(snapshots, i; skip_last_if_missing=true)
 	i = if i == :recent 
@@ -1443,7 +1448,15 @@ function pick_snapshot(snapshots, i; skip_last_if_missing=true)
 		i
 	end
 
-	snap = snapshots[i]
+	snap = if i == :time_average
+        ["box_tav", "box_tau_tav"]
+        isfile(joinpath(snapshots["folder"], "box_tau_tav.hdf5")) ? 
+            ["box_tav", "box_tau_tav"] :
+            ["box_tav", nothing]
+    else   
+        snapshots[i]
+    end
+
 	if isnothing(last(snap))
 		@info "snapshot $(i) loaded."
 		MUST.Box(first(snap), folder=snapshots["folder"]), nothing
