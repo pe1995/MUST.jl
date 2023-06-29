@@ -22,7 +22,7 @@ end
 
 function _get_help_py(mod ,dir=dirname(@__FILE__))
 	sys   = pyimport("sys")
-	dir in sys."path" ? nothing : append!(sys."path",[dir])
+	Py(dir) in sys."path" ? nothing : sys."path".append(Py(dir))
     pyimport(String(mod))
 end
 

@@ -1,7 +1,7 @@
 module MUST
 
 #= Julia modules =#
-using PyCall
+using PythonCall
 using DataFrames
 using CSV
 using FortranFiles
@@ -27,12 +27,12 @@ import Base.Broadcast.broadcastable
 
 
 #= Python modules =#
-const numpy             = PyNULL()
-const scipy_interpolate = PyNULL()
+const numpy             = PythonCall.pynew()
+const scipy_interpolate = PythonCall.pynew()
 
 __init__() = begin 
-    copy!(scipy_interpolate,pyimport("scipy.interpolate"))
-    copy!(numpy,pyimport("numpy"))
+    PythonCall.pycopy!(scipy_interpolate,pyimport("scipy.interpolate"))
+    PythonCall.pycopy!(numpy,pyimport("numpy"))
 end
 
 

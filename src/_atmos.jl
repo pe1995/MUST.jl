@@ -100,31 +100,32 @@ Returns
 MUST.Space type object
 
 """
-function Space(snapshot::PyCall.PyObject, quantities::Symbol...) 
+function Space(snapshot::Py, quantities::Symbol...) 
     qs = Dict{Symbol,Vector{Float32}}(q=>Float32[] for q in quantities)
     qs[:x] = Float32[]; qs[:y] = Float32[]; qs[:z] = Float32[]
     qs[:i_patch] = Int[]
     patch_dimensions = zeros(Int,(length(snapshot.patches),3))
     
     for (i,patch) in enumerate(snapshot.patches)
-        
         # grid of this patch relative to the global grid
         patch_size = (length(patch.xi),length(patch.yi),length(patch.zi))
-        x = patch.xi; y = patch.yi; z = patch.zi
+        x = pyconvert.(Float32, patch.xi)
+        y = pyconvert.(Float32, patch.yi) 
+        z = pyconvert.(Float32, patch.zi)
         patch_dimensions[i,1] = length(patch.xi)
         patch_dimensions[i,2] = length(patch.yi)
         patch_dimensions[i,3] = length(patch.zi)
         
         # extract the quantites for this patch
-        for (iq,q) in enumerate(quantities)
-            q_matrix = patch.var(String(q))
+        for (iq, q) in enumerate(quantities)
+            q_matrix = pyconvert(Array{Float32, 3}, numpy.array(patch.var(String(q))))
             q_array  = zeros(Float32, prod(patch_size))
             coords   = zeros(Float32, (prod(patch_size),3))
             j = 1
             @inbounds for iz in 1:patch_size[3]
                 @inbounds for iy in 1:patch_size[2]
                     @inbounds for ix in 1:patch_size[1]
-                        q_array[j]  = q_matrix[ix,iy,iz]
+                        q_array[j]  = q_matrix[ix, iy, iz]
                         coords[j,1] = x[ix]
                         coords[j,2] = y[iy]
                         coords[j,3] = z[iz]
@@ -142,7 +143,7 @@ function Space(snapshot::PyCall.PyObject, quantities::Symbol...)
         end
     end
 
-    time = snapshot.nml_list["snapshot_nml"]["time"]
+    time = pyconvert(Any, snapshot.nml_list["snapshot_nml"]["time"])
     Space(qs, patch_dimensions, AtmosphericParameters(time, 
                                                         Base.convert(typeof(time), -99.0), 
                                                         Base.convert(typeof(time), -99.0), 
@@ -236,7 +237,12 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
     s_masked = filter(region_mask, s)
 
     # 3D Mesh of the new coordinate Box
-    x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
+    #x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
+    #x_grid = pyconvert(Array{eltype(x)}, x_grid)
+    #y_grid = pyconvert(Array{eltype(x)}, y_grid)
+    #z_grid = pyconvert(Array{eltype(x)}, z_grid)
+    x_grid, y_grid, z_grid = meshgrid(x, y, z)
+
 
     # result dict
     results::Dict{Symbol,Array{T,3}} = Dict(q=>similar(x_grid) for q in keys(s.data) if !(q in [:x,:y,:z,:i_patch]))
@@ -328,10 +334,11 @@ function Box(s::Space)
     y = sort(unique(s.data[:y]))
     z = sort(unique(s.data[:z]))
 
-    x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
-    x_grid = Base.convert(Array{typeof(x[1])}, x_grid)
-    y_grid = Base.convert(Array{typeof(x[1])}, y_grid)
-    z_grid = Base.convert(Array{typeof(x[1])}, z_grid)
+    #x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
+    #x_grid = pyconvert(Array{eltype(x)}, x_grid)
+    #y_grid = pyconvert(Array{eltype(x)}, y_grid)
+    #z_grid = pyconvert(Array{eltype(x)}, z_grid)
+    x_grid, y_grid, z_grid = meshgrid(x, y, z)
 
     results::Dict{Symbol, Array{<:Union{Float32, Float64, Int16, Int32, Int64}, 3}} = Dict(q=>zeros(typeof(s.data[q][1]),size(x_grid)) 
                                                                                         for q in keys(s.data) if !(q in [:x,:y,:z]))
@@ -340,8 +347,8 @@ function Box(s::Space)
         results[q] .= Base.convert(typeof(results[q][1,1,1]), NaN)
     end
 
-    p        = zeros(3) 
-    skip_q   = [:x,:y,:z]
+    p = zeros(3) 
+    skip_q = [:x, :y, :z]
     @inbounds for irow in eachindex(s.data[:x])
         p[1] = s.data[:x][irow]
         p[2] = s.data[:y][irow] 
@@ -349,6 +356,7 @@ function Box(s::Space)
         ix,iy,iz = _find_in_meshgrid(p, x, y, z)
         for quantity in keys(s.data)
             quantity in skip_q ? continue : nothing
+            
             # go though the data points and save the quantity
             results[quantity][ix,iy,iz] = s.data[quantity][irow]
         end
@@ -958,7 +966,7 @@ end
 """
 Apply the function f to every column of the Box and save the result in res.
 """
-function apply_by_column!(f::Function, res::T, b::MUST.Box; check_nan=false) where {T<:AbstractArray,A<:AbstractArray}
+function apply_by_column!(f::Function, res::T, b::MUST.Box; check_nan=false) where {T<:AbstractArray}
     
     #zv = zeros(size(b.z,3))
     #xv = zeros(size(b.z,3))

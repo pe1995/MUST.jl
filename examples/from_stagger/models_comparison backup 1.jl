@@ -32,30 +32,30 @@ md"All the models from the Stagger grid come with an average model that we can l
 
 # ╔═╡ 486f5cac-8879-4084-9faf-6dc4ae115e43
 names = [
-	"DIS_MARCS_E_t5777g44m00_v0.1",
-	"DIS_MARCS_E_t5777g44m00_v0.1"
+		"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/sun_gold_lres"),
-	MUST.@in_dispatch("data/sun_gold_lres_rt")
+		MUST.@in_dispatch("data/sun_magg")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
-	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
+		MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
-labels = ["HD 280x280x140 - RT 350x350x280", "HD 280x280x140 - RT 280x280x280"]
+labels = ["new setup (Magg)"]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
-colors = length(names) == 1 ? [:red] : palette(:rainbow, length(names))
+colors = ["red"] #palette(:rainbow, length(names))
 
 # ╔═╡ 5856ad8f-b6ce-4175-a158-c415bd546a7e
 in_folder  = [MUST.@in_dispatch "input_data/$(name)" for name in names]
+
+# ╔═╡ 9ccd37a5-26ff-43b7-89a5-a214cf5995d3
+
 
 # ╔═╡ 452a144e-b725-4de2-b3e1-2f614210d62e
 begin
@@ -67,7 +67,7 @@ begin
 			MUST.converted_snapshots(
 				out_folder[i]
 			),
-			:recent
+			:time_average
 		)
 		
 		append!(snapshots, [snapshot])
@@ -124,9 +124,6 @@ end
 
 # ╔═╡ c3ab29bc-a61b-467c-b3ab-3fa919abd83d
 md"## Compare models to their initial condition"
-
-# ╔═╡ cd81869e-c954-4526-a52f-31aedb64cb5f
-2.3/(7*35)
 
 # ╔═╡ fa90d92b-d1b3-491e-872b-23f57da6dace
 begin
@@ -311,6 +308,9 @@ md"Velocity distribution"
 # ╔═╡ fa8e10f7-da54-4165-887f-30e740e1f264
 rms(x) = √(sum(x .^2) / length(x))
 
+# ╔═╡ 870f696c-483b-40ef-9986-8f81ed01554c
+8*35
+
 # ╔═╡ 83dc28ac-97f5-4833-8a6f-cd2d2624442a
 begin
 	plot(profile(rms, stagger_τ, :log10τ_ross, :uz)..., 
@@ -423,32 +423,10 @@ end
 md"## Compute a time average"
 
 # ╔═╡ 7837df1e-e220-4a60-944d-876b523300ad
-number_of_timeslots = [10]
+number_of_timeslots = [5]
 
 # ╔═╡ 09d3fbbb-c636-4f8a-8409-0eba2ea9a242
-do_time = false
-
-# ╔═╡ b564b2bf-61d9-44e4-a785-fa66db6b10e5
-if do_time
-	for i in eachindex(names)
-		eos_i = reload(SqEoS, joinpath(eos_folder[i], "eos.hdf5"))
-		#opa = reload(SqOpacity, joinpath(eos_folder[i], "binned_opacity.hdf5"))
-		
-		snaps = MUST.converted_snapshots(out_folder[i])
-		isnap = MUST.list_snapshots(snaps)
-	
-		time_isnaps = isnap[end-number_of_timeslots[i]:end-1]
-		
-		time_snaps = [pick_snapshot(snaps, j) |> first for j in time_isnaps]
-		time_av = MUST.time_statistic(mean, time_snaps)
-		MUST.save(time_av, folder=out_folder[i], name="box_tav")
-	
-	
-		time_snaps = [pick_snapshot(snaps, j) |> last for j in time_isnaps]
-		time_av = MUST.time_statistic(mean, time_snaps)
-		MUST.save(time_av, folder=out_folder[i], name="box_tau_tav")
-	end
-end
+do_τ = true
 
 # ╔═╡ Cell order:
 # ╟─9456066d-36b1-4e6d-8af9-b8f134fb6e24
@@ -462,6 +440,10 @@ end
 # ╠═fe1d7b10-88a5-46c1-a244-589bacf75970
 # ╠═ee39604b-6bd0-434e-b06d-417a4ab8cb7e
 # ╟─5856ad8f-b6ce-4175-a158-c415bd546a7e
+# ╟─957af12a-e77e-48a3-a2de-80b86512e5a8
+# ╟─1e0de50e-bb67-4d34-a038-e7437955ec73
+# ╟─01ab2753-515c-496f-a6fc-1c2a0e42ae25
+# ╠═9ccd37a5-26ff-43b7-89a5-a214cf5995d3
 # ╠═452a144e-b725-4de2-b3e1-2f614210d62e
 # ╟─3e747391-ba4b-47bf-b363-abcb46a9309b
 # ╟─ed6c250a-84d5-4ac6-bf54-9e8fcdbe55a3
@@ -471,7 +453,6 @@ end
 # ╟─14dab588-7275-4a7e-bade-71375d3a16bc
 # ╟─0d72ddb5-0096-4430-8611-e843f0aa3c61
 # ╟─c3ab29bc-a61b-467c-b3ab-3fa919abd83d
-# ╠═cd81869e-c954-4526-a52f-31aedb64cb5f
 # ╟─fa90d92b-d1b3-491e-872b-23f57da6dace
 # ╟─9fd5896c-8d4f-499d-9f97-c589d8d256c2
 # ╟─85d4b142-1529-495a-bc6d-64f5f0efa3b9
@@ -483,6 +464,7 @@ end
 # ╟─e10a8581-c0ab-4209-9e14-4d456dcf9a86
 # ╟─07815fd8-f292-4760-a950-8b56a5908acf
 # ╠═fa8e10f7-da54-4165-887f-30e740e1f264
+# ╠═870f696c-483b-40ef-9986-8f81ed01554c
 # ╟─83dc28ac-97f5-4833-8a6f-cd2d2624442a
 # ╟─e654ada6-ce50-4a2b-a51c-eae3e7aa36d3
 # ╟─919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
@@ -498,4 +480,4 @@ end
 # ╟─5b28c9b8-a991-45d6-a2d1-15f24142d277
 # ╠═7837df1e-e220-4a60-944d-876b523300ad
 # ╠═09d3fbbb-c636-4f8a-8409-0eba2ea9a242
-# ╠═b564b2bf-61d9-44e4-a785-fa66db6b10e5
+# ╠═7d192f93-c865-43af-a8d4-be92fb711a4e

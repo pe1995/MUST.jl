@@ -1,5 +1,8 @@
 /Manifest.toml
 
+/.CondaPkg
+examples/*/.CondaPkg
+
 examples/*/Manifest.toml
 examples/*/slurm*
 examples/*/core.cobra*

@@ -407,7 +407,7 @@ end
 Container for Python stagger snap (usefull for dispatching)
 """
 struct StaggerLegacySnap
-    snap::PyCall.PyObject
+    snap::Py
 end
 
 bifrost_name(stagger_name::String) = begin
