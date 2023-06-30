@@ -386,7 +386,10 @@ function interpolate_grid(grid, what; teff, logg)
 	teff_gr = grid.info[!, "teff"]
 	v    = grid.info[!, what]
 
-	ip = first(sci.griddata((logg_gr, teff_gr), v, ([logg], [teff])))
+	pyconvert(
+		typeof(logg),
+		first(sci.griddata((logg_gr, teff_gr), v, ([logg], [teff])))
+	)
 end
 
 # ╔═╡ fe36a795-c6d8-403a-81ae-32fbaca80d3a
@@ -459,7 +462,9 @@ function interpolate_adiabat(grid; teff, logg, feh, kwargs...)
 	ts = [first(m.lnT) for m in s]
 	te = [first(m.lnT) for m in e]
 	
-	scatter_int(v, x, y, z) = first(sci.griddata((logg_gr, teff_gr, feh_gr), v, ([x], [y], [z]), method="linear"))
+	scatter_int(v, x, y, z) = pyconvert(typeof(x),
+		first(sci.griddata((logg_gr, teff_gr, feh_gr), v, ([x], [y], [z]), method="linear"))
+	)
 
 	
 	zs_m = scatter_int(zs, logg, teff, feh)
@@ -532,7 +537,9 @@ function interpolate_average(grid; teff, logg, feh, common_size=1000, kwargs...)
 	models = [TSO.upsample(m, common_size) for m in models]
 
 	# now we interpolate all points to one common point, for every point
-	scatter_int(v, x, y, z) = first(sci.griddata((logg_gr, teff_gr, feh_gr), v, ([x], [y], [z]), method="linear"))
+	scatter_int(v, x, y, z) = pyconvert(typeof(x),
+		first(sci.griddata((logg_gr, teff_gr, feh_gr), v, ([x], [y], [z]), method="linear"))
+	)
 	
 	points = zeros(eltype(models[1].z), length(models), 3)
 	z = zeros(eltype(models[1].z), common_size)

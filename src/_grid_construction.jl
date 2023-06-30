@@ -113,7 +113,7 @@ function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
 		end
 		
         # interpolate
-		data_new[f] = MUST.gevaluate!(ip, d)
+		data_new[f] = gevaluate!(ip, d)
 
         # apply exp again if needed
 		data_new[f] .= if all(snap.data[f] .> 0.0) & 

@@ -1,4 +1,4 @@
-#=============== Namelist Types ================#
+#= Namelist Types =#
 
 abstract type AbstractNamelist end
 
@@ -38,6 +38,37 @@ mutable struct SnapshotNamelist <: AbstractNamelist
     idx_nml      ::Dict{String,Any}  
 end
 
+"""
+    M3DNamelist()
+
+Default namelist for M3D computations.
+"""
+mutable struct M3DNamelist <: MUST.AbstractNamelist
+    io_params          ::Dict{String,Any}  
+    timer_params       ::Dict{String,Any}  
+    atmos_params       ::Dict{String,Any}  
+    stagger_params     ::Dict{String,Any}  
+    atom_params        ::Dict{String,Any}  
+    m3d_params         ::Dict{String,Any}  
+    linelist_params    ::Dict{String,Any}  
+    spectrum_params    ::Dict{String,Any}  
+    dispatcher0_params ::Dict{String,Any}  
+    task_list_params   ::Dict{String,Any}   
+end
+
+
+
+
+
+#= Constructors =#
+
+M3DNamelist() = M3DNamelist([Dict{String,Any}() for f in fieldnames(M3DNamelist)]...)
+M3DNamelist(path::String) = begin
+    s = M3DNamelist()
+    read!(s, path)
+    s
+end
+
 StellarNamelist() = StellarNamelist([Dict{String,Any}() for f in fieldnames(StellarNamelist)]...)
 StellarNamelist(path::String) = begin 
     s = StellarNamelist()
@@ -64,7 +95,7 @@ end
 
 
 
-#========== Functions for Namelists ==========#
+#= Utility Functions for Namelists =#
 
 """
 Read a namelist from path.
@@ -165,7 +196,8 @@ function reverse_parse(value)
                 val_str = "'$(value)'"
             end
         end
-
+    elseif typeof(value) <:Bool
+        val_str = ".$(value)."
     else
         val_str = "$(value)"
     end
@@ -255,4 +287,68 @@ read_eos_params(path::String) = begin
         lines = [strip.(split(strip(l), "=")) for l in lines]
         lines = Dict(kv[1]=>kv[2] for kv in lines if length(kv)==2)
     end
+end
+
+
+
+
+
+#= Default namelists =#
+
+_whole_spectrum_namelist!(nml::M3DNamelist; 
+	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
+	timer_params=(:sec_per_report=>120,),
+	atmos_params=(:dims=>12, :atmos_format=>"MUST"),
+    atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
+                :exclude_trace_cont=>true, :exclude_from_line_list=>true),
+	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>5, 
+				:lvlcheck=>2,
+                :n_nu=>200, :maxiter=>0, :decouple_continuum=>true,
+                :long_scheme=>"lobatto", :quad_scheme=>"set_a2"),
+	linelist_params=(:dlam=>20.0,),
+	spectrum_params=(:daa=>0.25, :aa_blue=>1500, :aa_red=>150000)) = begin
+
+	set!(
+		nml; 
+		io_params=io_params, 
+		timer_params=timer_params,
+		atmos_params=atmos_params
+		,m3d_params=m3d_params,
+		linelist_params=linelist_params,
+		spectrum_params=spectrum_params,
+        atom_params=atom_params
+	)
+end
+
+"""
+    whole_spectrum_namelist(model_name; kwargs...)
+
+Create a default namelist for the given model, that
+can be used to compute the whole spectrum emerging this model.
+This is handy when you want to compute the effective temperature.
+"""
+function whole_spectrum_namelist(model_name::String; 
+					model_folder="./input_multi3d/MUST",
+					linelist="./input_multi3d/vald_2490-25540.list",
+					kwargs...)	
+	# Create an empty Namelist
+	nml = M3DNamelist()
+
+	# Fill in the defaults for this, they can be modified
+	_whole_spectrum_namelist!(nml)
+
+	# path of the model
+	model_path = joinpath(model_folder, model_name)
+
+	# additionally apply the model specific fields
+	set!(
+		nml; 
+		linelist_params=(:linelist_file=>linelist,),
+		atmos_params=(:atmos_file=>model_path,)
+	)
+
+    # apply custom input parameters
+    set!(nml; kwargs...)
+
+	nml
 end

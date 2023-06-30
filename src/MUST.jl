@@ -19,6 +19,7 @@ using TimerOutputs
 using NetCDF
 import Base.filter, Base.filter!
 import Base.getindex
+import Base.getproperty
 import Base.length
 import Base.keys
 import Base.read!, Base.write
@@ -74,6 +75,7 @@ export plane_statistic
 
 
 #= Julia code files =#
+include("_constants.jl")
 include("_argparse.jl")
 include("_grids.jl")
 include("_grid_interpolation.jl")
@@ -90,6 +92,7 @@ include("_mustgrid.jl")
 include("_stagger_grid.jl")
 include("_initial_conditions.jl")
 include("_running.jl")
+include("_multi.jl")
 include("_atmos2legacy.jl")
 include("_atmos2multi.jl")
 

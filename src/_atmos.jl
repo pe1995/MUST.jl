@@ -266,9 +266,9 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
     # Interpolate the Space onto the given grid
     for quantity in Symbol.(keys(s.data))
         quantity in [:x,:y,:z,:i_patch] ? continue : nothing
-        results[quantity][1:length(x),1:length(y),1:length(z)] = scipy_interpolate.griddata(Tuple(mask_data), 
+        results[quantity][1:length(x),1:length(y),1:length(z)] = pyconvert(Array{eltype(x_grid)}, scipy_interpolate.griddata(Tuple(mask_data), 
                                                                                             s_masked.data[quantity], 
-                                                                                            Tuple(grid_data))
+                                                                                            Tuple(grid_data)))
     end
 
     Box(x_grid[2:end-1,2:end-1,2:end-1],

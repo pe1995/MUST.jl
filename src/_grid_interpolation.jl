@@ -207,7 +207,7 @@ Effectively interpolates these values to the new grid that was
 given to the interpolator `ip`.
 """
 gevaluate!(args...; kwargs...) = interpolate_grid!(args...; kwargs...)
-gevaluate(grid_in, grid_out, values)  = begin
+gevaluate(grid_in, grid_out, values, args...; kwargs...)  = begin
     ip = ginterpolate(grid_in, grid_out)
-    evaluate!(ip, args...; kwargs...)
+    gevaluate!(ip, values, args...; kwargs...)
 end

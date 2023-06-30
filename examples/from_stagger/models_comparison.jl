@@ -32,24 +32,23 @@ md"All the models from the Stagger grid come with an average model that we can l
 
 # ╔═╡ 486f5cac-8879-4084-9faf-6dc4ae115e43
 names = [
-	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/sun_gold_lres"),
-	MUST.@in_dispatch("data/sun_gold_lres_rt")
+	MUST.@in_dispatch("data/sun_magg")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
-	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.1")
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
-labels = ["HD 280x280x140 - RT 350x350x280", "HD 280x280x140 - RT 280x280x280"]
+labels = [
+	"HD 280x280x140 - RT 280x280x280"
+]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
 colors = length(names) == 1 ? [:red] : palette(:rainbow, length(names))

@@ -9,6 +9,72 @@ function srun_dispatch(nml_name, threads::Int, memMB::Int, timeout::String; wait
                           stderr=joinpath(ddir, "$(nml_name).err")), wait=wait)
 end
 
+
+"""
+	srun_m3dis(nml_name; threads=70, memMB=200000, timeout="05:00:00", wait=false)
+
+Submit a job corresponding to the given namelist and slurm setup. Optinally wait for the job to finish. If this function is executed within a slurm environment, it will create a job step within that environment according to the given parameters. Note that in this case wait should be set to false, otherwise the current thread will be halted until the job step exits. If this function is executed within a e.g. notebook, you should set wait=true, so that it waits until it receivs a finishing signinal from the slurm process. 
+The slurm job will be run inside the loaded Multi environment, so make sure you have a.) created the namelist, and b) loaded multi correctly using the `@import_m3dis` macro.
+"""
+function srun_m3dis(nml_name; 
+					threads=70, memMB=200000, timeout="05:00:00", wait=false)
+	ddir = @in_m3dis("")
+	
+	exec_name = "$(nml_name).export.sh"
+	exec_path = @in_m3dis("$(nml_name).export.sh")
+	
+	# Do an export script before
+	open(exec_path, "w") do f
+		write(f, "#!/bin/bash\n")
+		write(f, "source ~/.bashrc\n")
+		write(f, "export KMP_NUM_THREADS=$(threads)\n")
+		write(f, "export OMP_NUM_THREADS=$(threads)\n")
+		write(f, "./dispatch.x $(nml_name)")
+	end
+	
+	run(`chmod +x $(exec_path)`)
+    command = `srun -N 1 -n 1 -J m3dis -c $(threads) --mem=$(memMB)mb --time=$(timeout) --exclusive -D $(ddir) ./$(exec_name)`
+    
+    run(pipeline(command, stdout=joinpath(ddir, "$(nml_name).log"), 
+                          stderr=joinpath(ddir, "$(nml_name).err")), wait=wait)
+end
+
+"""
+	run_m3dis(nml_name; threads=70, wait=true)
+
+Similar `to srun_m3dis()`, but running in the shell directly.
+"""
+function run_m3dis(nml_name; threads=70, wait=true, ddir=@in_m3dis(""))
+
+    exec_name = "$(nml_name).export.sh"
+    exec_path = @in_m3dis("$(nml_name).export.sh")
+
+    # Do an export script before
+    open(exec_path, "w") do f
+    write(f, "#!/bin/bash\n")
+    write(f, "source ~/.bashrc\n")
+    write(f, "export KMP_NUM_THREADS=$(threads)\n")
+    write(f, "export OMP_NUM_THREADS=$(threads)\n")
+    write(f, "./dispatch.x $(nml_name)")
+    end
+
+    run(`chmod +x $(exec_path)`)
+    currdir = pwd()
+    cd(ddir)
+    command = `./$(exec_name)`
+    r = run(pipeline(command, stdout=joinpath(ddir, "$(nml_name).log"), 
+            stderr=joinpath(ddir, "$(nml_name).err")), wait=wait)
+    cd(currdir)
+
+    r
+end
+
+
+
+
+
+#= Grid related running =#
+
 """
 Run a MUSTGrid from start to end.
     TODO: This can dispatch on RestartMUSTGrid to start the tasks 

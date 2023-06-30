@@ -4,6 +4,10 @@ experiment_location = "experiments/stellar_atmospheres/"
 multi_location   = nothing
 multi_experiment_location = ""
 
+dispatch = PythonCall.pynew()
+m3dis = PythonCall.pynew()
+
+
 """
 Load the dispatch module. Either the global location is used or 
 a specific path is given to the function. If submodules are listed, those are
@@ -56,7 +60,8 @@ function _import_dispatch(location::Union{Nothing,String}=nothing, submodules=[]
 	
 	
 	if length(submodules) == 0
-		return pyimport("dispatch")
+		PythonCall.pycopy!(dispatch, pyimport("dispatch"))
+		return dispatch
 	else
 		return [pyimport("$(String(m))") for m in submodules]
 	end
@@ -164,7 +169,8 @@ function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
 	end
 
 	if length(submodules) == 0
-		return pyimport("m3dis")
+		PythonCall.pycopy!(m3dis, pyimport("m3dis"))
+		return m3dis
 	else
 		return [pyimport("$(String(m))") for m in submodules]
 	end

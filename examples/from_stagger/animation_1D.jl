@@ -133,7 +133,7 @@ end
 names_res = "DIS_MARCS_E_t5777g44m00_v0.1"
 
 # ╔═╡ d97ab00a-ba3f-4457-a97b-2ae22a90f21f
-out_folder_res = MUST.@in_dispatch "data/sun_gold_lres"
+out_folder_res = MUST.@in_dispatch "data/sun_magg"
 
 # ╔═╡ 9a6c9eb2-f0c0-41aa-851d-a2038896bc97
 in_folder_res = MUST.@in_dispatch "input_data/"
