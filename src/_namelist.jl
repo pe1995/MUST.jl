@@ -352,3 +352,81 @@ function whole_spectrum_namelist(model_name::String;
 
 	nml
 end
+
+
+
+_spectrum_namelist_lte!(nml::M3DNamelist; 
+	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
+	timer_params=(:sec_per_report=>120,),
+	atmos_params=(:dims=>12, :atmos_format=>"MUST"),
+    atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
+                :exclude_trace_cont=>true, :exclude_from_line_list=>true),
+	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>5, 
+				:lvlcheck=>2,
+                :n_nu=>200, :maxiter=>0, :decouple_continuum=>true,
+                :long_scheme=>"lobatto", :quad_scheme=>"set_a2")) = begin
+
+	set!(
+		nml; 
+		io_params=io_params, 
+		timer_params=timer_params,
+		atmos_params=atmos_params,
+        m3d_params=m3d_params,
+        atom_params=atom_params
+	)
+end
+
+_spectrum_namelist_nlte!(nml::M3DNamelist; 
+	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
+	timer_params=(:sec_per_report=>120,),
+	atmos_params=(:dims=>12, :atmos_format=>"MUST"),
+    atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
+                :exclude_trace_cont=>true, :exclude_from_line_list=>true,
+                :convlim=>1e-2),
+	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>5, 
+				:lvlcheck=>2,
+                :n_nu=>200, :maxiter=>100, :decouple_continuum=>true,
+                :long_scheme=>"lobatto", :quad_scheme=>"set_a2")) = begin
+
+	set!(
+		nml; 
+		io_params=io_params, 
+		timer_params=timer_params,
+		atmos_params=atmos_params,
+        m3d_params=m3d_params,
+        atom_params=atom_params
+	)
+end
+
+"""
+    whole_spectrum_namelist(model_name; kwargs...)
+
+Create a default namelist for the given model, that
+can be used to compute the whole spectrum emerging this model.
+This is handy when you want to compute the effective temperature.
+"""
+function spectrum_namelist(model_name::String; NLTE=false,
+					model_folder="./input_multi3d/MUST",
+					linelist="./input_multi3d/vald_2490-25540.list",
+					kwargs...)	
+	# Create an empty Namelist
+	nml = M3DNamelist()
+
+	# Fill in the defaults for this, they can be modified
+    NLTE ? _spectrum_namelist_nlte!(nml) : _spectrum_namelist_lte!(nml)
+
+	# path of the model
+	model_path = joinpath(model_folder, model_name)
+
+	# additionally apply the model specific fields
+	set!(
+		nml; 
+		linelist_params=(:linelist_file=>linelist,),
+		atmos_params=(:atmos_file=>model_path,)
+	)
+
+    # apply custom input parameters
+    set!(nml; kwargs...)
+
+	nml
+end

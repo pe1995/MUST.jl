@@ -1452,6 +1452,8 @@ function pick_snapshot(snapshots, i; skip_last_if_missing=true)
         else 
             last(list_snapshots(snapshots))
         end
+    elseif i <0
+        list_snapshots(snapshots)[end+i]
 	else 
 		i
 	end

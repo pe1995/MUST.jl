@@ -55,6 +55,32 @@ function whole_spectrum(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs
     M3DISRun(joinpath(nml.io_params["datadir"], model_name))
 end
 
+"""
+	spectrum(model_name; NLTE=false, slurm=true, [namelist_kwargs, m3dis_kwargs])
+
+Submit a job to the M3DIS code, which will compute the outgoing flux across in LTE or NLTE.
+IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis macro.
+"""
+function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict())
+    isnothing(multi_location) && error("No Multi module has been loaded.")
+
+    # Create the default namelist (with adjustments)
+    nml = spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
+    write(nml, @in_m3dis("$(model_name).nml"))
+
+    # run multi (with waiting)
+    @info "Running M3D with NLTE=$(NLTE)."
+    if slurm
+        srun_m3dis("$(model_name).nml"; wait=true, m3dis_kwargs...)
+    else
+        run_m3dis("$(model_name).nml"; wait=true, m3dis_kwargs...)
+    end
+    @info "M3D completed."
+
+    # read the output
+    M3DISRun(joinpath(nml.io_params["datadir"], model_name))
+end
+
 
 
 
@@ -88,13 +114,21 @@ Maximum of Planck function (cgs).
 wien(T) = 2898e-4 /aa_to_cm / T
 
 
-#"""
-#    Teff(run)
-#Effective temperature from the Flux.
-#"""
-#Teff(run) = begin
-#    ν = reverse(CLight ./ (run.lam*aa_to_cm))
-#    F = reverse(run.flux)
-#
-#    (integrate(ν, F) /σ_S *π)^(1/4)
-#end
+
+Teff(λ, F) = begin
+    ν = reverse(CLight ./ (λ*aa_to_cm))
+    Fl = reverse(F)
+
+    (integrate(ν, Fl) /σ_S)^(1/4)
+end
+
+Teff(run) = Teff(run.lam, run.flux)
+
+"""
+    Teff(run)
+Effective temperature from the M3D run.
+
+    Teff(λ, F)
+Effective temperature from the flux itself.
+"""
+Teff

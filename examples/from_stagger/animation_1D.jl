@@ -133,13 +133,20 @@ end
 names_res = "DIS_MARCS_E_t5777g44m00_v0.1"
 
 # ╔═╡ d97ab00a-ba3f-4457-a97b-2ae22a90f21f
-out_folder_res = MUST.@in_dispatch "data/sun_magg"
+out_folder_res = MUST.@in_dispatch "data/pretty_good_sun_new"
 
 # ╔═╡ 9a6c9eb2-f0c0-41aa-851d-a2038896bc97
 in_folder_res = MUST.@in_dispatch "input_data/"
 
 # ╔═╡ 35de1998-70fc-4685-ad37-91c19a79c714
-eos_folder_res = MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
+eos_folder_res = MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.6")
+
+# ╔═╡ d4dbaf2e-4e51-45d0-8373-596a28bf2d6b
+name = "good_model_new"
+#name = "HD90_RT360_CUBIC"
+#name = "HD140_RT400"
+#name = "HD90_RT180"
+#name = "HD90_RT90"
 
 # ╔═╡ 3d439950-7377-4d01-94bf-ee37dff19579
 snapshot, snapshot_τ = pick_snapshot(out_folder_res, :recent)
@@ -176,6 +183,16 @@ resolution(snap) = @sprintf "%.1f km" first(diff(MUST.axis(snap, :z) ./1e5))
 
 # ╔═╡ 3f3da68e-37ae-4044-a215-d6ab44789d35
 labels_res = "M3DIS - $(resolution(snapshot))"
+
+# ╔═╡ 8d58e4c3-deaf-47e5-b1f6-d2f947486cd9
+begin
+	common_tau = range(-3.7, 1.5, length=200) |> collect
+	ip(x, y) = begin
+		m = sortperm(x)
+		MUST.linear_interpolation(x[m], y[m], 
+			extrapolation_bc=MUST.Flat()).(common_tau)
+	end
+end
 
 # ╔═╡ b3aa6e35-24dc-4370-9b42-7992bb742277
 md"## Animation"
@@ -224,11 +241,100 @@ begin
 			basic_plot!()
 		end
 		
-		savefig("profile_$(i).png")
-		append!(f, ["profile_$(i).png"])
+		savefig("average_taut_$(i).png")
+		append!(f, ["average_taut_$(i).png"])
 	end
+
+	savefig("average_taut_$(name).png")
 	
-	gifs.gifs_from_png(f, "average_taut_vlres.gif", duration=2.0)
+	gifs.gifs_from_png(f, "average_taut_$(name).gif", duration=2.0)
+end
+
+# ╔═╡ d54eb30f-9cbe-487a-b8aa-a3f9984e4a8b
+begin
+	frel = []
+
+	plot(legendforegroundcolor=nothing, legendbackgroundcolor=nothing)
+	xs, ys = profile(mean, stagger_τ, :log10τ_ross, :T)
+
+	for i in isnaps_done			
+		s, st = pick_snapshot(snaps, i)
+
+		isnothing(st) && continue 
+
+		xi, yi = profile(mean, st, :log10τ_ross, :T)
+		if i == last(isnaps_done)
+			plot!(common_tau, ip(xi, yi) .- ip(xs, ys), 
+					lw=2., color=:red, label="M3DIS -Stagger (t=$(s.parameter.time))")
+		elseif i == first(isnaps_done)
+			plot!(common_tau, ip(xi, yi) .- ip(xs, ys),  
+					lw=2., color=:black, alpha=0.2, label="M3DIS -Stagger: time evolution")
+		else
+			plot!(common_tau, ip(xi, yi) .- ip(xs, ys), 
+					lw=2., color=:black, alpha=0.2, label=nothing)
+		end
+
+		if i == first(isnaps_done)			
+			xlabel!("log τ")
+			ylabel!("ΔT [K]")
+	
+			plot!(ylim=(-600,600))
+			hline!([0.0], color=:black, ls=:dot, alpha=0.5, label=nothing)
+			basic_plot!()
+		end
+		
+		savefig("average_taudeltat_$(i).png")
+		append!(frel, ["average_taudeltat_$(i).png"])
+	end
+
+	savefig("average_taudeltat_$(name).png")
+	
+	gifs.gifs_from_png(frel, "average_taudeltat_$(name).gif", duration=2.0)
+end
+
+# ╔═╡ 9e571b95-2ee3-4473-b7bb-66731f1fca0b
+begin
+	frel2 = []
+
+	plot(legendforegroundcolor=nothing, legendbackgroundcolor=nothing)
+	xs2, ys2 = profile(mean, stagger_τ, :log10τ_ross, :d)
+
+	ipr(x, y) = 10.0 .^(ip(x, y))
+
+	for i in isnaps_done			
+		s, st = pick_snapshot(snaps, i)
+
+		isnothing(st) && continue 
+
+		xi, yi = profile(mean, st, :log10τ_ross, :d)
+		if i == last(isnaps_done)
+			plot!(common_tau, (ipr(xi, log10.(yi)) .- ipr(xs2, log10.(ys2))) ./ ipr(xs2, log10.(ys2))*100, 
+					lw=2., color=:red, label="M3DIS - Stagger (t=$(s.parameter.time))")
+		elseif i == first(isnaps_done)
+			plot!(common_tau, (ipr(xi, log10.(yi)) .- ipr(xs2, log10.(ys2))) ./ ipr(xs2, log10.(ys2))*100,  
+					lw=2., color=:black, alpha=0.2, label="M3DIS - Stagger: time evolution")
+		else
+			plot!(common_tau, (ipr(xi, log10.(yi)) .- ipr(xs2, log10.(ys2))) ./ ipr(xs2, log10.(ys2))*100, 
+					lw=2., color=:black, alpha=0.2, label=nothing)
+		end
+
+		if i == first(isnaps_done)			
+			xlabel!("log τ")
+			ylabel!("Δlog ρ [%]")
+	
+			plot!(ylim=(-20,20))
+			hline!([0.0], color=:black, ls=:dot, alpha=0.5, label=nothing)
+			basic_plot!()
+		end
+		
+		savefig("average_taudeltarho_$(i).png")
+		append!(frel2, ["average_taudeltarho_$(i).png"])
+	end
+
+	savefig( "average_taudeltarho_$(name).png")
+
+	
+	gifs.gifs_from_png(frel2, "average_taudeltarho_$(name).gif", duration=2.0)
 end
 
 # ╔═╡ 8e362634-766e-4688-9995-054ecd5764f7
@@ -254,11 +360,13 @@ begin
 		plot!(ylim=(0,3.5e5))
 		basic_plot!()
 		
-		savefig("profile_$(i).png")
-		append!(f2, ["profile_$(i).png"])
+		savefig("average_tauuz_$(i).png")
+		append!(f2, ["average_tauuz_$(i).png"])
 	end
+
+		savefig("average_tauuz_$(name).png")
 	
-	gifs.gifs_from_png(f, "average_tauuz_vlres.gif", duration=2.0)
+	gifs.gifs_from_png(f2, "average_tauuz_$(name).gif", duration=2.0)
 end
 
 # ╔═╡ c9369187-a6c1-4b86-83f3-371f7d46e0f8
@@ -288,11 +396,13 @@ begin
 
 		basic_plot!()
 		
-		savefig("profile_$(i).png")
-		append!(f3, ["profile_$(i).png"])
+		savefig("average_trho_$(i).png")
+		append!(f3, ["average_trho_$(i).png"])
 	end
+
+	savefig("average_trho_$(name).png")
 	
-	gifs.gifs_from_png(f, "average_trho_vlres.gif", duration=2.0)
+	gifs.gifs_from_png(f3, "average_trho_$(name).gif", duration=2.0)
 end
 
 # ╔═╡ Cell order:
@@ -314,6 +424,7 @@ end
 # ╠═d97ab00a-ba3f-4457-a97b-2ae22a90f21f
 # ╠═9a6c9eb2-f0c0-41aa-851d-a2038896bc97
 # ╠═35de1998-70fc-4685-ad37-91c19a79c714
+# ╠═d4dbaf2e-4e51-45d0-8373-596a28bf2d6b
 # ╠═3d439950-7377-4d01-94bf-ee37dff19579
 # ╠═d9f80869-a8ae-4ace-b92d-61a54419e717
 # ╟─870e623b-9c32-43d3-b3af-f8bb75aa8caf
@@ -322,7 +433,10 @@ end
 # ╠═5fd204d9-ccd3-4683-aa0c-03dbf958e435
 # ╟─9e5d5453-9a6e-457d-a50f-c5558b10562d
 # ╠═3f3da68e-37ae-4044-a215-d6ab44789d35
+# ╠═8d58e4c3-deaf-47e5-b1f6-d2f947486cd9
 # ╟─b3aa6e35-24dc-4370-9b42-7992bb742277
 # ╠═f37aca05-14c5-4803-ac6f-526bcc3453c0
+# ╠═d54eb30f-9cbe-487a-b8aa-a3f9984e4a8b
+# ╠═9e571b95-2ee3-4473-b7bb-66731f1fca0b
 # ╠═8e362634-766e-4688-9995-054ecd5764f7
 # ╠═c9369187-a6c1-4b86-83f3-371f7d46e0f8

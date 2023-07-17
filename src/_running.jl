@@ -55,7 +55,7 @@ function run_m3dis(nml_name; threads=70, wait=true, ddir=@in_m3dis(""))
     write(f, "source ~/.bashrc\n")
     write(f, "export KMP_NUM_THREADS=$(threads)\n")
     write(f, "export OMP_NUM_THREADS=$(threads)\n")
-    write(f, "./dispatch.x $(nml_name)")
+    write(f, "mpirun ./dispatch.x $(nml_name)")
     end
 
     run(`chmod +x $(exec_path)`)

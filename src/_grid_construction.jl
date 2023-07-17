@@ -13,6 +13,12 @@ Grid(b::Box) = begin
 
     x, y, z = axis(b, :x)[:], axis(b, :y)[:], axis(b, :z)[:]
 
+    # Convert the axis to a higher precision
+    x = Base.convert.(Float64, x)
+    y = Base.convert.(Float64, y)
+    z = Base.convert.(Float64, z)
+
+
     axes = [RegularBoxAxis(x), RegularBoxAxis(y), RegularBoxAxis(z)]
     RegularBoxGrid(axes)
 end
@@ -30,6 +36,9 @@ Grid(x, y, z) = RegularBoxGrid(
 
 check_uniform(b::Box) = begin
     x, y, z = axis(b, :x), axis(b, :y), axis(b, :z)
+    x = Base.convert.(Float64, x)
+    y = Base.convert.(Float64, y)
+    z = Base.convert.(Float64, z)
   
     for k in axes(b.z, 3)
         for j in axes(b.y, 2)
@@ -94,10 +103,10 @@ function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
 	grid = Grid(b)
 
 	# build the new axis
-	x_new = scale_axis(axis(snap, :x), N=nx)
-	y_new = scale_axis(axis(snap, :y), N=ny)
-	z_new = scale_axis(axis(snap, :z), N=nz)
-	target_grid = MUST.Grid(x_new, y_new, z_new)
+	x_new = scale_axis(axis(b, :x), N=nx)
+	y_new = scale_axis(axis(b, :y), N=ny)
+	z_new = scale_axis(axis(b, :z), N=nz)
+	target_grid = Grid(x_new, y_new, z_new)
 
 	# interpolate 
 	ip = MUST.ginterpolate(grid, target_grid)
@@ -105,19 +114,20 @@ function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
 	# compute the interpolate quantities
 	data_new = Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}()
 
-	for f in keys(snap.data)
-		d = if all(snap.data[f] .> 0.0) & (eltype(snap.data[f]) <: AbstractFloat)
-			log.(snap.data[f])
+    TN = eltype(b.x)
+	for f in keys(b.data)
+		d = if all(b.data[f] .> 0.0) & (eltype(b.data[f]) <: AbstractFloat)
+			log.(b.data[f])
 		else
-			snap.data[f]
+			b.data[f]
 		end
 		
         # interpolate
-		data_new[f] = gevaluate!(ip, d)
+		data_new[f] = Base.convert.(TN, gevaluate!(ip, d))
 
         # apply exp again if needed
-		data_new[f] .= if all(snap.data[f] .> 0.0) & 
-							(eltype(snap.data[f]) <: AbstractFloat)
+		data_new[f] .= if all(b.data[f] .> 0.0) & 
+							(eltype(b.data[f]) <: AbstractFloat)
 			exp.(data_new[f])
 		else
 			data_new[f]
@@ -125,5 +135,9 @@ function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
 	end
 
 	xx, yy, zz = meshgrid(x_new, y_new, z_new)
-	Box(xx, yy, zz, data_new, deepcopy(snap.parameter))
+    xx = Base.convert.(TN, xx)
+    yy = Base.convert.(TN, yy)
+    zz = Base.convert.(TN, zz)
+
+	Box(xx, yy, zz, data_new, deepcopy(b.parameter))
 end

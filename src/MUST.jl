@@ -12,11 +12,11 @@ using Random
 using Interpolations
 using Glob
 using Distributed
-#using NumericalIntegration
 using ArgParse
 using DelimitedFiles
 using TimerOutputs
 using NetCDF
+using Integrals
 import Base.filter, Base.filter!
 import Base.getindex
 import Base.getproperty
@@ -68,6 +68,7 @@ end
 #= MUST interface =#
 export import_dispatch, in_dispatch
 export Space, spacebox, Box, add!
+export multiBox
 export pick_snapshot
 export ginterpolate, gevaluate, gevaluate!, gresample
 export plane_statistic 

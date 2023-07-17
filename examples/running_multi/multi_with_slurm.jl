@@ -10,7 +10,6 @@ begin
 	using Pkg; Pkg.activate(".");
 	import MUST
 	using Plots
-	using Integrals
 end
 
 # ╔═╡ bb45e6a0-2b8b-4731-bd53-190c44a5ea23
@@ -73,37 +72,8 @@ end
 # ╔═╡ 825ec223-06c2-431e-abad-037d4792fef6
 md"And then integrate it over the entire spectrum"
 
-# ╔═╡ 53b8c5e2-705c-4925-bc72-9ae04f1043d2
-function integrate(x, y; method=QuadGKJL())
-	mask = sortperm(x)
-	xs, ys = x[mask], y[mask]
-
-	ip = MUST.Interpolations.linear_interpolation(xs, ys)
-	func(xi, p) = ip(xi)
-
-	prob = IntegralProblem(func, first(xs), last(xs))
-	solve(prob, method).u
-end
-
-# ╔═╡ 3e3ba652-b68a-40c9-90b9-6e36d6442be7
-begin
-	Teff(run) = begin
-	    ν = reverse(MUST.CLight ./ (run.lam*MUST.aa_to_cm))
-	    F = reverse(run.flux)
-	
-	    (integrate(ν, F) /MUST.σ_S)^(1/4)
-	end
-
-	Teff(λ, F) = begin
-    	ν = reverse(MUST.CLight ./ (λ*MUST.aa_to_cm))
-	    Fl = reverse(F)
-	
-	    (integrate(ν, Fl) /MUST.σ_S)^(1/4)
-	end
-end
-
 # ╔═╡ c970adc5-2b61-45c4-abf2-28764eb567cb
-@info "The effective temperature is: $(Teff(m3load))"
+@info "The effective temperature is: $(MUST.Teff(m3load))"
 
 # ╔═╡ 32c8243d-d310-4b0a-b9b7-80b39e181dc7
 begin
@@ -157,6 +127,28 @@ end
 # ╔═╡ 63fed658-da7c-4fd2-9994-ee044f3b0a0e
 #lnew, Fnew = replacewindows(m3load)
 
+# ╔═╡ b0873543-404b-4665-a9ef-ab56f689fe64
+md"## Planck function"
+
+# ╔═╡ 9b59b9af-2897-4b2f-8627-98e6cc53ea01
+Bλ = MUST.B(l, 5477.0)
+
+# ╔═╡ 04f8df8a-d760-47cd-af07-decc992d7c63
+begin
+	plot(framestyle=:box, grid=false)
+
+	colors=palette(:hot, 10)
+
+	plot!(log10.(l), f ./ maximum(f), color=:black, alpha=0.5)
+	for (i,T) in enumerate(range(5000, 6000, length=10))
+		Bi = MUST.B(l, T)
+		plot!(log10.(l), Bi ./ maximum(Bi), label="$T", color=colors[i])
+		vline!([log10(MUST.wien(T))], label=nothing, color=colors[i])
+	end
+
+	plot!()
+end
+
 # ╔═╡ Cell order:
 # ╟─bb45e6a0-2b8b-4731-bd53-190c44a5ea23
 # ╠═49a4e636-166c-11ee-03ed-c129e8cdc7fc
@@ -173,12 +165,13 @@ end
 # ╠═cbd69346-5ab9-4ce1-8c5e-da69e08f9d87
 # ╠═d49fd89a-79cd-4901-b4d8-e738c778e945
 # ╠═6a39476c-0124-4290-82f1-ec51831c0cb7
-# ╠═73144c07-6580-476e-b9a6-30fbd829ed58
+# ╟─73144c07-6580-476e-b9a6-30fbd829ed58
 # ╟─825ec223-06c2-431e-abad-037d4792fef6
-# ╠═53b8c5e2-705c-4925-bc72-9ae04f1043d2
-# ╠═3e3ba652-b68a-40c9-90b9-6e36d6442be7
 # ╟─c970adc5-2b61-45c4-abf2-28764eb567cb
 # ╠═32c8243d-d310-4b0a-b9b7-80b39e181dc7
 # ╟─24ae360b-64b7-486d-8533-2ab0160ff4d3
 # ╟─95286c76-a5b7-486b-b789-89df7cbc94d1
 # ╠═63fed658-da7c-4fd2-9994-ee044f3b0a0e
+# ╟─b0873543-404b-4665-a9ef-ab56f689fe64
+# ╠═9b59b9af-2897-4b2f-8627-98e6cc53ea01
+# ╠═04f8df8a-d760-47cd-af07-decc992d7c63

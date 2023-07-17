@@ -87,3 +87,23 @@ function meshgrid(ax...)
 end
 
 uniqueidx(v) = unique(i -> v[i], eachindex(v))
+
+
+
+#= Integration functions =#
+
+"""
+    integrate(x, y; [method])
+
+Integrate the values in the y array defined on the grid of the x array.
+"""
+function integrate(x, y; method=QuadGKJL())
+	mask = sortperm(x)
+	xs, ys = x[mask], y[mask]
+
+	ip = Interpolations.linear_interpolation(xs, ys)
+	func(xi, p) = ip(xi)
+
+	prob = IntegralProblem(func, first(xs), last(xs))
+	solve(prob, method).u
+end
