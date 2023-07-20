@@ -133,13 +133,13 @@ end
 names_res = "DIS_MARCS_E_t5777g44m00_v0.1"
 
 # ╔═╡ d97ab00a-ba3f-4457-a97b-2ae22a90f21f
-out_folder_res = MUST.@in_dispatch "data/pretty_good_sun_new"
+out_folder_res = MUST.@in_dispatch "data/pretty_good_sun_new_magg2"
 
 # ╔═╡ 9a6c9eb2-f0c0-41aa-851d-a2038896bc97
 in_folder_res = MUST.@in_dispatch "input_data/"
 
 # ╔═╡ 35de1998-70fc-4685-ad37-91c19a79c714
-eos_folder_res = MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.6")
+eos_folder_res = MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3")
 
 # ╔═╡ d4dbaf2e-4e51-45d0-8373-596a28bf2d6b
 name = "good_model_new"

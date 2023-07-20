@@ -67,7 +67,7 @@ end
 
 #= MUST interface =#
 export import_dispatch, in_dispatch
-export Space, spacebox, Box, add!
+export Space, spacebox, Box, add!, profile
 export multiBox
 export pick_snapshot
 export ginterpolate, gevaluate, gevaluate!, gresample

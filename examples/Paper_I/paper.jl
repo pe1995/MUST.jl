@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.25
+# v0.19.26
 
 using Markdown
 using InteractiveUtils
@@ -376,33 +376,6 @@ function get_density(xin, yin)
 	dd ./= maximum(dd)
 	xx, yy, dd
 end
-
-# ╔═╡ 2f75525a-3049-424e-9bf7-842d640a77ee
-# ╠═╡ disabled = true
-#=╠═╡
-xx_T, yy_T, dd_T = get_density(
-	log10.(snapshots_res[i_best][:τ_ross]),
-	snapshots_res[i_best][:T]
-)
-  ╠═╡ =#
-
-# ╔═╡ 83d82b5f-e132-4625-817e-b44e0cb6d3b8
-# ╠═╡ disabled = true
-#=╠═╡
-xx_d, yy_d, dd_d = get_density(
-	log10.(snapshots_res[i_best][:τ_ross]),
-	log10.(snapshots_res[i_best][:d])
-)
-  ╠═╡ =#
-
-# ╔═╡ e5d2bb57-c85a-4f41-b868-67c1c80af16e
-# ╠═╡ disabled = true
-#=╠═╡
-xx_u, yy_u, dd_u = get_density(
-	log10.(snapshots_res[i_best][:τ_ross]),
-	abs.(snapshots_res[i_best][:uz] ./1e5)
-)
-  ╠═╡ =#
 
 # ╔═╡ 799c9bb0-7f9d-4b3c-9c56-94789108f194
 begin

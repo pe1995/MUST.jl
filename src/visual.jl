@@ -1,14 +1,18 @@
-using PyPlot
 using Glob
 using MUST
-using PyCall
+using PythonPlot
+using Printf
+using PythonCall
+
+plt = matplotlib.pyplot
+
 #using Plots
 
 const visual = true
 const cbar_fraction = 0.046
 const cbar_pad = 0.04
 
-
+gifs = MUST.@get_help_py gifs
 
 #function copy_ticks(sp::Plots.Subplot; minorticks=10)
 #    ptx = twinx(sp)
@@ -68,7 +72,7 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
 
     # Define dimensions
     Nx, Ny, Nz = size(m_3d)
-    X, Y, Z    = mesh(m_3d)
+    X, Y, Z    = MUST.mesh(m_3d)
 
     xmin, xmax = minimum(X), maximum(X)
     ymin, ymax = minimum(Y), maximum(Y)
@@ -236,7 +240,7 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
 
     norm = matplotlib.colors.Normalize(vmin=vmin_3d, vmax=vmax_3d)
     sm   = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
-    sm.set_array([]) 
+    #sm.set_array([]) 
 
     # Colorbar
     plt.colorbar(sm, ax=ax_3d, label="temperature [K]")
@@ -480,7 +484,7 @@ function gif_by_plane(stat::Function, folder::Vector{String}, labels::Vector{Str
         append!(filenames, ["$(path_ext)_sn$(i).png"])
     end
 
-    gif_from_pngs(filenames, "$(path_ext).gif", duration=duration)
+    gifs.gif_from_png(filenames, "$(path_ext).gif", duration=duration)
 end
 
 function gif_by_column(f, boxes, variable; 
@@ -510,7 +514,7 @@ function gif_by_column(f, boxes, variable;
         append!(filenames, ["$(path_ext)_sn$(i).png"])
     end
 
-    gif_from_pngs(filenames, "$(path_ext).gif", duration=duration)
+    gifs.gif_from_png(filenames, "$(path_ext).gif", duration=duration)
 end
 
 function gif_by_yindex(yindex, boxes, variable; 
@@ -548,7 +552,7 @@ function gif_by_yindex(yindex, boxes, variable;
         append!(filenames, ["$(path_ext)_sn$(i).png"])
     end
 
-    gif_from_pngs(filenames, "$(path_ext).gif", duration=duration)
+    gifs.gif_from_png(filenames, "$(path_ext).gif", duration=duration)
 end
 
 function gif_by_value(stat::Function, folder::String, label::String; 
@@ -597,7 +601,7 @@ function gif_by_value(stat::Function, folder::String, label::String;
         append!(filenames, ["$(path_ext)_sn$(i).png"])
     end
 
-    gif_from_pngs(filenames, "$(path_ext).gif", duration=duration)
+    gifs.gif_from_png(filenames, "$(path_ext).gif", duration=duration)
 end
 
 """
@@ -607,57 +611,5 @@ list_of_snapshots(folder::String, name::String) = begin
     f    = glob("$(name)*.hdf5", folder)
     sort([parse(Int64, fi[last(findlast("sn", fi))+1:end-5]) for fi in f])
 end
-
-gif_from_pngs(list_of_filenames, save_path; duration=0.2) = py"""
-import imageio
-import glob
-import os
-import sys
-
-images = []
-
-for filename in $(list_of_filenames):
-    if os.path.exists(filename):
-        images.append(imageio.imread(filename))
-
-imageio.mimsave($(save_path), images, duration=$(duration))
-
-for f in $(list_of_filenames):
-    if os.path.exists(f):
-        os.remove(f)
-"""
-
-gif_from_pngs_transparent(list_of_filenames, save_path; duration=0.2) = py"""
-from PIL import Image
-import glob
-import os
-import sys
-
-images = []
-
-for filename in $(list_of_filenames):
-    if os.path.exists(filename):
-        images.append(Image.open(filename))
-
-images = [i.convert("RGBA") for i in images]
-
-for img in images:
-    pixdata = img.load()
-    width, height = img.size
-    for y in range(height):
-        for x in range(width):
-            if pixdata[x, y] == (255, 255, 255, 255):
-                pixdata[x, y] = (255, 255, 255, 0)
-    #images[i] = Image.fromarray(pixdata)
-
-images[0].save($(save_path), format='GIF',
-               append_images=images[1:],
-               save_all=True,
-               duration=$(duration*1000), loop=0, transparency=0)
-
-for f in $(list_of_filenames):
-    if os.path.exists(f):
-        os.remove(f)
-"""
 
 ;

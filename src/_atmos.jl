@@ -436,7 +436,11 @@ nothing
 """
 function convert!(s::AbstractSpace, u::AtmosUnits; params...)
     for (s_para, u_para) in params
-        s[s_para] .= s[s_para] .* getfield(u,u_para)
+        if s_para == :time
+            s.parameter.time = s.parameter.time * getfield(u, u_para)
+        else
+            s[s_para] .= s[s_para] .* getfield(u, u_para)
+        end
     end
     nothing
 end
@@ -1444,7 +1448,7 @@ Pick the ith snapshot from the list of available snapshots.
 If ``i == :recent``, pick the most recent available snapshot. 
 If ``i == :time_average``, pick the time average, if available.
 """
-function pick_snapshot(snapshots, i; skip_last_if_missing=true)
+function pick_snapshot(snapshots, i; skip_last_if_missing=true, verbose=0)
 	i = if i == :recent 
         if ((isnothing(last(snapshots[last(list_snapshots(snapshots))]))) & 
                         skip_last_if_missing)
@@ -1468,10 +1472,10 @@ function pick_snapshot(snapshots, i; skip_last_if_missing=true)
     end
 
 	if isnothing(last(snap))
-		@info "snapshot $(i) loaded."
+		verbose>0 && @info "snapshot $(i) loaded."
 		MUST.Box(first(snap), folder=snapshots["folder"]), nothing
 	else
-		@info "snapshot $(i) + τ-shot loaded."
+		verbose>0 && @info "snapshot $(i) + τ-shot loaded."
 		MUST.Box(first(snap), folder=snapshots["folder"]), 
 		MUST.Box(last(snap), folder=snapshots["folder"])
 	end
@@ -1482,7 +1486,7 @@ end
 
 Pick ith snapshots from all available snapshots in ``folder``.
 """
-pick_snapshot(folder::String, i) = pick_snapshot(converted_snapshots(folder), i)
+pick_snapshot(folder::String, i; kwargs...) = pick_snapshot(converted_snapshots(folder), i; kwargs...)
 
 
 
@@ -1572,3 +1576,9 @@ profile(f, model, x=:z, y=:T) = begin
 		logx.(axis(model, xs)), logy.(plane_statistic(f, model, ys))
 	end
 end
+
+mesh(m::Box) = meshgrid(
+	axis(m, :x) ./1e8, 		
+	axis(m, :y) ./1e8, 								
+	axis(m, :z) ./1e8
+)

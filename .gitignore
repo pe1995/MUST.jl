@@ -37,6 +37,8 @@ examples/initial_models/*.mgrid
 examples/from_stagger/.Conda*
 examples/from_stagger/*.atmos
 examples/from_stagger/*.mesh
+examples/from_stagger/*/*.atmos
+examples/from_stagger/*/*.mesh
 
 examples/Paper_I/.Conda*
 examples/Paper_I/*.atmos

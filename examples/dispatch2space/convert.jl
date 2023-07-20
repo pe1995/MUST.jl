@@ -91,11 +91,11 @@ MUST.sendsync(workers(), folder=folder, do_teff=save_info, ini_nml=nml, eos=eos_
                 MUST.convert!(s, units; d=:d, ee=:ee, e=:e, 
                                     qr=:qr, pg=:p,
                                     ux=:u, uy=:u, uz=:u,
-                                    x=:l, y=:l, z=:l)
+                                    x=:l, y=:l, z=:l, time=:t)
             else
                 MUST.convert!(s, units; d=:d, ee=:ee, e=:e, 
                                     ux=:u, uy=:u, uz=:u,
-                                    x=:l, y=:l, z=:l)
+                                    x=:l, y=:l, z=:l, time=:t)
             end
 
             # Add additional columns already in CGS after converting
