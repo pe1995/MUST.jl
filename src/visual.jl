@@ -60,6 +60,7 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
         limy=0.4,
         limz=-1.05,
         cmap="rainbow",
+        clabel="T [K]",
         len_vec=0.4,
         lw_vec=0.6,
         cvec="k",
@@ -243,7 +244,7 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
     #sm.set_array([]) 
 
     # Colorbar
-    plt.colorbar(sm, ax=ax_3d, label="temperature [K]")
+    plt.colorbar(sm, ax=ax_3d, label=clabel)
 
     ax_3d.grid(false)
 

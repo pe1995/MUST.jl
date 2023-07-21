@@ -72,8 +72,9 @@ export multiBox
 export pick_snapshot
 export ginterpolate, gevaluate, gevaluate!, gresample
 export plane_statistic 
-#export read!, write
 
+# Multi
+export whole_spectrum, spectrum, Teff, flux
 
 #= Julia code files =#
 include("_constants.jl")

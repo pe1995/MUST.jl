@@ -54,6 +54,7 @@ mutable struct M3DNamelist <: MUST.AbstractNamelist
     spectrum_params    ::Dict{String,Any}  
     dispatcher0_params ::Dict{String,Any}  
     task_list_params   ::Dict{String,Any}   
+    composition_params ::Dict{String,Any}   
 end
 
 
@@ -298,15 +299,16 @@ end
 _whole_spectrum_namelist!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
-	atmos_params=(:dims=>12, :atmos_format=>"MUST"),
+	atmos_params=(:dims=>12, :atmos_format=>"MUST", :use_density=>true),
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
-	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>5, 
-				:lvlcheck=>2,
+	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
+				:lvlcheck=>1,
                 :n_nu=>200, :maxiter=>0, :decouple_continuum=>true,
                 :long_scheme=>"lobatto", :quad_scheme=>"set_a2"),
 	linelist_params=(:dlam=>20.0,),
-	spectrum_params=(:daa=>0.25, :aa_blue=>1500, :aa_red=>150000)) = begin
+    composition_params=(:abund_file=>"./input_multi3d/abund_magg",:absdat_file=>"./input_multi3d/TS_absdat.dat"),
+	spectrum_params=(:daa=>1., :aa_blue=>2000, :aa_red=>25000)) = begin
 
 	set!(
 		nml; 
@@ -316,7 +318,8 @@ _whole_spectrum_namelist!(nml::M3DNamelist;
 		,m3d_params=m3d_params,
 		linelist_params=linelist_params,
 		spectrum_params=spectrum_params,
-        atom_params=atom_params
+        atom_params=atom_params,
+        composition_params=composition_params
 	)
 end
 
@@ -330,6 +333,7 @@ This is handy when you want to compute the effective temperature.
 function whole_spectrum_namelist(model_name::String; 
 					model_folder="./input_multi3d/MUST",
 					linelist="./input_multi3d/vald_2490-25540.list",
+					absmet=nothing,
 					kwargs...)	
 	# Create an empty Namelist
 	nml = M3DNamelist()
@@ -341,11 +345,17 @@ function whole_spectrum_namelist(model_name::String;
 	model_path = joinpath(model_folder, model_name)
 
 	# additionally apply the model specific fields
-	set!(
-		nml; 
-		linelist_params=(:linelist_file=>linelist,),
-		atmos_params=(:atmos_file=>model_path,)
-	)
+	set!(nml; atmos_params=(:atmos_file=>model_path,))
+
+    if (isnothing(absmet)) & (!isnothing(linelist))
+        set!(nml; linelist_params=(:linelist_file=>linelist,))
+    elseif (!isnothing(absmet)) & (isnothing(linelist))
+        set!(nml, composition_params=(:absmet_file=>absmet,))
+    elseif (isnothing(absmet)) & (isnothing(linelist))
+        nothing
+    else
+        error("Need to specify either linelist or absmet (not both).")
+    end
 
     # apply custom input parameters
     set!(nml; kwargs...)
@@ -358,10 +368,10 @@ end
 _spectrum_namelist_lte!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
-	atmos_params=(:dims=>12, :atmos_format=>"MUST"),
+	atmos_params=(:dims=>12, :atmos_format=>"MUST", :use_density=>true),
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
-	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>5, 
+	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
 				:lvlcheck=>2,
                 :n_nu=>200, :maxiter=>0, :decouple_continuum=>true,
                 :long_scheme=>"lobatto", :quad_scheme=>"set_a2")) = begin
@@ -379,11 +389,11 @@ end
 _spectrum_namelist_nlte!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
-	atmos_params=(:dims=>12, :atmos_format=>"MUST"),
+	atmos_params=(:dims=>12, :atmos_format=>"MUST", :use_density=>true),
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true,
                 :convlim=>1e-2),
-	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>5, 
+	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
 				:lvlcheck=>2,
                 :n_nu=>200, :maxiter=>100, :decouple_continuum=>true,
                 :long_scheme=>"lobatto", :quad_scheme=>"set_a2")) = begin

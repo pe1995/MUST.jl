@@ -41,7 +41,7 @@ end
 Submit a job to the M3DIS code, which will compute the outgoing flux across the entire wavelength range.
 IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis macro.
 """
-function whole_spectrum(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dict())
+function whole_spectrum(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dict(), slurm=true)
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
     # Create the default namelist (with adjustments)
@@ -49,7 +49,11 @@ function whole_spectrum(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs
     write(nml, @in_m3dis("$(model_name).nml"))
 
     # run multi (with waiting)
-    srun_m3dis("$(model_name).nml"; wait=true, m3dis_kwargs...)
+    if slurm
+        srun_m3dis("$(model_name).nml"; wait=true, m3dis_kwargs...)
+    else
+        run_m3dis("$(model_name).nml"; wait=true, m3dis_kwargs...)
+    end
 
     # read the output
     M3DISRun(joinpath(nml.io_params["datadir"], model_name))

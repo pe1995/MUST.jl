@@ -123,12 +123,16 @@ md"## Dispatch models"
 
 # ╔═╡ c3b8db0b-c9ee-4f4d-a1a4-75e3551d7675
 names = [
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
 # ╔═╡ 6c3227a7-993b-45bc-809e-be6a0907f384
 out_folder = [
-	"models/sun_magg_120x240"
+	"models/sun_magg_120x240",
+	"models/sun_magg_90x90",
+	"models/sun_magg_90x180"
 ]
 
 # ╔═╡ 239ce3e3-5522-4d03-96d7-607c69418781
@@ -138,22 +142,30 @@ in_folder = [
 
 # ╔═╡ f78e1d7f-6756-47d9-bb6c-5b6c623dc899
 eos_folder = [
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3")
 ]
 
 # ╔═╡ f6c1c537-9a8d-4746-abcd-17fd0a712353
 colors = [
-	"tomato"
+	"tomato",
+	"cyan",
+	"magenta"
 ]
 
 # ╔═╡ cff24989-efe0-4c50-8163-7260869895d2
 ls = [
+	"-",
+	"-",
 	"-"
 ]
 
 # ╔═╡ 4fb7c54f-7f7a-48b7-a6a6-f80cb9c31360
 labels = [
-	"M3DIS"
+	"M3DIS",
+	"M3DIS - lres",
+	"M3DIS - ires"
 ]
 
 # ╔═╡ 68e9c5c9-34df-41f6-a4e6-7f5deb935d59
@@ -172,9 +184,14 @@ begin
 	end
 end
 
+# ╔═╡ 089e4d19-22ad-4da4-8886-6980d70b5f31
+md"Handy shortcuts to pick certain models when needed."
+
 # ╔═╡ d9272f17-8f18-457e-80d3-aa7dd61831a9
 models = Dict(
-	"best" => 1
+	"best" => 1,
+	"lres" => 2,
+	"ires" => 3
 )
 
 # ╔═╡ 418c34ff-1c08-4ae6-82bf-7ac2fced7244
@@ -293,13 +310,13 @@ begin
 			label="Stagger",
 			lw=lwD
 		)
-		axB[0, 0].plot(
+		#=axB[0, 0].plot(
 			MUST.profile(mean, muram_τ, :log10τ_ross, :T)...,
 			color="k",
 			label="MURaM",
 			ls="--",
 			lw=lwD
-		)
+		)=#
 		axB[0, 0].plot(
 			marcs_model[:, 2], marcs_model[:, 5],
 			color="k",
@@ -321,13 +338,13 @@ begin
 			label="Stagger",
 			lw=lwD
 		)
-		axB[1, 0].plot(
+		#=axB[1, 0].plot(
 			MUST.profile(mean, muram_τ, :log10τ_ross, :log10d)...,
 			color="k",
 			label="MURaM",
 			ls="--",
 			lw=lwD
-		)
+		)=#
 		axB[1, 0].plot(
 			marcs_model[:, 2], log10.(marcs_model[:, 11]),
 			color="k",
@@ -348,13 +365,13 @@ begin
 			label="Stagger",
 			lw=lwD
 		)
-		axB[2, 0].plot(
+		#=axB[2, 0].plot(
 			MUST.profile(rms5, muram_τ, :log10τ_ross, :uz)...,
 			color="k",
 			label="MURaM",
 			ls="--",
 			lw=lwD
-		)
+		)=#
 		axB[2, 0].plot(
 			MUST.profile(rms5, m3disB, :log10τ_ross, :uz)...,
 			color="cornflowerblue",
@@ -392,7 +409,7 @@ begin
 			label="M3DIS - Stagger",
 			lw=lwD
 		)
-		axB[0, 1].plot(
+		#=axB[0, 1].plot(
 			absolute_difference(
 				m3disB,
 				muram_τ,
@@ -402,7 +419,7 @@ begin
 			label="M3DIS - MURaM",
 			ls="--",
 			lw=lwD
-		)
+		)=#
 		axB[0, 1].plot(
 			common_tauB, 
 			ip(MUST.profile(mean, m3disB, :log10τ_ross, :T)...) .- 
@@ -425,7 +442,7 @@ begin
 			label="M3DIS - Stagger",
 			lw=lwD
 		)
-		axB[1, 1].plot(
+		#=axB[1, 1].plot(
 			absolute_difference(
 				m3disB,
 				muram_τ,
@@ -435,7 +452,7 @@ begin
 			label="M3DIS - MURaM",
 			ls="--",
 			lw=lwD
-		)
+		)=#
 		axB[1, 1].plot(
 			common_tauB, 
 			ip(MUST.profile(mean, m3disB, :log10τ_ross, :log10d)...) .- 
@@ -459,7 +476,7 @@ begin
 			label="M3DIS - Stagger",
 			lw=lwD
 		)
-		axB[2, 1].plot(
+		#=axB[2, 1].plot(
 			absolute_difference(
 				rms5,
 				m3disB,
@@ -470,7 +487,7 @@ begin
 			label="M3DIS - MURaM",
 			ls="--",
 			lw=lwD
-		)
+		)=#
 	
 
 		axB[0, 1].set_xlim(-4, 2)
@@ -502,6 +519,224 @@ end
 
 # ╔═╡ 6b63bde1-9a9a-4178-ac06-630ae811964b
 md"### (C) Resolution Comparison"
+
+# ╔═╡ e02162d4-6345-43e2-bb3f-2a453cc1b9eb
+begin
+	lresmodelC = models["lres"]
+	iresmodelC = models["ires"]
+	bestmodelC = models["best"]
+
+	lresC = pick_snapshot(out_folder[lresmodelC], :recent) |> last
+	iresC = pick_snapshot(out_folder[iresmodelC], :recent) |> last
+	bestC = pick_snapshot(out_folder[bestmodelC], :recent) |> last
+
+	
+	# Figure
+	plt.close()
+	
+	fC, axC = plt.subplots(3, 2, sharex=true, figsize=(12, 10))
+	plt.subplots_adjust(wspace=0.25, hspace=0.0)
+	for j in 0:1
+		for i in 0:2
+			visual.basic_plot!(axC[i, j])
+		end
+	end
+	
+
+	lwC = 2.5
+	# Absolute comparison
+	begin
+		## logτ vs. T
+		axC[0, 0].plot(
+			MUST.profile(mean, bestC, :log10τ_ross, :T)...,
+			color="cornflowerblue",
+			label=@sprintf("%i km", 2.3/240 *1000),
+			lw=lwC*2
+		)
+		axC[0, 0].plot(
+			MUST.profile(mean, iresC, :log10τ_ross, :T)...,
+			color="k",
+			label=@sprintf("%i km", 2.3/180 *1000),
+			lw=lwC,
+			ls=":"
+		)
+		axC[0, 0].plot(
+			MUST.profile(mean, lresC, :log10τ_ross, :T)...,
+			color="k",
+			label=@sprintf("%i km", 2.3/90 *1000),
+			lw=lwC,
+			ls="--"
+		)
+		
+		
+		## logτ vs. logρ
+		axC[1, 0].plot(
+			MUST.profile(mean, bestC, :log10τ_ross, :log10d)...,
+			color="cornflowerblue",
+			label=@sprintf("%i km", 2.3/240 *1000),
+			lw=lwC
+		)
+		axC[1, 0].plot(
+			MUST.profile(mean, iresC, :log10τ_ross, :log10d)...,
+			color="k",
+			label=@sprintf("%i km", 2.3/180 *1000),
+			lw=lwC,
+			ls=":"
+		)
+		axC[1, 0].plot(
+			MUST.profile(mean, lresC, :log10τ_ross, :log10d)...,
+			color="k",
+			label=@sprintf("%i km", 2.3/90 *1000),
+			lw=lwC,
+			ls="--"
+		)
+
+		
+		## logτ vs. uz
+		axC[2, 0].plot(
+			MUST.profile(rms5, bestC, :log10τ_ross, :uz)...,
+			color="cornflowerblue",
+			label=@sprintf("%i km", 2.3/240 *1000),
+			lw=lwC
+		)
+		axC[2, 0].plot(
+			MUST.profile(rms5, iresC, :log10τ_ross, :uz)...,
+			color="k",
+			label=@sprintf("%i km", 2.3/180 *1000),
+			lw=lwC,
+			ls=":"
+		)
+		axC[2, 0].plot(
+			MUST.profile(rms5, lresC, :log10τ_ross, :uz)...,
+			color="k",
+			label=@sprintf("%i km", 2.3/90 *1000),
+			lw=lwC,
+			ls="--"
+		)
+
+		
+		axC[0, 0].set_ylim(3800, 11000)
+		axC[1, 0].set_ylim(-9, -5.85)
+		axC[2, 0].set_ylim(0.5, 3.75)
+		
+		axC[0, 0].legend(framealpha=0, fontsize="large")
+		
+		axC[0, 0].set_ylabel(L"\rm T\ [K]", fontsize="large")
+		axC[1, 0].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]", fontsize="large")
+		axC[2, 0].set_ylabel(
+			L"\rm U_{z}\ [km\ \times s^{-1}]", 
+			fontsize="large"
+		)
+	end
+
+
+	# relative comparison
+	begin
+		## logτ vs. T
+		axC[0, 1].axhline(0.0, color="0.5", alpha=0.2)
+			axC[0, 1].plot(
+			absolute_difference(
+				bestC,
+				iresC,
+				:log10τ_ross, :T
+			)...,
+			color="k",
+			label=@sprintf("best - %i km", 2.3/180 *1000),
+			lw=lwC,
+			ls=":"
+		)
+		axC[0, 1].plot(
+			absolute_difference(
+				bestC,
+				lresC,
+				:log10τ_ross, :T
+			)...,
+			color="k",
+			label=@sprintf("best - %i km", 2.3/90 *1000),
+			lw=lwC,
+			ls="--"
+		)
+		
+		## logτ vs. logρ
+		axC[1, 1].axhline(0.0, color="0.5", alpha=0.2)
+		axC[1, 1].plot(
+			absolute_difference(
+				bestC,
+				iresC,
+				:log10τ_ross, :log10d
+			)...,
+			color="k",
+			label=@sprintf("%i km", 2.3/180 *1000),
+			lw=lwC,
+			ls=":"
+		)
+		axC[1, 1].plot(
+			absolute_difference(
+				bestC,
+				lresC,
+				:log10τ_ross, :log10d
+			)...,
+			color="k",
+			label=@sprintf("%i km", 2.3/90 *1000),
+			lw=lwC,
+			ls="--"
+		)
+
+		## logτ vs. rms
+		axC[2, 1].axhline(0.0, color="0.5", alpha=0.2)
+		axC[2, 1].plot(
+			absolute_difference(
+				rms5,
+				bestC,
+				iresC,
+				:log10τ_ross, :uz
+			)...,
+			color="k",
+			label=@sprintf("%i km", 2.3/180 *1000),
+			lw=lwC,
+			ls=":"
+		)
+		axC[2, 1].axhline(0.0, color="0.5", alpha=0.2)
+		axC[2, 1].plot(
+			absolute_difference(
+				rms5,
+				bestC,
+				lresC,
+				:log10τ_ross, :uz
+			)...,
+			color="k",
+			label=@sprintf("%i km", 2.3/90 *1000),
+			lw=lwC,
+			ls="--"
+		)
+			
+
+		axC[0, 1].set_xlim(-4, 2)
+		axC[0, 1].set_ylim(-300, 300)
+		axC[1, 1].set_ylim(-0.17, 0.17)
+		axC[2, 1].set_ylim(-0.47, 0.47)
+	
+		
+		axC[0, 1].legend(framealpha=0, fontsize="large")
+		axC[0, 1].set_ylabel(L"\rm \Delta\ T\ [K]", fontsize="large")
+		axC[1, 1].set_ylabel(
+			L"\rm \Delta\ \log \rho\ [g \times cm^{-3}]", fontsize="large"
+		)
+		axC[2, 1].set_ylabel(
+			L"\rm \Delta\ U_{z}\ [km\ \times s^{-1}]", 
+			fontsize="large"
+		)
+	end
+
+	axC[2, 0].set_xlabel(L"\rm \log \tau_{ross}", fontsize="large")
+	axC[2, 1].set_xlabel(L"\rm \log \tau_{ross}", fontsize="large")
+		
+
+	fC.savefig("comparison_resolution.pdf", bbox_inches="tight")
+	fC.savefig("comparison_resolution.png", bbox_inches="tight", dpi=600)
+
+	gcf()
+end
 
 # ╔═╡ b9890085-fcca-472d-b192-da7abf349b45
 md"### (D) Opacity Table"
@@ -647,7 +882,7 @@ begin
 	modelH = models["best"]
 	m3disH = pick_snapshot(out_folder[modelH], :recent) |> first
 	
-	fH, axH = visual.cube_with_velocities(m3disH, vmax_3d=15500)
+	fH, axH = visual.cube_with_velocities(m3disH, vmax_3d=17000, cmap="hot")
 
 
 	#fG.savefig("temperature_cube.pdf", bbox_inches="tight")
@@ -690,6 +925,7 @@ end
 # ╠═4fb7c54f-7f7a-48b7-a6a6-f80cb9c31360
 # ╟─68e9c5c9-34df-41f6-a4e6-7f5deb935d59
 # ╟─dd5a0ce9-2daa-4d99-9dbb-443c113e3af5
+# ╟─089e4d19-22ad-4da4-8886-6980d70b5f31
 # ╠═d9272f17-8f18-457e-80d3-aa7dd61831a9
 # ╟─418c34ff-1c08-4ae6-82bf-7ac2fced7244
 # ╟─23728e99-134a-445f-802b-f01467a03e10
@@ -700,6 +936,7 @@ end
 # ╟─58bb3285-544f-4e8a-a27e-9b7e90804fe8
 # ╟─8743067b-00ff-43c6-a6fd-800063b1d9de
 # ╟─6b63bde1-9a9a-4178-ac06-630ae811964b
+# ╟─e02162d4-6345-43e2-bb3f-2a453cc1b9eb
 # ╟─b9890085-fcca-472d-b192-da7abf349b45
 # ╟─b14da0d1-63da-44aa-b1fd-4340ec64528e
 # ╟─516fe726-9d67-44dd-bbdb-f0ec17841185

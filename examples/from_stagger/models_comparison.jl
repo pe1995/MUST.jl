@@ -33,22 +33,37 @@ md"All the models from the Stagger grid come with an average model that we can l
 
 # ╔═╡ 486f5cac-8879-4084-9faf-6dc4ae115e43
 names = [
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg2"),
+	MUST.@in_dispatch("data/sun_new_magg_vres"),
+	MUST.@in_dispatch("data/sun_new_magg_lres"),
+	MUST.@in_dispatch("data/sun_new_magg_ires"),
+	MUST.@in_dispatch("data/pretty_good_sun_new_magg2"),	MUST.@in_dispatch("data/sun_new_magg_hres"),
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3")
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
 labels = [
-	"magg2022_120x240"
+	"magg2022_60x60",
+	"magg2022_90x90",
+	"magg2022_90x180",
+	"magg2022_120x240",
+	"magg2022_195x390"
 ]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
@@ -384,7 +399,7 @@ md"## Differences"
 
 # ╔═╡ 9d6e7385-c8f6-4df1-91ac-3f07f0d2567f
 begin
-	common_tau = range(-3.7, 1.5, length=200) |> collect
+	common_tau = range(-3.4, 1.5, length=200) |> collect
 	ip(x, y) = begin
 		m = sortperm(x)
 		MUST.linear_interpolation(x[m], y[m]).(common_tau)
@@ -565,7 +580,7 @@ md"## Convert to M3D format"
 
 # ╔═╡ fc232599-e4e9-42d0-b108-316897c363ce
 function snaps2multi(folder, snaps...; 
-					eos, label, n_horizontal=10, n_vertical=280)
+					eos, label, n_horizontal=10, n_vertical=280, outfolder="")
 	i = 0
 	for snap in snaps
 		snapshot, snapshot_τ = pick_snapshot(folder, snap)
@@ -576,8 +591,12 @@ function snaps2multi(folder, snaps...;
 			ny=n_horizontal
 		)
 
+		if length(outfolder) > 1
+			(!isdir(outfolder)) && mkdir(outfolder)
+		end
+
 		i += 1
-		output_name = "m3dis_sun_$(label)_$(i)"
+		output_name = joinpath(outfolder, "m3dis_sun_$(label)_$(i)")
 		aos = @axed eos
 
 		ne = lookup(
@@ -608,33 +627,25 @@ output_names = ["m3dis_sun_$(label)" for (name, label) in zip(names, labels_new)
 # ╔═╡ f3e705cf-a0a5-4905-9a07-aa6535985e01
 aos = [@axed(eos[i]) for i in eachindex(eos)]
 
-# ╔═╡ 52fa7b28-d846-4d1c-8142-1cc1e6c68b92
-ne = [lookup(aos[i], :lnNe, log.(model_box[:d]), log.(model_box[:ee])) 
-		for (i, model_box) in enumerate(snapshotsresample)]
-
-# ╔═╡ b3b294ca-9ac2-4083-bcb5-789b48e9cb0b
-for (i, model_box) in enumerate(snapshotsresample)
-	model_box.data[:ne] = exp.(ne[i])
-	
-	#MUST.multiBox(model_box, output_names[i], downsample_xy=downsample)
-	
-	@info "New size: $(size(@view(ne[i][1:downsample:end, 1:downsample:end, :])))"
-end
-
 # ╔═╡ f2be5e98-6545-4f37-9a20-026f4914c9f7
 md"One can alternatively also convert multiple snapshots"
 
+# ╔═╡ 2aab4558-dc94-475d-83d2-696d513c2aec
+labels
+
 # ╔═╡ 389e61c2-0dd4-458a-98a5-5b787fa0e957
-label = "magg22_60x60x230"
+label = "magg22_80x80x230"
 
 # ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
-snaps2multi(
-	out_folder[1], -4, -3, -2, -1, :recent,
-	eos=eos[1], 
-	label=label,
-	n_horizontal=60, 
-	n_vertical=230
-)
+for i in eachindex(labels)
+	snaps2multi(
+		out_folder[i], -2, -1, :recent,
+		eos=eos[i], 
+		label=label,
+		n_horizontal=80, 
+		n_vertical=230, outfolder=labels[i]
+	)
+end
 
 # ╔═╡ 5b28c9b8-a991-45d6-a2d1-15f24142d277
 md"## Compute a time average"
@@ -723,9 +734,8 @@ end
 # ╟─b1df1501-4033-4d8a-bd67-8130c095152a
 # ╟─fdf3a692-daab-49d5-8bf6-36996617349e
 # ╟─f3e705cf-a0a5-4905-9a07-aa6535985e01
-# ╟─52fa7b28-d846-4d1c-8142-1cc1e6c68b92
-# ╟─b3b294ca-9ac2-4083-bcb5-789b48e9cb0b
 # ╟─f2be5e98-6545-4f37-9a20-026f4914c9f7
+# ╠═2aab4558-dc94-475d-83d2-696d513c2aec
 # ╠═389e61c2-0dd4-458a-98a5-5b787fa0e957
 # ╠═055f1b98-53d7-4368-bc75-d0073985d47d
 # ╟─5b28c9b8-a991-45d6-a2d1-15f24142d277
