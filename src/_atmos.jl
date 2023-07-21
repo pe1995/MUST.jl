@@ -100,31 +100,32 @@ Returns
 MUST.Space type object
 
 """
-function Space(snapshot::PyCall.PyObject, quantities::Symbol...) 
+function Space(snapshot::Py, quantities::Symbol...) 
     qs = Dict{Symbol,Vector{Float32}}(q=>Float32[] for q in quantities)
     qs[:x] = Float32[]; qs[:y] = Float32[]; qs[:z] = Float32[]
     qs[:i_patch] = Int[]
     patch_dimensions = zeros(Int,(length(snapshot.patches),3))
     
     for (i,patch) in enumerate(snapshot.patches)
-        
         # grid of this patch relative to the global grid
         patch_size = (length(patch.xi),length(patch.yi),length(patch.zi))
-        x = patch.xi; y = patch.yi; z = patch.zi
+        x = pyconvert.(Float32, patch.xi)
+        y = pyconvert.(Float32, patch.yi) 
+        z = pyconvert.(Float32, patch.zi)
         patch_dimensions[i,1] = length(patch.xi)
         patch_dimensions[i,2] = length(patch.yi)
         patch_dimensions[i,3] = length(patch.zi)
         
         # extract the quantites for this patch
-        for (iq,q) in enumerate(quantities)
-            q_matrix = patch.var(String(q))
+        for (iq, q) in enumerate(quantities)
+            q_matrix = pyconvert(Array{Float32, 3}, numpy.array(patch.var(String(q))))
             q_array  = zeros(Float32, prod(patch_size))
             coords   = zeros(Float32, (prod(patch_size),3))
             j = 1
             @inbounds for iz in 1:patch_size[3]
                 @inbounds for iy in 1:patch_size[2]
                     @inbounds for ix in 1:patch_size[1]
-                        q_array[j]  = q_matrix[ix,iy,iz]
+                        q_array[j]  = q_matrix[ix, iy, iz]
                         coords[j,1] = x[ix]
                         coords[j,2] = y[iy]
                         coords[j,3] = z[iz]
@@ -142,7 +143,7 @@ function Space(snapshot::PyCall.PyObject, quantities::Symbol...)
         end
     end
 
-    time = snapshot.nml_list["snapshot_nml"]["time"]
+    time = pyconvert(Any, snapshot.nml_list["snapshot_nml"]["time"])
     Space(qs, patch_dimensions, AtmosphericParameters(time, 
                                                         Base.convert(typeof(time), -99.0), 
                                                         Base.convert(typeof(time), -99.0), 
@@ -236,7 +237,12 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
     s_masked = filter(region_mask, s)
 
     # 3D Mesh of the new coordinate Box
-    x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
+    #x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
+    #x_grid = pyconvert(Array{eltype(x)}, x_grid)
+    #y_grid = pyconvert(Array{eltype(x)}, y_grid)
+    #z_grid = pyconvert(Array{eltype(x)}, z_grid)
+    x_grid, y_grid, z_grid = meshgrid(x, y, z)
+
 
     # result dict
     results::Dict{Symbol,Array{T,3}} = Dict(q=>similar(x_grid) for q in keys(s.data) if !(q in [:x,:y,:z,:i_patch]))
@@ -260,9 +266,9 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
     # Interpolate the Space onto the given grid
     for quantity in Symbol.(keys(s.data))
         quantity in [:x,:y,:z,:i_patch] ? continue : nothing
-        results[quantity][1:length(x),1:length(y),1:length(z)] = scipy_interpolate.griddata(Tuple(mask_data), 
+        results[quantity][1:length(x),1:length(y),1:length(z)] = pyconvert(Array{eltype(x_grid)}, scipy_interpolate.griddata(Tuple(mask_data), 
                                                                                             s_masked.data[quantity], 
-                                                                                            Tuple(grid_data))
+                                                                                            Tuple(grid_data)))
     end
 
     Box(x_grid[2:end-1,2:end-1,2:end-1],
@@ -328,10 +334,11 @@ function Box(s::Space)
     y = sort(unique(s.data[:y]))
     z = sort(unique(s.data[:z]))
 
-    x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
-    x_grid = Base.convert(Array{typeof(x[1])}, x_grid)
-    y_grid = Base.convert(Array{typeof(x[1])}, y_grid)
-    z_grid = Base.convert(Array{typeof(x[1])}, z_grid)
+    #x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
+    #x_grid = pyconvert(Array{eltype(x)}, x_grid)
+    #y_grid = pyconvert(Array{eltype(x)}, y_grid)
+    #z_grid = pyconvert(Array{eltype(x)}, z_grid)
+    x_grid, y_grid, z_grid = meshgrid(x, y, z)
 
     results::Dict{Symbol, Array{<:Union{Float32, Float64, Int16, Int32, Int64}, 3}} = Dict(q=>zeros(typeof(s.data[q][1]),size(x_grid)) 
                                                                                         for q in keys(s.data) if !(q in [:x,:y,:z]))
@@ -340,8 +347,8 @@ function Box(s::Space)
         results[q] .= Base.convert(typeof(results[q][1,1,1]), NaN)
     end
 
-    p        = zeros(3) 
-    skip_q   = [:x,:y,:z]
+    p = zeros(3) 
+    skip_q = [:x, :y, :z]
     @inbounds for irow in eachindex(s.data[:x])
         p[1] = s.data[:x][irow]
         p[2] = s.data[:y][irow] 
@@ -349,6 +356,7 @@ function Box(s::Space)
         ix,iy,iz = _find_in_meshgrid(p, x, y, z)
         for quantity in keys(s.data)
             quantity in skip_q ? continue : nothing
+            
             # go though the data points and save the quantity
             results[quantity][ix,iy,iz] = s.data[quantity][irow]
         end
@@ -428,7 +436,11 @@ nothing
 """
 function convert!(s::AbstractSpace, u::AtmosUnits; params...)
     for (s_para, u_para) in params
-        s[s_para] .= s[s_para] .* getfield(u,u_para)
+        if s_para == :time
+            s.parameter.time = s.parameter.time * getfield(u, u_para)
+        else
+            s[s_para] .= s[s_para] .* getfield(u, u_para)
+        end
     end
     nothing
 end
@@ -958,7 +970,7 @@ end
 """
 Apply the function f to every column of the Box and save the result in res.
 """
-function apply_by_column!(f::Function, res::T, b::MUST.Box; check_nan=false) where {T<:AbstractArray,A<:AbstractArray}
+function apply_by_column!(f::Function, res::T, b::MUST.Box; check_nan=false) where {T<:AbstractArray}
     
     #zv = zeros(size(b.z,3))
     #xv = zeros(size(b.z,3))
@@ -1404,6 +1416,10 @@ function converted_snapshots(folder)
 		if occursin("tau", snname) 
 			continue 
 		end 
+
+        if occursin("tav", snname) 
+			continue 
+		end 
 		
 		snid   = parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
 		is_τ = isfile(joinpath(folder,"box_tau_sn$(snid).hdf5"))
@@ -1430,8 +1446,9 @@ list_snapshots(snapshots) = sort([k for k in keys(snapshots) if k != "folder"])
 
 Pick the ith snapshot from the list of available snapshots. 
 If ``i == :recent``, pick the most recent available snapshot. 
+If ``i == :time_average``, pick the time average, if available.
 """
-function pick_snapshot(snapshots, i; skip_last_if_missing=true)
+function pick_snapshot(snapshots, i; skip_last_if_missing=true, verbose=0)
 	i = if i == :recent 
         if ((isnothing(last(snapshots[last(list_snapshots(snapshots))]))) & 
                         skip_last_if_missing)
@@ -1439,16 +1456,26 @@ function pick_snapshot(snapshots, i; skip_last_if_missing=true)
         else 
             last(list_snapshots(snapshots))
         end
+    elseif i <0
+        list_snapshots(snapshots)[end+i]
 	else 
 		i
 	end
 
-	snap = snapshots[i]
+	snap = if i == :time_average
+        ["box_tav", "box_tau_tav"]
+        isfile(joinpath(snapshots["folder"], "box_tau_tav.hdf5")) ? 
+            ["box_tav", "box_tau_tav"] :
+            ["box_tav", nothing]
+    else   
+        snapshots[i]
+    end
+
 	if isnothing(last(snap))
-		@info "snapshot $(i) loaded."
+		verbose>0 && @info "snapshot $(i) loaded."
 		MUST.Box(first(snap), folder=snapshots["folder"]), nothing
 	else
-		@info "snapshot $(i) + τ-shot loaded."
+		verbose>0 && @info "snapshot $(i) + τ-shot loaded."
 		MUST.Box(first(snap), folder=snapshots["folder"]), 
 		MUST.Box(last(snap), folder=snapshots["folder"])
 	end
@@ -1459,7 +1486,7 @@ end
 
 Pick ith snapshots from all available snapshots in ``folder``.
 """
-pick_snapshot(folder::String, i) = pick_snapshot(converted_snapshots(folder), i)
+pick_snapshot(folder::String, i; kwargs...) = pick_snapshot(converted_snapshots(folder), i; kwargs...)
 
 
 
@@ -1524,3 +1551,34 @@ Base.axes(b::Box, args...; kwargs...) = axes(b.z, args...; kwargs...)
 Base.size(b::Box, args...; kwargs...) = size(b.z, args...; kwargs...)
 
 closest(a, v) = argmin(abs.(a .- v))
+
+is_log(x) = begin
+	sx = String(x)
+	
+	xnew, f = if occursin("log10", sx)
+		Symbol(sx[findfirst("log10", sx)[end]+1:end]), log10
+	elseif occursin("log", sx)
+		Symbol(sx[findfirst("log", sx)[end]+1:end]), log
+	else
+		x, identity
+	end
+
+	xnew, f
+end
+
+profile(f, model, x=:z, y=:T) = begin
+	xs, logx = is_log(x)
+	ys, logy = is_log(y)
+	
+	if xs == :τ_ross
+		logx.(axis(model, xs, 3)), logy.(plane_statistic(f, model, ys)) 
+	else
+		logx.(axis(model, xs)), logy.(plane_statistic(f, model, ys))
+	end
+end
+
+mesh(m::Box) = meshgrid(
+	axis(m, :x) ./1e8, 		
+	axis(m, :y) ./1e8, 								
+	axis(m, :z) ./1e8
+)

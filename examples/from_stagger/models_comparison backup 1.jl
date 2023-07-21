@@ -11,9 +11,8 @@ begin
 	using MUST
 	using Glob
 	using Plots
-	using TSO 
+	using TSO
 	using LaTeXStrings
-	using DelimitedFiles
 end;
 
 # ╔═╡ 9456066d-36b1-4e6d-8af9-b8f134fb6e24
@@ -33,29 +32,30 @@ md"All the models from the Stagger grid come with an average model that we can l
 
 # ╔═╡ 486f5cac-8879-4084-9faf-6dc4ae115e43
 names = [
-	"DIS_MARCS_E_t5777g44m00_v0.1"
+		"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg2"),
+		MUST.@in_dispatch("data/sun_magg")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3")
+		MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
-labels = [
-	"magg2022_120x240"
-]
+labels = ["new setup (Magg)"]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
-colors = length(names) == 1 ? [:red] : palette(:roma, length(names))
+colors = ["red"] #palette(:rainbow, length(names))
 
 # ╔═╡ 5856ad8f-b6ce-4175-a158-c415bd546a7e
 in_folder  = [MUST.@in_dispatch "input_data/$(name)" for name in names]
+
+# ╔═╡ 9ccd37a5-26ff-43b7-89a5-a214cf5995d3
+
 
 # ╔═╡ 452a144e-b725-4de2-b3e1-2f614210d62e
 begin
@@ -64,7 +64,10 @@ begin
 	
 	for i in eachindex(names)
 		snapshot, snapshot_τ = MUST.pick_snapshot(
-			MUST.converted_snapshots(out_folder[i]), :recent
+			MUST.converted_snapshots(
+				out_folder[i]
+			),
+			:time_average
 		)
 		
 		append!(snapshots, [snapshot])
@@ -99,9 +102,6 @@ stagger_model = [
 	for i in eachindex(eos)
 ]
 
-# ╔═╡ c72cea6d-59bd-4721-8044-9fa28fb4039e
-marcs_model = readdlm("marcs_sun.txt", skipstart=1);
-
 # ╔═╡ 4a1730fb-1fbe-445a-b850-7539967dcbe2
 begin
 	folder_stagger = "/u/peitner/DISPATCH/MUST.jl/examples/stagger2bifrost"
@@ -109,13 +109,6 @@ begin
 							folder=folder_stagger)
 	stagger_τ = MUST.Box("box_solar_stagger_MARCS_v1.4.31_t", 
 							folder=folder_stagger)
-end
-
-# ╔═╡ 9faf1a6b-a027-4fcc-b572-872624b3f7e8
-begin
-	folder_muram = "/u/peitner/DISPATCH/examples/Muram"
-	muram = MUST.Box("box_MURaM_cube_small.221000_HDSun", folder=folder_muram)
-	muram_τ = MUST.Box("box_MURaM_cube_small.221000_HDSun_t", folder=folder_muram)
 end
 
 # ╔═╡ 14dab588-7275-4a7e-bade-71375d3a16bc
@@ -129,17 +122,8 @@ for i in eachindex(snapshots)
 	@info "simulation time of $(labels[i]): $(snapshots[i].parameter.time)"
 end
 
-# ╔═╡ 7c8ed29b-2c7a-4b4c-a60d-4de3cf082b42
-teff_last = MUST.read_teff(joinpath(first(out_folder), "teff.dat"));
-
-# ╔═╡ a0220545-f149-4862-a8ba-3a1911cb732a
-plot(teff_last[:, 1], teff_last[:, 2], xlabel="time", ylabel="Teff")
-
 # ╔═╡ c3ab29bc-a61b-467c-b3ab-3fa919abd83d
 md"## Compare models to their initial condition"
-
-# ╔═╡ cd81869e-c954-4526-a52f-31aedb64cb5f
-2.3/(7*35)
 
 # ╔═╡ fa90d92b-d1b3-491e-872b-23f57da6dace
 begin
@@ -233,12 +217,11 @@ begin
 	plot(-initial_model[1].z, exp.(initial_model[1].lnT), 
 				lw=1.5, color=:black, label="initial condition", ls=:dash)
 
-	
-	
 	for (i, snapshot) in enumerate(snapshots)
 		plot!(profile(mean, snapshot, :z, :T)..., 
 				lw=2., color=colors[i], label=labels[i])
 	end
+	
 
 	xlabel!("z [cm]")
 	ylabel!("T [K]")
@@ -256,8 +239,6 @@ begin
 				lw=2., color=colors[i], label=labels[i], ls=:solid)
 	end
 
-	plot!(marcs_model[:, 2], marcs_model[:, 5], 
-		color=:royalblue, ls=:dot, lw=2.5, label="MARCS")
 
 	xlabel!("τ-ross [log]")
 	ylabel!("T [K]")
@@ -269,9 +250,6 @@ end
 begin
 	plot(profile(mean, stagger, :z, :d)..., 
 				lw=1.5, color=:black, label="Stagger", ls=:dash)
-
-	plot!(legendforegroundcolor=nothing, legendbackgroundcolor=nothing,
-	legendposition=:bottomleft)
 
 	for (i, snapshot) in enumerate(snapshots)
 		plot!(profile(mean, snapshot, :z, :d)..., 
@@ -289,18 +267,12 @@ end
 begin
 	plot(profile(mean, stagger_τ, :log10τ_ross, :log10d)..., 
 				lw=2., color=:black, label="Stagger", ls=:dash)
-
-	plot!(legendforegroundcolor=nothing, legendbackgroundcolor=nothing,
-		legendposition=:bottomright)
 	
 	for (i, snapshot_τ) in enumerate(snapshots_τ)
 		plot!(profile(mean, snapshot_τ, :log10τ_ross, :log10d)..., 
 				lw=1.5, color=colors[i], label=labels[i])
 	end
 	
-
-	plot!(marcs_model[:, 2], log10.(marcs_model[:, 11]), 
-		color=:royalblue, ls=:dot, lw=2.5, label="MARCS")
 
 	xlabel!("τ-ross [log]")
 	ylabel!("density [g x cm-3]")
@@ -313,18 +285,13 @@ begin
 	_, dStagger = profile(mean, stagger, :z, :d)
 	_, TStagger = profile(mean, stagger, :z, :T)
 	plot(dStagger, TStagger, lw=1.5, color=:black, label="Stagger", ls=:dash)
-
-	plot!(legendforegroundcolor=nothing, legendbackgroundcolor=nothing)
-
+	
 	for (i, snapshot) in enumerate(snapshots)
 		_, d = profile(mean, snapshot, :z, :d)
 		_, T = profile(mean, snapshot, :z, :T)
 		
 		plot!(d, T, lw=2., color=colors[i], label=labels[i])
 	end
-
-	plot!(marcs_model[:, 11], marcs_model[:, 5], 
-		color=:royalblue, ls=:dot, lw=2.5, label="MARCS")
 	
 	xaxis!(:log)	
 	
@@ -340,6 +307,9 @@ md"Velocity distribution"
 
 # ╔═╡ fa8e10f7-da54-4165-887f-30e740e1f264
 rms(x) = √(sum(x .^2) / length(x))
+
+# ╔═╡ 870f696c-483b-40ef-9986-8f81ed01554c
+8*35
 
 # ╔═╡ 83dc28ac-97f5-4833-8a6f-cd2d2624442a
 begin
@@ -379,139 +349,6 @@ begin
 	basic_plot!()
 end
 
-# ╔═╡ 7d273e41-207c-46b9-9e7d-a3626b5717c6
-md"## Differences"
-
-# ╔═╡ 9d6e7385-c8f6-4df1-91ac-3f07f0d2567f
-begin
-	common_tau = range(-3.7, 1.5, length=200) |> collect
-	ip(x, y) = begin
-		m = sortperm(x)
-		MUST.linear_interpolation(x[m], y[m]).(common_tau)
-	end
-end
-
-# ╔═╡ 6e078b79-7928-4854-a07f-c5ac185caa59
-begin
-	xs, ys = profile(mean, stagger_τ, :log10τ_ross, :T)
-	
-	plot(legendforegroundcolor=nothing, legendbackgroundcolor=nothing, legendposition=:bottomleft)
-
-	for (i, snapshot_τ) in enumerate(snapshots_τ)
-		xi, yi = profile(mean, snapshot_τ, :log10τ_ross, :T)
-		plot!(common_tau, ip(xi, yi) .- ip(xs, ys), 
-				lw=2., color=colors[i], label="$(labels[i]) - Stagger", ls=:solid)
-	end
-
-	x, y = marcs_model[:, 2], marcs_model[:, 5]
-	plot!(common_tau, ip(x, y) .- ip(xs, ys), 
-		color=:royalblue, ls=:dot, lw=2.5, label="MARCS - Stagger")
-
-	xmu, ymu = profile(mean, muram_τ, :log10τ_ross, :T)
-	plot!(common_tau, ip(xmu, ymu) .- ip(xs, ys), 
-		color=:black, ls=:dash, lw=2.5, label="MURaM - Stagger")
-
-	hline!([0.0], color=:black, ls=:dot, alpha=0.5, label=nothing)
-
-	xlabel!("τ-ross [log]")
-	ylabel!("ΔT [K]")
-
-	plot!(ylim=(-600, 600))
-	
-	basic_plot!()
-end
-
-# ╔═╡ c0347b03-fb0a-4660-a9f6-fc24272263ed
-begin	
-	plot(legendforegroundcolor=nothing, legendbackgroundcolor=nothing)
-
-	for (i, snapshot_τ) in enumerate(snapshots_τ)
-		xi, yi = profile(mean, snapshot_τ, :log10τ_ross, :T)
-		plot!(common_tau, (ip(xi, yi) .- ip(xs, ys)) ./ ip(xs, ys) *100, 
-				lw=2., color=colors[i], label="$(labels[i]) - Stagger", ls=:solid)
-	end
-
-	plot!(common_tau, (ip(x, y) .- ip(xs, ys)) ./ ip(xs, ys) *100, 
-		color=:royalblue, ls=:dot, lw=2.5, label="MARCS - Stagger")
-
-	plot!(common_tau, (ip(xmu, ymu) .- ip(xs, ys)) ./ ip(xs, ys) *100, 
-		color=:black, ls=:dash, lw=2.5, label="MURaM - Stagger")
-
-	hline!([0.0], color=:black, ls=:dot, alpha=0.5, label=nothing)
-
-	xlabel!("τ-ross [log]")
-	ylabel!("ΔT / T  [%]")
-
-	plot!(ylim=(-10, 10))
-	
-	basic_plot!()
-end
-
-# ╔═╡ fcc3aaac-a5e2-45fa-9419-4aaa916fbe45
-begin
-	ipr(x, y) = 10.0 .^(ip(x, y))
-	
-	xs2, ys2 = profile(mean, stagger_τ, :log10τ_ross, :d)
-	
-	plot(legendforegroundcolor=nothing, legendbackgroundcolor=nothing)
-
-	for (i, snapshot_τ) in enumerate(snapshots_τ)
-		xi2, yi2 = profile(mean, snapshot_τ, :log10τ_ross, :d)
-		plot!(common_tau, ipr(xi2, log10.(yi2)) .- ipr(xs2, log10.(ys2)), 
-				lw=2., color=colors[i], label="$(labels[i]) - Stagger", ls=:solid)
-	end
-
-	x2, y2 = marcs_model[:, 2], marcs_model[:, 11]
-	plot!(common_tau, ipr(x2, log10.(y2)) .- ipr(xs2, log10.(ys2)), 
-		color=:royalblue, ls=:dot, lw=2.5, label="MARCS - Stagger")
-
-	xmu2, ymu2 = profile(mean, muram_τ, :log10τ_ross, :d)
-	plot!(common_tau, ipr(xmu2, log10.(ymu2)) .- ipr(xs2, log10.(ys2)), 
-		color=:black, ls=:dash, lw=2.5, label="MURaM - Stagger")
-
-	hline!([0.0], color=:black, ls=:dot, alpha=0.5, label=nothing)
-
-	#yaxis!(:log)	
-
-	xlabel!("τ-ross [log]")
-	ylabel!("Δρ [g × cm-3]")
-
-	#plot!(ylim=(-600, 600))
-	
-	basic_plot!()
-end
-
-# ╔═╡ 4c0bf79b-9b7b-4c35-a728-350a79e5eb83
-begin	
-	plot(legendforegroundcolor=nothing, legendbackgroundcolor=nothing)
-
-	for (i, snapshot_τ) in enumerate(snapshots_τ)
-		xi2, yi2 = profile(mean, snapshot_τ, :log10τ_ross, :d)
-		plot!(common_tau, 
-			(ipr(xi2, log10.(yi2)) .- ipr(xs2, log10.(ys2))) ./ ipr(xs2, log10.(ys2))*100, 
-				lw=2., color=colors[i], label="$(labels[i]) - Stagger", ls=:solid)
-	end
-
-	plot!(common_tau, 
-		(ipr(x2, log10.(y2)) .- ipr(xs2, log10.(ys2))) ./ ipr(xs2, log10.(ys2)) *100, 
-		color=:royalblue, ls=:dot, lw=2.5, label="MARCS - Stagger")
-
-	plot!(common_tau, 
-		(ipr(xmu2, log10.(ymu2)) .- ipr(xs2, log10.(ys2))) ./ ipr(xs2, log10.(ys2)) *100, 
-		color=:black, ls=:dash, lw=2.5, label="MARCS - Stagger")
-
-	hline!([0.0], color=:black, ls=:dot, alpha=0.5, label=nothing)
-
-	xlabel!("τ-ross [log]")
-	ylabel!("Δρ / ρ [%]")
-
-	#yaxis!(:log)	
-
-	#plot!(ylim=(-600, 600))
-	
-	basic_plot!()
-end
-
 # ╔═╡ 919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
 md"## 3D result"
 
@@ -547,60 +384,21 @@ begin
 		#xlabel!("x [Mm]")
 		#ylabel!("y [Mm]")
 	
+	
 		basic_plot!(copyticks=false, bm=3, lm=0, rm=0, tm=3, size=(600,500))
 	end
 	
-	plot(h..., link=:both, size=(1400, 1400))
+	plot(h..., link=:both, size=(600, 500))
 end
-
-# ╔═╡ 3615d990-9c9a-4e69-8f96-0e3c2ac6896b
-md"## Upsample for M3D
-With the `g-` methods one can upsample the cubes pretty easily"
-
-# ╔═╡ a33fbc44-eade-4ef2-9a6d-87047b5cdb1f
-snapshotsresample = gresample.(snapshots, nz=280)
 
 # ╔═╡ 5ca0a8ee-5fbf-4d76-8bfd-91c292e08cfa
 md"## Convert to M3D format"
-
-# ╔═╡ fc232599-e4e9-42d0-b108-316897c363ce
-function snaps2multi(folder, snaps...; 
-					eos, label, n_horizontal=10, n_vertical=280)
-	i = 0
-	for snap in snaps
-		snapshot, snapshot_τ = pick_snapshot(folder, snap)
-		snapshotsresample = gresample(
-			snapshot, 
-			nz=n_vertical, 
-			nx=n_horizontal, 
-			ny=n_horizontal
-		)
-
-		i += 1
-		output_name = "m3dis_sun_$(label)_$(i)"
-		aos = @axed eos
-
-		ne = lookup(
-			aos, :lnNe, 
-			log.(snapshotsresample[:d]), log.(snapshotsresample[:ee])
-		) 
-		
-		snapshotsresample.data[:ne] = exp.(ne)
-	
-		MUST.multiBox(
-			snapshotsresample, 
-			output_name
-		)
-
-		#@info "New size: $(size(@view(ne[1:downsample_xy:end, 1:downsample_xy:end, :])))"
-	end
-end
 
 # ╔═╡ 7a023be5-46ea-4c25-857b-3f765c044a91
 labels_new = replace.(labels, " "=>"_")
 
 # ╔═╡ b1df1501-4033-4d8a-bd67-8130c095152a
-downsample=25
+downsample=40
 
 # ╔═╡ fdf3a692-daab-49d5-8bf6-36996617349e
 output_names = ["m3dis_sun_$(label)" for (name, label) in zip(names, labels_new)]
@@ -610,10 +408,10 @@ aos = [@axed(eos[i]) for i in eachindex(eos)]
 
 # ╔═╡ 52fa7b28-d846-4d1c-8142-1cc1e6c68b92
 ne = [lookup(aos[i], :lnNe, log.(model_box[:d]), log.(model_box[:ee])) 
-		for (i, model_box) in enumerate(snapshotsresample)]
+		for (i, model_box) in enumerate(snapshots)]
 
 # ╔═╡ b3b294ca-9ac2-4083-bcb5-789b48e9cb0b
-for (i, model_box) in enumerate(snapshotsresample)
+for (i, model_box) in enumerate(snapshots)
 	model_box.data[:ne] = exp.(ne[i])
 	
 	#MUST.multiBox(model_box, output_names[i], downsample_xy=downsample)
@@ -621,51 +419,14 @@ for (i, model_box) in enumerate(snapshotsresample)
 	@info "New size: $(size(@view(ne[i][1:downsample:end, 1:downsample:end, :])))"
 end
 
-# ╔═╡ f2be5e98-6545-4f37-9a20-026f4914c9f7
-md"One can alternatively also convert multiple snapshots"
-
-# ╔═╡ 389e61c2-0dd4-458a-98a5-5b787fa0e957
-label = "magg22_60x60x230"
-
-# ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
-snaps2multi(
-	out_folder[1], -4, -3, -2, -1, :recent,
-	eos=eos[1], 
-	label=label,
-	n_horizontal=60, 
-	n_vertical=230
-)
-
 # ╔═╡ 5b28c9b8-a991-45d6-a2d1-15f24142d277
 md"## Compute a time average"
 
 # ╔═╡ 7837df1e-e220-4a60-944d-876b523300ad
-number_of_timeslots = [6]
+number_of_timeslots = [5]
 
 # ╔═╡ 09d3fbbb-c636-4f8a-8409-0eba2ea9a242
-do_time = false
-
-# ╔═╡ b564b2bf-61d9-44e4-a785-fa66db6b10e5
-if do_time
-	for i in eachindex(names)
-		eos_i = reload(SqEoS, joinpath(eos_folder[i], "eos.hdf5"))
-		#opa = reload(SqOpacity, joinpath(eos_folder[i], "binned_opacity.hdf5"))
-		
-		snaps = MUST.converted_snapshots(out_folder[i])
-		isnap = MUST.list_snapshots(snaps)
-	
-		time_isnaps = isnap[end-number_of_timeslots[i]:end-1]
-		
-		time_snaps = [pick_snapshot(snaps, j) |> first for j in time_isnaps]
-		time_av = MUST.time_statistic(mean, time_snaps)
-		MUST.save(time_av, folder=out_folder[i], name="box_tav")
-	
-	
-		time_snaps = [pick_snapshot(snaps, j) |> last for j in time_isnaps]
-		time_av = MUST.time_statistic(mean, time_snaps)
-		MUST.save(time_av, folder=out_folder[i], name="box_tau_tav")
-	end
-end
+do_τ = true
 
 # ╔═╡ Cell order:
 # ╟─9456066d-36b1-4e6d-8af9-b8f134fb6e24
@@ -679,56 +440,44 @@ end
 # ╠═fe1d7b10-88a5-46c1-a244-589bacf75970
 # ╠═ee39604b-6bd0-434e-b06d-417a4ab8cb7e
 # ╟─5856ad8f-b6ce-4175-a158-c415bd546a7e
+# ╟─957af12a-e77e-48a3-a2de-80b86512e5a8
+# ╟─1e0de50e-bb67-4d34-a038-e7437955ec73
+# ╟─01ab2753-515c-496f-a6fc-1c2a0e42ae25
+# ╠═9ccd37a5-26ff-43b7-89a5-a214cf5995d3
 # ╠═452a144e-b725-4de2-b3e1-2f614210d62e
 # ╟─3e747391-ba4b-47bf-b363-abcb46a9309b
 # ╟─ed6c250a-84d5-4ac6-bf54-9e8fcdbe55a3
 # ╠═d8693137-82f7-4ccb-b886-4115e3032392
 # ╠═4c8d357d-a41a-4274-b131-93ebb695b911
-# ╠═c72cea6d-59bd-4721-8044-9fa28fb4039e
 # ╠═4a1730fb-1fbe-445a-b850-7539967dcbe2
-# ╠═9faf1a6b-a027-4fcc-b572-872624b3f7e8
 # ╟─14dab588-7275-4a7e-bade-71375d3a16bc
 # ╟─0d72ddb5-0096-4430-8611-e843f0aa3c61
-# ╠═7c8ed29b-2c7a-4b4c-a60d-4de3cf082b42
-# ╠═a0220545-f149-4862-a8ba-3a1911cb732a
 # ╟─c3ab29bc-a61b-467c-b3ab-3fa919abd83d
-# ╠═cd81869e-c954-4526-a52f-31aedb64cb5f
 # ╟─fa90d92b-d1b3-491e-872b-23f57da6dace
 # ╟─9fd5896c-8d4f-499d-9f97-c589d8d256c2
 # ╟─85d4b142-1529-495a-bc6d-64f5f0efa3b9
 # ╟─3d1e1cd9-5601-468d-a3f1-a3dd51177a37
-# ╟─8a8a40e0-5b03-4c17-93a3-4eccf12e3717
+# ╠═8a8a40e0-5b03-4c17-93a3-4eccf12e3717
 # ╟─d3ef4193-11e7-478d-aa11-ba3b8adbce55
 # ╟─05a4e3ef-58b5-4f96-94b8-51991c971451
 # ╟─0a726cbb-1309-4071-9df1-93cd4355fb71
 # ╟─e10a8581-c0ab-4209-9e14-4d456dcf9a86
 # ╟─07815fd8-f292-4760-a950-8b56a5908acf
 # ╠═fa8e10f7-da54-4165-887f-30e740e1f264
+# ╠═870f696c-483b-40ef-9986-8f81ed01554c
 # ╟─83dc28ac-97f5-4833-8a6f-cd2d2624442a
 # ╟─e654ada6-ce50-4a2b-a51c-eae3e7aa36d3
-# ╟─7d273e41-207c-46b9-9e7d-a3626b5717c6
-# ╠═9d6e7385-c8f6-4df1-91ac-3f07f0d2567f
-# ╟─6e078b79-7928-4854-a07f-c5ac185caa59
-# ╟─c0347b03-fb0a-4660-a9f6-fc24272263ed
-# ╟─fcc3aaac-a5e2-45fa-9419-4aaa916fbe45
-# ╠═4c0bf79b-9b7b-4c35-a728-350a79e5eb83
 # ╟─919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
 # ╟─84bd1e80-ff21-4970-a5a3-fc7452da7e6f
-# ╠═e2dde825-4e66-42e2-b541-74ec0600fc81
-# ╟─3615d990-9c9a-4e69-8f96-0e3c2ac6896b
-# ╠═a33fbc44-eade-4ef2-9a6d-87047b5cdb1f
+# ╟─e2dde825-4e66-42e2-b541-74ec0600fc81
 # ╟─5ca0a8ee-5fbf-4d76-8bfd-91c292e08cfa
-# ╠═fc232599-e4e9-42d0-b108-316897c363ce
 # ╠═7a023be5-46ea-4c25-857b-3f765c044a91
-# ╟─b1df1501-4033-4d8a-bd67-8130c095152a
-# ╟─fdf3a692-daab-49d5-8bf6-36996617349e
+# ╠═b1df1501-4033-4d8a-bd67-8130c095152a
+# ╠═fdf3a692-daab-49d5-8bf6-36996617349e
 # ╟─f3e705cf-a0a5-4905-9a07-aa6535985e01
 # ╟─52fa7b28-d846-4d1c-8142-1cc1e6c68b92
-# ╟─b3b294ca-9ac2-4083-bcb5-789b48e9cb0b
-# ╟─f2be5e98-6545-4f37-9a20-026f4914c9f7
-# ╠═389e61c2-0dd4-458a-98a5-5b787fa0e957
-# ╠═055f1b98-53d7-4368-bc75-d0073985d47d
+# ╠═b3b294ca-9ac2-4083-bcb5-789b48e9cb0b
 # ╟─5b28c9b8-a991-45d6-a2d1-15f24142d277
 # ╠═7837df1e-e220-4a60-944d-876b523300ad
 # ╠═09d3fbbb-c636-4f8a-8409-0eba2ea9a242
-# ╠═b564b2bf-61d9-44e4-a785-fa66db6b10e5
+# ╠═7d192f93-c865-43af-a8d4-be92fb711a4e

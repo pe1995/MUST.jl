@@ -48,8 +48,9 @@ end
 """
 Read Units from Dispatch snapshot and save the conversion to CGS.
 """
-function StandardUnits(snap::T) where {T<:PyCall.PyObject}
-    pnames = keys(snap.params_list["scaling_params"])
+function StandardUnits(snap::T) where {T<:Py}
+    ps = pyconvert(Any, snap.params_list["scaling_params"])
+    pnames = keys(ps)
     l_name = "l_cgs" in pnames ? "l_cgs" : "l"
     d_name = "d_cgs" in pnames ? "d_cgs" : "d"
     v_name = "v_cgs" in pnames ? "v_cgs" : "v"
@@ -61,23 +62,23 @@ function StandardUnits(snap::T) where {T<:PyCall.PyObject}
     #v_name = "v_cgs" in pnames ? "v_cgs" : "v"
     #t_name = "t_cgs" in pnames ? "t_cgs" : "t"
 
-    l = snap.params_list["scaling_params"][l_name]
-    d = snap.params_list["scaling_params"][d_name]
+    l = ps[l_name]
+    d = ps[d_name]
 
-    if v_name in keys(snap.params_list["scaling_params"])
-        v = snap.params_list["scaling_params"][v_name]
+    if v_name in pnames
+        v = ps[v_name]
         t = l / v
     end
-    if t_name in keys(snap.params_list["scaling_params"])
-        t = snap.params_list["scaling_params"][t_name]
+    if t_name in pnames
+        t = ps[t_name]
         v = l / t
     end
 
     StaggerCGS(l=l,d=d,t=t,u=v)
 end
 
-DispatchCGS(snap::T) where {T<:PyCall.PyObject} = StandardUnits(snap)
-StaggerCGS(snap::T) where {T<:PyCall.PyObject}  = StandardUnits(snap)
-StaggerCGS(args...; kwargs...)                  = StandardUnits(args...; kwargs...)
+DispatchCGS(snap::T) where {T<:Py} = StandardUnits(snap)
+StaggerCGS(snap::T) where {T<:Py}  = StandardUnits(snap)
+StaggerCGS(args...; kwargs...)     = StandardUnits(args...; kwargs...)
 
 GeneralUnits = StandardUnits()

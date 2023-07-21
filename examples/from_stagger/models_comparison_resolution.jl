@@ -11,7 +11,7 @@ begin
 	using MUST
 	using Glob
 	using Plots
-	using TSO 
+	using TSO
 	using LaTeXStrings
 	using DelimitedFiles
 end;
@@ -33,22 +33,66 @@ md"All the models from the Stagger grid come with an average model that we can l
 
 # ╔═╡ 486f5cac-8879-4084-9faf-6dc4ae115e43
 names = [
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg2"),
+	MUST.@in_dispatch("data/rt120"),
+	MUST.@in_dispatch("data/rt180"),
+	MUST.@in_dispatch("data/rt240"),
+	MUST.@in_dispatch("data/rt300"),
+	MUST.@in_dispatch("data/rt360"),
+	MUST.@in_dispatch("data/rt300HD"),
+	MUST.@in_dispatch("data/rt300_ho_res"),
+	MUST.@in_dispatch("data/rt120_null"),
+	MUST.@in_dispatch("data/rt180HD"),
+	MUST.@in_dispatch("data/rt240HD"),
+	MUST.@in_dispatch("data/rt300_5"),
+	MUST.@in_dispatch("data/rt300_HD150")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3")
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
 labels = [
-	"magg2022_120x240"
+	"as07_HD120_RT120*",
+	"as07_HD120_RT180",
+	"as07_HD120_RT240",
+	"as07_HD120_RT300",
+	"as07_HD120_RT360",
+	"as07_HD300_RT300*",
+	"as07_HD120_RT300^3",
+	"as07_HD120_RT120",
+	"as07_HD180_RT180*",
+	"as07_HD240_RT240*",
+	"as07_HD120_RT300_pchip",
+	"as07_HD150_RT300"
 ]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
@@ -64,7 +108,7 @@ begin
 	
 	for i in eachindex(names)
 		snapshot, snapshot_τ = MUST.pick_snapshot(
-			MUST.converted_snapshots(out_folder[i]), :recent
+			MUST.converted_snapshots(out_folder[i]), -1
 		)
 		
 		append!(snapshots, [snapshot])
@@ -384,7 +428,7 @@ md"## Differences"
 
 # ╔═╡ 9d6e7385-c8f6-4df1-91ac-3f07f0d2567f
 begin
-	common_tau = range(-3.7, 1.5, length=200) |> collect
+	common_tau = range(-3.3, 1.5, length=200) |> collect
 	ip(x, y) = begin
 		m = sortperm(x)
 		MUST.linear_interpolation(x[m], y[m]).(common_tau)
@@ -512,6 +556,104 @@ begin
 	basic_plot!()
 end
 
+# ╔═╡ 57ea4748-eef5-44fe-8048-fe74250c58f7
+md"## Compare to each other"
+
+# ╔═╡ b3b5a4ba-33a2-4250-8408-ae30f410470c
+begin
+	metric(snap_τ) = begin
+		# We compare the mean temperature at the optical surface
+		x, y = profile(mean, snap_τ, :log10τ_ross, :T)
+	
+		m = sortperm(x)
+		MUST.linear_interpolation(x[m], y[m])(0.0)
+	end
+	
+	metric(out_folder::String) = begin
+		p = []
+	
+		for i in [-2, -1, :recent]
+			snapshot, snapshot_τ = MUST.pick_snapshot(
+				MUST.converted_snapshots(out_folder), i
+			)
+			
+			# We compare the mean temperature at the optical surface
+			x, y = profile(mean, snapshot_τ, :log10τ_ross, :T)
+		
+			m = sortperm(x)
+			append!(p, [MUST.linear_interpolation(x[m], y[m])(0.0)])
+		end
+	
+		mean(p)
+	end
+end
+
+# ╔═╡ 3523d056-a35a-4913-b3ae-558573999ceb
+begin
+	plot(legendforegroundcolor=nothing, legendbackgroundcolor=nothing)
+	x_mtrc = 2.3 ./ [120, 180, 240, 300, 360] .* 1e3
+	mtrc = zeros(length(x_mtrc))
+	
+	for (i, snap) in enumerate([out_folder[j] for j in [8, 2, 3, 4, 5]])
+		mtrc[i] = metric(snap)
+	end
+	
+	plot!(
+		x_mtrc, mtrc, color=:black, marker=:square, 
+		markercolor="white", markerstrokewidth=4,
+		markersize=8, lw=2,
+		label="RT"
+	)
+
+	# Add one extra high resolution pure HD point
+	plot!(
+		2.3 ./ [120, 180, 240, 300] .* 1e3, 
+		[
+			metric(out_folder[1]), 
+			metric(out_folder[9]), 
+			metric(out_folder[10]),
+			metric(out_folder[6])
+		], 
+		label="HD + RT", marker=:circle, color=:red, ls=:dash,
+		markercolor="white", markerstrokewidth=4,
+		markersize=8, lw=2, markerstrokecolor=:red
+	)
+
+	scatter!(
+		2.3 ./ [300] .* 1e3, [metric(out_folder[7])], 
+		label="RT (cubic patches)", marker=:v, 
+		markercolor="white", markerstrokewidth=4,
+		markersize=8, lw=2, markerstrokecolor=:blue
+	)
+
+	scatter!(
+		2.3 ./ [300] .* 1e3, [metric(out_folder[11])], 
+		label="RT (pchip interpolation)", marker=:v, 
+		markercolor="white", markerstrokewidth=4,
+		markersize=8, lw=2, markerstrokecolor=:lime
+	)
+
+	scatter!(
+		2.3 ./ [300] .* 1e3, [metric(out_folder[12])], 
+		label="RT (2x HD)", marker=:v, 
+		markercolor="white", markerstrokewidth=4,
+		markersize=8, lw=2, markerstrokecolor=:magenta
+	)
+
+	hline!(
+		[metric(stagger_τ)], ls=:dash, color=:grey, 
+		label="Stagger"
+	)
+
+	plot!(ylim=(6210, 6600), xlim=(4,20))
+	plot!(ylabel="<T>(τ-ross = 1)")
+	plot!(xlabel="resolution [km]")
+	
+
+	basic_plot!()
+	plot!()
+end
+
 # ╔═╡ 919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
 md"## 3D result"
 
@@ -558,23 +700,20 @@ md"## Upsample for M3D
 With the `g-` methods one can upsample the cubes pretty easily"
 
 # ╔═╡ a33fbc44-eade-4ef2-9a6d-87047b5cdb1f
+# ╠═╡ disabled = true
+#=╠═╡
 snapshotsresample = gresample.(snapshots, nz=280)
+  ╠═╡ =#
 
 # ╔═╡ 5ca0a8ee-5fbf-4d76-8bfd-91c292e08cfa
 md"## Convert to M3D format"
 
 # ╔═╡ fc232599-e4e9-42d0-b108-316897c363ce
-function snaps2multi(folder, snaps...; 
-					eos, label, n_horizontal=10, n_vertical=280)
+function snaps2multi(folder, snaps...; eos, label, downsample_xy=10, upsample_z=280)
 	i = 0
 	for snap in snaps
 		snapshot, snapshot_τ = pick_snapshot(folder, snap)
-		snapshotsresample = gresample(
-			snapshot, 
-			nz=n_vertical, 
-			nx=n_horizontal, 
-			ny=n_horizontal
-		)
+		snapshotsresample = gresample(snapshot, nz=upsample_z)
 
 		i += 1
 		output_name = "m3dis_sun_$(label)_$(i)"
@@ -589,10 +728,11 @@ function snaps2multi(folder, snaps...;
 	
 		MUST.multiBox(
 			snapshotsresample, 
-			output_name
+			output_name, 
+			downsample_xy=downsample_xy
 		)
 
-		#@info "New size: $(size(@view(ne[1:downsample_xy:end, 1:downsample_xy:end, :])))"
+		@info "New size: $(size(@view(ne[1:downsample_xy:end, 1:downsample_xy:end, :])))"
 	end
 end
 
@@ -600,7 +740,7 @@ end
 labels_new = replace.(labels, " "=>"_")
 
 # ╔═╡ b1df1501-4033-4d8a-bd67-8130c095152a
-downsample=25
+downsample=19
 
 # ╔═╡ fdf3a692-daab-49d5-8bf6-36996617349e
 output_names = ["m3dis_sun_$(label)" for (name, label) in zip(names, labels_new)]
@@ -609,10 +749,15 @@ output_names = ["m3dis_sun_$(label)" for (name, label) in zip(names, labels_new)
 aos = [@axed(eos[i]) for i in eachindex(eos)]
 
 # ╔═╡ 52fa7b28-d846-4d1c-8142-1cc1e6c68b92
+# ╠═╡ disabled = true
+#=╠═╡
 ne = [lookup(aos[i], :lnNe, log.(model_box[:d]), log.(model_box[:ee])) 
 		for (i, model_box) in enumerate(snapshotsresample)]
+  ╠═╡ =#
 
 # ╔═╡ b3b294ca-9ac2-4083-bcb5-789b48e9cb0b
+# ╠═╡ disabled = true
+#=╠═╡
 for (i, model_box) in enumerate(snapshotsresample)
 	model_box.data[:ne] = exp.(ne[i])
 	
@@ -620,21 +765,19 @@ for (i, model_box) in enumerate(snapshotsresample)
 	
 	@info "New size: $(size(@view(ne[i][1:downsample:end, 1:downsample:end, :])))"
 end
+  ╠═╡ =#
 
 # ╔═╡ f2be5e98-6545-4f37-9a20-026f4914c9f7
 md"One can alternatively also convert multiple snapshots"
 
-# ╔═╡ 389e61c2-0dd4-458a-98a5-5b787fa0e957
-label = "magg22_60x60x230"
-
 # ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
-snaps2multi(
-	out_folder[1], -4, -3, -2, -1, :recent,
+#=snaps2multi(
+	out_folder[1], -5, -4, -3, -2, -1, 
 	eos=eos[1], 
-	label=label,
-	n_horizontal=60, 
-	n_vertical=230
-)
+	label=labels_new[1],
+	downsample_xy=25, 
+	upsample_z=280
+)=#
 
 # ╔═╡ 5b28c9b8-a991-45d6-a2d1-15f24142d277
 md"## Compute a time average"
@@ -698,9 +841,9 @@ end
 # ╟─85d4b142-1529-495a-bc6d-64f5f0efa3b9
 # ╟─3d1e1cd9-5601-468d-a3f1-a3dd51177a37
 # ╟─8a8a40e0-5b03-4c17-93a3-4eccf12e3717
-# ╟─d3ef4193-11e7-478d-aa11-ba3b8adbce55
+# ╠═d3ef4193-11e7-478d-aa11-ba3b8adbce55
 # ╟─05a4e3ef-58b5-4f96-94b8-51991c971451
-# ╟─0a726cbb-1309-4071-9df1-93cd4355fb71
+# ╠═0a726cbb-1309-4071-9df1-93cd4355fb71
 # ╟─e10a8581-c0ab-4209-9e14-4d456dcf9a86
 # ╟─07815fd8-f292-4760-a950-8b56a5908acf
 # ╠═fa8e10f7-da54-4165-887f-30e740e1f264
@@ -712,21 +855,23 @@ end
 # ╟─c0347b03-fb0a-4660-a9f6-fc24272263ed
 # ╟─fcc3aaac-a5e2-45fa-9419-4aaa916fbe45
 # ╠═4c0bf79b-9b7b-4c35-a728-350a79e5eb83
+# ╟─57ea4748-eef5-44fe-8048-fe74250c58f7
+# ╟─b3b5a4ba-33a2-4250-8408-ae30f410470c
+# ╠═3523d056-a35a-4913-b3ae-558573999ceb
 # ╟─919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
 # ╟─84bd1e80-ff21-4970-a5a3-fc7452da7e6f
 # ╠═e2dde825-4e66-42e2-b541-74ec0600fc81
 # ╟─3615d990-9c9a-4e69-8f96-0e3c2ac6896b
 # ╠═a33fbc44-eade-4ef2-9a6d-87047b5cdb1f
 # ╟─5ca0a8ee-5fbf-4d76-8bfd-91c292e08cfa
-# ╠═fc232599-e4e9-42d0-b108-316897c363ce
+# ╟─fc232599-e4e9-42d0-b108-316897c363ce
 # ╠═7a023be5-46ea-4c25-857b-3f765c044a91
-# ╟─b1df1501-4033-4d8a-bd67-8130c095152a
-# ╟─fdf3a692-daab-49d5-8bf6-36996617349e
-# ╟─f3e705cf-a0a5-4905-9a07-aa6535985e01
-# ╟─52fa7b28-d846-4d1c-8142-1cc1e6c68b92
-# ╟─b3b294ca-9ac2-4083-bcb5-789b48e9cb0b
+# ╠═b1df1501-4033-4d8a-bd67-8130c095152a
+# ╠═fdf3a692-daab-49d5-8bf6-36996617349e
+# ╠═f3e705cf-a0a5-4905-9a07-aa6535985e01
+# ╠═52fa7b28-d846-4d1c-8142-1cc1e6c68b92
+# ╠═b3b294ca-9ac2-4083-bcb5-789b48e9cb0b
 # ╟─f2be5e98-6545-4f37-9a20-026f4914c9f7
-# ╠═389e61c2-0dd4-458a-98a5-5b787fa0e957
 # ╠═055f1b98-53d7-4368-bc75-d0073985d47d
 # ╟─5b28c9b8-a991-45d6-a2d1-15f24142d277
 # ╠═7837df1e-e220-4a60-944d-876b523300ad

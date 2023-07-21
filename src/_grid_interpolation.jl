@@ -191,10 +191,23 @@ end
 
 #= Interface =#
 
+"""
+    ginterpolate(grid, target_grid)
+
+Create an interpolation object and compute interpolation weights, 
+that interpolate from the grid to the target grid.
+"""
 ginterpolate(args...; kwargs...) = GridInterpolation(args...; kwargs...)
 
+"""
+    gevaluate!(ip::GridInterpolation, values::Array)
+
+Evaluate the interpolation weights for all values in `values`.
+Effectively interpolates these values to the new grid that was
+given to the interpolator `ip`.
+"""
 gevaluate!(args...; kwargs...) = interpolate_grid!(args...; kwargs...)
-gevaluate(grid_in, grid_out, values)  = begin
+gevaluate(grid_in, grid_out, values, args...; kwargs...)  = begin
     ip = ginterpolate(grid_in, grid_out)
-    evaluate!(ip, args...; kwargs...)
+    gevaluate!(ip, values, args...; kwargs...)
 end

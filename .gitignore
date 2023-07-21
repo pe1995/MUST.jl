@@ -1,5 +1,8 @@
 /Manifest.toml
 
+/.CondaPkg
+examples/*/.CondaPkg
+
 examples/*/Manifest.toml
 examples/*/slurm*
 examples/*/core.cobra*
@@ -34,6 +37,8 @@ examples/initial_models/*.dat
 examples/from_stagger/.Conda*
 examples/from_stagger/*.atmos
 examples/from_stagger/*.mesh
+examples/from_stagger/*/*.atmos
+examples/from_stagger/*/*.mesh
 
 examples/Paper_I/.Conda*
 examples/Paper_I/*.atmos

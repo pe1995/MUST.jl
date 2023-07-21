@@ -1,0 +1,6 @@
+[deps]
+ipython = ""
+matplotlib = ""
+dask = ""
+f90nml = ""
+astropy = ""

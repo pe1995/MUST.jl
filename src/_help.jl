@@ -22,7 +22,7 @@ end
 
 function _get_help_py(mod ,dir=dirname(@__FILE__))
 	sys   = pyimport("sys")
-	dir in sys."path" ? nothing : append!(sys."path",[dir])
+	Py(dir) in sys."path" ? nothing : sys."path".append(Py(dir))
     pyimport(String(mod))
 end
 
@@ -87,3 +87,23 @@ function meshgrid(ax...)
 end
 
 uniqueidx(v) = unique(i -> v[i], eachindex(v))
+
+
+
+#= Integration functions =#
+
+"""
+    integrate(x, y; [method])
+
+Integrate the values in the y array defined on the grid of the x array.
+"""
+function integrate(x, y; method=QuadGKJL())
+	mask = sortperm(x)
+	xs, ys = x[mask], y[mask]
+
+	ip = Interpolations.linear_interpolation(xs, ys)
+	func(xi, p) = ip(xi)
+
+	prob = IntegralProblem(func, first(xs), last(xs))
+	solve(prob, method).u
+end

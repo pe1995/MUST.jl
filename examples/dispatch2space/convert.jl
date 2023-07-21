@@ -1,8 +1,8 @@
 using Pkg; Pkg.activate("."); #Pkg.update(); 
 using MUST
 using Glob
-using PyCall
 using Distributed, SlurmClusterManager#, ParallelDataTransfer
+PythonCall = MUST.PythonCall
 
 if "SLURM_NTASKS" in keys(ENV)
     addprocs(SlurmManager())
@@ -12,16 +12,17 @@ if "SLURM_NTASKS" in keys(ENV)
     end
 else
     @warn "No Slurm environment detected. Using default addprocs."
-    addprocs(2)
+    addprocs(3)
 end
 
 @everywhere begin
     using Pkg; Pkg.activate("."); #Pkg.update(); 
     using MUST
     using Glob
-    using PyCall
     using Distributed
     using Interpolations
+
+    PythonCall = MUST.PythonCall
 end
 
 @everywhere begin
@@ -38,8 +39,10 @@ else
     content_of_folder = glob("*/", folder)
     snapshots         = sort(MUST.list_of_snapshots(content_of_folder))
     
-    #istart = max(1, length(snapshots)-2)
-    #snapshots = snapshots[istart:end-1]
+    if !("SLURM_NTASKS" in keys(ENV))
+        istart = max(1, length(snapshots)-4)
+        snapshots = snapshots[istart:end-2]
+    end
 end
 
 # Name of the namelist of the current folder
@@ -69,7 +72,7 @@ MUST.sendsync(workers(), folder=folder, do_teff=save_info, ini_nml=nml, eos=eos_
 @everywhere function convert_snapshots(snapshots)
     for i_s in eachindex(snapshots)
         @info "Converting snapshot $(snapshots[i_s]) on worker $(myid())"
-        try
+        if true
             # The dispatch snapshot object (Python)
             snap = dispatch.snapshot(snapshots[i_s], data=folder)
 
@@ -88,11 +91,11 @@ MUST.sendsync(workers(), folder=folder, do_teff=save_info, ini_nml=nml, eos=eos_
                 MUST.convert!(s, units; d=:d, ee=:ee, e=:e, 
                                     qr=:qr, pg=:p,
                                     ux=:u, uy=:u, uz=:u,
-                                    x=:l, y=:l, z=:l)
+                                    x=:l, y=:l, z=:l, time=:t)
             else
                 MUST.convert!(s, units; d=:d, ee=:ee, e=:e, 
                                     ux=:u, uy=:u, uz=:u,
-                                    x=:l, y=:l, z=:l)
+                                    x=:l, y=:l, z=:l, time=:t)
             end
 
             # Add additional columns already in CGS after converting
@@ -125,7 +128,7 @@ MUST.sendsync(workers(), folder=folder, do_teff=save_info, ini_nml=nml, eos=eos_
             #MUST.save(s;   name="space_sn$(snapshots[i_s])", folder=folder)
             MUST.save(b_s; name="box_tau_sn$(snapshots[i_s])",   folder=folder)
 
-        catch
+        else
             @warn "snapshot $(snapshots[i_s]) could not be loaded."
             continue
         end

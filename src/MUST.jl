@@ -1,7 +1,7 @@
 module MUST
 
 #= Julia modules =#
-using PyCall
+using PythonCall
 using DataFrames
 using CSV
 using FortranFiles
@@ -12,13 +12,14 @@ using Random
 using Interpolations
 using Glob
 using Distributed
-#using NumericalIntegration
 using ArgParse
 using DelimitedFiles
 using TimerOutputs
 using NetCDF
+using Integrals
 import Base.filter, Base.filter!
 import Base.getindex
+import Base.getproperty
 import Base.length
 import Base.keys
 import Base.read!, Base.write
@@ -27,12 +28,12 @@ import Base.Broadcast.broadcastable
 
 
 #= Python modules =#
-const numpy             = PyNULL()
-const scipy_interpolate = PyNULL()
+const numpy             = PythonCall.pynew()
+const scipy_interpolate = PythonCall.pynew()
 
 __init__() = begin 
-    copy!(scipy_interpolate,pyimport("scipy.interpolate"))
-    copy!(numpy,pyimport("numpy"))
+    PythonCall.pycopy!(scipy_interpolate,pyimport("scipy.interpolate"))
+    PythonCall.pycopy!(numpy,pyimport("numpy"))
 end
 
 
@@ -66,13 +67,16 @@ end
 
 #= MUST interface =#
 export import_dispatch, in_dispatch
-export Space, spacebox, Box, add!
+export Space, spacebox, Box, add!, profile
+export multiBox
 export pick_snapshot
-export ginterpolate, gevaluate, gevaluate!
+export ginterpolate, gevaluate, gevaluate!, gresample
+export plane_statistic 
 #export read!, write
 
 
 #= Julia code files =#
+include("_constants.jl")
 include("_argparse.jl")
 include("_grids.jl")
 include("_grid_interpolation.jl")
@@ -89,6 +93,7 @@ include("_mustgrid.jl")
 include("_stagger_grid.jl")
 include("_initial_conditions.jl")
 include("_running.jl")
+include("_multi.jl")
 include("_atmos2legacy.jl")
 include("_atmos2multi.jl")
 

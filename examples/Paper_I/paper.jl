@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.25
+# v0.19.26
 
 using Markdown
 using InteractiveUtils
@@ -15,6 +15,7 @@ begin
 	using LaTeXStrings
 	using Printf
 	using KernelDensity
+	using DelimitedFiles
 end
 
 # ╔═╡ def9d891-401b-44ec-a38a-fbd06c240e83
@@ -129,6 +130,7 @@ md"### Data"
 names_res = [
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
@@ -136,7 +138,8 @@ names_res = [
 out_folder_res = [
 	"models/sun_5bins_lres",
 	"models/sun_5bins_ires",
-	"models/sun_5bins_hres"
+	"models/sun_5bins_hres",
+	"models/sun_5bins_rtres"
 ]
 
 # ╔═╡ 0912c3c4-2fa4-4f16-82aa-d6582028ba26
@@ -146,14 +149,15 @@ in_folder_res = [MUST.@in_dispatch "input_data/grd/$(name)" for name in names_re
 eos_folder_res = [
 	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
 	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
+	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"),
 	MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35")
 ]
 
 # ╔═╡ a6668016-fbb0-43de-be05-879bb4dd4b26
-colors_res = ["limegreen", "tomato", "turquoise"]
+colors_res = ["limegreen", "tomato", "turquoise", "violet"]
 
 # ╔═╡ 54450d4a-90ef-4089-a73e-9ad01a19b813
-ls_res = ["-", "-", "-"]
+ls_res = ["-", "-", "-", "-", "-"]
 
 # ╔═╡ 908ba257-018e-4cd3-afe2-08498d0be47e
 begin
@@ -212,7 +216,7 @@ begin
 
 	rms5(x) = rms(x) ./ 1e5
 
-	ls_res_2 = [":", "--", "-"]
+	ls_res_2 = [":", "--", "-", "-.", ":"]
 
 	# Stagger model
 	#=ax_res1[1].plot(profile(mean, stagger_τ, :log10τ_ross, :T)..., 
@@ -333,13 +337,13 @@ md"## B) Full 3D structure
 From the resolution tests, we pick the best model and have a look at the full 3D structure."
 
 # ╔═╡ edbc29f7-7310-4cb9-ae36-7ed64125a3a6
-i_best = 3
+i_best = 4
 
 # ╔═╡ e16a3f22-b778-4467-860f-0022648672bb
 begin
 	close()
 	
-	ft, axt = cube_with_velocities(snapshots_res[i_best], vmax_3d=15500)
+	#ft, axt = cube_with_velocities(snapshots_res[i_best], vmax_3d=15500)
 
 	gcf()
 end
@@ -372,33 +376,6 @@ function get_density(xin, yin)
 	dd ./= maximum(dd)
 	xx, yy, dd
 end
-
-# ╔═╡ 2f75525a-3049-424e-9bf7-842d640a77ee
-# ╠═╡ disabled = true
-#=╠═╡
-xx_T, yy_T, dd_T = get_density(
-	log10.(snapshots_res[i_best][:τ_ross]),
-	snapshots_res[i_best][:T]
-)
-  ╠═╡ =#
-
-# ╔═╡ 83d82b5f-e132-4625-817e-b44e0cb6d3b8
-# ╠═╡ disabled = true
-#=╠═╡
-xx_d, yy_d, dd_d = get_density(
-	log10.(snapshots_res[i_best][:τ_ross]),
-	log10.(snapshots_res[i_best][:d])
-)
-  ╠═╡ =#
-
-# ╔═╡ e5d2bb57-c85a-4f41-b868-67c1c80af16e
-# ╠═╡ disabled = true
-#=╠═╡
-xx_u, yy_u, dd_u = get_density(
-	log10.(snapshots_res[i_best][:τ_ross]),
-	abs.(snapshots_res[i_best][:uz] ./1e5)
-)
-  ╠═╡ =#
 
 # ╔═╡ 799c9bb0-7f9d-4b3c-9c56-94789108f194
 begin
@@ -570,7 +547,7 @@ md"## Extra) Convert to M3D format
 labels_new_res = [last(split(f, "/")) for f in deepcopy(out_folder_res)]
 
 # ╔═╡ 3128bf5c-151d-4f54-8a38-544833c65a37
-downsample_res = [10, 20, 50]
+downsample_res = [10, 20, 50, 20]
 
 # ╔═╡ 8597a8f6-1fde-4bd5-867b-10f1a6cf20f4
 output_names_res = [
@@ -585,12 +562,44 @@ aos_res = [@axed(eos_res[i]) for i in eachindex(eos_res)]
 ne_res = [lookup(aos_res[i], :lnNe, log.(model_box[:d]), log.(model_box[:ee])) 
 			for (i, model_box) in enumerate(snapshots_res)]
 
+# ╔═╡ ffa3bb64-2e9e-4e89-9bc6-862a26e833af
+function save_tau(model, path)
+	x, y = profile(mean, model, :log10τ_ross, :T)
+	x2, y2 = profile(mean, model, :log10τ_ross, :d)
+
+	@assert x==x2
+	
+	open(path; write=true) do f
+    	write(f, "# tau_ross,T,d\n")
+        writedlm(f, [x y y2], ',')
+    end
+end
+
+# ╔═╡ 01a11645-2464-4e4c-8ac4-e9adc40c9a52
+function save_z(model, path)
+	x, y = profile(mean, model, :z, :T)
+	x2, y2 = profile(mean, model, :z, :d)
+
+	@assert x==x2
+	
+	
+	open(path; write=true) do f
+    	write(f, "# z,T,d\n")
+        writedlm(f, [x y y2], ',')
+    end
+end
+
 # ╔═╡ 41c5b6b7-f168-4137-ae48-2fdce6b3e3ca
 for (i, model_box) in enumerate(snapshots_res)
 	model_box.data[:ne] = exp.(ne_res[i])
 	
 	MUST.multiBox(model_box, joinpath(out_folder_res[i], output_names_res[i]), 
 						downsample_xy=downsample_res[i])
+
+	save_tau(snapshots_τ_res[i], 
+		joinpath(out_folder_res[i], output_names_res[i]*"_av_tau.txt"))
+	save_z(snapshots_res[i], 
+		joinpath(out_folder_res[i], output_names_res[i]*"_av_z.txt"))
 	
 	@info "New size ($(output_names_res[i])): $(size(
 		@view(ne_res[i][1:downsample_res[i]:end, 1:downsample_res[i]:end, :]))
@@ -634,11 +643,11 @@ end
 # ╟─f30715f9-918a-4e05-b2ce-50bd7df9d223
 # ╟─fb73d428-e189-41db-861f-c0ea17217758
 # ╠═ffa7c65d-0df5-412a-a3e9-0436dee447c2
-# ╠═f53c1ebb-dbed-412e-803a-d010223c934b
+# ╟─f53c1ebb-dbed-412e-803a-d010223c934b
 # ╠═aa03989d-7e6e-452d-86f3-ddc9c25c6e41
 # ╟─9b59e8f3-df44-43a5-940a-528215b8fc94
 # ╟─44d2a5ea-89ee-453b-8028-f4d093b6f93a
-# ╠═4735928b-6a80-4915-b23f-8852251cf77f
+# ╟─4735928b-6a80-4915-b23f-8852251cf77f
 # ╟─66862a2b-b0cd-485a-9dc4-d74b20a1fe26
 # ╟─bb3695ef-eaac-4953-b129-1e219d5c2606
 # ╠═edbc29f7-7310-4cb9-ae36-7ed64125a3a6
@@ -648,11 +657,13 @@ end
 # ╠═2f75525a-3049-424e-9bf7-842d640a77ee
 # ╠═83d82b5f-e132-4625-817e-b44e0cb6d3b8
 # ╠═e5d2bb57-c85a-4f41-b868-67c1c80af16e
-# ╟─799c9bb0-7f9d-4b3c-9c56-94789108f194
+# ╠═799c9bb0-7f9d-4b3c-9c56-94789108f194
 # ╟─17969398-3ba2-4f41-b98c-f39a04c2cdec
 # ╠═cf368d28-1b44-4bb4-b34c-5029187b7b40
 # ╠═3128bf5c-151d-4f54-8a38-544833c65a37
 # ╠═8597a8f6-1fde-4bd5-867b-10f1a6cf20f4
 # ╠═508bbc3f-0cbb-49f5-809c-6335fa5e1252
 # ╠═050e49df-d5e4-47f1-8311-714924488bce
+# ╠═ffa3bb64-2e9e-4e89-9bc6-862a26e833af
+# ╠═01a11645-2464-4e4c-8ac4-e9adc40c9a52
 # ╠═41c5b6b7-f168-4137-ae48-2fdce6b3e3ca

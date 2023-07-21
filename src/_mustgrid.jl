@@ -34,7 +34,7 @@ RangeMUSTGrid(info::DataFrame; t::Type=Float64, phase="phase1") = RangeMUSTGrid(
 
 IdentityMUSTGrid(; phase="phase_identity") = IdentityMUSTGrid(phase, DataFrame())
 
-RestartMUSTGrid(from::AbstractMUSTGrid; grid::T=T(), phase="phase2") where {F, T<:Dict{Symbol, Dict{String, Vector{F}}}} = begin
+RestartMUSTGrid(from::AbstractMUSTGrid; grid::T=T(), phase="phase2") where {F<:Any, T<:Dict{Symbol, Dict{String, Vector{F}}}} = begin
     from_phase = from.name
     grid_in = Dict{Symbol, Dict{String, Vector{Any}}}()
     grid    = deepcopy(grid)

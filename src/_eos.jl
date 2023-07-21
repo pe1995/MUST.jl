@@ -8,7 +8,7 @@ RangeOrVector = Union{R where {R<:AbstractRange}, Vector{F} where {F<:Integer}}
 Wrapper for python EOS.
 """
 struct PythonEOS <: AbstractEOS
-    eos          :: PyObject
+    eos          :: Py
     variables    :: Vector{Symbol}
     log_variable :: Vector{Bool}
 end

@@ -1,0 +1,11 @@
+[deps]
+cmake = ""
+ipython = ""
+pandas = ""
+matplotlib = ""
+dask = ""
+imageio = ""
+numpy = ""
+scipy = ""
+astropy = ""
+f90nml = ""
