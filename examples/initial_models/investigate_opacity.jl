@@ -25,7 +25,9 @@ md"## Formation opacity"
 table = "/home/eitner/shared/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_v1.4"
 
 # ╔═╡ 547dd066-f6c8-46b0-943e-809baaf4ecd1
-star = "t45g20m00"
+begin
+	star = ARGS[1] 
+end
 
 # ╔═╡ 9cab4a03-4ca6-4ea8-9c6c-efd73954cb67
 formOpa = reload(
@@ -51,6 +53,8 @@ begin
 	
 	plot!(log10.(formOpa.λ), -log10.(formOpa.κ_ross), 
 		label=nothing, color=:black, ticklength=20)
+
+	savefig("form_opacity_$(star).png")
 end
 
 # ╔═╡ fc83f1c9-18cf-469a-98cd-9d67134575de
@@ -129,6 +133,8 @@ begin
 
 	plot!(xlim=(-8, 5.5))
 	plot!(legend=:bottomleft)
+
+	savefig(joinpath(star_folder, "heating_rate_$(star).png"))
 end
 
 # ╔═╡ b9a4e5c2-ac32-46c7-9ab0-9cf4357d0ea6
@@ -142,6 +148,8 @@ begin
 
 	plot!(xlim=(-8, 5.5), ylim=(-.5,0.5))
 	plot!(legend=:topright)
+
+	savefig(joinpath(star_folder, "heating_rate_rel_$(star).png"))
 end
 
 # ╔═╡ Cell order:
