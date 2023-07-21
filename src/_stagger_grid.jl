@@ -38,3 +38,20 @@ end
 #= Saving =#
 
 save(grid::StaggerGrid, path) = CSV.write(path, grid.info)
+
+
+
+#= Interpolation =#
+ 
+function interpolate_quantity(grid, what; teff, logg, feh, method="linear")
+	logg_gr = grid.info[!, "logg"]
+	teff_gr = grid.info[!, "teff"]
+	feh_gr  = grid.info[!, "feh"]
+	what_gr = grid.info[!, what]
+	
+
+	first(sci.griddata(
+		(logg_gr, teff_gr, feh_gr), what_gr, ([logg], [teff], [feh]), 
+		method=method)
+	)
+end

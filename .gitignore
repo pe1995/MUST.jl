@@ -32,7 +32,7 @@ examples/dispatch2space/data
 
 examples/initial_models/*
 examples/initial_models/*.dat
-examples/initial_models/*.mgrid
+!examples/initial_models/*.mgrid
 
 examples/from_stagger/.Conda*
 examples/from_stagger/*.atmos

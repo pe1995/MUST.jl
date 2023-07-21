@@ -11,6 +11,9 @@ begin
 	using TSO
 	using MUST
 	using Plots
+	using Printf
+	using DataFrames
+	using DelimitedFiles
 end
 
 # ╔═╡ 42366c64-3395-4cdb-8c3c-d1f4a8706df6
@@ -21,17 +24,11 @@ One approach to compute initial conditions from the avarege Stagger grid is to i
 md"## Stagger average grid"
 
 # ╔═╡ b09f2438-d4f0-46c9-987f-77c0a25830a8
-grid = MUST.StaggerGrid("dispatch_grid.mgrid");
-
-# ╔═╡ ca27fb93-0f95-4240-a56e-ec6770185b51
-@info(grid)
+grid = MUST.StaggerGrid("dispatch_grid.mgrid")
 
 # ╔═╡ 776246d4-6b64-4338-8383-c9a4fc190bb1
 md"## Adiabats from this grid
 We can construct adiabats for each of the grid points by converting them to an optical model, and assume that e.g. at optical depth 5 the atmosphere is fully adiabatic"
-
-# ╔═╡ 8628054c-7d59-40b9-b853-faa875513dd4
-names(grid.info)
 
 # ╔═╡ 574afe0c-3923-47e8-8fbb-a3c44a67c591
 begin
@@ -111,7 +108,7 @@ end
 
 # ╔═╡ 5b509c37-bd8d-4f92-8206-4b85184adeef
 begin
-	"""
+	#="""
 		adiabat(model; kwargs...)
 	
 	Construct a 1D adiabatic model by integrating from the bottom to the top. 
@@ -334,7 +331,7 @@ begin
 		TSO.Model1D(z=z, lnρ=log.(d), lnT=log.(t), lnEi=log.(ee),
 						logg=star_point.logg)
 	end
-
+	=#
 	adiabat(grid, name::String; kwargs...) = begin
 		eos, opa = equation_of_state(grid, name; energy=true)
 		model = initial_model(grid, name)
@@ -352,7 +349,7 @@ begin
 		start_point = pick_point(model, 1)
 		end_point = pick_point(model, length(model.z))
 		
-		adiabat(start_point, end_point, eos; kwargs...)
+		TSO.adiabat(start_point, end_point, eos; kwargs...)
 	end
 end
 
@@ -479,7 +476,7 @@ function interpolate_adiabat(grid; teff, logg, feh, kwargs...)
 	sm = TSO.Model1D(z=[zs_m], lnρ=[ds_m], lnT=[ts_m])
 	em = TSO.Model1D(z=[ze_m], lnρ=[de_m], lnT=[te_m])
 
-	am = adiabat(sm, em, eos; kwargs...)
+	am = TSO.adiabat(sm, em, eos; kwargs...)
 
 	sm, em, am
 end
@@ -527,10 +524,6 @@ function interpolate_average(grid; teff, logg, feh, common_size=1000, kwargs...)
 	teff_gr = grid.info[!, "teff"]
 	feh_gr  = grid.info[!, "feh"]
 	
-	# get an eos from the closest model in chemistry and maybe size,
-	# the same for all of them for now
-	eos, opa = equation_of_state(grid, String(grid.info[!, "name"][1]); energy=true)
-
 	# read all average models and interpolate them to the same number of points
 	models = [initial_model(grid, String(name))
 					for name in grid.info[!, "name"]]
@@ -577,7 +570,7 @@ begin
 		plot!(-mi.z, mi.lnT, label="teff: $(teff), logg: $(logg)")
 	end
 	
-	scatter!(-im.z, im.lnT, color=:black, lw=3)
+	scatter!(-im.z, im.lnT, color=:black, lw=3, label="interpolated")
 	#hline!(sm.lnT, color=:red)
 	#hline!(em.lnT, color=:red)
 
@@ -598,16 +591,118 @@ md"## End-to-end generation of models on the HRD
 The goal is to generate any model on the HRD by using the grid and a teff + logg. This function should create the initial adiabat for the interpolated boundaries, and then interpolate every single quantity in the table. The `mi_z`, `ma_z`, etc. might need a little adjustment in order to fit into the intial adiabat. After everything is interpolated, it should be saved as a namelist and copy the EoS over. This is the most important issue I see with this approach: It makes it impossible to re-compute the binning, one has to reply that the next closest model is reasonably close."
 
 # ╔═╡ 6dce1923-3826-4366-ba94-fd56a663a6b1
-md"An alternative is to also interpolate the average model, such that every point, including the z axis, is interpolated."
+md"An alternative is to also interpolate the average model, such that every point, including the z axis, is interpolated.
+All quantities that need to be present for the prepare script to work are the following:
+`folder,mesh,name,snapshot,
+teff,logg,feh,
+mi_x,ma_x,mi_y,ma_y,mi_z,ma_z,
+vmin,vmax,tscale,
+hres,
+av_path`.
+So in this case, even the initial Stagger grid without additional opacity information might be entirely sufficient at this stage."
+
+# ╔═╡ f083bfc2-7746-440c-ace4-3b72c4f5a031
+stagger_grid = MUST.StaggerGrid("stagger_grid.mgrid")
+
+# ╔═╡ 533639ab-1145-46f4-826d-450006a060b8
+function interpolate_quantity(grid, what; teff, logg, feh, method="linear")
+	logg_gr = grid.info[!, "logg"]
+	teff_gr = grid.info[!, "teff"]
+	feh_gr  = grid.info[!, "feh"]
+	what_gr = grid.info[!, what]
+	
+
+	first(sci.griddata(
+		(logg_gr, teff_gr, feh_gr), what_gr, ([logg], [teff], [feh]), 
+		method=method)
+	)
+end
+
+# ╔═╡ 7f340021-9ad0-4141-bd99-fba252033f29
+begin
+	resolution(model) = minimum(abs.(diff(model.z)))
+	Δt(R, u, c=1.0) = c * R / u
+	scaling(δt, goal_scale=1e-3) = exp10.(round(log10(δt / goal_scale), sigdigits=1))
+end
+
+# ╔═╡ 499c6385-4240-4e1d-befc-905716d8b58e
+function interpolate_from_grid(grid; teff, logg, feh)
+	logg_gr = grid.info[!, "logg"]
+	teff_gr = grid.info[!, "teff"]
+	feh_gr  = grid.info[!, "feh"]
+
+	# create the iniitial model from interpolating the average snapshots
+	model = interpolate_average(grid, teff=teff, logg=logg, feh=feh)
+
+	folder = "interpolated"
+	mesh   = "interpolated"
+
+	name = "t$(teff/1000)g$(logg*10)m$(feh)"
+	snapshot = "interpolated"
+	ma_x = interpolate_quantity(grid, "ma_x"; teff=teff, logg=logg, feh=feh)
+	ma_y = interpolate_quantity(grid, "ma_y"; teff=teff, logg=logg, feh=feh)
+	mi_z = minimum(model.z)
+	ma_z = maximum(model.z)
+	vmin = interpolate_quantity(grid, "vmin"; teff=teff, logg=logg, feh=feh)
+	vmax = interpolate_quantity(grid, "vmax"; teff=teff, logg=logg, feh=feh)
+	
+	tscale = round(
+		interpolate_quantity(grid, "tscale"; teff=teff, logg=logg, feh=feh),
+		sigdigits=1
+	)
+	
+	hres = interpolate_quantity(grid, "hres"; teff=teff, logg=logg, feh=feh)
+
+	av_path = abspath("$(name)_00001_av.dat")
+	open(av_path, "w") do f
+        writedlm(f, [-reverse(model.z) reverse(exp.(model.lnT)) reverse(model.lnρ)])
+    end
+	
+	MUST.StaggerGrid(
+        "interpolated",
+        DataFrame(
+		Dict(
+			"name"     => name,
+            "folder"   => folder,
+            "mesh"     => mesh,
+			"snapshot" => snapshot,
+			"ma_x"     => ma_x,
+			"mi_x"     => 0.0,
+			"ma_y"     => ma_y,
+			"mi_y"     => 0.0,
+			"ma_z"     => ma_z,
+			"mi_z"     => mi_z,
+			"vmin"     => vmin,
+			"vmax"     => vmax,
+			"tscale"   => tscale,
+			"hres"     => hres,
+			"av_path"  => av_path,
+			"teff"     => teff,
+			"logg"     => logg,
+			"feh"      => feh
+		    )
+	    )
+    )
+end
+
+# ╔═╡ 4d2e44dd-549a-4670-9772-1d720167ae9b
+ig = interpolate_from_grid(grid, teff=6000.0, logg=4.5, feh=0.0)
+
+# ╔═╡ 3e72b7f6-7291-4cb8-95bd-9d84973fba04
+md"This can now be appended to the original stagger grid, which can then be loaded in the normal prepare script and the opacities are binned etc."
+
+# ╔═╡ ba740ad9-76b2-46c0-9999-e09dbed81eb4
+new_grid = vcat(stagger_grid.info, ig.info)
+
+# ╔═╡ 628cea0e-dacb-4b81-b7f9-dfab22eeeb2f
+md"The new grid can now be saved and the average model will be handled as if it were computed from the full 3D Stagger cube."
 
 # ╔═╡ Cell order:
 # ╟─42366c64-3395-4cdb-8c3c-d1f4a8706df6
 # ╠═de2144f0-0f5d-11ee-3765-7b42d60dc151
 # ╟─548c36a3-3054-465f-90b4-e7ae058d5b02
 # ╠═b09f2438-d4f0-46c9-987f-77c0a25830a8
-# ╠═ca27fb93-0f95-4240-a56e-ec6770185b51
 # ╟─776246d4-6b64-4338-8383-c9a4fc190bb1
-# ╠═8628054c-7d59-40b9-b853-faa875513dd4
 # ╟─574afe0c-3923-47e8-8fbb-a3c44a67c591
 # ╟─4d2583c8-e5d0-4b76-b8ad-2303b4bd8e5a
 # ╠═d6c53eed-2c03-4103-8b52-1f420fce7ed2
@@ -636,3 +731,11 @@ md"An alternative is to also interpolate the average model, such that every poin
 # ╟─342755c5-7f69-455d-8c1e-bd6a491063a8
 # ╟─37fea989-8640-4318-9da9-8d0342994ea3
 # ╟─6dce1923-3826-4366-ba94-fd56a663a6b1
+# ╠═f083bfc2-7746-440c-ace4-3b72c4f5a031
+# ╟─533639ab-1145-46f4-826d-450006a060b8
+# ╟─7f340021-9ad0-4141-bd99-fba252033f29
+# ╟─499c6385-4240-4e1d-befc-905716d8b58e
+# ╠═4d2e44dd-549a-4670-9772-1d720167ae9b
+# ╟─3e72b7f6-7291-4cb8-95bd-9d84973fba04
+# ╠═ba740ad9-76b2-46c0-9999-e09dbed81eb4
+# ╟─628cea0e-dacb-4b81-b7f9-dfab22eeeb2f
