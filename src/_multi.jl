@@ -85,13 +85,38 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
     M3DISRun(joinpath(nml.io_params["datadir"], model_name))
 end
 
+"""
+    heating(model_name, args...; kwargs...)
+
+Compute the radiative heating within the given model.
+"""
+function heating(model_name::String, opacity_table=nothing; slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict())
+    isnothing(multi_location) && error("No Multi module has been loaded.")
+
+    binned_ext = isnothing(opacity_table) ? "_unbinned" : "_binned"
+
+    # Create the default namelist (with adjustments)
+    nml = heating_namelist(model_name, opacity_table; namelist_kwargs...)
+    write(nml, @in_m3dis("$(model_name)$(binned_ext).nml"))
+
+    # run multi (with waiting)
+    if slurm
+        srun_m3dis("$(model_name)$(binned_ext).nml"; wait=true, m3dis_kwargs...)
+    else
+        run_m3dis("$(model_name)$(binned_ext).nml"; wait=true, m3dis_kwargs...)
+    end
+
+    # read the output
+    M3DISRun(joinpath(nml.io_params["datadir"], "$(model_name)$(binned_ext)"))
+end
+
 
 
 
 
 #= Effective temperature computations =#
 
-flux(run, norm=true) = begin
+flux(run; norm=true) = begin
     norm ? (run.lam, run.flux ./ run.flux_cnt) : (run.lam, run.flux)
 end
 

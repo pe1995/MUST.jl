@@ -7,13 +7,23 @@ using InteractiveUtils
 # ╔═╡ 433c5690-2705-11ee-0b29-f9ac4b2948e6
 # ╠═╡ show_logs = false
 begin
-	using Pkg; Pkg.activate(".");
-	import MUST
-	using Plots	
+	using Pkg; Pkg.activate("."); 
+	using MUST
+	using PythonPlot	
+	using LaTeXStrings
 end
 
 # ╔═╡ caf8295a-4fc7-4b48-b2d4-b1140b42c44b
 md"# MUST & M3D"
+
+# ╔═╡ a73a987f-aae3-484d-9a96-b5c79754d22a
+visual = MUST.ingredients("visual.jl")
+
+# ╔═╡ c4c30863-3676-42f8-b13b-37692c3c4d40
+plt = PythonPlot.matplotlib.pyplot
+
+# ╔═╡ 0b3db435-1e02-4852-b881-b7b997b78e4a
+PythonPlot.matplotlib.rcParams["font.size"] = 12
 
 # ╔═╡ 8ee46151-9205-4e8b-ab33-636003bc713c
 pc(x) = MUST.pyconvert(Any, x)
@@ -33,10 +43,19 @@ md"## Model Atmospheres
 Pick the model atmosphere. It should either be located in input_multi3d/MUST or the correct folder should be given to the namelist function."
 
 # ╔═╡ 766cfb9d-6084-4cde-8856-d3f3c6509abe
-modelatmos = "m3dis_sun_magg22_10x10x280_5"
+modelatmos = "m3dis_sun_magg22_10x10x230_3"
 
 # ╔═╡ 1a9a7946-fda5-4e01-b715-c3c36c1bf6ea
-modelatmosfolder = "input_multi3d/sun_magg_120x240/"
+modelatmosfolder = "input_multi3d/magg2022_150x300/"
+
+# ╔═╡ 76bfd78b-0d58-4c59-9587-4b7627a2d357
+snapshots = [
+	"m3dis_sun_magg22_10x10x230_1",
+	"m3dis_sun_magg22_10x10x230_2",
+	"m3dis_sun_magg22_10x10x230_3",
+	"m3dis_sun_magg22_10x10x230_4",
+	"m3dis_sun_magg22_10x10x230_5"
+]
 
 # ╔═╡ 573b2070-18e5-4e53-8393-76549f2efce5
 md"## Line List
@@ -53,27 +72,87 @@ md"## Running M3D
 Running M3D is then straight forward. One can either run this within an slurm allocation as a job step, directly run it as a new slurm job, or turn off slurm entirely. In the latter M3D will be run interactively. Please make sure you have enough resources available in this case. If you are using a line list this might easily not be the case. So be aware of that.\
 If you have compiled ```M3D``` for a MPI system, it might be possible that you need to recompile without MPI for your interactive runs!"
 
+# ╔═╡ ecc8099e-ead7-4826-b17a-bb5b1787bfd2
+compute = true
+
 # ╔═╡ ac2ba741-52f9-4192-837e-79d760548805
-#=m3load = MUST.whole_spectrum(
-	modelatmos, 
-	namelist_kwargs=(
-		:model_folder=>modelatmosfolder,
-		:linelist=>nothing,
-		:absmet=>nothing
-	),
-	slurm=false
-)=#
+begin
+	m3druns = if compute
+		m3load = []
+		for snap in snapshots
+			m3load_i = MUST.whole_spectrum(
+				snap, 
+				namelist_kwargs=(
+					:model_folder=>modelatmosfolder,
+					:linelist=>linelist,
+					:absmet=>nothing
+				),
+			)
+	
+			append!(m3load, [m3load_i])
+		end
+		
+		m3load
+	else
+		MUST.M3DISRun.(joinpath.("data", snapshots))
+	end
+end
 
 # ╔═╡ 87b0d3a3-1b62-49d6-bc1c-36ae26ef314f
 md"## Computing Teff
 The effective temperature is computed from integrating the Flux."
 
 # ╔═╡ 3f6a9327-35fc-4e82-bf5d-f9c1e0d658e8
-@info "Teff of $(modelatmos): $(MUST.Teff(m3load))"
+for (i, m) in enumerate(m3druns)
+	@info "Teff of $(snapshots[i]): $(MUST.Teff(m))"
+end
+
+# ╔═╡ d74a883f-39f6-4675-bf1f-a14032fca71d
+begin
+	plt.close()
+	fS, axS = plt.subplots(1, 1, figsize=(5, 5))
+	visual.basic_plot!(axS)
+
+	axS.plot(
+		MUST.Teff.(m3druns), 
+		color="k", 
+		marker="s",
+		markerfacecolor="white",
+		markersize=8,
+		lw=1
+	)
+
+	axS.set_xlabel(L"\rm snapshot")
+	axS.set_ylabel(L"\rm T_{eff}\ [K]")
+	
+	gcf()
+end
+
+# ╔═╡ 7fb7723f-0960-4735-8442-5e25d8a60783
+begin
+	plt.close()
+	fF, axF = plt.subplots(1, 1, figsize=(5, 5))
+	visual.basic_plot!(axF)
+
+	axF.plot(
+		MUST.flux(m3druns[4], norm=false)..., 
+		color="k", 
+		marker="",
+		lw=1
+	)
+
+	axF.set_xlabel(L"\rm \lambda\ [\AA]")
+	axF.set_ylabel(L"\rm flux\ [normalized]")
+	
+	gcf()
+end
 
 # ╔═╡ Cell order:
 # ╟─caf8295a-4fc7-4b48-b2d4-b1140b42c44b
 # ╠═433c5690-2705-11ee-0b29-f9ac4b2948e6
+# ╠═a73a987f-aae3-484d-9a96-b5c79754d22a
+# ╠═c4c30863-3676-42f8-b13b-37692c3c4d40
+# ╠═0b3db435-1e02-4852-b881-b7b997b78e4a
 # ╟─8ee46151-9205-4e8b-ab33-636003bc713c
 # ╟─814bb5f5-5e9c-4fda-b04b-48485600bff3
 # ╠═59848375-b439-46b1-8180-f3323cb966eb
@@ -81,10 +160,14 @@ The effective temperature is computed from integrating the Flux."
 # ╟─27a33e87-425d-40ae-ae1c-15202fbe6d61
 # ╠═766cfb9d-6084-4cde-8856-d3f3c6509abe
 # ╠═1a9a7946-fda5-4e01-b715-c3c36c1bf6ea
+# ╠═76bfd78b-0d58-4c59-9587-4b7627a2d357
 # ╟─573b2070-18e5-4e53-8393-76549f2efce5
 # ╠═1bd3e93c-0f57-4cf6-ace5-1f2f4fe9d57f
 # ╠═fc1859d9-4a45-4372-95ad-403134ce7370
 # ╟─908e3e3c-cd57-4221-967a-256e46246055
+# ╠═ecc8099e-ead7-4826-b17a-bb5b1787bfd2
 # ╠═ac2ba741-52f9-4192-837e-79d760548805
 # ╟─87b0d3a3-1b62-49d6-bc1c-36ae26ef314f
-# ╠═3f6a9327-35fc-4e82-bf5d-f9c1e0d658e8
+# ╟─3f6a9327-35fc-4e82-bf5d-f9c1e0d658e8
+# ╟─d74a883f-39f6-4675-bf1f-a14032fca71d
+# ╠═7fb7723f-0960-4735-8442-5e25d8a60783

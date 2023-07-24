@@ -40,6 +40,27 @@ macro get_help_py(mod, dir)
     :($(mod_e) = _get_help_py($(QuoteNode(mod_s)), $path_esc))
 end
 
+
+
+include_helper(name) = joinpath(dirname(@__FILE__), name)
+
+function ingredients(path::String)
+	# this is from the Julia source code (evalfile in base/loading.jl)
+	# but with the modification that it returns the module instead of the last object
+	path = include_helper(path)
+	name = Symbol(basename(path))
+	m = Module(name)
+	Core.eval(m,
+        Expr(:toplevel,
+             :(eval(x) = $(Expr(:core, :eval))($name, x)),
+             :(include(x) = $(Expr(:top, :include))($name, x)),
+             :(include(mapexpr::Function, x) = $(Expr(:top, :include))(mapexpr, $name, x)),
+             :(include($path))))
+	m
+end
+
+
+
 """
 Split array arr in nsplits roughly equal junks.
 If mask=true the indices will be returned.

@@ -299,14 +299,14 @@ end
 _whole_spectrum_namelist!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
-	atmos_params=(:dims=>12, :atmos_format=>"MUST", :use_density=>true),
+	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_density=>true),
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
 				:lvlcheck=>1,
                 :n_nu=>200, :maxiter=>0, :decouple_continuum=>true,
                 :long_scheme=>"lobatto", :quad_scheme=>"set_a2"),
-	linelist_params=(:dlam=>20.0,),
+	linelist_params=(:dlam=>1.0,),
     composition_params=(:abund_file=>"./input_multi3d/abund_magg",:absdat_file=>"./input_multi3d/TS_absdat.dat"),
 	spectrum_params=(:daa=>1., :aa_blue=>2000, :aa_red=>25000)) = begin
 
@@ -368,11 +368,11 @@ end
 _spectrum_namelist_lte!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
-	atmos_params=(:dims=>12, :atmos_format=>"MUST", :use_density=>true),
+	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_density=>true),
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
-				:lvlcheck=>2,
+				:lvlcheck=>1,
                 :n_nu=>200, :maxiter=>0, :decouple_continuum=>true,
                 :long_scheme=>"lobatto", :quad_scheme=>"set_a2")) = begin
 
@@ -389,12 +389,12 @@ end
 _spectrum_namelist_nlte!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
-	atmos_params=(:dims=>12, :atmos_format=>"MUST", :use_density=>true),
+	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_density=>true),
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true,
                 :convlim=>1e-2),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
-				:lvlcheck=>2,
+				:lvlcheck=>1,
                 :n_nu=>200, :maxiter=>100, :decouple_continuum=>true,
                 :long_scheme=>"lobatto", :quad_scheme=>"set_a2")) = begin
 
@@ -409,15 +409,16 @@ _spectrum_namelist_nlte!(nml::M3DNamelist;
 end
 
 """
-    whole_spectrum_namelist(model_name; kwargs...)
+    spectrum_namelist(model_name; kwargs...)
 
 Create a default namelist for the given model, that
-can be used to compute the whole spectrum emerging this model.
-This is handy when you want to compute the effective temperature.
+can be used to compute the spectrum emerging this model.
+You can specify NLTE=true in order to load the default NLTE namelist.
 """
 function spectrum_namelist(model_name::String; NLTE=false,
 					model_folder="./input_multi3d/MUST",
 					linelist="./input_multi3d/vald_2490-25540.list",
+                    absmet=nothing,
 					kwargs...)	
 	# Create an empty Namelist
 	nml = M3DNamelist()
@@ -429,14 +430,40 @@ function spectrum_namelist(model_name::String; NLTE=false,
 	model_path = joinpath(model_folder, model_name)
 
 	# additionally apply the model specific fields
-	set!(
-		nml; 
-		linelist_params=(:linelist_file=>linelist,),
-		atmos_params=(:atmos_file=>model_path,)
-	)
+	set!(nml; atmos_params=(:atmos_file=>model_path,))
+
+    if (isnothing(absmet)) & (!isnothing(linelist))
+        set!(nml; linelist_params=(:linelist_file=>linelist,))
+    elseif (!isnothing(absmet)) & (isnothing(linelist))
+        set!(nml, composition_params=(:absmet_file=>absmet,))
+    elseif (isnothing(absmet)) & (isnothing(linelist))
+        nothing
+    else
+        error("Need to specify either linelist or absmet (not both).")
+    end
 
     # apply custom input parameters
     set!(nml; kwargs...)
 
 	nml
+end
+
+
+"""
+    heating_namelist(model_name, args...; kwargs...)
+
+Compute the radiative heating namelist within the given model.
+"""
+heating_namelist(model_name::String, opacity_table=nothing, args...; kwargs...) = begin
+    nml = spectrum_namelist(model_name, args...; kwargs...)
+
+    if !isnothing(opacity_table)
+        set!(nml, composition_params=(:opac_table=>opacity_table,))
+    end
+
+    set!(nml, m3d_params=(:save_patch_kind=>"mean_rad", :save_Qrad=>true, :ilambd=>1))
+    set!(nml, spectrum_params=(:daa=>1., :aa_blue=>1500, :aa_red=>9000))
+
+
+    nml
 end

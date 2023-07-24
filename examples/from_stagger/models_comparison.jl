@@ -45,7 +45,8 @@ out_folder = [
 	MUST.@in_dispatch("data/sun_new_magg_vres"),
 	MUST.@in_dispatch("data/sun_new_magg_lres"),
 	MUST.@in_dispatch("data/sun_new_magg_ires"),
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg2"),	MUST.@in_dispatch("data/sun_new_magg_hres"),
+	MUST.@in_dispatch("data/pretty_good_sun_new_magg5"),	
+	MUST.@in_dispatch("data/sun_new_magg_hres"),
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
@@ -62,7 +63,7 @@ labels = [
 	"magg2022_60x60",
 	"magg2022_90x90",
 	"magg2022_90x180",
-	"magg2022_120x240",
+	"magg2022_150x300",
 	"magg2022_195x390"
 ]
 
@@ -79,7 +80,7 @@ begin
 	
 	for i in eachindex(names)
 		snapshot, snapshot_τ = MUST.pick_snapshot(
-			MUST.converted_snapshots(out_folder[i]), :recent
+			MUST.converted_snapshots(out_folder[i]), -2
 		)
 		
 		append!(snapshots, [snapshot])
@@ -579,39 +580,81 @@ snapshotsresample = gresample.(snapshots, nz=280)
 md"## Convert to M3D format"
 
 # ╔═╡ fc232599-e4e9-42d0-b108-316897c363ce
-function snaps2multi(folder, snaps...; 
-					eos, label, n_horizontal=10, n_vertical=280, outfolder="")
-	i = 0
-	for snap in snaps
-		snapshot, snapshot_τ = pick_snapshot(folder, snap)
-		snapshotsresample = gresample(
-			snapshot, 
-			nz=n_vertical, 
-			nx=n_horizontal, 
-			ny=n_horizontal
-		)
-
-		if length(outfolder) > 1
-			(!isdir(outfolder)) && mkdir(outfolder)
-		end
-
-		i += 1
-		output_name = joinpath(outfolder, "m3dis_sun_$(label)_$(i)")
-		aos = @axed eos
-
-		ne = lookup(
-			aos, :lnNe, 
-			log.(snapshotsresample[:d]), log.(snapshotsresample[:ee])
-		) 
-		
-		snapshotsresample.data[:ne] = exp.(ne)
+begin
+	function snaps2multi(folder, snaps...; 
+						eos, label, n_horizontal=10, n_vertical=280, outfolder="")
+		i = 0
+		for snap in snaps
+			snapshot, snapshot_τ = try
+				pick_snapshot(folder, snap)
+			catch
+				continue
+			end
+			snapshotsresample = gresample(
+				snapshot, 
+				nz=n_vertical, 
+				nx=n_horizontal, 
+				ny=n_horizontal
+			)
 	
-		MUST.multiBox(
-			snapshotsresample, 
-			output_name
-		)
-
-		#@info "New size: $(size(@view(ne[1:downsample_xy:end, 1:downsample_xy:end, :])))"
+			if length(outfolder) > 1
+				(!isdir(outfolder)) && mkdir(outfolder)
+			end
+	
+			i += 1
+			output_name = joinpath(outfolder, "m3dis_sun_$(label)_$(i)")
+			aos = @axed eos
+	
+			ne = lookup(
+				aos, :lnNe, 
+				log.(snapshotsresample[:d]), log.(snapshotsresample[:ee])
+			) 
+			
+			snapshotsresample.data[:ne] = exp.(ne)
+		
+			MUST.multiBox(
+				snapshotsresample, 
+				output_name
+			)
+	
+			#@info "New size: $(size(@view(ne[1:downsample_xy:end, 1:downsample_xy:end, :])))"
+		end
+	end
+	
+	function snaps2multi(snaps::MUST.Box...; 
+						eos, label, n_horizontal=10, n_vertical=280, outfolder="")
+		i = 0
+		for snap in snaps
+			snapshot = snap
+			snapshotsresample = gresample(
+				snapshot, 
+				nz=n_vertical, 
+				nx=n_horizontal, 
+				ny=n_horizontal
+			)
+	
+			if length(outfolder) > 1
+				(!isdir(outfolder)) && mkdir(outfolder)
+			end
+	
+			i += 1
+			output_name = joinpath(outfolder, "m3dis_sun_$(label)_$(i)")
+			aos = @axed eos
+	
+			ne = lookup(
+				aos, :lnNe, 
+				log.(snapshotsresample[:d]), log.(snapshotsresample[:ee])
+			) 
+			
+			snapshotsresample.data[:ne] = exp.(ne)
+		
+			MUST.multiBox(
+				snapshotsresample, 
+				output_name
+			)
+	
+			#@info "New size: $(size(@view(ne[1:downsample_xy:end, 1:downsample_xy:end, :])))"
+		end
 	end
 end
 
@@ -634,18 +677,36 @@ md"One can alternatively also convert multiple snapshots"
 labels
 
 # ╔═╡ 389e61c2-0dd4-458a-98a5-5b787fa0e957
-label = "magg22_80x80x230"
+label = "magg22_120x120x230"
 
 # ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
-for i in eachindex(labels)
+#=for i in eachindex(labels)
 	snaps2multi(
-		out_folder[i], -2, -1, :recent,
+		out_folder[i], -4, -3, -2, -1, :recent,
 		eos=eos[i], 
 		label=label,
-		n_horizontal=80, 
+		n_horizontal=120, 
 		n_vertical=230, outfolder=labels[i]
 	)
-end
+end=#
+
+# ╔═╡ 313bb855-4d09-4df7-ba9d-f261cff27794
+label_stagger = "stagger_10x10x230"
+
+# ╔═╡ 69ec4993-ddfd-496f-87d9-eddf9ab97714
+eos_stagger = reload(
+	SqEoS, 
+	joinpath(MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"), "eos.hdf5")
+) 
+
+# ╔═╡ 14275f0e-62e2-4a6f-98e6-dcbed3a1e158
+snaps2multi(
+	stagger,
+	eos=eos_stagger, 
+	label=label_stagger,
+	n_horizontal=10, 
+	n_vertical=230, outfolder="stagger_sun"
+)
 
 # ╔═╡ 5b28c9b8-a991-45d6-a2d1-15f24142d277
 md"## Compute a time average"
@@ -738,6 +799,9 @@ end
 # ╠═2aab4558-dc94-475d-83d2-696d513c2aec
 # ╠═389e61c2-0dd4-458a-98a5-5b787fa0e957
 # ╠═055f1b98-53d7-4368-bc75-d0073985d47d
+# ╠═313bb855-4d09-4df7-ba9d-f261cff27794
+# ╠═69ec4993-ddfd-496f-87d9-eddf9ab97714
+# ╠═14275f0e-62e2-4a6f-98e6-dcbed3a1e158
 # ╟─5b28c9b8-a991-45d6-a2d1-15f24142d277
 # ╠═7837df1e-e220-4a60-944d-876b523300ad
 # ╠═09d3fbbb-c636-4f8a-8409-0eba2ea9a242

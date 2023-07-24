@@ -56,8 +56,8 @@ check_uniform(b::Box) = begin
         end
     end
 
-    for j in axes(b.y, 3)
-        for i in axes(b.x, 2)
+    for j in axes(b.y, 2)
+        for i in axes(b.x, 1)
             if !all(z .≈ @view(b.z[i, j, :]))
                 return false
             end
@@ -109,7 +109,7 @@ function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
 	target_grid = Grid(x_new, y_new, z_new)
 
 	# interpolate 
-	ip = MUST.ginterpolate(grid, target_grid)
+	ip = ginterpolate(grid, target_grid)
 
 	# compute the interpolate quantities
 	data_new = Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}()
