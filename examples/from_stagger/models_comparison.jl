@@ -36,7 +36,7 @@ names = [
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
-	"DIS_MARCS_E_t5777g44m00_v0.1",
+	#"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
@@ -45,7 +45,7 @@ out_folder = [
 	MUST.@in_dispatch("data/sun_new_magg_vres"),
 	MUST.@in_dispatch("data/sun_new_magg_lres"),
 	MUST.@in_dispatch("data/sun_new_magg_ires"),
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg5"),	
+	#MUST.@in_dispatch("data/pretty_good_sun_new_magg"),	
 	MUST.@in_dispatch("data/sun_new_magg_hres"),
 ]
 
@@ -54,7 +54,7 @@ eos_folder = [
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
+	#MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3")
 ]
 
@@ -63,7 +63,7 @@ labels = [
 	"magg2022_60x60",
 	"magg2022_90x90",
 	"magg2022_90x180",
-	"magg2022_150x300",
+	#"magg2022_150x300",
 	"magg2022_195x390"
 ]
 
@@ -80,7 +80,7 @@ begin
 	
 	for i in eachindex(names)
 		snapshot, snapshot_τ = MUST.pick_snapshot(
-			MUST.converted_snapshots(out_folder[i]), -2
+			MUST.converted_snapshots(out_folder[i]), :recent
 		)
 		
 		append!(snapshots, [snapshot])
@@ -400,7 +400,7 @@ md"## Differences"
 
 # ╔═╡ 9d6e7385-c8f6-4df1-91ac-3f07f0d2567f
 begin
-	common_tau = range(-3.4, 1.5, length=200) |> collect
+	common_tau = range(-3.9, 1.5, length=200) |> collect
 	ip(x, y) = begin
 		m = sortperm(x)
 		MUST.linear_interpolation(x[m], y[m]).(common_tau)
@@ -677,36 +677,42 @@ md"One can alternatively also convert multiple snapshots"
 labels
 
 # ╔═╡ 389e61c2-0dd4-458a-98a5-5b787fa0e957
-label = "magg22_120x120x230"
+#label = "magg22_10x10x150"
 
 # ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
 #=for i in eachindex(labels)
+	if !(i == 4)
+		continue
+	end
+	
+	@info labels[i]
+	
 	snaps2multi(
 		out_folder[i], -4, -3, -2, -1, :recent,
 		eos=eos[i], 
 		label=label,
-		n_horizontal=120, 
-		n_vertical=230, outfolder=labels[i]
+		n_horizontal=10, 
+		n_vertical=150, outfolder=labels[i]
 	)
 end=#
 
 # ╔═╡ 313bb855-4d09-4df7-ba9d-f261cff27794
-label_stagger = "stagger_10x10x230"
+#label_stagger = "stagger_10x10x230"
 
 # ╔═╡ 69ec4993-ddfd-496f-87d9-eddf9ab97714
-eos_stagger = reload(
+#=eos_stagger = reload(
 	SqEoS, 
 	joinpath(MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"), "eos.hdf5")
-) 
+)=#
 
 # ╔═╡ 14275f0e-62e2-4a6f-98e6-dcbed3a1e158
-snaps2multi(
+#=snaps2multi(
 	stagger,
 	eos=eos_stagger, 
 	label=label_stagger,
 	n_horizontal=10, 
 	n_vertical=230, outfolder="stagger_sun"
-)
+)=#
 
 # ╔═╡ 5b28c9b8-a991-45d6-a2d1-15f24142d277
 md"## Compute a time average"
@@ -790,7 +796,7 @@ end
 # ╟─3615d990-9c9a-4e69-8f96-0e3c2ac6896b
 # ╠═a33fbc44-eade-4ef2-9a6d-87047b5cdb1f
 # ╟─5ca0a8ee-5fbf-4d76-8bfd-91c292e08cfa
-# ╠═fc232599-e4e9-42d0-b108-316897c363ce
+# ╟─fc232599-e4e9-42d0-b108-316897c363ce
 # ╠═7a023be5-46ea-4c25-857b-3f765c044a91
 # ╟─b1df1501-4033-4d8a-bd67-8130c095152a
 # ╟─fdf3a692-daab-49d5-8bf6-36996617349e

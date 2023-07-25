@@ -43,7 +43,7 @@ md"## Model Atmospheres
 Pick the model atmosphere. It should either be located in input_multi3d/MUST or the correct folder should be given to the namelist function."
 
 # ╔═╡ 766cfb9d-6084-4cde-8856-d3f3c6509abe
-modelatmos = "m3dis_sun_magg22_10x10x230_3"
+modelatmos = "m3dis_sun_magg22_10x10x150_3"
 
 # ╔═╡ 1a9a7946-fda5-4e01-b715-c3c36c1bf6ea
 modelatmosfolder = "input_multi3d/magg2022_150x300/"
@@ -84,11 +84,14 @@ begin
 				snap, 
 				namelist_kwargs=(
 					:model_folder=>modelatmosfolder,
-					:linelist=>linelist,
-					:absmet=>nothing
-				),
+					:linelist=>nothing,
+					:absmet=>absmet,
+					:spectrum_params=>(
+						:daa=>5., :aa_blue=>2000, :aa_red=>100000
+					)
+				)
 			)
-	
+			
 			append!(m3load, [m3load_i])
 		end
 		
@@ -135,7 +138,7 @@ begin
 	visual.basic_plot!(axF)
 
 	axF.plot(
-		MUST.flux(m3druns[4], norm=false)..., 
+		MUST.flux(m3druns[1], norm=false)..., 
 		color="k", 
 		marker="",
 		lw=1

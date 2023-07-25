@@ -93,7 +93,7 @@ end
 
 #= Scaling a box in resolution =#
 
-function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
+function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), method=:linear)
 	if (nx==size(b, 1)) & (ny==size(b, 2)) & (nz==size(b, 3))
 		@warn "Size of new box = size of old box."
 		deepcopy(b)
@@ -109,7 +109,7 @@ function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
 	target_grid = Grid(x_new, y_new, z_new)
 
 	# interpolate 
-	ip = ginterpolate(grid, target_grid)
+	ip = ginterpolate(grid, target_grid, method=method)
 
 	# compute the interpolate quantities
 	data_new = Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}()

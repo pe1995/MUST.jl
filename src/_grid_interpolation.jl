@@ -16,6 +16,7 @@ struct AxisInterpolation{T<:AbstractFloat, I<:Integer,
     new_axis::A2
     weights::Array{T, 2}
     indices::Array{I, 1}
+    method::Symbol
 end
 
 struct GridInterpolation{A<:AxisInterpolation}
@@ -36,10 +37,10 @@ Compute weights and indices corresponding to the
 interpolation from the old_axis to the new_axis and
 store the values in an AxisInterpolation object.
 """
-AxisInterpolation(old_axis::AbstractBoxAxis, new_axis::AbstractBoxAxis) = begin
+AxisInterpolation(old_axis::AbstractBoxAxis, new_axis::AbstractBoxAxis; method=:linear) = begin
     w, i = interpolation_weights(nodes(old_axis), nodes(new_axis))
 
-    AxisInterpolation(old_axis, new_axis, w, i)
+    AxisInterpolation(old_axis, new_axis, w, i, method)
 end
 
 
@@ -48,8 +49,8 @@ end
 
 Construct a grid interpolator from a list of axis interpolation objects.
 """
-GridInterpolation(from::Vector{<:AbstractBoxAxis}, to::Vector{<:AbstractBoxAxis}) = begin
-    interpolators = AxisInterpolation.(from, to)
+GridInterpolation(from::Vector{<:AbstractBoxAxis}, to::Vector{<:AbstractBoxAxis}; method=:linear) = begin
+    interpolators = AxisInterpolation.(from, to; method=method)
     buffers = []
 
     s_old = (length(nodes(f)) for f in from) |> collect
@@ -66,9 +67,16 @@ GridInterpolation(from::Vector{<:AbstractBoxAxis}, to::Vector{<:AbstractBoxAxis}
     GridInterpolation(interpolators, buffers)
 end
 
-GridInterpolation(from::AbstractBoxGrid, to::AbstractBoxGrid) = begin
-    GridInterpolation(axis(from), axis(to))
+GridInterpolation(from::AbstractBoxGrid, to::AbstractBoxGrid; method=:linear) = begin
+    GridInterpolation(axis(from), axis(to); method=method)
 end
+
+
+
+
+#= General convenience =#
+method(ip::AxisInterpolation) = ip.method
+method(ip::GridInterpolation) = [i.method for i in ip.axes_interpolation]
 
 
 
@@ -139,6 +147,78 @@ function interpolate_axis!(values_new, values, weights, indices)
 end
 
 """
+    pchip_mono8!(newy, yy, newx, xx)
+
+Monotonic piecewise cubic hermite interpolation
+Coded by Richard Hoppe, July 2023
+"""
+function pchip_mono8!(newy, yy, newx, xx)
+    # real(8), intent(in) :: xx(:)            # X values of the data points
+    # real,    intent(in) :: yy(:)            # Y values of the data points
+    # real(8), intent(in) :: newx(:)          # X values to interpolate at
+    # real,    intent(out) :: newy(:)         # Interpolated Y values
+    # real(8), allocatable :: dydx(:)         # derivative
+    # real(8), allocatable :: dx(:)
+    # real(8), allocatable :: dy(:)
+    # integer :: n                 ! Number of data points
+    # integer :: n_interp          ! Number of interpolation points
+    # integer :: j                 ! Loop index for interpolation points
+    # integer :: i                 ! Loop index for data points
+    # real(8) :: d1, d2, d, alpha, t1, t2, t3, p, a
+    n = length(xx)
+    n_interp = length(newx)
+
+    dydx = fill!(similar(xx, n), 0.0)
+    dx   = similar(xx, n-1)
+    dy   = similar(xx, n-1)
+
+    dx = xx[2:n] .- xx[1:n-1]
+    dy = yy[2:n] .- yy[1:n-1]
+
+    for i in 2:n-1
+        if (dy[i-1] == 0) | (dy[i] == 0)
+            continue
+        end
+
+        d1 = dy[i-1]/dx[i-1]
+        d2 = dy[i]/dx[i]
+
+        if (sign(d1) == sign(d2))
+            # harmonic mean derivative
+            alpha = (1. + dx[i-1]/(dx[i] + dx[i-1])) / 3.0
+            dydx[i] = 1. / ((1. - alpha)/d2 + alpha/d1)
+        end
+    end
+
+    # boundary slopes from quadratic polynomial using 2 points and 1 dydx
+    a = (dy[1] - dx[1]*dydx[2]) / (xx[2]^2 - xx[1]^2 - 2. * xx[2]*dx[1])
+    dydx[1] = dydx[2] - 2. * a *dx[1]
+
+    a = (dy[n-1] - dx[n-1]*dydx[n-1]) / (xx[n]^2 - xx[n-1]^2 - 2. * xx[n-1]*dx[n-1])
+    dydx[n] = dydx[n-1] + 2. * a *dx[n-1]
+
+    i = 1
+    for j in 1:n_interp
+        # Find the interval containing newx(j)
+        for i in i:n-1
+            if (newx[j] <= xx[i + 1])
+                break #! Found the interval
+            end
+        end
+        i = min(i, n-1)
+        
+        # Calculate the interpolation parameter
+        t1 = (newx[j] - xx[i]) / dx[i]
+
+        t2 = t1*t1
+        t3 = t2*t1
+        p = 3.0*t2 - 2.0*t3
+
+        newy[j] = (1.0 - p)*yy[i] + p*yy[i+1] + dx[i]*((t3 - 2.0*t2 + t1)*dydx[i] + (t3-t2)*dydx[i+1]) 
+    end
+end
+
+"""
     interpolate_grid!(grid, values)
 
 Interpolate the values between two grids consisting of any number
@@ -160,10 +240,23 @@ function interpolate_grid!(ip::GridInterpolation, values; return_copy=true)
             # Now we loop through all other dimensions, and pick the axis
             # we are currently interpolating
             idx = _fill_index(Base.Colon(), ci, i)
-            interpolate_axis!(  @view(buffers[i+1][idx...]),
-                                @view(buffers[i][idx...]), 
-                                ip.axes_interpolation[i].weights,
-                                ip.axes_interpolation[i].indices)
+            if method(ip.axes_interpolation[i]) == :linear
+                interpolate_axis!(  
+                    @view(buffers[i+1][idx...]),
+                    @view(buffers[i][idx...]),
+                    ip.axes_interpolation[i].weights,
+                    ip.axes_interpolation[i].indices
+                )
+            elseif method(ip.axes_interpolation[i]) == :pchip
+                pchip_mono8!(  
+                    @view(buffers[i+1][idx...]),
+                    @view(buffers[i][idx...]),
+                    nodes(ip.axes_interpolation[i].new_axis),
+                    nodes(ip.axes_interpolation[i].old_axis)
+                )
+            else
+                error("Interpolation method not recognized. Pick :linear or :pchip")
+            end
         end
     end
 

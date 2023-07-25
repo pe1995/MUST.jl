@@ -308,7 +308,7 @@ _whole_spectrum_namelist!(nml::M3DNamelist;
                 :long_scheme=>"lobatto", :quad_scheme=>"set_a2"),
 	linelist_params=(:dlam=>1.0,),
     composition_params=(:abund_file=>"./input_multi3d/abund_magg",:absdat_file=>"./input_multi3d/TS_absdat.dat"),
-	spectrum_params=(:daa=>1., :aa_blue=>2000, :aa_red=>25000)) = begin
+	spectrum_params=(:daa=>2., :aa_blue=>2000, :aa_red=>40000)) = begin
 
 	set!(
 		nml; 
@@ -461,9 +461,11 @@ heating_namelist(model_name::String, opacity_table=nothing, args...; kwargs...) 
         set!(nml, composition_params=(:opac_table=>opacity_table,))
     end
 
-    set!(nml, m3d_params=(:save_patch_kind=>"mean_rad", :save_Qrad=>true, :ilambd=>1))
     set!(nml, spectrum_params=(:daa=>1., :aa_blue=>1500, :aa_red=>9000))
+    set!(nml; kwargs...)
 
+    set!(nml, m3d_params=(:save_patch_kind=>"mean_rad", :save_Qrad=>true, :ilambd=>1, :n_nu=>1))
+    set!(nml, atmos_params=(:dims=>1,))
 
     nml
 end

@@ -413,6 +413,19 @@ end
 
 Base.getindex(s::T,key) where {T<:MUST.Space} = s.data[key]
 Base.getindex(s::T,key) where {T<:MUST.Box}   = key in keys(s.data) ? s.data[key] : getfield(s,key)
+
+Base.setindex!(s::T, val, key) where {T<:MUST.Space} = begin
+    s.data[key] = val
+end
+
+Base.setindex!(s::T, val, key) where {T<:MUST.Box} = begin
+    if (key in fieldnames(typeof(s)))
+        setfield!(s, key, val)
+    else
+        s.data[key] = val
+    end
+end
+
 Base.length(s::MUST.Space) = length(s.data[:x])
 Base.length(s::MUST.Box)   = length(s.x)
 Base.keys(s::T) where {T<:Union{MUST.Box,MUST.Space}} = keys(s.data)
@@ -1530,6 +1543,9 @@ function time_statistic(f::Function, boxes)
 end
 
 
+
+
+
 ## Helper functions
 
 axis(b::Box, which, dimension::Int=0) = begin
@@ -1552,6 +1568,8 @@ Base.size(b::Box, args...; kwargs...) = size(b.z, args...; kwargs...)
 
 closest(a, v) = argmin(abs.(a .- v))
 
+
+
 is_log(x) = begin
 	sx = String(x)
 	
@@ -1566,16 +1584,26 @@ is_log(x) = begin
 	xnew, f
 end
 
+"""
+    profile(f, model, [x=:z, y=:T])
+
+Compute the 1D profile from the 3D Box object.
+The `f` can be any funtion that is applied plane-wise to the data.
+`log10` or `log` can be specified in the variable name to automatically
+return log quantities for convenience when plotting.
+"""
 profile(f, model, x=:z, y=:T) = begin
 	xs, logx = is_log(x)
 	ys, logy = is_log(y)
 	
-	if xs == :τ_ross
+	if ndims(axis(model, xs)) > 1
 		logx.(axis(model, xs, 3)), logy.(plane_statistic(f, model, ys)) 
 	else
 		logx.(axis(model, xs)), logy.(plane_statistic(f, model, ys))
 	end
 end
+
+
 
 mesh(m::Box) = meshgrid(
 	axis(m, :x) ./1e8, 		

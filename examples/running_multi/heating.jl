@@ -77,8 +77,11 @@ opa = reload(
 # ╔═╡ 69ee39a1-ae7d-4ec9-bae2-b830f80836ed
 md"These tables need to be combined and saved in the Multi format in order to be able to run them in M3D. We save them in common folder directly in Multi to make things easier."
 
+# ╔═╡ e830f3c8-ce12-4e46-94fe-33b847ae9b61
+folder_eos_rel = "input_multi3d/M3D_MARCS_v1.6.3"
+
 # ╔═╡ fb609e98-ab06-487e-8bf1-91e232e5687b
-folder_eos = MUST.@in_m3dis "input_multi3d/M3D_MARCS_v1.6.3"
+folder_eos = MUST.@in_m3dis folder_eos_rel
 
 # ╔═╡ 7d38779c-c2e3-4ff2-b30c-f4229f35545f
 !isdir(folder_eos) && mkdir(folder_eos)
@@ -94,19 +97,23 @@ First we need to run M3D in the unbinned case, compute the heating, and the run 
 compute = true
 
 # ╔═╡ cbe117c0-f6c7-44bb-a86e-3d57362666d7
-m3d_binned = if false 
+m3d_binned = if compute 
 	MUST.heating(
 		modelatmos, 
-		m3d_table,
-		namelist_kwargs=(
+		joinpath(folder_eos_rel, "eos_opa"),
+			namelist_kwargs=(
 			:model_folder=>modelatmosfolder,
 			:linelist=>nothing,
-			:absmet=>nothing
+			:absmet=>nothing,
+			:atom_params=>(:atom_file=>"", ),
+			:spectrum_params=>(:daa=>1., :aa_blue=>1500, :aa_red=>9000),
+			:atmos_params=>(:dims=>1, ),
+			:m3d_params=>(:n_nu=>1, )
 		),
-		slurm=false
+		slurm=true
 	)
 else
-	MUST.M3DISRun("data/m3dis_sun_magg22_10x10x230_3_binned")
+	MUST.M3DISRun("data/$(modelatmos)_binned")
 end
 
 # ╔═╡ 4668ca71-bd41-413a-8c67-d7e7dfe9b6ba
@@ -116,25 +123,97 @@ m3d_unbinned = if compute
 		namelist_kwargs=(
 			:model_folder=>modelatmosfolder,
 			:linelist=>nothing,
-			:absmet=>nothing,
+			:absmet=>absmet,
 			:atom_params=>(:atom_file=>"", ),
-			:spectrum_params=>(:daa=>1., :aa_blue=>1500, :aa_red=>9000)
+			:spectrum_params=>(:daa=>1., :aa_blue=>1500, :aa_red=>9000),
+			:atmos_params=>(:dims=>1, ),
+			:m3d_params=>(:n_nu=>1, )
 		),
 		slurm=true
 	)
 else
-	MUST.M3DISRun("data/m3dis_sun_magg22_10x10x230_3_unbinned")
+	MUST.M3DISRun("data/$(modelatmos)_unbinned")
 end
 
 # ╔═╡ fb0a997b-f2dd-4a19-bdd6-c5293159eb2c
-md"## Heating Comparison"
+md"## Heating Rate"
+
+# ╔═╡ 44f48b12-f884-49a6-94b9-728715daa2ab
+function get_heating(run)
+	qrad = MUST.pyconvert(
+		Array, run.run.read_patch_save("Qrad")[0][0].compute()
+	)[:, :, :, 1, 1]
+	ltau = MUST.pyconvert(Array, run.run.tau)
+
+	ltau, qrad
+end
 
 # ╔═╡ 4fe50a65-7729-4a13-ab39-d81c62fae60d
-qrad = m3d_unbinned.read_patch_save("Qrad")
+tau_unbinned, qrad_unbinned = get_heating(m3d_unbinned)
+
+# ╔═╡ 12e97194-909a-493a-a242-9bf21e736713
+tau_binned, qrad_binned = get_heating(m3d_binned)
+
+# ╔═╡ 858b7fc4-9d95-4a18-aabb-7621ccf90b91
+md"## API Integration
+The heating can be integrated into the ```Box``` API by loading the corresponding Multi Box"
+
+# ╔═╡ 0d6bc811-6e93-4f79-bbb2-1081c9314e7b
+modelBox = multiBox(
+	MUST.@in_m3dis(joinpath(modelatmosfolder, modelatmos))
+)
+
+# ╔═╡ 2295240c-cca2-441a-b901-437e1d7f8924
+keys(modelBox.data)
+
+# ╔═╡ 5d155f12-b42c-43da-918e-6714bfbb0eac
+md"For average comparison, we need to compare them on the optical depth scale. For this the cube has to be interpolated to this scale."
+
+# ╔═╡ ae25d7f5-afad-4e41-8125-336c67047d33
+function attach_heating(box, run)
+	t, qr = get_heating(run)
+
+	box_new = deepcopy(box)
+	box_new[:qrad] = qr
+	box_new[:tau] = t
+
+	@info qr t
+	# Interpolate to new optical depth scale
+	# for this use the logtau that was computed from Multi
+	MUST.height_scale(box_new, :tau)
+end
+
+# ╔═╡ e85054fc-fa63-48cc-959a-1fa4c4df6965
+modelbinned = attach_heating(modelBox, m3d_binned)
+
+# ╔═╡ 06168a77-8a58-41a6-8305-dcc32a71ab7f
+modelunbinned = attach_heating(modelBox, m3d_unbinned)
+
+# ╔═╡ 638dd690-d2f0-4381-b371-8fb444c18e5f
+profile(MUST.mean, modelbinned, :log10tau, :qrad)
 
 # ╔═╡ 134144b6-6f21-42d5-a816-fd5bb57b9e55
 begin
-	fH, axH = plt.subplots(1, 1, figsize=(7, 6))
+	plt.close()
+	fH, axH = plt.subplots(2, 1, figsize=(7, 6), sharex=true)
+	visual.basic_plot!.(axH)
+
+	axH[0].plot(
+		profile(MUST.mean, modelbinned, :log10tau, :qrad)..., 
+		label="binned",
+		color="r"
+	)
+	
+	axH[1].plot(
+		profile(MUST.mean, modelunbinned, :log10tau, :qrad)..., 
+		label="unbinned",
+		color="k"
+	)
+
+	axH[0].legend(framealpha=0)
+	axH[1].legend(framealpha=0)
+
+	gcf()
 end
 
 # ╔═╡ Cell order:
@@ -157,6 +236,7 @@ end
 # ╠═5185341e-9299-40d5-9881-9e002c926bfc
 # ╠═fa7355e5-9072-4c4e-be9a-d5412f6cde5c
 # ╟─69ee39a1-ae7d-4ec9-bae2-b830f80836ed
+# ╠═e830f3c8-ce12-4e46-94fe-33b847ae9b61
 # ╠═fb609e98-ab06-487e-8bf1-91e232e5687b
 # ╠═7d38779c-c2e3-4ff2-b30c-f4229f35545f
 # ╠═3c76bd08-a807-4398-b277-a622e010d05e
@@ -165,5 +245,15 @@ end
 # ╠═cbe117c0-f6c7-44bb-a86e-3d57362666d7
 # ╠═4668ca71-bd41-413a-8c67-d7e7dfe9b6ba
 # ╟─fb0a997b-f2dd-4a19-bdd6-c5293159eb2c
+# ╟─44f48b12-f884-49a6-94b9-728715daa2ab
 # ╠═4fe50a65-7729-4a13-ab39-d81c62fae60d
-# ╠═134144b6-6f21-42d5-a816-fd5bb57b9e55
+# ╠═12e97194-909a-493a-a242-9bf21e736713
+# ╟─858b7fc4-9d95-4a18-aabb-7621ccf90b91
+# ╠═0d6bc811-6e93-4f79-bbb2-1081c9314e7b
+# ╠═2295240c-cca2-441a-b901-437e1d7f8924
+# ╟─5d155f12-b42c-43da-918e-6714bfbb0eac
+# ╠═ae25d7f5-afad-4e41-8125-336c67047d33
+# ╠═e85054fc-fa63-48cc-959a-1fa4c4df6965
+# ╠═06168a77-8a58-41a6-8305-dcc32a71ab7f
+# ╠═638dd690-d2f0-4381-b371-8fb444c18e5f
+# ╟─134144b6-6f21-42d5-a816-fd5bb57b9e55
