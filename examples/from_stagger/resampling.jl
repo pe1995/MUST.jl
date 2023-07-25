@@ -129,7 +129,7 @@ md"## Resampling the Box
 In line with those tools, the entire box can be re-sampled in the following manner"
 
 # ╔═╡ 720b6b6f-b7e0-4e21-9ef8-6068490d095b
-function resample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
+function resample(b::MUST.Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
 	if (nx==size(b, 1)) & (ny==size(b, 2)) & (nz==size(b, 3))
 		@warn "Size of new box = size of old box."
 		deepcopy(b)
@@ -299,7 +299,7 @@ end
 # ╟─502fb3e2-9036-4637-ac17-759aaeea675a
 # ╟─36f3d298-2aec-48dc-a305-18b19fb6d3b3
 # ╟─b9391c54-6b34-488c-8b92-e58625c36cb9
-# ╟─720b6b6f-b7e0-4e21-9ef8-6068490d095b
+# ╠═720b6b6f-b7e0-4e21-9ef8-6068490d095b
 # ╟─2322b69e-57e5-4e0e-b7fa-f34240f19d42
 # ╠═d51b3b07-382c-4a21-af9e-d38be320d5b1
 # ╟─4ce857f4-d78e-451c-a1b9-d7fba54d0343
@@ -312,5 +312,5 @@ end
 # ╟─72d86e29-c236-48ab-b5ca-383f8cd5c2b0
 # ╠═2f7bb7d0-f90e-4166-bd45-9a9e6b784736
 # ╠═566f5a7c-d065-45ee-bc04-8328bf2716c9
-# ╠═68a08685-9d40-4ee1-a56c-4fb9af7f8e07
-# ╠═344a6492-f86a-4756-9395-8e217c5829ec
+# ╟─68a08685-9d40-4ee1-a56c-4fb9af7f8e07
+# ╟─344a6492-f86a-4756-9395-8e217c5829ec

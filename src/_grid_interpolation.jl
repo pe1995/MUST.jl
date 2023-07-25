@@ -200,8 +200,9 @@ function pchip_mono8!(newy, yy, newx, xx)
     i = 1
     for j in 1:n_interp
         # Find the interval containing newx(j)
-        for i in i:n-1
-            if (newx[j] <= xx[i + 1])
+        for k in i:n-1
+            if (newx[j] <= xx[k + 1])
+                i = k
                 break #! Found the interval
             end
         end

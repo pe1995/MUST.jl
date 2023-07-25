@@ -36,7 +36,7 @@ names = [
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
-	#"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
@@ -45,7 +45,7 @@ out_folder = [
 	MUST.@in_dispatch("data/sun_new_magg_vres"),
 	MUST.@in_dispatch("data/sun_new_magg_lres"),
 	MUST.@in_dispatch("data/sun_new_magg_ires"),
-	#MUST.@in_dispatch("data/pretty_good_sun_new_magg"),	
+	MUST.@in_dispatch("data/pretty_good_sun_new_magg3"),	
 	MUST.@in_dispatch("data/sun_new_magg_hres"),
 ]
 
@@ -54,7 +54,7 @@ eos_folder = [
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
-	#MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3")
 ]
 
@@ -63,7 +63,7 @@ labels = [
 	"magg2022_60x60",
 	"magg2022_90x90",
 	"magg2022_90x180",
-	#"magg2022_150x300",
+	"magg2022_150x300",
 	"magg2022_195x390"
 ]
 
@@ -582,7 +582,8 @@ md"## Convert to M3D format"
 # ╔═╡ fc232599-e4e9-42d0-b108-316897c363ce
 begin
 	function snaps2multi(folder, snaps...; 
-						eos, label, n_horizontal=10, n_vertical=280, outfolder="")
+						eos, label, 
+						n_horizontal=10, n_vertical=280, outfolder="", method=:linear)
 		i = 0
 		for snap in snaps
 			snapshot, snapshot_τ = try
@@ -677,10 +678,10 @@ md"One can alternatively also convert multiple snapshots"
 labels
 
 # ╔═╡ 389e61c2-0dd4-458a-98a5-5b787fa0e957
-#label = "magg22_10x10x150"
+label = "magg22_p_10x10x150"
 
 # ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
-#=for i in eachindex(labels)
+for i in eachindex(labels)
 	if !(i == 4)
 		continue
 	end
@@ -692,9 +693,9 @@ labels
 		eos=eos[i], 
 		label=label,
 		n_horizontal=10, 
-		n_vertical=150, outfolder=labels[i]
+		n_vertical=280, outfolder=labels[i], method=:pchip
 	)
-end=#
+end
 
 # ╔═╡ 313bb855-4d09-4df7-ba9d-f261cff27794
 #label_stagger = "stagger_10x10x230"
@@ -796,7 +797,7 @@ end
 # ╟─3615d990-9c9a-4e69-8f96-0e3c2ac6896b
 # ╠═a33fbc44-eade-4ef2-9a6d-87047b5cdb1f
 # ╟─5ca0a8ee-5fbf-4d76-8bfd-91c292e08cfa
-# ╟─fc232599-e4e9-42d0-b108-316897c363ce
+# ╠═fc232599-e4e9-42d0-b108-316897c363ce
 # ╠═7a023be5-46ea-4c25-857b-3f765c044a91
 # ╟─b1df1501-4033-4d8a-bd67-8130c095152a
 # ╟─fdf3a692-daab-49d5-8bf6-36996617349e
