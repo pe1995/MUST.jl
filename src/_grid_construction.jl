@@ -8,7 +8,7 @@ The correct axis (1D) are picked if the box is regular,
 i.e. the MUST.axis(:x), MUST.axis(:y) and MUST.axis(:z)
 function return 1D arrays of the cube axis.
 """
-Grid(b::Box) = begin
+Grid(b::Box; order=[1, 2, 3]) = begin
     @assert check_uniform(b)
 
     x, y, z = axis(b, :x)[:], axis(b, :y)[:], axis(b, :z)[:]
@@ -18,8 +18,8 @@ Grid(b::Box) = begin
     y = Base.convert.(Float64, y)
     z = Base.convert.(Float64, z)
 
+    axes = [RegularBoxAxis(x), RegularBoxAxis(y), RegularBoxAxis(z)][order]
 
-    axes = [RegularBoxAxis(x), RegularBoxAxis(y), RegularBoxAxis(z)]
     RegularBoxGrid(axes)
 end
 
@@ -93,37 +93,40 @@ end
 
 #= Scaling a box in resolution =#
 
-function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), method=:linear)
+function gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), method=:linear, order=[1, 2, 3])
 	if (nx==size(b, 1)) & (ny==size(b, 2)) & (nz==size(b, 3))
 		@warn "Size of new box = size of old box."
 		deepcopy(b)
 	end
 
+    natural_order = sortperm(order)
+
 	# The coordinate grid of the input box
-	grid = Grid(b)
+	grid = Grid(b, order=order)
 
 	# build the new axis
 	x_new = scale_axis(axis(b, :x), N=nx)
 	y_new = scale_axis(axis(b, :y), N=ny)
 	z_new = scale_axis(axis(b, :z), N=nz)
-	target_grid = Grid(x_new, y_new, z_new)
+	target_grid = Grid([x_new, y_new, z_new][order]...)
 
 	# interpolate 
 	ip = ginterpolate(grid, target_grid, method=method)
 
 	# compute the interpolate quantities
 	data_new = Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}()
+    d_tmp = permutedims(first(values(b.data)), order)
 
     TN = eltype(b.x)
 	for f in keys(b.data)
-		d = if all(b.data[f] .> 0.0) & (eltype(b.data[f]) <: AbstractFloat)
-			log.(b.data[f])
+		d_tmp .= if all(b.data[f] .> 0.0) & (eltype(b.data[f]) <: AbstractFloat)
+			permutedims(log.(b.data[f]), order)
 		else
-			b.data[f]
+			permutedims(b.data[f], order)
 		end
 		
         # interpolate
-		data_new[f] = Base.convert.(TN, gevaluate!(ip, d))
+		data_new[f] = Base.convert.(TN, permutedims(gevaluate!(ip, d_tmp), natural_order))
 
         # apply exp again if needed
 		data_new[f] .= if all(b.data[f] .> 0.0) & 

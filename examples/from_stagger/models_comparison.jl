@@ -45,7 +45,7 @@ out_folder = [
 	MUST.@in_dispatch("data/sun_new_magg_vres"),
 	MUST.@in_dispatch("data/sun_new_magg_lres"),
 	MUST.@in_dispatch("data/sun_new_magg_ires"),
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg3"),	
+	MUST.@in_dispatch("data/pretty_good_sun_new_magg5_rapidf"),	
 	MUST.@in_dispatch("data/sun_new_magg_hres"),
 ]
 
@@ -80,7 +80,7 @@ begin
 	
 	for i in eachindex(names)
 		snapshot, snapshot_τ = MUST.pick_snapshot(
-			MUST.converted_snapshots(out_folder[i]), :recent
+			MUST.converted_snapshots(out_folder[i]), -2
 		)
 		
 		append!(snapshots, [snapshot])
@@ -149,7 +149,7 @@ end
 teff_last = MUST.read_teff(joinpath(first(out_folder), "teff.dat"));
 
 # ╔═╡ a0220545-f149-4862-a8ba-3a1911cb732a
-plot(teff_last[:, 1], teff_last[:, 2], xlabel="time", ylabel="Teff")
+#plot(teff_last[:, 1], teff_last[:, 2], xlabel="time", ylabel="Teff")
 
 # ╔═╡ c3ab29bc-a61b-467c-b3ab-3fa919abd83d
 md"## Compare models to their initial condition"
@@ -400,7 +400,7 @@ md"## Differences"
 
 # ╔═╡ 9d6e7385-c8f6-4df1-91ac-3f07f0d2567f
 begin
-	common_tau = range(-3.9, 1.5, length=200) |> collect
+	common_tau = range(-3.5, 1.5, length=200) |> collect
 	ip(x, y) = begin
 		m = sortperm(x)
 		MUST.linear_interpolation(x[m], y[m]).(common_tau)
@@ -528,6 +528,39 @@ begin
 	basic_plot!()
 end
 
+# ╔═╡ a10e407c-70f8-4809-a0e4-eb334447d623
+begin	
+	plot(legendforegroundcolor=nothing, legendbackgroundcolor=nothing, legendposition=:bottomleft)
+
+	snapsis = [MUST.pick_snapshot(
+			MUST.converted_snapshots(out_folder[4]), j
+	)[2]
+		for j in [-8, -7, -6, -5, -4, -3, -2, -1, :recent]
+	]
+	
+	for (i, snapshot_τ) in enumerate(snapsis)
+		xi, yi = profile(mean, snapshot_τ, :log10τ_ross, :T)
+		plot!(common_tau, ip(xi, yi) .- ip(xs, ys), 
+				lw=2., ls=:solid)
+	end
+
+	
+	plot!(common_tau, ip(x, y) .- ip(xs, ys), 
+		color=:royalblue, ls=:dot, lw=2.5, label="MARCS - Stagger")
+
+	plot!(common_tau, ip(xmu, ymu) .- ip(xs, ys), 
+		color=:black, ls=:dash, lw=2.5, label="MURaM - Stagger")
+
+	hline!([0.0], color=:black, ls=:dot, alpha=0.5, label=nothing)
+
+	xlabel!("τ-ross [log]")
+	ylabel!("ΔT [K]")
+
+	plot!(ylim=(-600, 600), legendposition=:top, legendcolumns=2)
+	
+	basic_plot!()
+end
+
 # ╔═╡ 919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
 md"## 3D result"
 
@@ -566,7 +599,7 @@ begin
 		basic_plot!(copyticks=false, bm=3, lm=0, rm=0, tm=3, size=(600,500))
 	end
 	
-	plot(h..., link=:both, size=(1400, 1400))
+	plot(h..., link=:both, size=(2100, 1400))
 end
 
 # ╔═╡ 3615d990-9c9a-4e69-8f96-0e3c2ac6896b
@@ -574,7 +607,10 @@ md"## Upsample for M3D
 With the `g-` methods one can upsample the cubes pretty easily"
 
 # ╔═╡ a33fbc44-eade-4ef2-9a6d-87047b5cdb1f
-snapshotsresample = gresample.(snapshots, nz=280)
+#snapshotsresample = gresample.(snapshots, nz=280, method=:pchip)
+
+# ╔═╡ 87e8b92e-dd35-4024-b795-467a96660e7b
+#snapshotsresample[1]
 
 # ╔═╡ 5ca0a8ee-5fbf-4d76-8bfd-91c292e08cfa
 md"## Convert to M3D format"
@@ -591,11 +627,21 @@ begin
 			catch
 				continue
 			end
+
+			aos = @axed eos
+			ne = lookup(
+				aos, :lnNe, 
+				log.(snapshot[:d]), 
+				log.(snapshot[:ee])
+			) 
+			snapshot.data[:ne] = exp.(ne)
+		
 			snapshotsresample = gresample(
 				snapshot, 
 				nz=n_vertical, 
 				nx=n_horizontal, 
-				ny=n_horizontal
+				ny=n_horizontal,
+				method=method
 			)
 	
 			if length(outfolder) > 1
@@ -604,14 +650,6 @@ begin
 	
 			i += 1
 			output_name = joinpath(outfolder, "m3dis_sun_$(label)_$(i)")
-			aos = @axed eos
-	
-			ne = lookup(
-				aos, :lnNe, 
-				log.(snapshotsresample[:d]), log.(snapshotsresample[:ee])
-			) 
-			
-			snapshotsresample.data[:ne] = exp.(ne)
 		
 			MUST.multiBox(
 				snapshotsresample, 
@@ -677,23 +715,27 @@ md"One can alternatively also convert multiple snapshots"
 # ╔═╡ 2aab4558-dc94-475d-83d2-696d513c2aec
 labels
 
+# ╔═╡ 8c3db52c-75f5-4051-ae57-07dabebaf021
+begin
+	target_x = 10
+	target_z = 280
+end
+
 # ╔═╡ 389e61c2-0dd4-458a-98a5-5b787fa0e957
-label = "magg22_p_10x10x150"
+label = "magg22_$(target_x)x$(target_x)x$(target_z)"
 
 # ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
-for i in eachindex(labels)
-	if !(i == 4)
-		continue
-	end
-	
+for i in eachindex(labels)	
 	@info labels[i]
 	
 	snaps2multi(
-		out_folder[i], -4, -3, -2, -1, :recent,
+		out_folder[i], -8, -7, -6, -5, -4, -3, -2, -1, :recent,
 		eos=eos[i], 
 		label=label,
-		n_horizontal=10, 
-		n_vertical=280, outfolder=labels[i], method=:pchip
+		n_horizontal=target_x, 
+		n_vertical=target_z, 
+		outfolder=labels[i], 
+		method=:linear
 	)
 end
 
@@ -790,20 +832,23 @@ end
 # ╟─6e078b79-7928-4854-a07f-c5ac185caa59
 # ╟─c0347b03-fb0a-4660-a9f6-fc24272263ed
 # ╟─fcc3aaac-a5e2-45fa-9419-4aaa916fbe45
-# ╠═4c0bf79b-9b7b-4c35-a728-350a79e5eb83
+# ╟─4c0bf79b-9b7b-4c35-a728-350a79e5eb83
+# ╠═a10e407c-70f8-4809-a0e4-eb334447d623
 # ╟─919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
 # ╟─84bd1e80-ff21-4970-a5a3-fc7452da7e6f
-# ╠═e2dde825-4e66-42e2-b541-74ec0600fc81
+# ╟─e2dde825-4e66-42e2-b541-74ec0600fc81
 # ╟─3615d990-9c9a-4e69-8f96-0e3c2ac6896b
 # ╠═a33fbc44-eade-4ef2-9a6d-87047b5cdb1f
+# ╠═87e8b92e-dd35-4024-b795-467a96660e7b
 # ╟─5ca0a8ee-5fbf-4d76-8bfd-91c292e08cfa
-# ╠═fc232599-e4e9-42d0-b108-316897c363ce
+# ╟─fc232599-e4e9-42d0-b108-316897c363ce
 # ╠═7a023be5-46ea-4c25-857b-3f765c044a91
 # ╟─b1df1501-4033-4d8a-bd67-8130c095152a
 # ╟─fdf3a692-daab-49d5-8bf6-36996617349e
 # ╟─f3e705cf-a0a5-4905-9a07-aa6535985e01
 # ╟─f2be5e98-6545-4f37-9a20-026f4914c9f7
 # ╠═2aab4558-dc94-475d-83d2-696d513c2aec
+# ╠═8c3db52c-75f5-4051-ae57-07dabebaf021
 # ╠═389e61c2-0dd4-458a-98a5-5b787fa0e957
 # ╠═055f1b98-53d7-4368-bc75-d0073985d47d
 # ╠═313bb855-4d09-4df7-ba9d-f261cff27794

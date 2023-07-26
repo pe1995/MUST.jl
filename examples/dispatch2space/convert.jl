@@ -42,6 +42,9 @@ else
     if !("SLURM_NTASKS" in keys(ENV))
         istart = max(1, length(snapshots)-4)
         snapshots = snapshots[istart:end-2]
+    else
+        istart = max(1, length(snapshots)-10)
+        snapshots = snapshots[istart:end-2]
     end
 end
 

@@ -129,7 +129,8 @@ md"## Resampling the Box
 In line with those tools, the entire box can be re-sampled in the following manner"
 
 # ╔═╡ 720b6b6f-b7e0-4e21-9ef8-6068490d095b
-function resample(b::MUST.Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
+function resample(b::MUST.Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), 
+					method=:linear)
 	if (nx==size(b, 1)) & (ny==size(b, 2)) & (nz==size(b, 3))
 		@warn "Size of new box = size of old box."
 		deepcopy(b)
@@ -145,7 +146,7 @@ function resample(b::MUST.Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
 	target_grid = MUST.Grid(x_new, y_new, z_new)
 
 	# interpolate 
-	ip = MUST.ginterpolate(grid, target_grid)
+	ip = MUST.ginterpolate(grid, target_grid, method=method)
 
 	# compute the interpolate quantities
 	data_new = Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}()
@@ -172,7 +173,10 @@ function resample(b::MUST.Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3))
 end
 
 # ╔═╡ 2322b69e-57e5-4e0e-b7fa-f34240f19d42
+# ╠═╡ disabled = true
+#=╠═╡
 box_resample = resample(snap, nz=240)
+  ╠═╡ =#
 
 # ╔═╡ d51b3b07-382c-4a21-af9e-d38be320d5b1
 keys(snap.data)
@@ -205,6 +209,7 @@ profile(f, model, x=:z, y=:T) = begin
 end
 
 # ╔═╡ 12988bcb-3c0c-471a-9afb-3ba199f49361
+#=╠═╡
 begin
 	plot(framestyle=:box, grid=false)
 	
@@ -215,6 +220,7 @@ begin
 
 	plot!(legendforegroundcolor=nothing)
 end
+  ╠═╡ =#
 
 # ╔═╡ ee4db621-4d20-4173-b708-a9018db1bc47
 md"Is there a difference when computing the optical depth of the resampled model?"
@@ -277,6 +283,43 @@ begin
 	plot(h12, h22, size=(1800,600))
 end
 
+# ╔═╡ 6f749fc7-26a5-4168-9e1f-b8bf57b91ef2
+md"## Test: What does resolution do?"
+
+# ╔═╡ e784defd-6a29-42c6-9837-23e648fb7c36
+box_resample_res = MUST.gresample(
+	snap, nx=10, ny=10, nz=280, method=:linear
+)
+
+# ╔═╡ 75228348-9c13-440d-918a-5fb1d92c96f8
+begin
+	plot(framestyle=:box, grid=false)
+	
+	scatter!(
+		profile(MUST.mean, box_resample_res, :z, :T)...,
+		markershape=:circle, 
+		label="resample", 
+		markersize=4
+	)
+	
+	plot!(
+		profile(MUST.mean, snap, :z, :T)..., 
+		label="original", 
+		lw=2
+	)
+
+	p_line = plot!(legendforegroundcolor=nothing, xlabel="z", ylabel="<T>")
+
+	i0_new3 = argmin(abs.(MUST.axis(box_resample_res, :z)))
+	i0_old3 = argmin(abs.(MUST.axis(snap, :z)))
+		
+	h13 = heatmap(box_resample_res[:T][:,:,i0_new3], title="resampled")
+	h23 = heatmap(snap[:T][:,:,i0_old3], title="original")
+
+
+	plot(h13, h23, p_line, layout=(2, 2), size=(900,600))
+end
+
 # ╔═╡ Cell order:
 # ╟─82119670-88be-4e8e-88e8-8c8c2e706b4f
 # ╠═13e36110-0f52-11ee-0142-bd1afe3d9a36
@@ -299,7 +342,7 @@ end
 # ╟─502fb3e2-9036-4637-ac17-759aaeea675a
 # ╟─36f3d298-2aec-48dc-a305-18b19fb6d3b3
 # ╟─b9391c54-6b34-488c-8b92-e58625c36cb9
-# ╠═720b6b6f-b7e0-4e21-9ef8-6068490d095b
+# ╟─720b6b6f-b7e0-4e21-9ef8-6068490d095b
 # ╟─2322b69e-57e5-4e0e-b7fa-f34240f19d42
 # ╠═d51b3b07-382c-4a21-af9e-d38be320d5b1
 # ╟─4ce857f4-d78e-451c-a1b9-d7fba54d0343
@@ -314,3 +357,6 @@ end
 # ╠═566f5a7c-d065-45ee-bc04-8328bf2716c9
 # ╟─68a08685-9d40-4ee1-a56c-4fb9af7f8e07
 # ╟─344a6492-f86a-4756-9395-8e217c5829ec
+# ╟─6f749fc7-26a5-4168-9e1f-b8bf57b91ef2
+# ╠═e784defd-6a29-42c6-9837-23e648fb7c36
+# ╟─75228348-9c13-440d-918a-5fb1d92c96f8

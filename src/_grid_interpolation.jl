@@ -138,8 +138,8 @@ Apply weights to values at indices in order to interpolate
 from an old to a new grid.
 """
 function interpolate_axis!(values_new, values, weights, indices)	
-	for i in eachindex(values_new)
-		values_new[i] = weights[i, 1] * values[indices[i]] + 
+	@fastmath for i in eachindex(values_new)
+		@inbounds values_new[i] = weights[i, 1] * values[indices[i]] + 
 					weights[i, 2] * values[indices[i]+1]
 	end
 
@@ -175,7 +175,7 @@ function pchip_mono8!(newy, yy, newx, xx)
     dx = xx[2:n] .- xx[1:n-1]
     dy = yy[2:n] .- yy[1:n-1]
 
-    for i in 2:n-1
+    @inbounds for i in 2:n-1
         if (dy[i-1] == 0) | (dy[i] == 0)
             continue
         end
@@ -198,9 +198,9 @@ function pchip_mono8!(newy, yy, newx, xx)
     dydx[n] = dydx[n-1] + 2. * a *dx[n-1]
 
     i = 1
-    for j in 1:n_interp
+    @inbounds for j in 1:n_interp
         # Find the interval containing newx(j)
-        for k in i:n-1
+        @inbounds for k in i:n-1
             if (newx[j] <= xx[k + 1])
                 i = k
                 break #! Found the interval

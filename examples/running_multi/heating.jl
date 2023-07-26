@@ -43,7 +43,7 @@ md"## Model Atmospheres
 Pick the model atmosphere. It should either be located in input_multi3d/MUST or the correct folder should be given to the namelist function."
 
 # ╔═╡ 04f7c167-3b1d-4ad8-be9f-58fbac9a20a0
-modelatmos = "m3dis_sun_magg22_10x10x230_3"
+modelatmos = "m3dis_sun_magg22_20x20x280_2" 
 
 # ╔═╡ b7790d90-97bf-4f89-8c15-0d70f855471d
 modelatmosfolder = "input_multi3d/magg2022_150x300/"
@@ -102,14 +102,14 @@ m3d_binned = if compute
 		modelatmos, 
 		joinpath(folder_eos_rel, "eos_opa"),
 			namelist_kwargs=(
-			:model_folder=>modelatmosfolder,
-			:linelist=>nothing,
-			:absmet=>nothing,
-			:atom_params=>(:atom_file=>"", ),
-			:spectrum_params=>(:daa=>1., :aa_blue=>1500, :aa_red=>9000),
-			:atmos_params=>(:dims=>1, ),
-			:m3d_params=>(:n_nu=>1, )
-		),
+				:model_folder=>modelatmosfolder,
+				:linelist=>nothing,
+				:absmet=>nothing,
+				:atom_params=>(:atom_file=>"", ),
+				:spectrum_params=>(:daa=>5., :aa_blue=>3000, :aa_red=>4000),
+				:atmos_params=>(:dims=>1, ),
+				:m3d_params=>(:n_nu=>1, )
+			),
 		slurm=true
 	)
 else
@@ -125,7 +125,7 @@ m3d_unbinned = if compute
 			:linelist=>nothing,
 			:absmet=>absmet,
 			:atom_params=>(:atom_file=>"", ),
-			:spectrum_params=>(:daa=>1., :aa_blue=>1500, :aa_red=>9000),
+			:spectrum_params=>(:daa=>5., :aa_blue=>1500, :aa_red=>9000),
 			:atmos_params=>(:dims=>1, ),
 			:m3d_params=>(:n_nu=>1, )
 		),
@@ -177,7 +177,6 @@ function attach_heating(box, run)
 	box_new[:qrad] = qr
 	box_new[:tau] = t
 
-	@info qr t
 	# Interpolate to new optical depth scale
 	# for this use the logtau that was computed from Multi
 	MUST.height_scale(box_new, :tau)
