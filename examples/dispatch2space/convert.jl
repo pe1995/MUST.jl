@@ -124,7 +124,7 @@ MUST.sendsync(workers(), folder=folder, do_teff=save_info, ini_nml=nml, eos=eos_
 
             # NEW: Convert the height scale from cm to optical depth
             min_plane = MUST.plane_statistic(minimum, b_s, :τ_ross)
-            b_s       = MUST.height_scale(b_s, :τ_ross)
+            b_s       = MUST.height_scale_fast(b_s, :τ_ross)
             #b_s       = MUST.height_scale(b_s, :τ_ross, Float32[maximum(min_plane), 10^(-6.0)])
 
             # Write to HDF5 file. Can easily be read as a Memory map later with the build-in functions

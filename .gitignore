@@ -39,8 +39,8 @@ examples/from_stagger/*.atmos
 examples/from_stagger/*.mesh
 examples/from_stagger/*/*.atmos
 examples/from_stagger/*/*.mesh
-examples/from_stagger/models/*/*.mesh
-examples/from_stagger/models/*/*.atmos
+examples/from_stagger/models*/*/*.mesh
+examples/from_stagger/models*/*/*.atmos
 
 
 examples/Paper_I/.Conda*

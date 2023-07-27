@@ -304,7 +304,7 @@ _whole_spectrum_namelist!(nml::M3DNamelist;
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
 				:lvlcheck=>1,
-                :n_nu=>200, :maxiter=>0, :decouple_continuum=>true,
+                :n_nu=>32, :maxiter=>0, :decouple_continuum=>true,
                 :long_scheme=>"lobatto", :quad_scheme=>"set_a2"),
 	linelist_params=(:dlam=>1.0,),
     composition_params=(:abund_file=>"./input_multi3d/abund_magg",:absdat_file=>"./input_multi3d/TS_absdat.dat"),
@@ -374,7 +374,7 @@ _spectrum_namelist_lte!(nml::M3DNamelist;
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
 				:lvlcheck=>1,
-                :n_nu=>200, :maxiter=>0, :decouple_continuum=>true,
+                :n_nu=>32, :maxiter=>0, :decouple_continuum=>true,
                 :long_scheme=>"lobatto", :quad_scheme=>"set_a2")) = begin
 
 	set!(
@@ -396,7 +396,7 @@ _spectrum_namelist_nlte!(nml::M3DNamelist;
                 :convlim=>1e-2),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
 				:lvlcheck=>1,
-                :n_nu=>200, :maxiter=>100, :decouple_continuum=>true,
+                :n_nu=>32, :maxiter=>100, :decouple_continuum=>true,
                 :long_scheme=>"lobatto", :quad_scheme=>"set_a2")) = begin
 
 	set!(

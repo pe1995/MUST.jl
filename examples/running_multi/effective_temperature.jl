@@ -54,15 +54,15 @@ modelatmosfolder = "input_multi3d/magg2022_150x300/"
 
 # ╔═╡ 76bfd78b-0d58-4c59-9587-4b7627a2d357
 snapshots = [
-	"m3dis_sun_magg22_10x10x230_1",
-	"m3dis_sun_magg22_10x10x230_2",
-	"m3dis_sun_magg22_10x10x230_3",
-	"m3dis_sun_magg22_10x10x230_4",
-	"m3dis_sun_magg22_10x10x230_5",
-	"m3dis_sun_magg22_10x10x230_6",
-	"m3dis_sun_magg22_10x10x230_7",
-	"m3dis_sun_magg22_10x10x230_8",
-	"m3dis_sun_magg22_10x10x230_9"
+	"m3dis_sun_magg22_20x20x280_1",
+	"m3dis_sun_magg22_20x20x280_2",
+	"m3dis_sun_magg22_20x20x280_3",
+	"m3dis_sun_magg22_20x20x280_4",
+	"m3dis_sun_magg22_20x20x280_5",
+	"m3dis_sun_magg22_20x20x280_6",
+	"m3dis_sun_magg22_20x20x280_7",
+	"m3dis_sun_magg22_20x20x280_8",
+	"m3dis_sun_magg22_20x20x280_9"
 ]
 
 # ╔═╡ 8dfa58c2-54e4-4ca1-bf80-4badadfaf2b9
@@ -97,7 +97,7 @@ begin
 				:absmet=>absmet,
 				:atom_params=>(:atom_file=>"", ),
 				:spectrum_params=>(
-					:daa=>1.0, :aa_blue=>1000, :aa_red=>80000
+					:daa=>1.0, :aa_blue=>1000, :aa_red=>100000
 				)
 			),
 			slurm=true

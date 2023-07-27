@@ -1275,6 +1275,81 @@ function height_scale(b::MUST.Box, new_scale, limits=nothing, logspace=true)
     new_box
 end
 
+"""
+Switch the height scale of a box. Creates a new box by reducing the old box by column for every new height value.
+"""
+function height_scale_fast(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, :ux, :uy, :uz, :ee, :e])
+    N_points = size(b.z, 3)
+    TT = eltype(b.z)
+
+    # create a new height scale 
+    min_plane = MUST.plane_statistic(minimum, b, new_scale)
+    max_plane = MUST.plane_statistic(maximum, b, new_scale)
+    low_lim   = maximum(min_plane)
+    high_lim  = minimum(max_plane)
+
+    if !logspace
+        h_scale = range( TT(low_lim), TT(high_lim); length=N_points)
+    else
+        h_scale = Base.convert.(TT, 10.0 .^ range( log(10, TT(low_lim)), log(10, TT(high_lim)); length=N_points))
+    end
+
+    new_box = deepcopy(b)
+    sorting, interps = interpolators(log.(10, b[new_scale]), log.(10, h_scale))
+
+    # Save loop allocations
+    Nx = size(b.x, 1)
+    Ny = size(b.x, 2)
+
+    # Step by step construct a box object from individual planes
+    @inbounds for j in 1:Ny
+        @inbounds for k in 1:Nx
+            for q in keys(new_box.data)
+                if q == new_scale
+                    continue
+                end
+                @inbounds new_box.data[q][k,j,:] .= if !(q in dont_log)
+                    exp.(
+                        gevaluate!(
+                            interps[k, j], 
+                            @views log.(b.data[q][k, j, sorting[k, j, :]])
+                        )
+                    )
+                else
+                    gevaluate!(
+                        interps[k, j], 
+                        @views b.data[q][k, j, sorting[k, j, :]]
+                    )
+                end
+            end
+            @inbounds new_box.z[k, j, :] .= gevaluate!(
+                interps[k, j], 
+                @views b.z[k, j, sorting[k, j, :]]
+            )
+
+            @inbounds new_box.data[new_scale][k, j, :] .= h_scale
+        end
+    end
+    new_box
+end
+
+function interpolators(old_cube, new_scale)
+    sorting = zeros(Int, size(old_cube)...)
+    interps = Matrix{GridInterpolation}(undef, size(old_cube)[1:2]...)
+    g_new = Grid(new_scale)
+    g_old = similar(old_cube, size(old_cube, 3))
+    for j in axes(old_cube, 2)
+        for i in axes(old_cube, 1)
+            @inbounds g_old .= old_cube[i, j, :]
+            @inbounds sorting[i, j, :] .= sortperm(g_old)
+            @inbounds interps[i, j] = ginterpolate(Grid(g_old[sorting[i, j, :]]), g_new)
+        end
+    end
+        
+    sorting, interps
+end
+
+
 @inline function linear_interpolate(x::A, y::B, x0::T) where {T<:AbstractFloat, A<:AbstractArray{T,1}, B<:AbstractArray{T,1}}
     i_min::Int64 = argmin(abs.(x .- x0))
     i_min = if i_min == length(x)

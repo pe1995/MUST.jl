@@ -37,6 +37,7 @@ names = [
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
@@ -45,12 +46,14 @@ out_folder = [
 	MUST.@in_dispatch("data/sun_new_magg_vres"),
 	MUST.@in_dispatch("data/sun_new_magg_lres"),
 	MUST.@in_dispatch("data/sun_new_magg_ires"),
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg5_rapidf"),	
+	MUST.@in_dispatch("data/pretty_good_sun_new_magg5_rapidf"),
 	MUST.@in_dispatch("data/sun_new_magg_hres"),
+	MUST.@in_dispatch("data/pretty_good_sun_new_magg2_bins")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
@@ -64,7 +67,9 @@ labels = [
 	"magg2022_90x90",
 	"magg2022_90x180",
 	"magg2022_150x300",
-	"magg2022_195x390"
+	#"magg2022_120x240",
+	"magg2022_195x390",
+	"magg2022_120x240_12bins"
 ]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
@@ -80,7 +85,7 @@ begin
 	
 	for i in eachindex(names)
 		snapshot, snapshot_τ = MUST.pick_snapshot(
-			MUST.converted_snapshots(out_folder[i]), -2
+			MUST.converted_snapshots(out_folder[i]), :recent
 		)
 		
 		append!(snapshots, [snapshot])
@@ -533,7 +538,7 @@ begin
 	plot(legendforegroundcolor=nothing, legendbackgroundcolor=nothing, legendposition=:bottomleft)
 
 	snapsis = [MUST.pick_snapshot(
-			MUST.converted_snapshots(out_folder[4]), j
+			MUST.converted_snapshots(out_folder[6]), j
 	)[2]
 		for j in [-8, -7, -6, -5, -4, -3, -2, -1, :recent]
 	]
@@ -715,29 +720,27 @@ md"One can alternatively also convert multiple snapshots"
 # ╔═╡ 2aab4558-dc94-475d-83d2-696d513c2aec
 labels
 
-# ╔═╡ 8c3db52c-75f5-4051-ae57-07dabebaf021
-begin
-	target_x = 10
-	target_z = 280
-end
-
-# ╔═╡ 389e61c2-0dd4-458a-98a5-5b787fa0e957
-label = "magg22_$(target_x)x$(target_x)x$(target_z)"
+# ╔═╡ 0de7161a-aa93-49dc-b553-84ddf1d21961
+res = reshape(collect(Iterators.product((5, 10, 20, 30, 80), (299))), :)
 
 # ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
-for i in eachindex(labels)	
-	@info labels[i]
-	
-	snaps2multi(
-		out_folder[i], -8, -7, -6, -5, -4, -3, -2, -1, :recent,
-		eos=eos[i], 
-		label=label,
-		n_horizontal=target_x, 
-		n_vertical=target_z, 
-		outfolder=labels[i], 
-		method=:linear
-	)
-end
+#=for (rx, rz) in res
+	target_x = rx
+	target_z = rz
+	label = "magg22_$(target_x)x$(target_x)x$(target_z)"
+	@show label
+	for i in eachindex(labels)	
+		snaps2multi(
+			out_folder[i], -8, -7, -6, -5, -4, -3, -2, -1, :recent,
+			eos=eos[i], 
+			label=label,
+			n_horizontal=target_x, 
+			n_vertical=target_z, 
+			outfolder=labels[i], 
+			method=:linear
+		)
+	end
+end=#
 
 # ╔═╡ 313bb855-4d09-4df7-ba9d-f261cff27794
 #label_stagger = "stagger_10x10x230"
@@ -848,8 +851,7 @@ end
 # ╟─f3e705cf-a0a5-4905-9a07-aa6535985e01
 # ╟─f2be5e98-6545-4f37-9a20-026f4914c9f7
 # ╠═2aab4558-dc94-475d-83d2-696d513c2aec
-# ╠═8c3db52c-75f5-4051-ae57-07dabebaf021
-# ╠═389e61c2-0dd4-458a-98a5-5b787fa0e957
+# ╠═0de7161a-aa93-49dc-b553-84ddf1d21961
 # ╠═055f1b98-53d7-4368-bc75-d0073985d47d
 # ╠═313bb855-4d09-4df7-ba9d-f261cff27794
 # ╠═69ec4993-ddfd-496f-87d9-eddf9ab97714

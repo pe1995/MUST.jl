@@ -34,6 +34,9 @@ else
     RegularBoxAxis(flipped(values))
 end
 
+Grid(ax::AbstractVector...) = RegularBoxGrid(RegularBoxAxis.(ax)...)
+
+
 
 
 

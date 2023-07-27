@@ -215,7 +215,7 @@ keys(box_resample0.data)
 
 # ╔═╡ 3391cd19-8747-433e-be1a-f0fe570bf97b
 box_resample = MUST.gresample(
-	snap, nz=300, method=:linear
+	snap, nz=280, method=:linear
 )
 
 # ╔═╡ 12988bcb-3c0c-471a-9afb-3ba199f49361
@@ -236,13 +236,13 @@ box_resample2 = MUST.gresample(
 )
 
 # ╔═╡ 8fb3bbb2-3baa-4eff-a378-b5fb059e0eb5
-b_s0 = MUST.height_scale_fast(box_resample0, :τ_ross)
+b_s0 = MUST.height_scale(box_resample0, :τ_ross)
 
 # ╔═╡ bb44545f-75c5-432d-b65a-5ba45b283ab9
-b_s = MUST.height_scale_fast(box_resample, :τ_ross)
+b_s = MUST.height_scale(box_resample, :τ_ross)
 
 # ╔═╡ 75170e02-209d-42f7-a159-2a8ee480f148
-b_s2 = MUST.height_scale_fast(box_resample2, :τ_ross)
+b_s2 = MUST.height_scale(box_resample2, :τ_ross)
 
 # ╔═╡ 0f0b091c-f796-4d82-b687-74459bc85750
 begin
@@ -288,19 +288,19 @@ begin
 
 	common_r2 = range(-.4e8, .4e8, length=1000) |> collect
 
-	x2, y2 = profile(MUST.mean, box_resample0, :z, :T)
+	x2, y2 = profile(MUST.mean, box_resample0, :z, :e)
 	m2 = sortperm(x2)
 	ip_res02   = MUST.linear_interpolation(x2[m2], y2[m2]).(common_r2)
 
-	x2, y2 = profile(MUST.mean, box_resample, :z, :T)
+	x2, y2 = profile(MUST.mean, box_resample, :z, :e)
 	m2 = sortperm(x2)
 	ip_res12   = MUST.linear_interpolation(x2[m2], y2[m2]).(common_r2)
 	
-	x2, y2 = profile(MUST.mean, box_resample2, :z, :T)
+	x2, y2 = profile(MUST.mean, box_resample2, :z, :e)
 	m2 = sortperm(x2)
 	ip_res22   = MUST.linear_interpolation(x2[m2], y2[m2]).(common_r2)
 
-	x2, y2 = profile(MUST.mean, snap, :z, :T)
+	x2, y2 = profile(MUST.mean, snap, :z, :e)
 	m2 = sortperm(x2)
 	ip_ori2   = MUST.linear_interpolation(x2[m2], y2[m2]).(common_r2)
 
@@ -416,6 +416,7 @@ end
 # ╟─36f3d298-2aec-48dc-a305-18b19fb6d3b3
 # ╟─b9391c54-6b34-488c-8b92-e58625c36cb9
 # ╟─720b6b6f-b7e0-4e21-9ef8-6068490d095b
+# ╟─2322b69e-57e5-4e0e-b7fa-f34240f19d42
 # ╠═d51b3b07-382c-4a21-af9e-d38be320d5b1
 # ╟─4ce857f4-d78e-451c-a1b9-d7fba54d0343
 # ╟─19f1e6e8-d574-47b1-bcbd-bb61e7e2804a
@@ -428,8 +429,8 @@ end
 # ╠═8fb3bbb2-3baa-4eff-a378-b5fb059e0eb5
 # ╠═bb44545f-75c5-432d-b65a-5ba45b283ab9
 # ╠═75170e02-209d-42f7-a159-2a8ee480f148
-# ╟─0f0b091c-f796-4d82-b687-74459bc85750
-# ╟─a2c88970-91bd-4a50-a1f2-af713c4d380e
+# ╠═0f0b091c-f796-4d82-b687-74459bc85750
+# ╠═a2c88970-91bd-4a50-a1f2-af713c4d380e
 # ╟─ebd8b320-3568-415c-b4bc-ad1706f09c39
 # ╟─72d86e29-c236-48ab-b5ca-383f8cd5c2b0
 # ╠═2f7bb7d0-f90e-4166-bd45-9a9e6b784736

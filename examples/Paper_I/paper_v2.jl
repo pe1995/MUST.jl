@@ -72,6 +72,50 @@ mesh(m::MUST.Box) = MUST.meshgrid(
 	MUST.axis(m, :z) ./1e8
 )
 
+# ╔═╡ 1e9b3054-c949-4a94-9db5-cba24602a470
+"""
+	time_average_profiles(model_folder)
+
+Time average the ```plane_statistics``` of all snapshots located in that folder.
+"""
+function time_average_profiles(f, model_folder, args...; which=first, kwargs...)
+	x, y = [], []
+	for i in MUST.list_snapshots(MUST.converted_snapshots(model_folder))
+		snap = which(MUST.pick_snapshot(model_folder, i))
+		xi, yi = profile(f, snap, args...; kwargs...)
+
+		append!(x, [xi])
+		append!(y, [yi])
+	end
+
+	# interpolate to common x axis
+	x_common = range(
+		maximum(minimum.(x)), 
+		minimum(maximum.(x)), 
+		length=length(x |> first)
+	)
+	y_common = []
+	for i in eachindex(x)
+		m = sortperm(x[i])
+		append!(y_common, [MUST.linear_interpolation(x[i][m], y[i][m]).(x_common)])
+	end
+	
+	# compute the mean and the std
+	y_mean = zeros(length(x_common))
+	y_std  = zeros(length(x_common))
+	yi     = zeros(length(x))
+
+	for i in eachindex(x_common)
+		for j in eachindex(yi)
+			yi[j] = y_common[j][i]
+		end
+		y_mean[i] = MUST.mean(yi)
+		y_std[i]  = MUST.std(yi)
+	end
+
+	x_common, y_mean, y_std
+end
+
 # ╔═╡ 152c58ee-6568-4fd3-ae3d-2f8e397bbd04
 md"## General Models"
 
@@ -130,7 +174,7 @@ names = [
 
 # ╔═╡ 6c3227a7-993b-45bc-809e-be6a0907f384
 out_folder = [
-	"models/sun_magg_120x240",
+	"models/sun_magg_150x300",
 	"models/sun_magg_90x90",
 	"models/sun_magg_90x180"
 ]
@@ -233,7 +277,7 @@ begin
 	axA[0].plot(
 		MUST.profile(
 			mean, 
-			pick_snapshot(out_folder[modelA], :recent) |> last, :log10τ_ross, :T
+			pick_snapshot(out_folder[modelA], -1) |> last, :log10τ_ross, :T
 		)...,
 		color="k",
 		label=labels[modelA]
@@ -243,7 +287,7 @@ begin
 	axA[1].plot(
 		MUST.profile(
 			mean,
-			pick_snapshot(out_folder[modelA], :recent) |> last, :log10τ_ross, :log10d
+			pick_snapshot(out_folder[modelA], -1) |> last, :log10τ_ross, :log10d
 		)...,
 		color="k"
 	)
@@ -260,30 +304,62 @@ end
 # ╔═╡ 58bb3285-544f-4e8a-a27e-9b7e90804fe8
 md"### (B) Comparison with other Models"
 
-# ╔═╡ 8743067b-00ff-43c6-a6fd-800063b1d9de
+# ╔═╡ dd667e0e-e554-4dfe-9493-aa38a505210f
 begin
-	modelB = models["best"]
-
-	common_tauB = range(-4, 2, length=100) |> collect
+	common_tauB = range(-4, 2.5, length=100) |> collect
+	
 	ip(x, y) = begin
 		m = sortperm(x)
-		TSO.linear_interpolation(x[m], y[m]).(common_tauB)
+		TSO.linear_interpolation(
+			x[m], 
+			y[m], 
+			extrapolation_bc=MUST.Line()
+		).(common_tauB)
 	end
-
+	
 	absolute_difference(snapA, snapB, x, y) = begin
 		xA, yA = MUST.profile(mean, snapA, x, y)
 		xB, yB = MUST.profile(mean, snapB, x, y)
-
 		common_tauB, ip(xA, yA) .- ip(xB, yB)
 	end
-
 	absolute_difference(f, snapA, snapB, x, y) = begin
 		xA, yA = MUST.profile(f, snapA, x, y)
 		xB, yB = MUST.profile(f, snapB, x, y)
-
 		common_tauB, ip(xA, yA) .- ip(xB, yB)
 	end
+	absolute_difference(f, xA, yA, snapB, x, y) = begin
+		xB, yB = MUST.profile(f, snapB, x, y)
+		common_tauB, ip(xA, yA) .- ip(xB, yB)
+	end
+	absolute_difference(f, xA, yA, xB, yB, x, y) = begin
+		common_tauB, ip(xA, yA) .- ip(xB, yB)
+	end
+end
 
+# ╔═╡ 6de3b5df-9766-41ca-8d51-f18023a419a3
+begin
+	relative_difference(snapA, snapB, x, y) = begin
+		xA, yA = MUST.profile(mean, snapA, x, y)
+		xB, yB = MUST.profile(mean, snapB, x, y)
+		common_tauB, (ip(xA, yA) .- ip(xB, yB)) ./ ip(xA, yA) * 100.0
+	end
+	relative_difference(f, snapA, snapB, x, y) = begin
+		xA, yA = MUST.profile(f, snapA, x, y)
+		xB, yB = MUST.profile(f, snapB, x, y)
+		common_tauB, (ip(xA, yA) .- ip(xB, yB)) ./ ip(xA, yA) * 100.0
+	end
+	relative_difference(f, xA, yA, snapB, x, y) = begin
+		xB, yB = MUST.profile(f, snapB, x, y)
+		common_tauB, (ip(xA, yA) .- ip(xB, yB)) ./ ip(xA, yA) * 100.0
+	end
+	relative_difference(f, xA, yA, xB, yB, x, y) = begin
+		common_tauB, (ip(xA, yA) .- ip(xB, yB)) ./ ip(xA, yA) * 100.0
+	end
+end
+
+# ╔═╡ 8743067b-00ff-43c6-a6fd-800063b1d9de
+begin
+	modelB = models["best"]
 	
 	# Figure
 	plt.close()
@@ -298,7 +374,30 @@ begin
 	
 	
 
-	m3disB = pick_snapshot(out_folder[modelB], -1) |> last
+	m3disB = pick_snapshot(out_folder[modelB], :recent) |> last
+	m3disB_x, m3disB_y, m3disB_yerr = time_average_profiles(
+		mean, 
+		out_folder[modelB], 
+		:log10τ_ross, 
+		:T, 
+		which=last
+	)
+	m3disB_xr, m3disB_yr, m3disB_yerrr = time_average_profiles(
+		mean, 
+		out_folder[modelB], 
+		:log10τ_ross, 
+		:log10d, 
+		which=last
+	)
+	m3disB_xu, m3disB_yu, m3disB_yerru = time_average_profiles(
+		rms5, 
+		out_folder[modelB], 
+		:log10τ_ross, 
+		:uz, 
+		which=last
+	)
+
+	
 
 	lwD = 3
 	# Absolute comparison
@@ -325,7 +424,7 @@ begin
 			lw=lwD
 		)
 		axB[0, 0].plot(
-			MUST.profile(mean, m3disB, :log10τ_ross, :T)...,
+			m3disB_x, m3disB_y,
 			color="cornflowerblue",
 			label=labels[modelB],
 			lw=lwD
@@ -400,8 +499,10 @@ begin
 		## logτ vs. T
 		axB[0, 1].axhline(0.0, color="0.5", alpha=0.2)
 		axB[0, 1].plot(
-			absolute_difference(
-				m3disB,
+				relative_difference(
+				mean,
+				m3disB_x, 
+				m3disB_y,
 				stagger_τ,
 				:log10τ_ross, :T
 			)...,
@@ -422,8 +523,9 @@ begin
 		)=#
 		axB[0, 1].plot(
 			common_tauB, 
-			ip(MUST.profile(mean, m3disB, :log10τ_ross, :T)...) .- 
-			ip(marcs_model[:, 2], marcs_model[:, 5]),
+			(ip(m3disB_x, m3disB_y) .- 
+				ip(marcs_model[:, 2], marcs_model[:, 5])) ./ 
+				ip(m3disB_x, m3disB_y) *100.0,
 			color="k",
 			label="M3DIS - MARCS",
 			ls=":",
@@ -434,7 +536,8 @@ begin
 		axB[1, 1].axhline(0.0, color="0.5", alpha=0.2)
 		axB[1, 1].plot(
 			absolute_difference(
-				m3disB,
+				mean,
+				m3disB_xr, m3disB_yr,
 				stagger_τ,
 				:log10τ_ross, :log10d
 			)...,
@@ -455,8 +558,8 @@ begin
 		)=#
 		axB[1, 1].plot(
 			common_tauB, 
-			ip(MUST.profile(mean, m3disB, :log10τ_ross, :log10d)...) .- 
-			ip(marcs_model[:, 2], log10.(marcs_model[:, 11])),
+			ip(m3disB_xr, m3disB_yr) .- 
+				ip(marcs_model[:, 2], log10.(marcs_model[:, 11])),
 			color="k",
 			label="M3DIS - MARCS",
 			ls=":",
@@ -468,7 +571,7 @@ begin
 		axB[2, 1].plot(
 			absolute_difference(
 				rms5,
-				m3disB,
+				m3disB_xu, m3disB_yu,
 				stagger_τ,
 				:log10τ_ross, :uz
 			)...,
@@ -491,13 +594,13 @@ begin
 	
 
 		axB[0, 1].set_xlim(-4, 2)
-		axB[0, 1].set_ylim(-300, 300)
+		axB[0, 1].set_ylim(-6.25, 6.25)
 		axB[1, 1].set_ylim(-0.17, 0.17)
 		axB[2, 1].set_ylim(-0.47, 0.47)
 	
 		
 		axB[0, 1].legend(framealpha=0, fontsize="large")
-		axB[0, 1].set_ylabel(L"\rm \Delta\ T\ [K]", fontsize="large")
+		axB[0, 1].set_ylabel(L"\rm \Delta\ T\ /\ T\ [\%]", fontsize="large")
 		axB[1, 1].set_ylabel(
 			L"\rm \Delta\ \log \rho\ [g \times cm^{-3}]", fontsize="large"
 		)
@@ -520,17 +623,93 @@ end
 # ╔═╡ 6b63bde1-9a9a-4178-ac06-630ae811964b
 md"### (C) Resolution Comparison"
 
-# ╔═╡ e02162d4-6345-43e2-bb3f-2a453cc1b9eb
+# ╔═╡ 792cd263-3322-4a1f-9c1c-babcdcd88fe1
 begin
 	lresmodelC = models["lres"]
 	iresmodelC = models["ires"]
 	bestmodelC = models["best"]
-
+	
 	lresC = pick_snapshot(out_folder[lresmodelC], :recent) |> last
 	iresC = pick_snapshot(out_folder[iresmodelC], :recent) |> last
 	bestC = pick_snapshot(out_folder[bestmodelC], :recent) |> last
-
 	
+	# lres
+	lresC_x, lresC_y, lresC_z = time_average_profiles(
+		mean, 
+		out_folder[lresmodelC], 
+		:log10τ_ross, 
+		:T, 
+		which=last
+	)
+	lresC_xr, lresC_yr, lresC_zr = time_average_profiles(
+		mean, 
+		out_folder[lresmodelC], 
+		:log10τ_ross, 
+		:log10d, 
+		which=last
+	)
+	lresC_xu, lresC_yu, lresC_zu = time_average_profiles(
+		rms5, 
+		out_folder[lresmodelC], 
+		:log10τ_ross, 
+		:uz, 
+		which=last
+	)
+	
+	
+	
+	# ires
+	iresC_x, iresC_y, iresC_z = time_average_profiles(
+		mean, 
+		out_folder[iresmodelC], 
+		:log10τ_ross, 
+		:T, 
+		which=last
+	)
+	iresC_xr, iresC_yr, iresC_zr = time_average_profiles(
+		mean, 
+		out_folder[iresmodelC], 
+		:log10τ_ross, 
+		:log10d, 
+		which=last
+	)
+	iresC_xu, iresC_yu, iresC_zu = time_average_profiles(
+		rms5, 
+		out_folder[iresmodelC], 
+		:log10τ_ross, 
+		:uz, 
+		which=last
+	)
+	
+	
+	
+	
+	# best
+	bestC_x, bestC_y, bestC_z = time_average_profiles(
+		mean, 
+		out_folder[bestmodelC], 
+		:log10τ_ross, 
+		:T, 
+		which=last
+	)
+	bestC_xr, bestC_yr, bestC_zr = time_average_profiles(
+		mean, 
+		out_folder[bestmodelC], 
+		:log10τ_ross, 
+		:log10d, 
+		which=last
+	)
+	bestC_xu, bestC_yu, bestC_zu = time_average_profiles(
+		rms5, 
+		out_folder[bestmodelC], 
+		:log10τ_ross, 
+		:uz, 
+		which=last
+	)
+end
+
+# ╔═╡ e02162d4-6345-43e2-bb3f-2a453cc1b9eb
+begin
 	# Figure
 	plt.close()
 	
@@ -548,20 +727,20 @@ begin
 	begin
 		## logτ vs. T
 		axC[0, 0].plot(
-			MUST.profile(mean, bestC, :log10τ_ross, :T)...,
+			bestC_x, bestC_y,
 			color="cornflowerblue",
-			label=@sprintf("%i km", 2.3/240 *1000),
+			label=@sprintf("%i km", 2.3/300 *1000),
 			lw=lwC*2
 		)
 		axC[0, 0].plot(
-			MUST.profile(mean, iresC, :log10τ_ross, :T)...,
+			iresC_x, iresC_y,
 			color="k",
 			label=@sprintf("%i km", 2.3/180 *1000),
 			lw=lwC,
 			ls=":"
 		)
 		axC[0, 0].plot(
-			MUST.profile(mean, lresC, :log10τ_ross, :T)...,
+			lresC_x, lresC_y,
 			color="k",
 			label=@sprintf("%i km", 2.3/90 *1000),
 			lw=lwC,
@@ -571,20 +750,20 @@ begin
 		
 		## logτ vs. logρ
 		axC[1, 0].plot(
-			MUST.profile(mean, bestC, :log10τ_ross, :log10d)...,
+			bestC_xr, bestC_yr,
 			color="cornflowerblue",
-			label=@sprintf("%i km", 2.3/240 *1000),
+			label=@sprintf("%i km", 2.3/300 *1000),
 			lw=lwC
 		)
 		axC[1, 0].plot(
-			MUST.profile(mean, iresC, :log10τ_ross, :log10d)...,
+			iresC_xr, iresC_yr,
 			color="k",
 			label=@sprintf("%i km", 2.3/180 *1000),
 			lw=lwC,
 			ls=":"
 		)
 		axC[1, 0].plot(
-			MUST.profile(mean, lresC, :log10τ_ross, :log10d)...,
+			lresC_xr, lresC_yr,
 			color="k",
 			label=@sprintf("%i km", 2.3/90 *1000),
 			lw=lwC,
@@ -594,20 +773,20 @@ begin
 		
 		## logτ vs. uz
 		axC[2, 0].plot(
-			MUST.profile(rms5, bestC, :log10τ_ross, :uz)...,
+			bestC_xu, bestC_yu,
 			color="cornflowerblue",
-			label=@sprintf("%i km", 2.3/240 *1000),
+			label=@sprintf("%i km", 2.3/300 *1000),
 			lw=lwC
 		)
 		axC[2, 0].plot(
-			MUST.profile(rms5, iresC, :log10τ_ross, :uz)...,
+			iresC_xu, iresC_yu,
 			color="k",
 			label=@sprintf("%i km", 2.3/180 *1000),
 			lw=lwC,
 			ls=":"
 		)
 		axC[2, 0].plot(
-			MUST.profile(rms5, lresC, :log10τ_ross, :uz)...,
+			lresC_xu, lresC_yu,
 			color="k",
 			label=@sprintf("%i km", 2.3/90 *1000),
 			lw=lwC,
@@ -635,9 +814,10 @@ begin
 		## logτ vs. T
 		axC[0, 1].axhline(0.0, color="0.5", alpha=0.2)
 			axC[0, 1].plot(
-			absolute_difference(
-				bestC,
-				iresC,
+			relative_difference(
+				mean,
+				bestC_x, bestC_y,
+				iresC_x, iresC_y,
 				:log10τ_ross, :T
 			)...,
 			color="k",
@@ -646,9 +826,10 @@ begin
 			ls=":"
 		)
 		axC[0, 1].plot(
-			absolute_difference(
-				bestC,
-				lresC,
+			relative_difference(
+				mean,
+				bestC_x, bestC_y,
+				lresC_x, lresC_y,
 				:log10τ_ross, :T
 			)...,
 			color="k",
@@ -661,8 +842,9 @@ begin
 		axC[1, 1].axhline(0.0, color="0.5", alpha=0.2)
 		axC[1, 1].plot(
 			absolute_difference(
-				bestC,
-				iresC,
+				mean,
+				bestC_xr, bestC_yr,
+				iresC_xr, iresC_yr,
 				:log10τ_ross, :log10d
 			)...,
 			color="k",
@@ -672,8 +854,9 @@ begin
 		)
 		axC[1, 1].plot(
 			absolute_difference(
-				bestC,
-				lresC,
+				mean,
+				bestC_xr, bestC_yr,
+				lresC_xr, lresC_yr,
 				:log10τ_ross, :log10d
 			)...,
 			color="k",
@@ -687,8 +870,8 @@ begin
 		axC[2, 1].plot(
 			absolute_difference(
 				rms5,
-				bestC,
-				iresC,
+				bestC_xu, bestC_yu,
+				iresC_xu, iresC_yu,
 				:log10τ_ross, :uz
 			)...,
 			color="k",
@@ -700,8 +883,8 @@ begin
 		axC[2, 1].plot(
 			absolute_difference(
 				rms5,
-				bestC,
-				lresC,
+				bestC_xu, bestC_yu,
+				lresC_xu, lresC_yu,
 				:log10τ_ross, :uz
 			)...,
 			color="k",
@@ -712,13 +895,13 @@ begin
 			
 
 		axC[0, 1].set_xlim(-4, 2)
-		axC[0, 1].set_ylim(-300, 300)
+		axC[0, 1].set_ylim(-6.25, 6.25)
 		axC[1, 1].set_ylim(-0.17, 0.17)
 		axC[2, 1].set_ylim(-0.47, 0.47)
 	
 		
 		axC[0, 1].legend(framealpha=0, fontsize="large")
-		axC[0, 1].set_ylabel(L"\rm \Delta\ T\ [K]", fontsize="large")
+		axC[0, 1].set_ylabel(L"\rm \Delta\ T\ / \ T\ [\%]", fontsize="large")
 		axC[1, 1].set_ylabel(
 			L"\rm \Delta\ \log \rho\ [g \times cm^{-3}]", fontsize="large"
 		)
@@ -840,7 +1023,7 @@ end
 # ╔═╡ 4ae6b55e-952a-4b70-937f-c81a2f790e83
 begin
 	modelG = models["best"]
-	m3disG = pick_snapshot(out_folder[modelG], :recent) |> last
+	m3disG = pick_snapshot(out_folder[modelG], -1) |> last
 	
 	fG, axG = plt.subplots(1, 1, figsize=(6, 7))
 
@@ -880,13 +1063,116 @@ begin
 	plt.close()
 
 	modelH = models["best"]
-	m3disH = pick_snapshot(out_folder[modelH], :recent) |> first
+	m3disH = pick_snapshot(out_folder[modelH], -1) |> first
 	
 	fH, axH = visual.cube_with_velocities(m3disH, vmax_3d=17000, cmap="hot")
 
 
 	#fG.savefig("temperature_cube.pdf", bbox_inches="tight")
 	fH.savefig("temperature_cube.png", bbox_inches="tight", dpi=600)
+	
+	gcf()
+end
+
+# ╔═╡ f409f3e8-ef97-4fb9-a8e6-7a8f1e2b2d22
+md"### (I) M3D resampling effect"
+
+# ╔═╡ 759b0406-1a86-42d9-b8d7-8784a1574c02
+begin
+	modelI = models["best"]
+	m3disI = pick_snapshot(out_folder[modelI], -1) |> first
+	m3disI_τ = pick_snapshot(out_folder[modelI], -1) |> last
+
+	snap_m3disI = gresample(
+		m3disI, 
+		nz=299
+	)
+	snap_m3disI_τ = MUST.height_scale(snap_m3disI, :τ_ross)
+	
+
+	# We look at the surface and average profile of this snapshot for different 
+	# resamplings
+	samplings = reshape(collect(Iterators.product((5, 10, 20, 80), (299,))), :)
+
+	fI, axI = plt.subplots(4, 2, figsize=(14,21))
+	for j in 0:1
+		for i in 0:3
+			visual.basic_plot!(axI[i, j])
+		end
+	end
+	plt.subplots_adjust(wspace=0.2, hspace=0.1)
+
+	vminI = 5500
+	vmaxI = 6900
+	i0I_full = argmin(abs.(log.(MUST.axis(m3disI_τ, :τ_ross, 3))))
+	TI_full = m3disI[:T][:, :, i0I_full]
+	
+	for (i, resolution) in enumerate(samplings)
+		snap = gresample(
+			m3disI, 
+			nx=resolution[1], 
+			ny=resolution[1],
+			nz=resolution[2]
+		)
+
+		snap_r = MUST.height_scale(snap, :τ_ross)
+		
+		i0I_i = argmin(abs.(log.(MUST.axis(snap_r, :τ_ross, 3)) .- 0.0))
+		TI_i  = snap_r[:T][:, :, i0I_i]
+		
+		imI_i = axI[i-1, 0].imshow(
+			TI_i,
+			origin="lower",
+			vmin=vminI, vmax=vmaxI,
+			cmap="hot",
+			extent=extent(snap_r), 
+			aspect="auto"
+		)
+		@info minimum(TI_i) maximum(TI_i)
+
+		#=imI_i = axI[i-1, 1].imshow(
+			TI_full,
+			origin="lower",
+			vmin=vminI, vmax=vmaxI,
+			cmap="hot",
+			extent=extent(m3disI), 
+			aspect="auto"
+		)=#
+
+		#cI = fI.colorbar(imI_i, ax=axI[i-1, 0], fraction=0.046, pad=0.04)
+		#cI.set_label(L"\rm T\ [K]", fontsize="large")
+
+		xI_i , yI_i = profile(MUST.mean, snap_r, :log10τ_ross, :T)		
+		axI[i-1, 1].plot(
+			xI_i, yI_i,
+			color="k", 
+			marker="o", 
+			markersize=5,
+			ls="",
+			label="$(resolution[1])x$(resolution[1])x$(resolution[2])"
+		)
+		
+		xI_i , yI_i = profile(MUST.mean, snap_m3disI_τ, :log10τ_ross, :T)		
+		axI[i-1, 1].plot(
+			xI_i, yI_i,
+			color="tomato", 
+			marker="",
+			ls="-",
+			lw=3,
+			label="original"
+		)
+
+		axI[i-1, 1].set_ylim(4000, 10000)
+		axI[i-1, 1].set_xlim(-4.0, 1.75)
+		axI[i-1, 1].legend(framealpha=0, fontsize="x-large")
+		axI[i-1, 1].set_ylabel(L"\rm T\ [K]", fontsize="x-large")
+	end
+
+	for (i, resolution) in enumerate(samplings)
+		axI[i-1, 0].set_ylabel(L"\rm Y\ [Mm]", fontsize="x-large")	
+	end
+	axI[3, 0].set_xlabel(L"\rm X\ [Mm]", fontsize="x-large")
+	axI[3, 1].set_xlabel(L"\rm \log \tau_{ross}", fontsize="x-large")	
 	
 	gcf()
 end
@@ -904,6 +1190,7 @@ end
 # ╠═0b02d772-a51b-4aa5-9d73-23c85bac5a6a
 # ╟─911bed42-e814-4a42-9be4-148334315fe2
 # ╠═eb51ab2b-d6e5-45a8-9131-5383545d02f0
+# ╟─1e9b3054-c949-4a94-9db5-cba24602a470
 # ╟─152c58ee-6568-4fd3-ae3d-2f8e397bbd04
 # ╟─ec5e9d64-e461-44ec-9753-c306cc8d29dd
 # ╟─33690f11-20d9-48ee-82b9-bc0df0f9e560
@@ -934,8 +1221,11 @@ end
 # ╟─381be17e-b257-4e51-aa79-941db153f398
 # ╟─e1517fd6-523f-4083-bb74-ebf666813002
 # ╟─58bb3285-544f-4e8a-a27e-9b7e90804fe8
+# ╟─dd667e0e-e554-4dfe-9493-aa38a505210f
+# ╟─6de3b5df-9766-41ca-8d51-f18023a419a3
 # ╟─8743067b-00ff-43c6-a6fd-800063b1d9de
 # ╟─6b63bde1-9a9a-4178-ac06-630ae811964b
+# ╟─792cd263-3322-4a1f-9c1c-babcdcd88fe1
 # ╟─e02162d4-6345-43e2-bb3f-2a453cc1b9eb
 # ╟─b9890085-fcca-472d-b192-da7abf349b45
 # ╟─b14da0d1-63da-44aa-b1fd-4340ec64528e
@@ -947,3 +1237,5 @@ end
 # ╟─4ae6b55e-952a-4b70-937f-c81a2f790e83
 # ╟─faccedff-2a3a-40b1-ae88-c42a69112d16
 # ╟─1634883c-2a93-4b31-bc3a-662a894733c4
+# ╟─f409f3e8-ef97-4fb9-a8e6-7a8f1e2b2d22
+# ╟─759b0406-1a86-42d9-b8d7-8784a1574c02

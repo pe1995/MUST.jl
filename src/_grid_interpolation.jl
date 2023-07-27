@@ -51,13 +51,14 @@ Construct a grid interpolator from a list of axis interpolation objects.
 """
 GridInterpolation(from::Vector{<:AbstractBoxAxis}, to::Vector{<:AbstractBoxAxis}; method=:linear) = begin
     interpolators = AxisInterpolation.(from, to; method=method)
-    buffers = []
+
+    initial_size = [length(nodes(interpolators[i].old_axis)) for i in eachindex(interpolators)]
+    #append!(buffers, [similar(interpolators[1].weights, initial_size...)])
+    buffers = [similar(interpolators[1].weights, initial_size...)]
 
     s_old = (length(nodes(f)) for f in from) |> collect
     s_new = (size(interpolators[j].weights, 1) for j in eachindex(interpolators)) |> collect
     for i in eachindex(interpolators)
-        #i == length(interpolators) ? break : nothing
-
         s = (j <= i ? s_new[j] : s_old[j] for j in eachindex(interpolators))
         values_int = similar(interpolators[i].weights, s...)
 
@@ -138,7 +139,7 @@ Apply weights to values at indices in order to interpolate
 from an old to a new grid.
 """
 function interpolate_axis!(values_new, values, weights, indices)	
-	@fastmath for i in eachindex(values_new)
+	for i in eachindex(values_new)
 		@inbounds values_new[i] = weights[i, 1] * values[indices[i]] + 
 					weights[i, 2] * values[indices[i]+1]
 	end
@@ -231,7 +232,8 @@ requested otherwise.
 """
 function interpolate_grid!(ip::GridInterpolation, values; return_copy=true)
     #idx = zeros(Int, length(ip.axes_interpolation))
-    buffers = [deepcopy(values), ip.buffers...]
+    buffers = ip.buffers
+    buffers[1] .= values
 
     for i in eachindex(ip.axes_interpolation)
         # For each interpolation axis (x, y, z, etc.)
