@@ -52,6 +52,7 @@ examples/Paper_I/models/*
 !examples/initial_models/Project.toml
 !examples/initial_models/*.jl
 !examples/initial_models/*.slurm
+!examples/initial_models/*_av.dat
 
 !examples/Muram/*.ipynb
 !examples/Muram/Project.toml

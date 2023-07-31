@@ -6,6 +6,9 @@ matplotlib = ""
 dask = ""
 imageio = ""
 numpy = ""
-scipy = ""
-astropy = ""
 f90nml = ""
+astropy = ""
+scipy = ""
+
+[pip.deps]
+idlsave = ""

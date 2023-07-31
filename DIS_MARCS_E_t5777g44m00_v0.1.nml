@@ -1,0 +1,37 @@
+&snapshot_params      model="stellar" /
+&cartesian_params     periodic=t,t,f omp_init=t verbose=1 dims=18,18,9 
+                      size=4.6,4.6,2.3 mpi_dims=2,2,1 position=0.0,0.0,-0.46 /
+&patch_params         nt=5 grace=0.1 n=28,28,28 /
+&experiment_params    upper_cork=.true. t_bot=0.01 /
+&scaling_params       d_cgs=1.0e-7 l_cgs=1.0e8 t_cgs=100.0 /
+&stellar_params       a_perturb=0.1 ee_min_cgs=28.86654 nz=444 g_cgs=25118.86432 
+                      on=t verbose=1 initial_model="simple" 
+                      initial_path='input_data/grd/DIS_MARCS_E_t5777g44m00_v0.1/inim.dat' /
+&newton_params        end_time=25.0 time=0.1 scale=0.1 ee0_cgs=28.86654 
+                      decay_limit=1e-2 position=0.6 ee1=0.0 axis=3 decay_scale=2.0 delay_rt=.false. 
+                      on=t /
+&friction_params      decay_limit=1e-2 end_time=50.0 time=0.1 on=t decay_scale=20.0 /
+&boundary_params      /
+&gravity_params       constant=-25118.86432 axis=3 on=t mass=-1 position=0.0 
+                      minrad=-1 /
+&pressure_node_params /
+&rt_integral_params   /
+&sc_rt_params         rt_urc=2.3,2.3,0.64 n_bin=12 courant=1.0 nt=5 n_warmup=6 
+                      rt_grace=0.01 trace_teff=f rt_freq=0.0 n_mu=2 rt_llc=-2.3,-2.3,-1.61 
+                      verbose=0 cdtd=1.0 n_phi=4 on=t /
+&restart_params       /
+&io_params            guard_zones=t end_time=200 do_trace=f out_time=3 verbose=0 
+                      do_output=t /
+&aux_params           verbose=0 /
+&eos_params           gamma=1.2 
+                      table_loc='input_data/grd/DIS_MARCS_E_t5777g44m00_v0.1' /
+&bifrost_params       /
+&ramses_params        /
+&stagger_params       /
+&divb_clean_params    /
+&halo_params          /
+&timer_params         sec_per_report=60 verbose=0 /
+&lock_params          /
+&task_list_params     /
+&an_params            verbose=0 courant=0.35 /
+&dispatcher0_params   /
