@@ -46,7 +46,7 @@ md"## Model Atmospheres
 Pick the model atmosphere. It should either be located in input_multi3d/MUST or the correct folder should be given to the namelist function."
 
 # ╔═╡ 766cfb9d-6084-4cde-8856-d3f3c6509abe
-modelatmos = "m3dis_sun_magg22_20x20x280_3"
+modelatmos = "m3dis_sun_magg22_20x20x299_3"
 
 # ╔═╡ 1a9a7946-fda5-4e01-b715-c3c36c1bf6ea
 modelatmosfolder = "input_multi3d/magg2022_150x300/"
@@ -54,15 +54,15 @@ modelatmosfolder = "input_multi3d/magg2022_150x300/"
 
 # ╔═╡ 76bfd78b-0d58-4c59-9587-4b7627a2d357
 snapshots = [
-	"m3dis_sun_magg22_20x20x280_1",
-	"m3dis_sun_magg22_20x20x280_2",
-	"m3dis_sun_magg22_20x20x280_3",
-	"m3dis_sun_magg22_20x20x280_4",
-	"m3dis_sun_magg22_20x20x280_5",
-	"m3dis_sun_magg22_20x20x280_6",
-	"m3dis_sun_magg22_20x20x280_7",
-	"m3dis_sun_magg22_20x20x280_8",
-	"m3dis_sun_magg22_20x20x280_9"
+	"m3dis_sun_magg22_20x20x299_1",
+	"m3dis_sun_magg22_20x20x299_2",
+	"m3dis_sun_magg22_20x20x299_3",
+	"m3dis_sun_magg22_20x20x299_4",
+	"m3dis_sun_magg22_20x20x299_5",
+	"m3dis_sun_magg22_20x20x299_6",
+	"m3dis_sun_magg22_20x20x299_7",
+	"m3dis_sun_magg22_20x20x299_8",
+	"m3dis_sun_magg22_20x20x299_9"
 ]
 
 # ╔═╡ 8dfa58c2-54e4-4ca1-bf80-4badadfaf2b9
@@ -84,7 +84,7 @@ Running M3D is then straight forward. One can either run this within an slurm al
 If you have compiled ```M3D``` for a MPI system, it might be possible that you need to recompile without MPI for your interactive runs!"
 
 # ╔═╡ ecc8099e-ead7-4826-b17a-bb5b1787bfd2
-compute = true
+compute = false
 
 # ╔═╡ ac2ba741-52f9-4192-837e-79d760548805
 begin

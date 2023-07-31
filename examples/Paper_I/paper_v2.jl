@@ -162,6 +162,51 @@ marcs_model = readdlm(
 	skipstart=1
 )
 
+# ╔═╡ c9a52157-81c4-4b8c-8dcd-b728a0890b00
+md"### Co5bold"
+
+# ╔═╡ 515e5910-4bf1-4769-84b9-cff2a08751a0
+co5boldpath = glob("*", "co5bold_tauR_av-on_tauR")
+
+# ╔═╡ fa715a70-036e-420a-a0fa-06cefc3ef3c0
+co5bolds_τ = readdlm.(co5boldpath, skipstart=1)
+
+# ╔═╡ 87cc7333-4559-467a-be0f-0f2ec1dc0611
+begin
+	co5boldmean_τ = zeros(size(co5bolds_τ[1], 1), 4)
+	co5boldstd_τ = zeros(size(co5bolds_τ[1], 1), 4)
+	co5boldrms_τ = zeros(size(co5bolds_τ[1], 1), 4)
+	
+	vals = zeros(length(co5bolds_τ), 4)
+	for i in axes(co5boldmean_τ, 1)
+		for j in eachindex(co5bolds_τ)
+			vals[j, 1] = co5bolds_τ[j][i, 1]
+			vals[j, 2] = co5bolds_τ[j][i, 2]
+			vals[j, 3] = log10.(co5bolds_τ[j][i, 3])
+			vals[j, 4] = co5bolds_τ[j][i, 6]
+		end
+
+		mv = mean(vals, dims=1)
+		co5boldmean_τ[i, 1] = mv[1]
+		co5boldmean_τ[i, 2] = mv[2]
+		co5boldmean_τ[i, 3] = mv[3]
+		co5boldmean_τ[i, 4] = mv[4]./1e5
+		
+
+		mv = MUST.std(vals, dims=1)
+		co5boldstd_τ[i, 1] = mv[1]
+		co5boldstd_τ[i, 2] = mv[2]
+		co5boldstd_τ[i, 3] = mv[3]
+		co5boldstd_τ[i, 4] = mv[4]./1e5
+		
+
+		co5boldrms_τ[i, 1] = rms(vals[:, 1])
+		co5boldrms_τ[i, 2] = rms(vals[:, 2])
+		co5boldrms_τ[i, 3] = rms(vals[:, 3])
+		co5boldrms_τ[i, 4] = rms5(vals[:, 4])
+	end
+end
+
 # ╔═╡ 3babe5e7-82ee-4d5b-a871-060b6050a53f
 md"## Dispatch models"
 
@@ -268,35 +313,125 @@ begin
 	modelA = models["best"]
 	plt.close()
 	
-	fA, axA = plt.subplots(2, 1, sharex=true)
+	fA, axA = plt.subplots(3, 1, sharex=true, figsize=(5, 9))
 	plt.subplots_adjust(wspace=0, hspace=0)
 	visual.basic_plot!.(axA)
+
+	m3disA = pick_snapshot(out_folder[modelA], :recent) |> last
+	m3disA_x, m3disA_y, m3disA_yerr = time_average_profiles(
+		mean, 
+		out_folder[modelA], 
+		:log10τ_ross, 
+		:T, 
+		which=last
+	)
+	m3disA_xr, m3disA_yr, m3disA_yerrr = time_average_profiles(
+		mean, 
+		out_folder[modelA], 
+		:log10τ_ross, 
+		:log10d, 
+		which=last
+	)
+	m3disA_xu, m3disA_yu, m3disA_yerru = time_average_profiles(
+		rms5, 
+		out_folder[modelA], 
+		:log10τ_ross, 
+		:uz, 
+		which=last
+	)
 
 	
 	# logτ vs. T
 	axA[0].plot(
-		MUST.profile(
-			mean, 
-			pick_snapshot(out_folder[modelA], -1) |> last, :log10τ_ross, :T
-		)...,
-		color="k",
-		label=labels[modelA]
+		m3disA_x, m3disA_y,
+		color="cornflowerblue",
+		ls="-",
+		label=labels[modelA],
+		lw=3
 	)
+	axA[0].plot(
+		profile(mean, stagger_τ, :log10τ_ross, :T)...,
+		color="k",
+		ls="-",
+		label="Stagger"
+	)
+	axA[0].plot(
+		co5boldmean_τ[:, 1], co5boldmean_τ[:, 2],
+		color="k",
+		ls="--",
+		label="Co5bold"
+	)
+	axA[0].plot(
+		marcs_model[:, 2], marcs_model[:, 5],
+		color="k",
+		ls=":",
+		label="MARCS"
+	)
+	
 
 	# logτ vs. logρ
 	axA[1].plot(
-		MUST.profile(
-			mean,
-			pick_snapshot(out_folder[modelA], -1) |> last, :log10τ_ross, :log10d
-		)...,
-		color="k"
+		m3disA_xr, m3disA_yr,
+		color="cornflowerblue",
+		ls="-",
+		label=labels[modelA],
+		lw=3
 	)
-
-	axA[0].legend(framealpha=0, fontsize="large")
+	axA[1].plot(
+		profile(mean, stagger_τ, :log10τ_ross, :log10d)...,
+		color="k",
+		ls="-",
+		label="Stagger"
+	)
+	axA[1].plot(
+		co5boldmean_τ[:, 1], co5boldmean_τ[:, 3],
+		color="k",
+		ls="--",
+		label="Co5bold"
+	)
+	axA[1].plot(
+		marcs_model[:, 2], log10.(marcs_model[:, 11]),
+		color="k",
+		ls=":",
+		label="MARCS"
+	)
 	
-	axA[0].set_ylabel(L"\rm T\ [K]", fontsize="large")
-	axA[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]", fontsize="large")
-	axA[1].set_xlabel(L"\rm \log \tau_{ross}", fontsize="large")
+
+	# logτ vs. uz
+	axA[2].plot(
+		m3disA_xu, m3disA_yu,
+		color="cornflowerblue",
+		ls="-",
+		label=labels[modelA],
+		lw=3
+	)
+	axA[2].plot(
+		profile(rms5, stagger_τ, :log10τ_ross, :uz)...,
+		color="k",
+		ls="-",
+		label="Stagger"
+	)
+	#=axA[2].plot(
+		co5boldmean_τ[:, 1], co5boldmean_τ[:, 4],
+		color="k",
+		ls="--",
+		label="Co5bold"
+	)=#
+	
+
+	axA[0].legend(framealpha=0, fontsize="medium")
+	
+	axA[0].set_ylabel(L"\rm T\ [K]", fontsize="medium")
+	axA[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]", fontsize="medium")
+	axA[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]", fontsize="medium")
+	
+	axA[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
+	axA[2].set_xlim(-4, 2)
+	axA[0].set_ylim(4000, 10500)
+	axA[1].set_ylim(-8.75, -6.25)
+	
+	
+	
 
 	gcf()
 end
@@ -364,14 +499,9 @@ begin
 	# Figure
 	plt.close()
 	
-	fB, axB = plt.subplots(3, 2, sharex=true, figsize=(12, 10))
+	fB, axB = plt.subplots(3, 1, sharex=true, figsize=(5, 12))
 	plt.subplots_adjust(wspace=0.25, hspace=0.0)
-	for j in 0:1
-		for i in 0:2
-			visual.basic_plot!(axB[i, j])
-		end
-	end
-	
+	visual.basic_plot!.(axB)
 	
 
 	m3disB = pick_snapshot(out_folder[modelB], :recent) |> last
@@ -399,107 +529,13 @@ begin
 
 	
 
-	lwD = 3
-	# Absolute comparison
-	begin
-		## logτ vs. T
-		axB[0, 0].plot(
-			MUST.profile(mean, stagger_τ, :log10τ_ross, :T)...,
-			color="k",
-			label="Stagger",
-			lw=lwD
-		)
-		#=axB[0, 0].plot(
-			MUST.profile(mean, muram_τ, :log10τ_ross, :T)...,
-			color="k",
-			label="MURaM",
-			ls="--",
-			lw=lwD
-		)=#
-		axB[0, 0].plot(
-			marcs_model[:, 2], marcs_model[:, 5],
-			color="k",
-			ls=":",
-			label="MARCS",
-			lw=lwD
-		)
-		axB[0, 0].plot(
-			m3disB_x, m3disB_y,
-			color="cornflowerblue",
-			label=labels[modelB],
-			lw=lwD
-		)
-		
-		## logτ vs. logρ
-		axB[1, 0].plot(
-			MUST.profile(mean, stagger_τ, :log10τ_ross, :log10d)...,
-			color="k",
-			label="Stagger",
-			lw=lwD
-		)
-		#=axB[1, 0].plot(
-			MUST.profile(mean, muram_τ, :log10τ_ross, :log10d)...,
-			color="k",
-			label="MURaM",
-			ls="--",
-			lw=lwD
-		)=#
-		axB[1, 0].plot(
-			marcs_model[:, 2], log10.(marcs_model[:, 11]),
-			color="k",
-			ls=":",
-			label="MARCS",
-			lw=lwD
-		)
-		axB[1, 0].plot(
-			MUST.profile(mean, m3disB, :log10τ_ross, :log10d)...,
-			color="cornflowerblue",
-			lw=lwD
-		)
-		
-		## logτ vs. rms velocity
-		axB[2, 0].plot(
-			MUST.profile(rms5, stagger_τ, :log10τ_ross, :uz)...,
-			color="k",
-			label="Stagger",
-			lw=lwD
-		)
-		#=axB[2, 0].plot(
-			MUST.profile(rms5, muram_τ, :log10τ_ross, :uz)...,
-			color="k",
-			label="MURaM",
-			ls="--",
-			lw=lwD
-		)=#
-		axB[2, 0].plot(
-			MUST.profile(rms5, m3disB, :log10τ_ross, :uz)...,
-			color="cornflowerblue",
-			lw=lwD
-		)
-
-		
-		axB[0, 0].set_ylim(3800, 11000)
-		axB[1, 0].set_ylim(-9, -5.85)
-		axB[2, 0].set_ylim(0.5, 3.75)
-		
-		
-		axB[0, 0].legend(framealpha=0, fontsize="large")
-		
-		axB[0, 0].set_ylabel(L"\rm T\ [K]", fontsize="large")
-		axB[1, 0].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]", fontsize="large")
-		axB[2, 0].set_ylabel(
-			L"\rm U_{z}\ [km\ \times s^{-1}]", 
-			fontsize="large"
-		)
-	end
-
-
+	lwD = 2.5
 	# relative comparison
 	begin
 		## logτ vs. T
-		axB[0, 1].axhline(0.0, color="0.5", alpha=0.2)
-		axB[0, 1].plot(
-				relative_difference(
+		axB[0].axhline(0.0, color="0.5", alpha=0.2)
+		axB[0].plot(
+			relative_difference(
 				mean,
 				m3disB_x, 
 				m3disB_y,
@@ -510,6 +546,25 @@ begin
 			label="M3DIS - Stagger",
 			lw=lwD
 		)
+		axB[0].fill_between( 
+			relative_difference(
+				mean,
+				m3disB_x, 
+				m3disB_y.-m3disB_yerr,
+				stagger_τ,
+				:log10τ_ross, :T
+			)...,
+			relative_difference(
+				mean,
+				m3disB_x, 
+				m3disB_y.+m3disB_yerr,
+				stagger_τ,
+				:log10τ_ross, :T
+			)[2],
+			color="0.5", alpha=0.3
+		)
+
+		
 		#=axB[0, 1].plot(
 			absolute_difference(
 				m3disB,
@@ -521,7 +576,9 @@ begin
 			ls="--",
 			lw=lwD
 		)=#
-		axB[0, 1].plot(
+
+		
+		axB[0].plot(
 			common_tauB, 
 			(ip(m3disB_x, m3disB_y) .- 
 				ip(marcs_model[:, 2], marcs_model[:, 5])) ./ 
@@ -531,10 +588,56 @@ begin
 			ls=":",
 			lw=lwD
 		)
+		axB[0].fill_between( 
+			common_tauB, 
+			(ip(m3disB_x, m3disB_y.-m3disB_yerr) .- 
+				ip(marcs_model[:, 2], marcs_model[:, 5])) ./ 
+				ip(m3disB_x, m3disB_y.-m3disB_yerr) *100.0,
+			(ip(m3disB_x, m3disB_y.+m3disB_yerr) .- 
+				ip(marcs_model[:, 2], marcs_model[:, 5])) ./ 
+				ip(m3disB_x, m3disB_y.+m3disB_yerr) *100.0,
+			color="0.5", alpha=0.3
+		)
+
+		
+		axB[0].plot(
+			common_tauB, 
+			(ip(m3disB_x, m3disB_y) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2])) ./ 
+				ip(m3disB_x, m3disB_y) *100.0,
+			color="k",
+			label="M3DIS - Co5bold",
+			ls="--",
+			lw=lwD
+		)
+		#stdB = √(m3disB_yerr .^2 .+ co5boldstd_τ[:, 2] .^2)
+		axB[0].fill_between( 
+			common_tauB, 
+			(ip(m3disB_x, m3disB_y) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2].+co5boldstd_τ[:, 2])) ./ 
+				ip(m3disB_x, m3disB_y) *100.0,
+			(ip(m3disB_x, m3disB_y) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2].-co5boldstd_τ[:, 2])) ./ 
+				ip(m3disB_x, m3disB_y) *100.0,
+			color="red", alpha=0.3
+		)
+		axB[0].fill_between( 
+			common_tauB, 
+			(ip(m3disB_x, m3disB_y.-m3disB_yerr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2])) ./ 
+				ip(m3disB_x, m3disB_y.-m3disB_yerr) *100.0,
+			(ip(m3disB_x, m3disB_y.+m3disB_yerr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2])) ./ 
+				ip(m3disB_x, m3disB_y.+m3disB_yerr) *100.0,
+			color="0.5", alpha=0.3
+		)
+
+		
+
 		
 		## logτ vs. logρ
-		axB[1, 1].axhline(0.0, color="0.5", alpha=0.2)
-		axB[1, 1].plot(
+		axB[1].axhline(0.0, color="0.5", alpha=0.2)
+		axB[1].plot(
 			absolute_difference(
 				mean,
 				m3disB_xr, m3disB_yr,
@@ -545,6 +648,24 @@ begin
 			label="M3DIS - Stagger",
 			lw=lwD
 		)
+		axB[1].fill_between( 
+			absolute_difference(
+				mean,
+				m3disB_xr, 
+				m3disB_yr.-m3disB_yerrr,
+				stagger_τ,
+				:log10τ_ross, :log10d
+			)...,
+			absolute_difference(
+				mean,
+				m3disB_xr, 
+				m3disB_yr.+m3disB_yerrr,
+				stagger_τ,
+				:log10τ_ross, :log10d
+			)[2],
+			color="0.5", alpha=0.3
+		)
+		
 		#=axB[1, 1].plot(
 			absolute_difference(
 				m3disB,
@@ -556,7 +677,7 @@ begin
 			ls="--",
 			lw=lwD
 		)=#
-		axB[1, 1].plot(
+		axB[1].plot(
 			common_tauB, 
 			ip(m3disB_xr, m3disB_yr) .- 
 				ip(marcs_model[:, 2], log10.(marcs_model[:, 11])),
@@ -565,10 +686,47 @@ begin
 			ls=":",
 			lw=lwD
 		)
+		axB[1].fill_between( 
+			common_tauB, 
+			(ip(m3disB_xr, m3disB_yr.-m3disB_yerrr) .- 
+				ip(marcs_model[:, 2], log10.(marcs_model[:, 11]))),
+			(ip(m3disB_xr, m3disB_yr.+m3disB_yerrr) .- 
+				ip(marcs_model[:, 2], log10.(marcs_model[:, 11]))),
+			color="0.5", alpha=0.3
+		)
 
+
+		axB[1].plot(
+			common_tauB, 
+			ip(m3disB_xr, m3disB_yr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3]),
+			color="k",
+			label="M3DIS - Co5bold",
+			ls="--",
+			lw=lwD
+		)
+		axB[1].fill_between( 
+			common_tauB, 
+			(ip(m3disB_xr, m3disB_yr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3].+co5boldstd_τ[:, 3])),
+			(ip(m3disB_xr, m3disB_yr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3].-co5boldstd_τ[:, 3])),
+			color="red", alpha=0.3
+		)
+		axB[1].fill_between( 
+			common_tauB, 
+			(ip(m3disB_xr, m3disB_yr.-m3disB_yerrr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3])),
+			(ip(m3disB_xr, m3disB_yr.+m3disB_yerrr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3])),
+			color="0.5", alpha=0.3
+		)
+		
+
+		
 		## logτ vs. rms
-		axB[2, 1].axhline(0.0, color="0.5", alpha=0.2)
-		axB[2, 1].plot(
+		axB[2].axhline(0.0, color="0.5", alpha=0.2)
+		axB[2].plot(
 			absolute_difference(
 				rms5,
 				m3disB_xu, m3disB_yu,
@@ -579,6 +737,42 @@ begin
 			label="M3DIS - Stagger",
 			lw=lwD
 		)
+		axB[2].fill_between( 
+			absolute_difference(
+				rms5,
+				m3disB_xu, 
+				m3disB_yu.-m3disB_yerru,
+				stagger_τ,
+				:log10τ_ross, :uz
+			)...,
+			absolute_difference(
+				rms5,
+				m3disB_xu, 
+				m3disB_yu.+m3disB_yerru,
+				stagger_τ,
+				:log10τ_ross, :uz
+			)[2],
+			color="0.5", alpha=0.3
+		)
+		
+		#=axB[2].plot(
+			common_tauB, 
+			ip(m3disB_xu, m3disB_yu) .- 
+				ip(co5boldmean_τ[:, 1], co5boldrms_τ[:, 4]),
+			color="k",
+			label="M3DIS - Co5bold",
+			ls="--",
+			lw=lwD
+		)
+		axB[2].fill_between( 
+			common_tauB, 
+			(ip(m3disB_xu, m3disB_yu.-m3disB_yerru) .- 
+				ip(co5boldmean_τ[:, 1], co5boldrms_τ[:, 4])),
+			(ip(m3disB_xu, m3disB_yu.+m3disB_yerru) .- 
+				ip(co5boldmean_τ[:, 1], co5boldrms_τ[:, 4])),
+			color="0.5", alpha=0.3
+		)=#
+		
 		#=axB[2, 1].plot(
 			absolute_difference(
 				rms5,
@@ -593,25 +787,25 @@ begin
 		)=#
 	
 
-		axB[0, 1].set_xlim(-4, 2)
-		axB[0, 1].set_ylim(-6.25, 6.25)
-		axB[1, 1].set_ylim(-0.17, 0.17)
-		axB[2, 1].set_ylim(-0.47, 0.47)
+		axB[0].set_xlim(-4, 2)
+		axB[0].set_ylim(-6.25, 6.25)
+		axB[1].set_ylim(-0.17, 0.17)
+		axB[2].set_ylim(-0.75, 0.75)
 	
 		
-		axB[0, 1].legend(framealpha=0, fontsize="large")
-		axB[0, 1].set_ylabel(L"\rm \Delta\ T\ /\ T\ [\%]", fontsize="large")
-		axB[1, 1].set_ylabel(
-			L"\rm \Delta\ \log \rho\ [g \times cm^{-3}]", fontsize="large"
+		axB[1].legend(framealpha=0, fontsize="medium", ncol=1)
+		axB[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]", fontsize="medium")
+		axB[1].set_ylabel(
+			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]", fontsize="medium"
 		)
-		axB[2, 1].set_ylabel(
-			L"\rm \Delta\ U_{z}\ [km\ \times s^{-1}]", 
-			fontsize="large"
+		axB[2].set_ylabel(
+			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]", 
+			fontsize="medium"
 		)
 	end
 
-	axB[2, 0].set_xlabel(L"\rm \log \tau_{ross}", fontsize="large")
-	axB[2, 1].set_xlabel(L"\rm \log \tau_{ross}", fontsize="large")
+	axB[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
+	axB[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
 		
 
 	fB.savefig("comparison_other_models.pdf", bbox_inches="tight")
@@ -713,107 +907,19 @@ begin
 	# Figure
 	plt.close()
 	
-	fC, axC = plt.subplots(3, 2, sharex=true, figsize=(12, 10))
+	fC, axC = plt.subplots(3, 1, sharex=true, figsize=(5, 12))
 	plt.subplots_adjust(wspace=0.25, hspace=0.0)
-	for j in 0:1
-		for i in 0:2
-			visual.basic_plot!(axC[i, j])
-		end
-	end
+	visual.basic_plot!.(axC)
 	
 
-	lwC = 2.5
-	# Absolute comparison
-	begin
-		## logτ vs. T
-		axC[0, 0].plot(
-			bestC_x, bestC_y,
-			color="cornflowerblue",
-			label=@sprintf("%i km", 2.3/300 *1000),
-			lw=lwC*2
-		)
-		axC[0, 0].plot(
-			iresC_x, iresC_y,
-			color="k",
-			label=@sprintf("%i km", 2.3/180 *1000),
-			lw=lwC,
-			ls=":"
-		)
-		axC[0, 0].plot(
-			lresC_x, lresC_y,
-			color="k",
-			label=@sprintf("%i km", 2.3/90 *1000),
-			lw=lwC,
-			ls="--"
-		)
-		
-		
-		## logτ vs. logρ
-		axC[1, 0].plot(
-			bestC_xr, bestC_yr,
-			color="cornflowerblue",
-			label=@sprintf("%i km", 2.3/300 *1000),
-			lw=lwC
-		)
-		axC[1, 0].plot(
-			iresC_xr, iresC_yr,
-			color="k",
-			label=@sprintf("%i km", 2.3/180 *1000),
-			lw=lwC,
-			ls=":"
-		)
-		axC[1, 0].plot(
-			lresC_xr, lresC_yr,
-			color="k",
-			label=@sprintf("%i km", 2.3/90 *1000),
-			lw=lwC,
-			ls="--"
-		)
-
-		
-		## logτ vs. uz
-		axC[2, 0].plot(
-			bestC_xu, bestC_yu,
-			color="cornflowerblue",
-			label=@sprintf("%i km", 2.3/300 *1000),
-			lw=lwC
-		)
-		axC[2, 0].plot(
-			iresC_xu, iresC_yu,
-			color="k",
-			label=@sprintf("%i km", 2.3/180 *1000),
-			lw=lwC,
-			ls=":"
-		)
-		axC[2, 0].plot(
-			lresC_xu, lresC_yu,
-			color="k",
-			label=@sprintf("%i km", 2.3/90 *1000),
-			lw=lwC,
-			ls="--"
-		)
-
-		
-		axC[0, 0].set_ylim(3800, 11000)
-		axC[1, 0].set_ylim(-9, -5.85)
-		axC[2, 0].set_ylim(0.5, 3.75)
-		
-		axC[0, 0].legend(framealpha=0, fontsize="large")
-		
-		axC[0, 0].set_ylabel(L"\rm T\ [K]", fontsize="large")
-		axC[1, 0].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]", fontsize="large")
-		axC[2, 0].set_ylabel(
-			L"\rm U_{z}\ [km\ \times s^{-1}]", 
-			fontsize="large"
-		)
-	end
+	lwC = 2
 
 
 	# relative comparison
 	begin
 		## logτ vs. T
-		axC[0, 1].axhline(0.0, color="0.5", alpha=0.2)
-			axC[0, 1].plot(
+		axC[0].axhline(0.0, color="0.5", alpha=0.2)
+			axC[0].plot(
 			relative_difference(
 				mean,
 				bestC_x, bestC_y,
@@ -821,11 +927,26 @@ begin
 				:log10τ_ross, :T
 			)...,
 			color="k",
-			label=@sprintf("best - %i km", 2.3/180 *1000),
+			label=@sprintf("%i km", 2.3/180 *1000),
 			lw=lwC,
 			ls=":"
 		)
-		axC[0, 1].plot(
+		axC[0].fill_between( 
+			relative_difference(
+				mean,
+				bestC_x, bestC_y.-bestC_z,
+				iresC_x, iresC_y,#.+iresC_z,
+				:log10τ_ross, :T
+			)...,
+			relative_difference(
+				mean,
+				bestC_x, bestC_y.+bestC_z,
+				iresC_x, iresC_y,#.-iresC_z,
+				:log10τ_ross, :T
+			)[2],
+			color="0.5", alpha=0.2
+		)
+		axC[0].plot(
 			relative_difference(
 				mean,
 				bestC_x, bestC_y,
@@ -833,14 +954,31 @@ begin
 				:log10τ_ross, :T
 			)...,
 			color="k",
-			label=@sprintf("best - %i km", 2.3/90 *1000),
+			label=@sprintf("%i km", 2.3/90 *1000),
 			lw=lwC,
 			ls="--"
 		)
+		axC[0].fill_between( 
+			relative_difference(
+				mean,
+				bestC_x, bestC_y.-bestC_z,
+				lresC_x, lresC_y,#.+lresC_z,
+				:log10τ_ross, :T
+			)...,
+			relative_difference(
+				mean,
+				bestC_x, bestC_y.+bestC_z,
+				lresC_x, lresC_y,#.-lresC_z,
+				:log10τ_ross, :T
+			)[2],
+			color="0.5", alpha=0.2
+		)
+
+		
 		
 		## logτ vs. logρ
-		axC[1, 1].axhline(0.0, color="0.5", alpha=0.2)
-		axC[1, 1].plot(
+		axC[1].axhline(0.0, color="0.5", alpha=0.2)
+		axC[1].plot(
 			absolute_difference(
 				mean,
 				bestC_xr, bestC_yr,
@@ -852,7 +990,22 @@ begin
 			lw=lwC,
 			ls=":"
 		)
-		axC[1, 1].plot(
+		axC[1].fill_between( 
+			absolute_difference(
+				mean,
+				bestC_xr, bestC_yr.-bestC_zr,
+				iresC_xr, iresC_yr,#.+iresC_zr,
+				:log10τ_ross, :log10d
+			)...,
+			absolute_difference(
+				mean,
+				bestC_xr, bestC_yr.+bestC_zr,
+				iresC_xr, iresC_yr,#.-iresC_zr,
+				:log10τ_ross, :log10d
+			)[2],
+			color="0.5", alpha=0.2
+		)
+		axC[1].plot(
 			absolute_difference(
 				mean,
 				bestC_xr, bestC_yr,
@@ -864,10 +1017,25 @@ begin
 			lw=lwC,
 			ls="--"
 		)
+		axC[1].fill_between( 
+			absolute_difference(
+				mean,
+				bestC_xr, bestC_yr.-bestC_zr,
+				lresC_xr, lresC_yr,#.+lresC_zr,
+				:log10τ_ross, :log10d
+			)...,
+			absolute_difference(
+				mean,
+				bestC_xr, bestC_yr.+bestC_zr,
+				lresC_xr, lresC_yr,#.-lresC_zr,
+				:log10τ_ross, :log10d
+			)[2],
+			color="0.5", alpha=0.2
+		)
 
 		## logτ vs. rms
-		axC[2, 1].axhline(0.0, color="0.5", alpha=0.2)
-		axC[2, 1].plot(
+		axC[2].axhline(0.0, color="0.5", alpha=0.2)
+		axC[2].plot(
 			absolute_difference(
 				rms5,
 				bestC_xu, bestC_yu,
@@ -879,8 +1047,23 @@ begin
 			lw=lwC,
 			ls=":"
 		)
-		axC[2, 1].axhline(0.0, color="0.5", alpha=0.2)
-		axC[2, 1].plot(
+		axC[2].fill_between( 
+			absolute_difference(
+				mean,
+				bestC_xu, bestC_yu.-bestC_zu,
+				iresC_xu, iresC_yu,#.+iresC_zu,
+				:log10τ_ross, :log10d
+			)...,
+			absolute_difference(
+				mean,
+				bestC_xu, bestC_yu.+bestC_zu,
+				iresC_xu, iresC_yu,#.-iresC_zu,
+				:log10τ_ross, :log10d
+			)[2],
+			color="0.5", alpha=0.2
+		)
+		axC[2].axhline(0.0, color="0.5", alpha=0.2)
+		axC[2].plot(
 			absolute_difference(
 				rms5,
 				bestC_xu, bestC_yu,
@@ -892,27 +1075,42 @@ begin
 			lw=lwC,
 			ls="--"
 		)
+		axC[2].fill_between( 
+			absolute_difference(
+				mean,
+				bestC_xu, bestC_yu.-bestC_zu,
+				lresC_xu, lresC_yu,#.+lresC_zu,
+				:log10τ_ross, :log10d
+			)...,
+			absolute_difference(
+				mean,
+				bestC_xu, bestC_yu.+bestC_zu,
+				lresC_xu, lresC_yu,#.-lresC_zu,
+				:log10τ_ross, :log10d
+			)[2],
+			color="0.5", alpha=0.2
+		)
 			
 
-		axC[0, 1].set_xlim(-4, 2)
-		axC[0, 1].set_ylim(-6.25, 6.25)
-		axC[1, 1].set_ylim(-0.17, 0.17)
-		axC[2, 1].set_ylim(-0.47, 0.47)
+		axC[0].set_xlim(-4, 2)
+		axC[0].set_ylim(-6.25, 6.25)
+		axC[1].set_ylim(-0.075, 0.075)
+		axC[2].set_ylim(-0.47, 0.47)
 	
 		
-		axC[0, 1].legend(framealpha=0, fontsize="large")
-		axC[0, 1].set_ylabel(L"\rm \Delta\ T\ / \ T\ [\%]", fontsize="large")
-		axC[1, 1].set_ylabel(
-			L"\rm \Delta\ \log \rho\ [g \times cm^{-3}]", fontsize="large"
+		axC[0].legend(framealpha=0, fontsize="medium", loc="upper center", ncol=2)
+		axC[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]", fontsize="medium")
+		axC[1].set_ylabel(
+			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]", fontsize="medium"
 		)
-		axC[2, 1].set_ylabel(
-			L"\rm \Delta\ U_{z}\ [km\ \times s^{-1}]", 
-			fontsize="large"
+		axC[2].set_ylabel(
+			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]", 
+			fontsize="medium"
 		)
 	end
 
-	axC[2, 0].set_xlabel(L"\rm \log \tau_{ross}", fontsize="large")
-	axC[2, 1].set_xlabel(L"\rm \log \tau_{ross}", fontsize="large")
+	axC[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
+	axC[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
 		
 
 	fC.savefig("comparison_resolution.pdf", bbox_inches="tight")
@@ -961,7 +1159,7 @@ begin
 	)
 	
 	plt.close()
-	fD, axD = plt.subplots(1, 1, figsize=(6,7))
+	fD, axD = plt.subplots(1, 1, figsize=(5,6))
 	visual.basic_plot!(axD)
 	
 	im = axD.scatter(
@@ -980,15 +1178,15 @@ begin
 
 	axD.set_ylabel(
 		L"\rm - \log \tau_{ross}\ (\log \tau_{\lambda}=1)",
-		fontsize="large"
+		fontsize="medium"
 	)
 	axD.set_xlabel(
 		L"\rm \log \lambda\ [\AA]",
-		fontsize="large"
+		fontsize="medium"
 	)
 	cbarD.set_label(
 		L"\rm opacity\ bins", 
-		fontsize="large"
+		fontsize="medium"
 	)
 	
 	fD.savefig("formation_opacities.pdf", bbox_inches="tight")
@@ -1025,7 +1223,7 @@ begin
 	modelG = models["best"]
 	m3disG = pick_snapshot(out_folder[modelG], -1) |> last
 	
-	fG, axG = plt.subplots(1, 1, figsize=(6, 7))
+	fG, axG = plt.subplots(1, 1, figsize=(5, 6))
 
 	# limits for color bar
 	uzG  = uz_surface_optical(m3disG) ./1e5
@@ -1043,11 +1241,11 @@ begin
 
 	# setup colorbar
 	cG = fG.colorbar(imG, ax=axG, fraction=0.046, pad=0.04)
-	cG.set_label(L"\rm U_z\ [km \times s^{-1}]", fontsize="large")
+	cG.set_label(L"\rm U_z\ [km \times s^{-1}]", fontsize="medium")
 
 	# Other labels
-	axG.set_xlabel("x [Mm]", fontsize="large")
-	axG.set_ylabel("y [Mm]", fontsize="large")
+	axG.set_xlabel("x [Mm]", fontsize="medium")
+	axG.set_ylabel("y [Mm]", fontsize="medium")
 
 	#fG.savefig("vertical_velocity_surface.pdf", bbox_inches="tight")
 	fG.savefig("vertical_velocity_surface.png", bbox_inches="tight", dpi=600)
@@ -1065,7 +1263,9 @@ begin
 	modelH = models["best"]
 	m3disH = pick_snapshot(out_folder[modelH], -1) |> first
 	
-	fH, axH = visual.cube_with_velocities(m3disH, vmax_3d=17000, cmap="hot")
+	fH, axH = visual.cube_with_velocities(
+		m3disH, vmax_3d=17000, cmap="hot"
+	)
 
 
 	#fG.savefig("temperature_cube.pdf", bbox_inches="tight")
@@ -1087,20 +1287,20 @@ begin
 		m3disI, 
 		nz=299
 	)
-	snap_m3disI_τ = MUST.height_scale(snap_m3disI, :τ_ross)
+	snap_m3disI_τ = MUST.height_scale_fast(snap_m3disI, :τ_ross)
 	
 
 	# We look at the surface and average profile of this snapshot for different 
 	# resamplings
-	samplings = reshape(collect(Iterators.product((5, 10, 20, 80), (299,))), :)
+	samplings = reshape(collect(Iterators.product((5, 10, 80), (299,))), :)
 
-	fI, axI = plt.subplots(4, 2, figsize=(14,21))
+	fI, axI = plt.subplots(3, 2, figsize=(10,15))
 	for j in 0:1
-		for i in 0:3
+		for i in 0:2
 			visual.basic_plot!(axI[i, j])
 		end
 	end
-	plt.subplots_adjust(wspace=0.2, hspace=0.1)
+	plt.subplots_adjust(wspace=0.3, hspace=0.1)
 
 	vminI = 5500
 	vmaxI = 6900
@@ -1112,10 +1312,11 @@ begin
 			m3disI, 
 			nx=resolution[1], 
 			ny=resolution[1],
-			nz=resolution[2]
+			nz=resolution[2],
+			dont_log=[]
 		)
 
-		snap_r = MUST.height_scale(snap, :τ_ross)
+		snap_r = MUST.height_scale_fast(snap, :τ_ross)
 		
 		i0I_i = argmin(abs.(log.(MUST.axis(snap_r, :τ_ross, 3)) .- 0.0))
 		TI_i  = snap_r[:T][:, :, i0I_i]
@@ -1158,21 +1359,25 @@ begin
 			color="tomato", 
 			marker="",
 			ls="-",
-			lw=3,
+			lw=2,
 			label="original"
 		)
 
 		axI[i-1, 1].set_ylim(4000, 10000)
 		axI[i-1, 1].set_xlim(-4.0, 1.75)
-		axI[i-1, 1].legend(framealpha=0, fontsize="x-large")
-		axI[i-1, 1].set_ylabel(L"\rm T\ [K]", fontsize="x-large")
+		axI[i-1, 1].legend(framealpha=0, fontsize="medium")
+		axI[i-1, 1].set_ylabel(L"\rm T\ [K]", fontsize="medium")
 	end
 
 	for (i, resolution) in enumerate(samplings)
-		axI[i-1, 0].set_ylabel(L"\rm Y\ [Mm]", fontsize="x-large")	
+		axI[i-1, 0].set_ylabel(L"\rm Y\ [Mm]", fontsize="medium")	
 	end
-	axI[3, 0].set_xlabel(L"\rm X\ [Mm]", fontsize="x-large")
-	axI[3, 1].set_xlabel(L"\rm \log \tau_{ross}", fontsize="x-large")	
+	axI[2, 0].set_xlabel(L"\rm X\ [Mm]", fontsize="medium")
+	axI[2, 1].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")	
+
+
+	fI.savefig("resampling_effect.png", bbox_inches="tight", dpi=600)
+	fI.savefig("resampling_effect.pdf", bbox_inches="tight")
 	
 	gcf()
 end
@@ -1202,6 +1407,10 @@ end
 # ╠═0a2286e2-29e4-454b-b3a7-6a33a6828760
 # ╟─9465b4d5-08e2-453a-b758-6d4d6744c20b
 # ╟─d87a8635-7527-4584-81f6-eef0da1101d6
+# ╟─c9a52157-81c4-4b8c-8dcd-b728a0890b00
+# ╠═515e5910-4bf1-4769-84b9-cff2a08751a0
+# ╠═fa715a70-036e-420a-a0fa-06cefc3ef3c0
+# ╟─87cc7333-4559-467a-be0f-0f2ec1dc0611
 # ╟─3babe5e7-82ee-4d5b-a871-060b6050a53f
 # ╠═c3b8db0b-c9ee-4f4d-a1a4-75e3551d7675
 # ╠═6c3227a7-993b-45bc-809e-be6a0907f384

@@ -9,3 +9,6 @@ numpy = ""
 scipy = ""
 astropy = ""
 f90nml = ""
+
+[pip.deps]
+idlsave = ""

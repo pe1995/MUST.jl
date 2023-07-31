@@ -48,7 +48,7 @@ out_folder = [
 	MUST.@in_dispatch("data/sun_new_magg_ires"),
 	MUST.@in_dispatch("data/pretty_good_sun_new_magg5_rapidf"),
 	MUST.@in_dispatch("data/sun_new_magg_hres"),
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg2_bins")
+	MUST.@in_dispatch("data/pretty_good_sun_new_magg5_bins") 
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
@@ -69,7 +69,7 @@ labels = [
 	"magg2022_150x300",
 	#"magg2022_120x240",
 	"magg2022_195x390",
-	"magg2022_120x240_12bins"
+	"magg2022_150x300_12bins"
 ]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
@@ -540,9 +540,9 @@ begin
 	snapsis = [MUST.pick_snapshot(
 			MUST.converted_snapshots(out_folder[6]), j
 	)[2]
-		for j in [-8, -7, -6, -5, -4, -3, -2, -1, :recent]
+		for j in [-5, -4, -3, -2, -1, :recent]
 	]
-	
+	@info snapsis
 	for (i, snapshot_τ) in enumerate(snapsis)
 		xi, yi = profile(mean, snapshot_τ, :log10τ_ross, :T)
 		plot!(common_tau, ip(xi, yi) .- ip(xs, ys), 
@@ -730,6 +730,7 @@ res = reshape(collect(Iterators.product((5, 10, 20, 30, 80), (299))), :)
 	label = "magg22_$(target_x)x$(target_x)x$(target_z)"
 	@show label
 	for i in eachindex(labels)	
+		#(i != 6) && continue 
 		snaps2multi(
 			out_folder[i], -8, -7, -6, -5, -4, -3, -2, -1, :recent,
 			eos=eos[i], 
