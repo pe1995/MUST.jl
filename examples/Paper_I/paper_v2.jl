@@ -214,14 +214,20 @@ md"## Dispatch models"
 names = [
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
-	"DIS_MARCS_E_t5777g44m00_v0.1"
+	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t55g45m00_v0.1",
+	"DIS_MARCS_E_t60g45m00_v0.1",
+	"DIS_MARCS_E_t65g45m00_v0.1"
 ]
 
 # ╔═╡ 6c3227a7-993b-45bc-809e-be6a0907f384
 out_folder = [
 	"models/sun_magg_150x300",
 	"models/sun_magg_90x90",
-	"models/sun_magg_90x180"
+	"models/sun_magg_90x180",
+	"models/t55g45m00_magg_150x300",
+	"models/t60g45m00_magg_150x300",
+	"models/t65g45m00_magg_150x300",
 ]
 
 # ╔═╡ 239ce3e3-5522-4d03-96d7-607c69418781
@@ -233,20 +239,29 @@ in_folder = [
 eos_folder = [
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3")
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t55g45m00_v0.1"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t60g45m00_v0.1"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t65g45m00_v0.1")
 ]
 
 # ╔═╡ f6c1c537-9a8d-4746-abcd-17fd0a712353
 colors = [
 	"tomato",
 	"cyan",
-	"magenta"
+	"magenta",
+	"black",
+	"black",
+	"black"
 ]
 
 # ╔═╡ cff24989-efe0-4c50-8163-7260869895d2
 ls = [
 	"-",
 	"-",
+	"-",
+	"-",
+	"--",
 	"-"
 ]
 
@@ -254,7 +269,10 @@ ls = [
 labels = [
 	"M3DIS",
 	"M3DIS - lres",
-	"M3DIS - ires"
+	"M3DIS - ires",
+	"M3DIS - t55g45m00",
+	"M3DIS - t60g45m00",
+	"M3DIS - t65g45m00"
 ]
 
 # ╔═╡ 68e9c5c9-34df-41f6-a4e6-7f5deb935d59
@@ -278,9 +296,12 @@ md"Handy shortcuts to pick certain models when needed."
 
 # ╔═╡ d9272f17-8f18-457e-80d3-aa7dd61831a9
 models = Dict(
-	"best" => 1,
-	"lres" => 2,
-	"ires" => 3
+	"best"      => 1,
+	"lres"      => 2,
+	"ires"      => 3,
+	"t55g45m00" => 4,
+	"t60g45m00" => 5,
+	"t65g45m00" => 6
 )
 
 # ╔═╡ 418c34ff-1c08-4ae6-82bf-7ac2fced7244
@@ -302,6 +323,40 @@ resolution(snap) = @sprintf "%.1f km" first(diff(MUST.axis(snap, :z) ./1e5))
 # ╔═╡ c5e1dc32-de92-4deb-92a9-06818d898307
 for (i,snap) in enumerate(snapshots)
 	@info "Resolution $(out_folder[i]): $(resolution(snap))"
+end
+
+# ╔═╡ 01f1b55d-ba4b-4d74-8eba-12ede107cfbf
+md"## Conversions"
+
+# ╔═╡ 3fb509e5-c611-45e2-b475-f43bd28ac53a
+must2multi = MUST.ingredients("convert2multi.jl")
+
+# ╔═╡ 84fc6b08-0825-41ab-b214-5fef7e2a2dc0
+res = [] #reshape(collect(Iterators.product((10, 20, 80, 120), (299))), :)
+
+# ╔═╡ 35d2d2c5-6b70-4bb9-acdc-216557859282
+# ╠═╡ show_logs = false
+begin
+	modelsConversion = [
+		models["best"],
+		models["t55g45m00"], 
+		models["t60g45m00"], 
+		models["t65g45m00"]
+	]
+	for (x, z) in res
+		for i in modelsConversion
+			must2multi.snaps2multi(
+				out_folder[i], 
+				[range(-8, -1)..., :recent]...,
+				eos=eos[i], 
+				label="magg22_$(x)x$(x)x$(z)",
+				n_horizontal=x,
+				n_vertical=z,
+				outfolder=labels_new = replace(labels[i], " "=>"")
+
+			)
+		end
+	end
 end
 
 # ╔═╡ 381be17e-b257-4e51-aa79-941db153f398
@@ -346,26 +401,26 @@ begin
 		m3disA_x, m3disA_y,
 		color="cornflowerblue",
 		ls="-",
-		label=labels[modelA],
+		label=L"\rm M3DIS\ (D)",
 		lw=3
 	)
 	axA[0].plot(
 		profile(mean, stagger_τ, :log10τ_ross, :T)...,
 		color="k",
 		ls="-",
-		label="Stagger"
+		label=L"\rm Stagger"
 	)
 	axA[0].plot(
 		co5boldmean_τ[:, 1], co5boldmean_τ[:, 2],
 		color="k",
 		ls="--",
-		label="Co5bold"
+		label=L"\rm Co5bold"
 	)
 	axA[0].plot(
 		marcs_model[:, 2], marcs_model[:, 5],
 		color="k",
 		ls=":",
-		label="MARCS"
+		label=L"\rm MARCS"
 	)
 	
 
@@ -374,26 +429,26 @@ begin
 		m3disA_xr, m3disA_yr,
 		color="cornflowerblue",
 		ls="-",
-		label=labels[modelA],
+		label=L"\rm M3DIS\ (D)",
 		lw=3
 	)
 	axA[1].plot(
 		profile(mean, stagger_τ, :log10τ_ross, :log10d)...,
 		color="k",
 		ls="-",
-		label="Stagger"
+		label=L"\rm Stagger"
 	)
 	axA[1].plot(
 		co5boldmean_τ[:, 1], co5boldmean_τ[:, 3],
 		color="k",
 		ls="--",
-		label="Co5bold"
+		label=L"\rm Co5bold"
 	)
 	axA[1].plot(
 		marcs_model[:, 2], log10.(marcs_model[:, 11]),
 		color="k",
 		ls=":",
-		label="MARCS"
+		label=L"\rm MARCS"
 	)
 	
 
@@ -419,7 +474,7 @@ begin
 	)=#
 	
 
-	axA[0].legend(framealpha=0, fontsize="medium")
+	axA[0].legend(framealpha=0, fontsize="medium", labelspacing=0.01)
 	
 	axA[0].set_ylabel(L"\rm T\ [K]", fontsize="medium")
 	axA[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]", fontsize="medium")
@@ -543,7 +598,7 @@ begin
 				:log10τ_ross, :T
 			)...,
 			color="k",
-			label="M3DIS - Stagger",
+			label=L"\rm M3DIS\ (D)\ -\ Stagger",
 			lw=lwD
 		)
 		axB[0].fill_between( 
@@ -584,7 +639,7 @@ begin
 				ip(marcs_model[:, 2], marcs_model[:, 5])) ./ 
 				ip(m3disB_x, m3disB_y) *100.0,
 			color="k",
-			label="M3DIS - MARCS",
+			label=L"\rm M3DIS\ (D)\ -\ MARCS",
 			ls=":",
 			lw=lwD
 		)
@@ -606,7 +661,7 @@ begin
 				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2])) ./ 
 				ip(m3disB_x, m3disB_y) *100.0,
 			color="k",
-			label="M3DIS - Co5bold",
+			label=L"\rm M3DIS\ (D)\ -\ Co5bold",
 			ls="--",
 			lw=lwD
 		)
@@ -645,7 +700,7 @@ begin
 				:log10τ_ross, :log10d
 			)...,
 			color="k",
-			label="M3DIS - Stagger",
+			label=L"\rm M3DIS\ (D)\ -\ Stagger",
 			lw=lwD
 		)
 		axB[1].fill_between( 
@@ -682,7 +737,7 @@ begin
 			ip(m3disB_xr, m3disB_yr) .- 
 				ip(marcs_model[:, 2], log10.(marcs_model[:, 11])),
 			color="k",
-			label="M3DIS - MARCS",
+			label=L"\rm M3DIS\ (D)\ -\ MARCS",
 			ls=":",
 			lw=lwD
 		)
@@ -701,7 +756,7 @@ begin
 			ip(m3disB_xr, m3disB_yr) .- 
 				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3]),
 			color="k",
-			label="M3DIS - Co5bold",
+			label=L"\rm M3DIS\ (D)\ -\ Co5bold",
 			ls="--",
 			lw=lwD
 		)
@@ -736,7 +791,7 @@ begin
 			color="k",
 			label="M3DIS - Stagger",
 			lw=lwD
-		)
+		)  
 		axB[2].fill_between( 
 			absolute_difference(
 				rms5,
@@ -793,7 +848,7 @@ begin
 		axB[2].set_ylim(-0.75, 0.75)
 	
 		
-		axB[1].legend(framealpha=0, fontsize="medium", ncol=1)
+		axB[1].legend(framealpha=0, fontsize="medium", ncol=1, labelspacing=0.01)
 		axB[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]", fontsize="medium")
 		axB[1].set_ylabel(
 			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]", fontsize="medium"
@@ -927,7 +982,7 @@ begin
 				:log10τ_ross, :T
 			)...,
 			color="k",
-			label=@sprintf("%i km", 2.3/180 *1000),
+			label=L"\rm high\ (D)\ -\ interm.\ (B)",#@sprintf("%i km", 2.3/180 *1000),
 			lw=lwC,
 			ls=":"
 		)
@@ -954,7 +1009,7 @@ begin
 				:log10τ_ross, :T
 			)...,
 			color="k",
-			label=@sprintf("%i km", 2.3/90 *1000),
+			label=L"\rm high\ (D)\ -\ low\ (A)",#@sprintf("%i km", 2.3/90 *1000),
 			lw=lwC,
 			ls="--"
 		)
@@ -1098,7 +1153,7 @@ begin
 		axC[2].set_ylim(-0.47, 0.47)
 	
 		
-		axC[0].legend(framealpha=0, fontsize="medium", loc="upper center", ncol=2)
+		axC[0].legend(framealpha=0, fontsize="medium", loc="upper center", ncol=1, labelspacing=0.01)
 		axC[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]", fontsize="medium")
 		axC[1].set_ylabel(
 			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]", fontsize="medium"
@@ -1313,7 +1368,7 @@ begin
 			nx=resolution[1], 
 			ny=resolution[1],
 			nz=resolution[2],
-			dont_log=[]
+			method=:linear
 		)
 
 		snap_r = MUST.height_scale_fast(snap, :τ_ross)
@@ -1343,17 +1398,17 @@ begin
 		#cI = fI.colorbar(imI_i, ax=axI[i-1, 0], fraction=0.046, pad=0.04)
 		#cI.set_label(L"\rm T\ [K]", fontsize="large")
 
-		xI_i , yI_i = profile(MUST.mean, snap_r, :log10τ_ross, :T)		
+		xI_i , yI_i = profile(MUST.mean, snap, :z, :T)		
 		axI[i-1, 1].plot(
 			xI_i, yI_i,
 			color="k", 
-			marker="o", 
+			marker=".", 
 			markersize=5,
 			ls="",
 			label="$(resolution[1])x$(resolution[1])x$(resolution[2])"
 		)
 		
-		xI_i , yI_i = profile(MUST.mean, snap_m3disI_τ, :log10τ_ross, :T)		
+		xI_i , yI_i = profile(MUST.mean, snap_m3disI, :z, :T)		
 		axI[i-1, 1].plot(
 			xI_i, yI_i,
 			color="tomato", 
@@ -1363,9 +1418,9 @@ begin
 			label="original"
 		)
 
-		axI[i-1, 1].set_ylim(4000, 10000)
-		axI[i-1, 1].set_xlim(-4.0, 1.75)
-		axI[i-1, 1].legend(framealpha=0, fontsize="medium")
+		#axI[i-1, 1].set_ylim(4000, 10000)
+		#axI[i-1, 1].set_xlim(-4.0, 1.75)
+		axI[i-1, 1].legend(framealpha=0, fontsize="medium", labelspacing=0.15)
 		axI[i-1, 1].set_ylabel(L"\rm T\ [K]", fontsize="medium")
 	end
 
@@ -1378,6 +1433,149 @@ begin
 
 	fI.savefig("resampling_effect.png", bbox_inches="tight", dpi=600)
 	fI.savefig("resampling_effect.pdf", bbox_inches="tight")
+	
+	gcf()
+end
+
+# ╔═╡ 82b1bd73-d81a-404c-aefd-643b7008d2b7
+md"### (J) Average profiles of other stars"
+
+# ╔═╡ 306dd6bc-c27d-4af4-9188-6e96981541fb
+begin
+	plt.close()
+
+	modelsJ = [models["t55g45m00"], models["t60g45m00"], models["t65g45m00"]]
+	lsJ     = ["-", "--", "-"]
+	lwJ     = [1.5, 1.5, 3]
+	labelsJ = [
+		L"\rm M3DIS - 5500\ K, 4.5\ dex", 
+		L"\rm M3DIS - 6000\ K, 4.5\ dex", 
+		L"\rm M3DIS - 6500\ K, 4.5\ dex"
+	]
+	
+	
+	fJ, axJ = plt.subplots(3, 1, sharex=true, figsize=(5, 9))
+	plt.subplots_adjust(wspace=0, hspace=0)
+	visual.basic_plot!.(axJ)
+
+	for (i, model) in enumerate(modelsJ)
+		m3disJ = pick_snapshot(out_folder[model], :recent) |> last
+		m3disJ_x, m3disJ_y, m3disJ_yerr = time_average_profile(
+			mean, 
+			out_folder[model], 
+			:log10τ_ross, 
+			:T, 
+			hscale=:τ
+		)
+		m3disJ_xr, m3disJ_yr, m3disJ_yerrr = time_average_profile(
+			mean, 
+			out_folder[model], 
+			:log10τ_ross, 
+			:log10d, 
+			hscale=:τ
+		)
+		m3disJ_xu, m3disJ_yu, m3disJ_yerru = time_average_profile(
+			rms5, 
+			out_folder[model], 
+			:log10τ_ross, 
+			:uz, 
+			hscale=:τ
+		)
+
+		# logτ vs. T
+		axJ[0].plot(
+			m3disJ_x, m3disJ_y,
+			color="k",
+			ls=lsJ[i],
+			label=labelsJ[i],
+			lw=lwJ[i]
+		)
+
+		# logτ vs. rho
+		axJ[1].plot(
+			m3disJ_xr, m3disJ_yr,
+			color="k",
+			ls=lsJ[i],
+			label=labelsJ[i],
+			lw=lwJ[i]
+		)
+
+		# logτ vs. u
+		axJ[2].plot(
+			m3disJ_xu, m3disJ_yu,
+			color="k",
+			ls=lsJ[i],
+			label=labelsJ[i],
+			lw=lwJ[i]
+		)
+		
+	end
+
+	axJ[0].legend(framealpha=0, fontsize="medium", labelspacing=0.01)
+	
+	axJ[0].set_ylabel(L"\rm T\ [K]", fontsize="medium")
+	axJ[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]", fontsize="medium")
+	axJ[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]", fontsize="medium")
+	
+	axJ[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
+	axJ[2].set_xlim(-4, 2)
+	axJ[0].set_ylim(3800, 11500)
+	axJ[1].set_ylim(-8.75, -6.25)
+
+	fJ.savefig("average_other_models.pdf", bbox_inches="tight")
+	fJ.savefig("average_other_models.png", bbox_inches="tight", dpi=600)
+	
+	gcf()
+end
+
+# ╔═╡ 521f69d2-c668-4e95-b422-bc95a858286c
+md"### (K) 2D surfaces"
+
+# ╔═╡ bec4d310-281f-4a74-bd61-cebbfd1872f5
+begin
+	modelK = models["best"]
+
+	modelsK = [models["t55g45m00"], models["t60g45m00"], models["t65g45m00"]]
+	teffK   = [5500, 6000, 6500]
+
+	for (i, model) in enumerate(modelsK)
+		plt.close()
+		
+		fK, axK = plt.subplots(1, 1, figsize=(5, 6))
+		
+		m3disK = pick_snapshot(out_folder[model], -1) |> last
+
+		# limits for color bar
+		uzK  = uz_surface_optical(m3disK) ./1e5
+		vmin = minimum([minimum(u) for u in uzK])
+		vmax = maximum([maximum(u) for u in uzK])
+	
+		# plot the surface in uz
+		imK = axK.imshow(
+			uzK,
+			origin="lower",
+			vmin=vmin, vmax=vmax,
+			cmap="hot",
+			extent=extent(m3disK)
+		)
+		
+		#axK[i-1].set_title(labels[model])
+		
+		# setup colorbar
+		cK = fK.colorbar(imK, ax=axK, fraction=0.046, pad=0.04)
+		cK.set_label(L"\rm U_z\ [km \times s^{-1}]", fontsize="medium")
+		axK.set_ylabel("y [Mm]", fontsize="medium")	
+		axK.set_xlabel("x [Mm]", fontsize="medium")
+		axK.text(
+			0.97, 0.97, "$(teffK[i]) K, 4.5 dex", 
+			ha="right", va="top", 
+			transform=axK.transAxes,
+			color="white", fontsize="large", backgroundcolor="k"
+		)
+
+		fK.savefig("vertical_velocity_surface_$(labels[model]).pdf", bbox_inches="tight")
+		fK.savefig("vertical_velocity_surface_$(labels[model]).png", bbox_inches="tight", dpi=600)
+	end
 	
 	gcf()
 end
@@ -1427,6 +1625,10 @@ end
 # ╟─23728e99-134a-445f-802b-f01467a03e10
 # ╟─114947c5-43c4-4d82-9031-8f27903d0415
 # ╟─c5e1dc32-de92-4deb-92a9-06818d898307
+# ╟─01f1b55d-ba4b-4d74-8eba-12ede107cfbf
+# ╟─3fb509e5-c611-45e2-b475-f43bd28ac53a
+# ╠═84fc6b08-0825-41ab-b214-5fef7e2a2dc0
+# ╠═35d2d2c5-6b70-4bb9-acdc-216557859282
 # ╟─381be17e-b257-4e51-aa79-941db153f398
 # ╟─e1517fd6-523f-4083-bb74-ebf666813002
 # ╟─58bb3285-544f-4e8a-a27e-9b7e90804fe8
@@ -1448,3 +1650,7 @@ end
 # ╟─1634883c-2a93-4b31-bc3a-662a894733c4
 # ╟─f409f3e8-ef97-4fb9-a8e6-7a8f1e2b2d22
 # ╟─759b0406-1a86-42d9-b8d7-8784a1574c02
+# ╟─82b1bd73-d81a-404c-aefd-643b7008d2b7
+# ╟─306dd6bc-c27d-4af4-9188-6e96981541fb
+# ╟─521f69d2-c668-4e95-b422-bc95a858286c
+# ╟─bec4d310-281f-4a74-bd61-cebbfd1872f5

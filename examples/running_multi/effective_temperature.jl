@@ -9,6 +9,7 @@ using InteractiveUtils
 begin
 	using Pkg; Pkg.activate("."); 
 	using MUST
+	using TSO
 	using PythonPlot	
 	using LaTeXStrings
 end
@@ -51,8 +52,24 @@ modelatmos = "m3dis_sun_magg22_20x20x299_3"
 # ╔═╡ 1a9a7946-fda5-4e01-b715-c3c36c1bf6ea
 modelatmosfolder = "input_multi3d/magg2022_150x300/"
 #modelatmosfolder = "input_multi3d/stagger_sun/"
+#modelatmosfolder = "input_multi3d/atmos"
+#modelatmosfolder = "input_multi3d/magg2022_195x390/"
 
 # ╔═╡ 76bfd78b-0d58-4c59-9587-4b7627a2d357
+#=snapshots = [
+	"m3dis_sun_magg22_20x20x299_1",
+	"m3dis_sun_magg22_20x20x299_2",
+	"m3dis_sun_magg22_20x20x299_3",
+	"m3dis_sun_magg22_20x20x299_4",
+	"m3dis_sun_magg22_20x20x299_5",
+	"m3dis_sun_magg22_20x20x299_6",
+	"m3dis_sun_magg22_20x20x299_7",
+	"m3dis_sun_magg22_20x20x299_8",
+	"m3dis_sun_magg22_20x20x299_9"
+]=#
+#snapshots = ["m3dis_sun_stagger_20x20x230_1"]
+#snapshots = ["t5777g44m0005_20.5x5x230"]
+#snapshots = ["atmos.sun_MARCS"]
 snapshots = [
 	"m3dis_sun_magg22_20x20x299_1",
 	"m3dis_sun_magg22_20x20x299_2",
@@ -65,8 +82,18 @@ snapshots = [
 	"m3dis_sun_magg22_20x20x299_9"
 ]
 
-# ╔═╡ 8dfa58c2-54e4-4ca1-bf80-4badadfaf2b9
-#snapshots = ["m3dis_sun_stagger_10x10x230_1"]
+# ╔═╡ 4843f8e2-b1ce-4926-94bc-e3781098fb97
+snapshots_m3dis = [
+	"m3dis_sun_magg22_20x20x299_1",
+	"m3dis_sun_magg22_20x20x299_2",
+	"m3dis_sun_magg22_20x20x299_3",
+	"m3dis_sun_magg22_20x20x299_4",
+	"m3dis_sun_magg22_20x20x299_5",
+	"m3dis_sun_magg22_20x20x299_6",
+	"m3dis_sun_magg22_20x20x299_7",
+	"m3dis_sun_magg22_20x20x299_8",
+	"m3dis_sun_magg22_20x20x299_9"
+]
 
 # ╔═╡ 573b2070-18e5-4e53-8393-76549f2efce5
 md"## Line List
@@ -88,7 +115,7 @@ compute = false
 
 # ╔═╡ ac2ba741-52f9-4192-837e-79d760548805
 begin
-	m3druns = if compute
+	 if compute
 		m3load = MUST.whole_spectrum(
 			snapshots, 
 			namelist_kwargs=(
@@ -98,29 +125,37 @@ begin
 				:atom_params=>(:atom_file=>"", ),
 				:spectrum_params=>(
 					:daa=>1.0, :aa_blue=>1000, :aa_red=>100000
-				)
+				),
+				:composition_params=>(
+					:absdat_file=>"./input_multi3d/TS_absdat.dat", :abund_file=>"./input_multi3d/abund_magg"
+				),
+				:atmos_params=>(:atmos_format=>"MUST", :use_ne=>false),
+				:m3d_params=>(:long_scheme=>"lobatto", :quad_scheme=>"radau5")
 			),
 			slurm=true
 		)
-		m3load
-	else
-		MUST.M3DISRun.(joinpath.("data", snapshots))
 	end
 end
+
+# ╔═╡ 0320767c-8bb4-4aa1-bf19-d44e0aa52ec5
+m3druns = MUST.M3DISRun.(joinpath.("data", snapshots_m3dis))
 
 # ╔═╡ 87b0d3a3-1b62-49d6-bc1c-36ae26ef314f
 md"## Computing Teff
 The effective temperature is computed from integrating the Flux."
 
 # ╔═╡ bc423ddb-8027-4b97-a88f-a87188cbcb5f
-stagger = MUST.M3DISRun(joinpath.("data", "m3dis_sun_stagger_10x10x230_1"))
+stagger = MUST.M3DISRun(joinpath.("data", "m3dis_sun_stagger_20x20x230_1"))
+
+# ╔═╡ 6df8b739-f894-43d1-a4c6-4907b54e96a4
+marcs = MUST.M3DISRun(joinpath.("data", "atmos.sun_MARCS"))
 
 # ╔═╡ 1bfef52c-7c67-4029-8dde-9149583b28a6
 teff_nan(run) = MUST.Teff(run.lam[.!isnan.(run.flux)], run.flux[.!isnan.(run.flux)])
 
 # ╔═╡ 3f6a9327-35fc-4e82-bf5d-f9c1e0d658e8
 for (i, m) in enumerate(m3druns)
-	@info "Teff of $(snapshots[i]): $(teff_nan(m))"
+	@info "Teff of $(snapshots_m3dis[i]): $(teff_nan(m))"
 end
 
 # ╔═╡ d74a883f-39f6-4675-bf1f-a14032fca71d
@@ -134,17 +169,24 @@ begin
 		color="k", 
 		marker="s",
 		markerfacecolor="white",
-		markersize=8,
+		markersize=8, label=L"\rm M3DIS",
 		lw=1
 	)
 
-	axS.axhline(teff_nan(stagger), color="red")
+	axS.axhline(teff_nan(stagger), color="red", label=L"\rm Stagger")
+	axS.axhline(teff_nan(marcs), color="blue", label=L"\rm MARCS")
+	
 
 	axS.set_xlabel(L"\rm snapshot")
 	axS.set_ylabel(L"\rm T_{eff}\ [K]")
+
+	axS.legend(framealpha=0, labelspacing=0.001, handlelength=4, loc="lower right")
 	
 	gcf()
 end
+
+# ╔═╡ 9495f7be-08bb-4805-bb98-9a91248799da
+u(λ, T) = (8π*TSO.HPlanck * TSO.CLight) / λ^5 * 1 / (exp(TSO.hc_k / λ /T) - 1)
 
 # ╔═╡ 7fb7723f-0960-4735-8442-5e25d8a60783
 begin
@@ -152,16 +194,19 @@ begin
 	fF, axF = plt.subplots(1, 1, figsize=(5, 5))
 	visual.basic_plot!(axF)
 
-	l,f = pc.(Array, m3druns[1].crop(per_aa=true))
+	l,f = pc.(Array, m3druns[1].crop(per_aa=true, norm=false))
 	axF.plot(
-		l, f, 
+		l, f ./ 1e-8 , 
 		color="k", 
 		marker="",
 		lw=1
 	)
+	lp = range(800, 300000, length=2000)
+	fp = TSO.Bλ.(lp, 5777.0) .* 4π
+	axF.plot(lp, fp)
 	
 	axF.set_xlabel(L"\rm \lambda\ [\AA]")
-	axF.set_ylabel(L"\rm flux\ [normalized]")
+	axF.set_ylabel(L"\rm flux")
 	axF.set_xscale("log")
 	axF.set_yscale("log")
 	
@@ -182,16 +227,19 @@ end
 # ╠═766cfb9d-6084-4cde-8856-d3f3c6509abe
 # ╠═1a9a7946-fda5-4e01-b715-c3c36c1bf6ea
 # ╠═76bfd78b-0d58-4c59-9587-4b7627a2d357
-# ╠═8dfa58c2-54e4-4ca1-bf80-4badadfaf2b9
+# ╠═4843f8e2-b1ce-4926-94bc-e3781098fb97
 # ╟─573b2070-18e5-4e53-8393-76549f2efce5
 # ╠═1bd3e93c-0f57-4cf6-ace5-1f2f4fe9d57f
 # ╠═fc1859d9-4a45-4372-95ad-403134ce7370
 # ╟─908e3e3c-cd57-4221-967a-256e46246055
 # ╠═ecc8099e-ead7-4826-b17a-bb5b1787bfd2
 # ╠═ac2ba741-52f9-4192-837e-79d760548805
+# ╠═0320767c-8bb4-4aa1-bf19-d44e0aa52ec5
 # ╟─87b0d3a3-1b62-49d6-bc1c-36ae26ef314f
 # ╠═bc423ddb-8027-4b97-a88f-a87188cbcb5f
+# ╠═6df8b739-f894-43d1-a4c6-4907b54e96a4
 # ╠═1bfef52c-7c67-4029-8dde-9149583b28a6
 # ╠═3f6a9327-35fc-4e82-bf5d-f9c1e0d658e8
 # ╠═d74a883f-39f6-4675-bf1f-a14032fca71d
-# ╟─7fb7723f-0960-4735-8442-5e25d8a60783
+# ╠═9495f7be-08bb-4805-bb98-9a91248799da
+# ╠═7fb7723f-0960-4735-8442-5e25d8a60783

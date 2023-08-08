@@ -1308,7 +1308,7 @@ function height_scale_fast(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, 
                 if q == new_scale
                     continue
                 end
-                @inbounds new_box.data[q][k,j,:] .= if !(q in dont_log)
+                @inbounds new_box.data[q][k,j,:] .= if all(b.data[q][k, j, :] .> 0.0) & !(q in dont_log)
                     exp.(
                         gevaluate!(
                             interps[k, j], 
@@ -1676,6 +1676,52 @@ profile(f, model, x=:z, y=:T) = begin
 	else
 		logx.(axis(model, xs)), logy.(plane_statistic(f, model, ys))
 	end
+end
+
+
+
+"""
+	time_average_profiles(model_folder)
+
+Time average the ```plane_statistics``` of all snapshots located in that folder.
+"""
+function time_average_profile(f, model_folder, args...; hscale=:τ, kwargs...)
+	x, y = [], []
+    which = (hscale==:z) ? first : last 
+	for i in list_snapshots(converted_snapshots(model_folder))
+		snap = which(pick_snapshot(model_folder, i))
+		xi, yi = profile(f, snap, args...; kwargs...)
+
+		append!(x, [xi])
+		append!(y, [yi])
+	end
+
+	# interpolate to common x axis
+	x_common = range(
+		maximum(minimum.(x)), 
+		minimum(maximum.(x)), 
+		length=length(x |> first)
+	)
+	y_common = []
+	for i in eachindex(x)
+		m = sortperm(x[i])
+		append!(y_common, [linear_interpolation(x[i][m], y[i][m]).(x_common)])
+	end
+	
+	# compute the mean and the std
+	y_mean = zeros(length(x_common))
+	y_std  = zeros(length(x_common))
+	yi     = zeros(length(x))
+
+	for i in eachindex(x_common)
+		for j in eachindex(yi)
+			yi[j] = y_common[j][i]
+		end
+		y_mean[i] = MUST.mean(yi)
+		y_std[i]  = MUST.std(yi)
+	end
+
+	x_common, y_mean, y_std
 end
 
 

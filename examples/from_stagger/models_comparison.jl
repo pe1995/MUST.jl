@@ -33,43 +33,22 @@ md"All the models from the Stagger grid come with an average model that we can l
 
 # ╔═╡ 486f5cac-8879-4084-9faf-6dc4ae115e43
 names = [
-	"DIS_MARCS_E_t5777g44m00_v0.1",
-	"DIS_MARCS_E_t5777g44m00_v0.1",
-	"DIS_MARCS_E_t5777g44m00_v0.1",
-	"DIS_MARCS_E_t5777g44m00_v0.1",
-	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1"
 ]
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/sun_new_magg_vres"),
-	MUST.@in_dispatch("data/sun_new_magg_lres"),
-	MUST.@in_dispatch("data/sun_new_magg_ires"),
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg5_rapidf"),
-	MUST.@in_dispatch("data/sun_new_magg_hres"),
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg5_bins") 
+	MUST.@in_dispatch("data/pretty_good_sun_new_magg6_strong")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3")
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
 labels = [
-	"magg2022_60x60",
-	"magg2022_90x90",
-	"magg2022_90x180",
-	"magg2022_150x300",
-	#"magg2022_120x240",
-	"magg2022_195x390",
-	"magg2022_150x300_12bins"
+	"magg2022_228x(240x240x300)"
 ]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
@@ -538,9 +517,9 @@ begin
 	plot(legendforegroundcolor=nothing, legendbackgroundcolor=nothing, legendposition=:bottomleft)
 
 	snapsis = [MUST.pick_snapshot(
-			MUST.converted_snapshots(out_folder[6]), j
+			MUST.converted_snapshots(out_folder[1]), j
 	)[2]
-		for j in [-5, -4, -3, -2, -1, :recent]
+		for j in [-4, -3, -2, -1, :recent]
 	]
 	@info snapsis
 	for (i, snapshot_τ) in enumerate(snapsis)
@@ -721,7 +700,7 @@ md"One can alternatively also convert multiple snapshots"
 labels
 
 # ╔═╡ 0de7161a-aa93-49dc-b553-84ddf1d21961
-res = reshape(collect(Iterators.product((5, 10, 20, 30, 80), (299))), :)
+res = [] #reshape(collect(Iterators.product((5, 10, 20, 30, 80), (299))), :)
 
 # ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
 #=for (rx, rz) in res
@@ -744,22 +723,22 @@ res = reshape(collect(Iterators.product((5, 10, 20, 30, 80), (299))), :)
 end=#
 
 # ╔═╡ 313bb855-4d09-4df7-ba9d-f261cff27794
-#label_stagger = "stagger_10x10x230"
+label_stagger = "stagger_20x20x230"
 
 # ╔═╡ 69ec4993-ddfd-496f-87d9-eddf9ab97714
-#=eos_stagger = reload(
+eos_stagger = reload(
 	SqEoS, 
 	joinpath(MUST.@in_dispatch("input_data/DIS_MARCS_E_v1.4.35"), "eos.hdf5")
-)=#
+)
 
 # ╔═╡ 14275f0e-62e2-4a6f-98e6-dcbed3a1e158
-#=snaps2multi(
+snaps2multi(
 	stagger,
 	eos=eos_stagger, 
 	label=label_stagger,
-	n_horizontal=10, 
+	n_horizontal=20, 
 	n_vertical=230, outfolder="stagger_sun"
-)=#
+)
 
 # ╔═╡ 5b28c9b8-a991-45d6-a2d1-15f24142d277
 md"## Compute a time average"
