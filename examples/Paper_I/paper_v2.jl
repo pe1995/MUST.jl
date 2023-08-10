@@ -1580,6 +1580,49 @@ begin
 	gcf()
 end
 
+# ╔═╡ 04543c5d-d519-4ed2-9d98-050fbd1361a1
+md"### (L) Oszillations"
+
+# ╔═╡ 6dc706bc-0fbd-4277-948f-df7b4306bf4d
+scipyFFT = MUST.pyimport("scipy.fft")
+
+# ╔═╡ 6a2d0807-a437-40db-9ed3-934b4a1018b9
+fft(args...; kwargs...) = MUST.pyconvert(Array, scipyFFT.fftn(args...; kwargs...))
+
+# ╔═╡ 848900a2-3a56-48e2-b771-45ec8dc3b392
+fftfreq(axis) = begin
+	s = length(axis)
+	d = abs(diff(axis) |> first)
+	MUST.pyconvert(Array, scipyFFT.fftfreq(s, d=d))
+end
+
+# ╔═╡ ba8f433c-400a-4829-b534-1b88e35808f9
+begin
+	modelL = models["best"]
+	m3disL = pick_snapshot(out_folder[modelL], :recent) |> first
+
+	zL, velocityL = profile(MUST.mean, m3disL, :z, :uz)
+	velocityL ./= 1e5
+	velocityFFTL = fft(velocityL)
+	velocityFFTabsL = sqrt.(real(velocityFFTL).^2 .+ imag(velocityFFTL).^2)
+end
+
+# ╔═╡ 1977a610-41f0-4288-9c5e-58a140acdab3
+begin
+	plt.close()
+	fL, axL = plt.subplots(1, 1, figsize=(5, 6))
+	visual.basic_plot!(axL)
+	
+	x_fft = 1 ./ fftfreq(MUST.axis(m3disL, :z) ./1e8)
+	y_fft = velocityFFTabsL
+	axL.plot(x_fft, y_fft, lw=1, label=L"\rm M3DIS\ (D)", color="k")
+
+	axL.set_xlim(-0.2, 0.2)
+	axL.set_ylim(0.05, 1.1)
+	axL.legend(framealpha=0)
+	gcf()
+end
+
 # ╔═╡ Cell order:
 # ╟─485a693d-4872-47d4-975d-e91a7bbc0be7
 # ╠═7be90c6e-260a-11ee-12d4-93fd873d1015
@@ -1654,3 +1697,9 @@ end
 # ╟─306dd6bc-c27d-4af4-9188-6e96981541fb
 # ╟─521f69d2-c668-4e95-b422-bc95a858286c
 # ╟─bec4d310-281f-4a74-bd61-cebbfd1872f5
+# ╟─04543c5d-d519-4ed2-9d98-050fbd1361a1
+# ╟─6dc706bc-0fbd-4277-948f-df7b4306bf4d
+# ╟─6a2d0807-a437-40db-9ed3-934b4a1018b9
+# ╟─848900a2-3a56-48e2-b771-45ec8dc3b392
+# ╟─ba8f433c-400a-4829-b534-1b88e35808f9
+# ╟─1977a610-41f0-4288-9c5e-58a140acdab3

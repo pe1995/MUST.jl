@@ -437,6 +437,15 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     friction_time = 100 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
+    # experiment with t scale based on size only
+    test_tscale = false
+    tscale = if test_tscale
+        round(x_size / (4.6 * 1e8), sigdigits=1) * 100.0
+    else
+        larger_than_sun*tscale
+    end
+
+    @show tscale
     @show dup δz z_size/2
 
     MUST.set!(nml, cartesian_params=(:size=>[round(x_size/l_cgs, digits=2), round(x_size/l_cgs, digits=2), round(z_size/l_cgs, digits=2)], 
@@ -445,7 +454,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                                                 patches(z_resolution, patch_size)],
                                     :position=>[0,0,round(-dup/l_cgs, digits=2)]),
                     patch_params=(:n=>[patch_size, patch_size, patch_size],),
-                    scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>larger_than_sun*tscale),
+                    scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
                     stellar_params=(:g_cgs=>round(exp10(logg), digits=5), 
                                     :ee_min_cgs=>round(log(eemin), digits=5), 
                                     :nz=>nz-1, 

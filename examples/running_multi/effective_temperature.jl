@@ -50,8 +50,8 @@ Pick the model atmosphere. It should either be located in input_multi3d/MUST or 
 modelatmos = "m3dis_sun_magg22_20x20x299_3"
 
 # ╔═╡ 1a9a7946-fda5-4e01-b715-c3c36c1bf6ea
-modelatmosfolder = "input_multi3d/magg2022_150x300/"
-#modelatmosfolder = "input_multi3d/stagger_sun/"
+#modelatmosfolder = "input_multi3d/magg2022_150x300/"
+modelatmosfolder = "input_multi3d/stagger_sun/"
 #modelatmosfolder = "input_multi3d/atmos"
 #modelatmosfolder = "input_multi3d/magg2022_195x390/"
 
@@ -67,10 +67,10 @@ modelatmosfolder = "input_multi3d/magg2022_150x300/"
 	"m3dis_sun_magg22_20x20x299_8",
 	"m3dis_sun_magg22_20x20x299_9"
 ]=#
-#snapshots = ["m3dis_sun_stagger_20x20x230_1"]
+snapshots = ["m3dis_sun_stagger_20x20x230_1"]
 #snapshots = ["t5777g44m0005_20.5x5x230"]
 #snapshots = ["atmos.sun_MARCS"]
-snapshots = [
+#=snapshots = [
 	"m3dis_sun_magg22_20x20x299_1",
 	"m3dis_sun_magg22_20x20x299_2",
 	"m3dis_sun_magg22_20x20x299_3",
@@ -80,7 +80,7 @@ snapshots = [
 	"m3dis_sun_magg22_20x20x299_7",
 	"m3dis_sun_magg22_20x20x299_8",
 	"m3dis_sun_magg22_20x20x299_9"
-]
+]=#
 
 # ╔═╡ 4843f8e2-b1ce-4926-94bc-e3781098fb97
 snapshots_m3dis = [
@@ -111,7 +111,7 @@ Running M3D is then straight forward. One can either run this within an slurm al
 If you have compiled ```M3D``` for a MPI system, it might be possible that you need to recompile without MPI for your interactive runs!"
 
 # ╔═╡ ecc8099e-ead7-4826-b17a-bb5b1787bfd2
-compute = false
+compute = true
 
 # ╔═╡ ac2ba741-52f9-4192-837e-79d760548805
 begin
@@ -127,10 +127,13 @@ begin
 					:daa=>1.0, :aa_blue=>1000, :aa_red=>100000
 				),
 				:composition_params=>(
-					:absdat_file=>"./input_multi3d/TS_absdat.dat", :abund_file=>"./input_multi3d/abund_magg"
+					:absdat_file=>"./input_multi3d/TS_absdat.dat", :abund_file=>"./input_multi3d/abund_aplund07"
 				),
-				:atmos_params=>(:atmos_format=>"MUST", :use_ne=>false),
-				:m3d_params=>(:long_scheme=>"lobatto", :quad_scheme=>"radau5")
+				:atmos_params=>(
+					:atmos_format=>"MUST", 
+					:use_density=>true, 
+					:use_ne=>false
+				),
 			),
 			slurm=true
 		)

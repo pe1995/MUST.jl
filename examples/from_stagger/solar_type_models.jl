@@ -40,7 +40,9 @@ names = [
 ]
 
 # ╔═╡ 6202080d-fa73-4f39-8232-914582f70d11
-out_folder = [MUST.@in_dispatch("data/$(n)") for n in names]
+out_folder = [
+	MUST.@in_dispatch "data/DIS_MARCS_E_t45g40m00_v0.1_2"
+]
 
 # ╔═╡ a4a4f729-f247-440d-80d2-455b30c0f63f
 eos_folder = [MUST.@in_dispatch("input_data/grd/$n") for n in names]
@@ -134,6 +136,41 @@ begin
 	plot!(ylabel="log ρ [g × cm-3]", xlabel="log τ-ross")
 end
 
+# ╔═╡ 724239e6-aac8-4096-907e-e87deaded5c6
+rms(x) = √(sum(x .^2) / length(x))
+
+# ╔═╡ 3239e571-f59e-4648-87ff-d6003d4128b9
+rms5(x) = rms(x ./ 1e5)
+
+# ╔═╡ bc94c2a0-dbb3-4906-80d6-3bfdccd5dbb5
+begin
+	plot(
+		framestyle=:box, 
+		grid=false, 
+		legendforegroundcolor=nothing,
+		legendbackgroundcolor=nothing,
+		legendposition=:bottomright
+	)
+	for i in eachindex(names)
+		pavr1 = plot!(
+			time_average_profile(
+				rms5, 
+				out_folder[i], 
+				:log10τ_ross, 
+				:uz,
+				hscale=:τ
+			)[1:2]..., 
+			label=labels[i],
+			color=:black,
+			ls=ls[i], 
+			lw=lw[i]
+		)
+	end
+
+	#plot!(xlim=(-4,4), ylim=(-8.7,-5.7))
+	plot!(ylabel="rms Uz [km × s-1]", xlabel="log τ-ross")
+end
+
 # ╔═╡ a8dc248c-32be-452e-94bc-ca43f6afbda7
 md"## Snapshot deviations"
 
@@ -155,7 +192,7 @@ begin
 	end
 
 	plot!(title=labels[model])
-	plot!(xlim=(-4,4), ylim=(2500, 11500))
+	plot!(xlim=(-4, 5), ylim=(2500, 13500))
 	plot!(ylabel="T [K]", xlabel="log τ-ross")
 
 end
@@ -168,7 +205,7 @@ begin
 	sh = pick_snapshot(out_folder[model], :recent) |> last
 	isurf = MUST.closest(log10.(MUST.axis(sh, :τ_ross, 3)), 0)	
 	x, y = MUST.axis(sh, :x) ./1e8 , MUST.axis(sh, :y) ./ 1e8
-	heatmap(x, y, sh[:uz][:, :, isurf] ./1e5, cmap=palette(:balance, rev=false))
+	heatmap(x, y, sh[:uz][:, :, isurf] ./1e5, cmap=palette(:hot, rev=false))
 end
 
 # ╔═╡ 65ac391a-9d10-46ef-8001-a81f2a3f2dac
@@ -210,12 +247,15 @@ end
 # ╟─ab08661d-fc62-4700-b423-9b96df85d9cb
 # ╠═42a0408c-20cd-49b0-8581-7a9d13e2361b
 # ╠═daec2515-64db-45ef-8a29-ab4fc8298963
-# ╠═cbf793b6-c2ba-4872-9f4c-522c3a77d5a5
-# ╠═2751d10c-3e48-4578-b330-97692eb25133
+# ╟─cbf793b6-c2ba-4872-9f4c-522c3a77d5a5
+# ╟─2751d10c-3e48-4578-b330-97692eb25133
+# ╟─724239e6-aac8-4096-907e-e87deaded5c6
+# ╟─3239e571-f59e-4648-87ff-d6003d4128b9
+# ╟─bc94c2a0-dbb3-4906-80d6-3bfdccd5dbb5
 # ╟─a8dc248c-32be-452e-94bc-ca43f6afbda7
 # ╠═42fcf382-b831-4378-bf97-f1ee6601d388
 # ╟─7a945e98-c82d-48d8-978c-a5f4b392252d
-# ╠═2b819043-697b-482c-9cf3-fbb5f1fada5f
+# ╟─2b819043-697b-482c-9cf3-fbb5f1fada5f
 # ╟─65ac391a-9d10-46ef-8001-a81f2a3f2dac
 # ╠═e384f1f0-12ef-473c-b038-648bd4d43938
 # ╠═d86bda77-f24f-49df-851e-f964c1a99eab
