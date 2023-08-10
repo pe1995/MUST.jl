@@ -700,10 +700,10 @@ md"One can alternatively also convert multiple snapshots"
 labels
 
 # ╔═╡ 0de7161a-aa93-49dc-b553-84ddf1d21961
-res = [] #reshape(collect(Iterators.product((5, 10, 20, 30, 80), (299))), :)
+res = reshape(collect(Iterators.product((5, 10, 20, 30, 80), (299))), :)
 
 # ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
-#=for (rx, rz) in res
+for (rx, rz) in res
 	target_x = rx
 	target_z = rz
 	label = "magg22_$(target_x)x$(target_x)x$(target_z)"
@@ -720,7 +720,7 @@ res = [] #reshape(collect(Iterators.product((5, 10, 20, 30, 80), (299))), :)
 			method=:linear
 		)
 	end
-end=#
+end
 
 # ╔═╡ 313bb855-4d09-4df7-ba9d-f261cff27794
 label_stagger = "stagger_20x20x230"

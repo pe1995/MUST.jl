@@ -217,7 +217,8 @@ names = [
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t55g45m00_v0.1",
 	"DIS_MARCS_E_t60g45m00_v0.1",
-	"DIS_MARCS_E_t65g45m00_v0.1"
+	"DIS_MARCS_E_t65g45m00_v0.1",
+	"DIS_MARCS_E_t45g40m00_v0.1"
 ]
 
 # ╔═╡ 6c3227a7-993b-45bc-809e-be6a0907f384
@@ -228,6 +229,7 @@ out_folder = [
 	"models/t55g45m00_magg_150x300",
 	"models/t60g45m00_magg_150x300",
 	"models/t65g45m00_magg_150x300",
+	"models/t45g40m00_magg_150x300"
 ]
 
 # ╔═╡ 239ce3e3-5522-4d03-96d7-607c69418781
@@ -242,7 +244,8 @@ eos_folder = [
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t55g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t60g45m00_v0.1"),
-	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t65g45m00_v0.1")
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t65g45m00_v0.1"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t45g40m00_v0.1")
 ]
 
 # ╔═╡ f6c1c537-9a8d-4746-abcd-17fd0a712353
@@ -250,6 +253,7 @@ colors = [
 	"tomato",
 	"cyan",
 	"magenta",
+	"black",
 	"black",
 	"black",
 	"black"
@@ -262,7 +266,8 @@ ls = [
 	"-",
 	"-",
 	"--",
-	"-"
+	"-",
+	":"
 ]
 
 # ╔═╡ 4fb7c54f-7f7a-48b7-a6a6-f80cb9c31360
@@ -272,7 +277,8 @@ labels = [
 	"M3DIS - ires",
 	"M3DIS - t55g45m00",
 	"M3DIS - t60g45m00",
-	"M3DIS - t65g45m00"
+	"M3DIS - t65g45m00",
+	"M3DIS - t45g40m00"
 ]
 
 # ╔═╡ 68e9c5c9-34df-41f6-a4e6-7f5deb935d59
@@ -301,7 +307,8 @@ models = Dict(
 	"ires"      => 3,
 	"t55g45m00" => 4,
 	"t60g45m00" => 5,
-	"t65g45m00" => 6
+	"t65g45m00" => 6,
+	"t45g40m00" => 7
 )
 
 # ╔═╡ 418c34ff-1c08-4ae6-82bf-7ac2fced7244
@@ -1319,7 +1326,7 @@ begin
 	m3disH = pick_snapshot(out_folder[modelH], -1) |> first
 	
 	fH, axH = visual.cube_with_velocities(
-		m3disH, vmax_3d=17000, cmap="hot"
+		m3disH, vmax_3d=17000, cmap="RdYlBu_r"
 	)
 
 
@@ -1444,13 +1451,19 @@ md"### (J) Average profiles of other stars"
 begin
 	plt.close()
 
-	modelsJ = [models["t55g45m00"], models["t60g45m00"], models["t65g45m00"]]
-	lsJ     = ["-", "--", "-"]
-	lwJ     = [1.5, 1.5, 3]
+	modelsJ = [
+		models["t55g45m00"], 
+		models["t60g45m00"], 
+		models["t65g45m00"],
+		models["t45g40m00"]
+	]
+	lsJ     = ["-", "--", "-", ":"]
+	lwJ     = [1.5, 1.5, 3, 2.0]
 	labelsJ = [
-		L"\rm M3DIS - 5500\ K, 4.5\ dex", 
-		L"\rm M3DIS - 6000\ K, 4.5\ dex", 
-		L"\rm M3DIS - 6500\ K, 4.5\ dex"
+		L"\rm 5500\ K, 4.5\ dex", 
+		L"\rm 6000\ K, 4.5\ dex", 
+		L"\rm 6500\ K, 4.5\ dex",
+		L"\rm 4500\ K, 4.0\ dex"
 	]
 	
 	
@@ -1518,9 +1531,9 @@ begin
 	axJ[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]", fontsize="medium")
 	
 	axJ[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
-	axJ[2].set_xlim(-4, 2)
-	axJ[0].set_ylim(3800, 11500)
-	axJ[1].set_ylim(-8.75, -6.25)
+	axJ[2].set_xlim(-3.75, 3)
+	axJ[0].set_ylim(2600, 13500)
+	axJ[1].set_ylim(-8.75, -5.85)
 
 	fJ.savefig("average_other_models.pdf", bbox_inches="tight")
 	fJ.savefig("average_other_models.png", bbox_inches="tight", dpi=600)
@@ -1535,13 +1548,22 @@ md"### (K) 2D surfaces"
 begin
 	modelK = models["best"]
 
-	modelsK = [models["t55g45m00"], models["t60g45m00"], models["t65g45m00"]]
-	teffK   = [5500, 6000, 6500]
+	modelsK = [
+		modelK, 
+		models["t55g45m00"], 
+		models["t60g45m00"], 
+		models["t65g45m00"], 
+		models["t45g40m00"]
+	]
+	teffK   = [5777, 5500, 6000, 6500, 4500]
+	loggK   = [4.44, 4.5, 4.5, 4.5, 4.0]
+	
 
 	for (i, model) in enumerate(modelsK)
 		plt.close()
 		
 		fK, axK = plt.subplots(1, 1, figsize=(5, 6))
+		visual.basic_plot!(axK)
 		
 		m3disK = pick_snapshot(out_folder[model], -1) |> last
 
@@ -1567,7 +1589,7 @@ begin
 		axK.set_ylabel("y [Mm]", fontsize="medium")	
 		axK.set_xlabel("x [Mm]", fontsize="medium")
 		axK.text(
-			0.97, 0.97, "$(teffK[i]) K, 4.5 dex", 
+			0.97, 0.97, "$(teffK[i]) K, $(loggK[i]) dex", 
 			ha="right", va="top", 
 			transform=axK.transAxes,
 			color="white", fontsize="large", backgroundcolor="k"
@@ -1620,6 +1642,220 @@ begin
 	axL.set_xlim(-0.2, 0.2)
 	axL.set_ylim(0.05, 1.1)
 	axL.legend(framealpha=0)
+	gcf()
+end
+
+# ╔═╡ 1f458a9f-a0dd-459b-8a60-aded8d8e4617
+md"### (M) Vertical Slices"
+
+# ╔═╡ d602d302-5964-4525-b62e-d7eb7aec5182
+begin
+	modelM = models["best"]
+	m3disM = pick_snapshot(out_folder[modelM], -1) |> first
+	
+	plt.close()
+	fM, axM = plt.subplots(1, 1, figsize=(10, 6))
+	visual.basic_plot!(axM)
+	pickeveryM = 3
+
+	# We plot the velocity in x and z direction in a plane of contant y in the center
+	y0 = 200 #argmin(abs.(MUST.axis(m3disM, :y)))
+	y_y0 = MUST.axis(m3disM, :y)[y0] ./1e8
+	ux = m3disM[:ux][1:pickeveryM:end, y0, 1:pickeveryM:end] ./1e5
+	uz = m3disM[:uz][1:pickeveryM:end, y0, 1:pickeveryM:end] ./1e5
+
+	xxM = m3disM.x[1:pickeveryM:end, y0, 1:pickeveryM:end] ./1e8
+	zzM = m3disM.z[1:pickeveryM:end, y0, 1:pickeveryM:end] ./1e8
+
+	TM = m3disM[:T][1:pickeveryM:end, y0, 1:pickeveryM:end]
+	
+	csM = axM.contour(xxM, zzM, TM, cmap="seismic", levels=10, linewidths=4, alpha=0.5)
+	plt.clabel(csM, inline=1, fontsize="medium")
+
+	norm = matplotlib.colors.Normalize(vmin=csM.cvalues.min(), vmax=csM.cvalues.max())
+	sm = plt.cm.ScalarMappable(norm=norm, cmap = csM.cmap)
+	#fM.colorbar(sm, ax=axM, fraction=visual.cbar_fraction, pad=visual.cbar_pad)
+	
+	axM.quiver(xxM, zzM, ux, uz, color="k", scale=290, zorder=100)
+	axM.axhline(0.0, color="k", ls="-", lw=2)
+
+	axM.set_ylabel(L"\rm Z\ [Mm]", fontsize="large")
+	axM.set_xlabel(L"\rm X\ [Mm]", fontsize="large")
+	
+	
+	axM.set_xlim(-2.3, 2.3)
+	axM.set_ylim(-1.6, 0.7)
+
+	fM.savefig("vertical_slice_velocity_sun.png", dpi=600, bbox_inches="tight")
+	fM.savefig("vertical_slice_velocity_sun.pdf", bbox_inches="tight")
+	
+	gcf()
+end
+
+# ╔═╡ 78ce2d34-9898-4140-a7fd-8fe2e807d972
+scaleheight(p, ρ, logg) = begin
+	p / (ρ * exp10(logg)) ./ 1e5
+end
+
+# ╔═╡ 94c55529-523a-4a44-9ed8-1caaf34e4da5
+convective_turnover(hp, v) = abs(hp ./ v)
+
+# ╔═╡ 3466e7cb-17ab-4a1a-ac4f-7b3f1264584d
+md"We can measure the average vertical velocity and average scale height within one granular slice, as seen in the previous figure."
+
+# ╔═╡ cb14997c-ed1f-4be0-80ce-bba1d94765d4
+function granularstatistics(model; 
+			x_limits=[-2.0, -1], 
+			y_limits=[y_y0-0.5, y_y0+0.5], 
+			z_limits=[-1.0, 0.1])
+	
+	m3disM = pick_snapshot(out_folder[model], -1) |> first
+	pgM = exp.(lookup(eos[model], :lnPg, log.(m3disM[:d]), log.(m3disM[:ee])))
+	loggM = 4.44
+
+	xgranM = MUST.axis(m3disM, :x) ./1e8
+	ygranM = MUST.axis(m3disM, :y) ./1e8
+	zgranM = MUST.axis(m3disM, :z) ./1e8
+	
+	granularfilter(arr, low, high) = low .< arr .< high
+	mask = [
+		granularfilter(xgranM, x_limits...),
+		granularfilter(ygranM, y_limits...),
+		granularfilter(zgranM, z_limits...)
+	]
+
+	pgranM = pgM[mask...]
+	ρranM  = m3disM[:d][mask...]
+	vranM  = m3disM[:uz][mask...] ./1e5
+
+	hpM = scaleheight(mean(pgranM), mean(ρranM), loggM)
+	ctM = convective_turnover(hpM, mean(vranM))
+
+	@info "Pressure scale height [km]: $(hpM)"
+	@info "Convective turnover time [s]: $(ctM)"
+	@info "Convective turnover time [min]: $(ctM ./60)"
+	@info "________________________________________________________"
+	@info "Convective turnover time [code units]: $(ctM ./100)"
+
+	hpM, ctM
+end
+
+# ╔═╡ f6736f9c-f76e-40ae-bb85-63c1aef6605c
+granularstatistics(modelM)
+
+# ╔═╡ 2587d8e9-7612-42f6-8a0c-01c72b1d32d3
+md"### (N) Multiple vertical slices"
+
+# ╔═╡ 5003a0ce-7aa0-4a5e-9765-6129d7660e1b
+granularstatistics(models["t55g45m00"])
+
+# ╔═╡ 6ce71e68-3e46-4ee7-9777-7a04342b5e2e
+granularstatistics(models["t60g45m00"])
+
+# ╔═╡ 09c3002d-1839-4adf-9d47-1811f1c81bcd
+granularstatistics(models["t65g45m00"])
+
+# ╔═╡ 22bc6765-400a-470b-9f9d-ff1365d97e33
+begin
+	modelsN = [
+		models["best"],
+		models["t55g45m00"], 
+		#models["t60g45m00"], 
+		models["t65g45m00"],
+		models["t45g40m00"]
+	]
+	
+	y0N = [
+		200,
+		200,
+		#140,
+		210,
+		200
+	]
+
+	x_limitN = []
+	y_limitN = []
+	z_limitN = []
+
+	labelsN = [
+		L"\rm 5777\ K, 4.44\ dex",
+		L"\rm 5500\ K, 4.5\ dex",
+		#L"\rm 6000\ K, 4.5\ dex", 
+		L"\rm 6500\ K, 4.5\ dex",
+		L"\rm 4500\ K, 4.0\ dex"
+	]
+	
+	plt.close()
+	fN, axN = plt.subplots(2, 2, figsize=(10, 12))
+	axN = axN.reshape(-1)
+	plt.subplots_adjust(hspace=0.1, wspace=0.15)
+	
+	visual.basic_plot!.(axN)
+	pickeveryN = 2
+
+	rellim(arr) = begin
+		(minimum(arr) + 0.005*(maximum(arr)-minimum(arr)),
+		 maximum(arr) - 0.005*(maximum(arr)-minimum(arr)))
+	end
+	
+	for (i, mN) in enumerate(modelsN)
+		y0i = y0N[i]
+		m3disNi = pick_snapshot(out_folder[mN], -1) |> first
+
+		y_y0N = MUST.axis(m3disNi, :y)[y0i] ./1e8
+		uxN = m3disNi[:ux][1:pickeveryN:end, y0i, 1:pickeveryN:end] ./1e5
+		uzN = m3disNi[:uz][1:pickeveryN:end, y0i, 1:pickeveryN:end] ./1e5
+	
+		xxN = m3disNi.x[1:pickeveryN:end, y0i, 1:pickeveryN:end] ./1e8
+		zzN = m3disNi.z[1:pickeveryN:end, y0i, 1:pickeveryN:end] ./1e8
+	
+		TN = m3disNi[:T][1:pickeveryN:end, y0i, 1:pickeveryN:end]
+
+		
+		csN = axN[i-1].contour(
+			xxN, zzN, TN, cmap="seismic", levels=10, linewidths=3, alpha=0.7
+		)
+		plt.clabel(csN, inline=1, fontsize="medium")
+	
+		normN = matplotlib.colors.Normalize(
+			vmin=csN.cvalues.min(), vmax=csN.cvalues.max()
+		)
+		smN = plt.cm.ScalarMappable(norm=normN, cmap = csN.cmap)
+		#fM.colorbar(sm, ax=axM, fraction=visual.cbar_fraction, pad=visual.cbar_pad)
+
+		
+		axN[i-1].quiver(
+			xxN, zzN, uxN, uzN, color="k", scale=200, zorder=100, headwidth=3,
+		)
+		axN[i-1].axhline(0.0, color="k", ls="-", lw=2)
+
+		axN[i-1].set_xlim(rellim(xxN)...)
+		axN[i-1].set_ylim(rellim(zzN)...)
+	
+		#=τcN = granularstatistics(
+			modelsN[i], 
+			x_limit=x_limitN[i], y_limit=y_y0N.+y_limitN[i], z_limit=z_limitN[i]
+		)
+
+		labi = labelsN[i]*L"\rm \tau_{c}="*"$(τcN./60) min"=#
+
+		axN[i-1].text(
+			0.97, 0.05, labelsN[i], 
+			ha="right", va="bottom", 
+			transform=axN[i-1].transAxes,
+			color="white", fontsize="medium", backgroundcolor="k", zorder=150
+		)
+	end
+
+	axN[0].set_ylabel("\n\n"*L"\rm Z\ [Mm]", fontsize="medium")
+	axN[2].set_ylabel("\n\n"*L"\rm Z\ [Mm]", fontsize="medium")
+	
+	axN[2].set_xlabel(L"\rm X\ [Mm]", fontsize="medium")
+	axN[3].set_xlabel(L"\rm X\ [Mm]", fontsize="medium")
+
+	fN.savefig("vertical_slice_velocity.png", dpi=600, bbox_inches="tight")
+	fN.savefig("vertical_slice_velocity.pdf", bbox_inches="tight")
+	
 	gcf()
 end
 
@@ -1690,7 +1926,7 @@ end
 # ╟─acf85ab7-3d8b-4e83-8a73-1ed00598882f
 # ╟─4ae6b55e-952a-4b70-937f-c81a2f790e83
 # ╟─faccedff-2a3a-40b1-ae88-c42a69112d16
-# ╟─1634883c-2a93-4b31-bc3a-662a894733c4
+# ╠═1634883c-2a93-4b31-bc3a-662a894733c4
 # ╟─f409f3e8-ef97-4fb9-a8e6-7a8f1e2b2d22
 # ╟─759b0406-1a86-42d9-b8d7-8784a1574c02
 # ╟─82b1bd73-d81a-404c-aefd-643b7008d2b7
@@ -1703,3 +1939,15 @@ end
 # ╟─848900a2-3a56-48e2-b771-45ec8dc3b392
 # ╟─ba8f433c-400a-4829-b534-1b88e35808f9
 # ╟─1977a610-41f0-4288-9c5e-58a140acdab3
+# ╟─1f458a9f-a0dd-459b-8a60-aded8d8e4617
+# ╟─d602d302-5964-4525-b62e-d7eb7aec5182
+# ╠═78ce2d34-9898-4140-a7fd-8fe2e807d972
+# ╠═94c55529-523a-4a44-9ed8-1caaf34e4da5
+# ╟─3466e7cb-17ab-4a1a-ac4f-7b3f1264584d
+# ╟─cb14997c-ed1f-4be0-80ce-bba1d94765d4
+# ╠═f6736f9c-f76e-40ae-bb85-63c1aef6605c
+# ╟─2587d8e9-7612-42f6-8a0c-01c72b1d32d3
+# ╠═5003a0ce-7aa0-4a5e-9765-6129d7660e1b
+# ╠═6ce71e68-3e46-4ee7-9777-7a04342b5e2e
+# ╠═09c3002d-1839-4adf-9d47-1811f1c81bcd
+# ╟─22bc6765-400a-470b-9f9d-ff1365d97e33
