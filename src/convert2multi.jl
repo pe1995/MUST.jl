@@ -3,7 +3,7 @@ using TSO
 
 function snaps2multi(folder, snaps...; 
 						eos, label, 
-						n_horizontal=10, n_vertical=280, outfolder="", method=:linear)
+						n_horizontal=nothing, n_vertical=nothing, outfolder="", method=:linear, name="m3dis")
     i = 0
     for snap in snaps
         snapshot, snapshot_τ = try
@@ -19,7 +19,7 @@ function snaps2multi(folder, snaps...;
             log.(snapshot[:ee])
         ) 
         snapshot.data[:ne] = exp.(ne)
-    
+
         snapshotsresample = gresample(
             snapshot, 
             nz=n_vertical, 
@@ -33,7 +33,7 @@ function snaps2multi(folder, snaps...;
         end
 
         i += 1
-        output_name = joinpath(outfolder, "m3dis_sun_$(label)_$(i)")
+        output_name = joinpath(outfolder, join([name, "$(label)_$(i)"], "_"))
     
         MUST.multiBox(
             snapshotsresample, 
@@ -45,9 +45,14 @@ function snaps2multi(folder, snaps...;
 end
 
 function snaps2multi(snaps::MUST.Box...; 
-                    eos, label, n_horizontal=10, n_vertical=280, outfolder="")
-    i = 0
-    for snap in snaps
+                    eos, label, n_horizontal=nothing, n_vertical=nothing, outfolder="", name="m3dis")
+    labels = if typeof(label) <: AbstractVector
+        label
+    else
+        ["$(label)_$(j)" for (j, _) in enumerate(snaps)]
+    end
+
+    for (i, snap) in enumerate(snaps)
         snapshot = snap
         snapshotsresample = gresample(
             snapshot, 
@@ -59,15 +64,20 @@ function snaps2multi(snaps::MUST.Box...;
         if length(outfolder) > 1
             (!isdir(outfolder)) && mkdir(outfolder)
         end
-
-        i += 1
-        output_name = joinpath(outfolder, "m3dis_sun_$(label)_$(i)")
+        output_name = joinpath(outfolder, join([name, "$(labels[i])"], "_"))
         aos = @axed eos
 
-        ne = lookup(
-            aos, :lnNe, 
-            log.(snapshotsresample[:d]), log.(snapshotsresample[:ee])
-        ) 
+        if is_internal_energy(aos)
+            ne = lookup(
+                aos, :lnNe, 
+                log.(snapshotsresample[:d]), log.(snapshotsresample[:ee])
+            ) 
+        else
+            ne = lookup(
+                aos, :lnNe, 
+                log.(snapshotsresample[:d]), log.(snapshotsresample[:T])
+            ) 
+        end
         
         snapshotsresample.data[:ne] = exp.(ne)
     

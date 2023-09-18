@@ -369,6 +369,9 @@ begin
 	end
 end
 
+# ╔═╡ 40afa313-fd60-45ed-9b19-9123b9fc0579
+60*8
+
 # ╔═╡ 381be17e-b257-4e51-aa79-941db153f398
 md"## Figures
 ### (A) Internal Comparison"
@@ -496,8 +499,180 @@ begin
 	axA[1].set_ylim(-8.75, -6.25)
 	
 	
-	
+	gcf()
+end
 
+# ╔═╡ f6f45939-55f8-42c3-b0d2-79c1cefb645c
+begin
+	_, m3disA_yTr = profile(
+		mean,
+		m3disA,
+		:log10τ_ross,
+		:T
+	)
+	_, m3disA_xTr = profile(
+		mean,
+		m3disA,
+		:log10τ_ross,
+		:log10d
+	)
+	
+	_, staggerA_yTr = profile(
+		mean,
+		stagger_τ,
+		:log10τ_ross,
+		:T
+	)
+	_, staggerA_xTr = profile(
+		mean,
+		stagger_τ,
+		:log10τ_ross,
+		:log10d
+	)
+end
+
+# ╔═╡ d77216a7-038d-491f-b7c2-ba74d627e2a2
+begin
+	mergewithfolder(path) = joinpath(
+		MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"), path
+	)
+	eosT = reload(SqEoS, mergewithfolder("eos.hdf5"))
+	opaT = reload(SqOpacity, mergewithfolder("binned_opacities.hdf5"))
+
+	
+	MUST.add!(
+		m3disA, 
+		exp.(lookup(eosT, :lnPg, log.(m3disA[:d]),  log.(m3disA[:T]))),
+		:pg
+	)
+	MUST.add!(
+		stagger_τ, 
+		exp.(lookup(eosT, :lnPg, log.(stagger_τ[:d]),  log.(stagger_τ[:T]))),
+		:pg
+	)
+	
+	_, m3disA_yTp = profile(
+		mean,
+		m3disA,
+		:log10τ_ross,
+		:T
+	)
+	_, m3disA_xTp = profile(
+		mean,
+		m3disA,
+		:log10τ_ross,
+		:log10pg
+	)
+
+	_, staggerA_yTp = profile(
+		mean,
+		stagger_τ,
+		:log10τ_ross,
+		:T
+	)
+	_, staggerA_xTp = profile(
+		mean,
+		stagger_τ,
+		:log10τ_ross,
+		:log10pg
+	)
+
+	co5boldA_xTp = exp.(lookup(
+		eosT, :lnPg, log.(exp10.(co5boldmean_τ[:, 3])),  log.(co5boldmean_τ[:, 2])
+	))
+end
+
+# ╔═╡ 518657e8-1865-4ecf-bb57-73cb502b5b19
+begin
+	plt.close()
+	
+	fA2, axA2 = plt.subplots(1, 1, sharex=true, figsize=(5, 6))
+	plt.subplots_adjust(wspace=0, hspace=0)
+	#visual.basic_plot!.(axA)
+	
+	# logτ vs. T
+	axA2.plot(
+		m3disA_yr, m3disA_y,
+		color="cornflowerblue",
+		ls="-",
+		label=L"\rm M3DIS\ (D)",
+		lw=3
+	)
+	axA2.plot(
+		staggerA_xTr, staggerA_yTr,
+		color="k",
+		ls="-",
+		label=L"\rm Stagger"
+	)
+	axA2.plot(
+		co5boldmean_τ[:, 3], co5boldmean_τ[:, 2],
+		color="k",
+		ls="--",
+		label=L"\rm Co5bold"
+	)
+	axA2.plot(
+		log10.(marcs_model[:, 11]), marcs_model[:, 5],
+		color="k",
+		ls=":",
+		label=L"\rm MARCS"
+	)
+
+	axA2.legend(framealpha=0, labelspacing=0.01, handlelength=hl)
+
+	axA2.set_ylabel(L"\rm T\ [K]")
+	axA2.set_xlabel(L"\rm \log \rho\ [g \times cm^{-3}]")
+	
+	axA2.set_ylim(3600, 14500)
+	axA2.set_xlim(-8.75, -5.9)
+	
+	
+	gcf()
+end
+
+# ╔═╡ 65a010db-d74f-4326-b909-8586c4d033a7
+begin
+	plt.close()
+	
+	fA3, axA3 = plt.subplots(1, 1, sharex=true, figsize=(5, 6))
+	plt.subplots_adjust(wspace=0, hspace=0)
+	#visual.basic_plot!.(axA)
+	
+	# logτ vs. T
+	axA3.plot(
+		m3disA_xTp, m3disA_yTp,
+		color="cornflowerblue",
+		ls="-",
+		label=L"\rm M3DIS\ (D)",
+		lw=3
+	)
+	axA3.plot(
+		staggerA_xTp, staggerA_yTp,
+		color="k",
+		ls="-",
+		label=L"\rm Stagger"
+	)
+	axA3.plot(
+		log10.(co5boldA_xTp), co5boldmean_τ[:, 2],
+		color="k",
+		ls="--",
+		label=L"\rm Co5bold"
+	)
+	axA3.plot(
+		log10.(marcs_model[:, 7]), marcs_model[:, 5],
+		color="k",
+		ls=":",
+		label=L"\rm MARCS"
+	)
+
+	axA3.legend(framealpha=0, labelspacing=0.01, handlelength=hl)
+
+	axA3.set_ylabel(L"\rm T\ [K]")
+	axA3.set_xlabel(L"\rm \log P_g\ [g \times cm \times s^{-2}]")
+	
+	axA3.set_ylim(3600, 14500)
+	axA3.set_xlim(3.2, 6.1)
+	
+	
 	gcf()
 end
 
@@ -564,7 +739,7 @@ begin
 	# Figure
 	plt.close()
 	
-	fB, axB = plt.subplots(3, 1, sharex=true, figsize=(5, 12))
+	fB, axB = plt.subplots(3, 1, sharex=true, figsize=(6, 10))
 	plt.subplots_adjust(wspace=0.25, hspace=0.0)
 	#visual.basic_plot!.(axB)
 	
@@ -863,9 +1038,9 @@ begin
 	iresmodelC = models["ires"]
 	bestmodelC = models["best"]
 	
-	lresC = pick_snapshot(out_folder[lresmodelC], :recent) |> last
-	iresC = pick_snapshot(out_folder[iresmodelC], :recent) |> last
-	bestC = pick_snapshot(out_folder[bestmodelC], :recent) |> last
+	lresC_geo, lresC = pick_snapshot(out_folder[lresmodelC], :recent) 
+	iresC_geo, iresC = pick_snapshot(out_folder[iresmodelC], :recent) 
+	bestC_geo, bestC = pick_snapshot(out_folder[bestmodelC], :recent) 
 	
 	# lres
 	lresC_x, lresC_y, lresC_z = time_average_profiles(
@@ -940,6 +1115,15 @@ begin
 		:uz, 
 		which=last
 	)
+
+	brC = gresample(bestC_geo, nz=299)
+	bestC_xH, bestC_yH = profile(MUST.mean, brC, :z, :log10τ_ross)
+
+	brC = gresample(iresC_geo, nz=180)
+	iresC_xH, iresC_yH = profile(MUST.mean, brC, :z, :log10τ_ross)
+
+	brC = lresC_geo
+	lresC_xH, lresC_yH = profile(MUST.mean, brC, :z, :log10τ_ross)
 end
 
 # ╔═╡ e02162d4-6345-43e2-bb3f-2a453cc1b9eb
@@ -947,7 +1131,7 @@ begin
 	# Figure
 	plt.close()
 	
-	fC, axC = plt.subplots(3, 1, sharex=true, figsize=(5, 12))
+	fC, axC = plt.subplots(3, 1, sharex=true, figsize=(6, 10))
 	plt.subplots_adjust(wspace=0.25, hspace=0.0)
 	#visual.basic_plot!.(axC)
 	
@@ -967,7 +1151,7 @@ begin
 				:log10τ_ross, :T
 			)...,
 			color="k",
-			label=L"\rm high\ (D)\ -\ interm.\ (B)",#@sprintf("%i km", 2.3/180 *1000),
+			label=L"\rm\ interm.\ (B)\ -\ high\ (D)",#@sprintf("%i km", 2.3/180 *1000),
 			lw=lwC,
 			ls=":"
 		)
@@ -994,7 +1178,7 @@ begin
 				:log10τ_ross, :T
 			)...,
 			color="k",
-			label=L"\rm high\ (D)\ -\ low\ (A)",#@sprintf("%i km", 2.3/90 *1000),
+			label=L"\rm low\ (A)\ -\ high\ (D)",#@sprintf("%i km", 2.3/90 *1000),
 			lw=lwC,
 			ls="--"
 		)
@@ -1013,6 +1197,34 @@ begin
 			)[2],
 			color="0.5", alpha=0.2
 		)
+		axC[0].axhline(0.0, color="0.5", alpha=0.2)
+		#=axC[0].plot(
+			relative_difference(
+				mean,
+				lresC_x, lresC_y,
+				iresC_x, iresC_y,
+				:log10τ_ross, :T
+			)...,
+			color="k",
+			label=L"\rm\ interm.\ (B)\ -\ low\ (D)",#@sprintf("%i km", 2.3/180 *1000),
+			lw=lwC,
+			ls="-."
+		)
+		axC[0].fill_between( 
+			relative_difference(
+				mean,
+				lresC_x, lresC_y.-lresC_z,
+				iresC_x, iresC_y,#.+iresC_z,
+				:log10τ_ross, :T
+			)...,
+			relative_difference(
+				mean,
+				lresC_x, lresC_y.+lresC_z,
+				iresC_x, iresC_y,#.-iresC_z,
+				:log10τ_ross, :T
+			)[2],
+			color="0.5", alpha=0.2
+		)=#
 
 		
 		
@@ -1026,7 +1238,7 @@ begin
 				:log10τ_ross, :log10d
 			)...,
 			color="k",
-			label=@sprintf("%i km", 2.3/180 *1000),
+			label=label=L"\rm\ interm.\ (B)\ -\ high\ (D)",
 			lw=lwC,
 			ls=":"
 		)
@@ -1053,7 +1265,7 @@ begin
 				:log10τ_ross, :log10d
 			)...,
 			color="k",
-			label=@sprintf("%i km", 2.3/90 *1000),
+			label=L"\rm low\ (A)\ -\ high\ (D)",
 			lw=lwC,
 			ls="--"
 		)
@@ -1130,15 +1342,73 @@ begin
 			)[2],
 			color="0.5", alpha=0.2
 		)
-			
+
+		
 
 		axC[0].set_xlim(-4, 2)
 		axC[0].set_ylim(-6.25, 6.25)
 		axC[1].set_ylim(-0.075, 0.075)
 		axC[2].set_ylim(-0.47, 0.47)
-	
+
+
+		# Test: add geometrical scale on top
+		whereC = axC[0]
+		refz = 0.7
+		zdiffC = MUST.pyconvert(Vector, whereC.get_ylim())
+
+		whereC.text(
+			0.43, 1-refz, 
+			"average geometrical scale", 
+			ha="right", va="center", transform=whereC.transAxes,
+			color="k", alpha=0.5
+		)
+		whereC.axhline(
+			zdiffC[2] - (zdiffC[2] - zdiffC[1]) * refz,
+			0.45, 1.0, color="k", alpha=0.1, lw=0.85
+		)
+		whereC.axhline(
+			zdiffC[2] - (zdiffC[2] - zdiffC[1]) * (refz+0.2),
+			0.0, 1.0, color="k", alpha=0.1, lw=0.85
+		)
 		
-		axC[0].legend(framealpha=0, loc="upper center", ncol=1, labelspacing=0.01, handlelength=hl)
+		constant_bestC_yH = fill!(
+			similar(bestC_yH), zdiffC[2] - (zdiffC[2] - zdiffC[1]) * (refz+0.05)
+		)
+		whereC.plot(
+			bestC_yH, constant_bestC_yH, 
+			color="k", 
+			ls="", 
+			marker="|", 
+			markersize=3,
+			alpha=0.5
+		)
+
+		constant_iresC_yH = fill!(
+			similar(iresC_yH), zdiffC[2] - (zdiffC[2] - zdiffC[1]) * (refz+0.1)
+		)
+		whereC.plot(
+			iresC_yH, constant_iresC_yH, 
+			color="k", 
+			ls="", 
+			marker="|", 
+			markersize=3,
+			alpha=0.5
+		)
+
+		constant_lresC_yH = fill!(
+			similar(lresC_yH), zdiffC[2] - (zdiffC[2] - zdiffC[1]) * (refz+0.15)
+		)
+		whereC.plot(
+			lresC_yH, constant_lresC_yH, 
+			color="k", 
+			ls="", 
+			marker="|", 
+			markersize=3,
+			alpha=0.5
+		)
+		
+		
+		axC[1].legend(framealpha=0, loc="upper center", ncol=1, labelspacing=0.01, handlelength=hl)
 		axC[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]")
 		axC[1].set_ylabel(
 			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]"
@@ -1765,6 +2035,9 @@ begin
 		(minimum(arr) + 0.005*(maximum(arr)-minimum(arr)),
 		 maximum(arr) - 0.005*(maximum(arr)-minimum(arr)))
 	end
+
+	# interpolate the MARCS model in temperature and z
+	ipN = MUST.linear_interpolation(marcs_model[:, 5], marcs_model[:, 4])
 	
 	for (i, mN) in enumerate(modelsN)
 		plt.close()
@@ -1783,9 +2056,9 @@ begin
 	
 		TN = m3disNi[:T][1:pickeveryN:end, y0i, 1:pickeveryN:end]
 
-		
+		nlevelsN = 10
 		csN = axN.contour(
-			xxN, zzN, TN, cmap="seismic", levels=10, linewidths=3, alpha=0.7
+			xxN, zzN, TN, cmap="seismic", levels=nlevelsN, linewidths=3, alpha=0.7
 		)
 		plt.clabel(csN, inline=1)
 	
@@ -1803,6 +2076,29 @@ begin
 
 		axN.set_xlim(rellim(xxN)...)
 		axN.set_ylim(rellim(zzN)...)
+
+
+		# add a 1D model on top
+		#if mN == models["best"]
+			levelsN = MUST.pyconvert(Vector, csN.levels)
+			cmapN = csN.get_cmap()
+	   		colorsN = MUST.pyconvert(
+				Vector, cmapN(range(0, 1, length=nlevelsN) |> collect)
+			)
+			xmarcsN = [l for l in levelsN if marcs_model[1, 5] < l < marcs_model[end, 5]]
+			colorsN = [
+				c for (i,c) in enumerate(colorsN) 
+					if marcs_model[1, 5] < levelsN[i] < marcs_model[end, 5]
+			]
+			ymarcsN = ipN.(xmarcsN)
+			for point in eachindex(xmarcsN)
+				axN.plot(
+					[0.0], [-ymarcsN[point]/1e8], 
+					color=colorsN[point], marker="X", ls="", markersize=10, zorder=110
+				)
+			end
+		#end
+		
 	
 		#=τcN = granularstatistics(
 			modelsN[i], 
@@ -1966,7 +2262,7 @@ end
 # ╠═9a504c51-4e79-4ef4-8a4f-570f549422c0
 # ╠═0a2286e2-29e4-454b-b3a7-6a33a6828760
 # ╟─9465b4d5-08e2-453a-b758-6d4d6744c20b
-# ╟─d87a8635-7527-4584-81f6-eef0da1101d6
+# ╠═d87a8635-7527-4584-81f6-eef0da1101d6
 # ╟─c9a52157-81c4-4b8c-8dcd-b728a0890b00
 # ╠═515e5910-4bf1-4769-84b9-cff2a08751a0
 # ╠═fa715a70-036e-420a-a0fa-06cefc3ef3c0
@@ -1990,9 +2286,14 @@ end
 # ╟─01f1b55d-ba4b-4d74-8eba-12ede107cfbf
 # ╟─3fb509e5-c611-45e2-b475-f43bd28ac53a
 # ╠═84fc6b08-0825-41ab-b214-5fef7e2a2dc0
-# ╠═35d2d2c5-6b70-4bb9-acdc-216557859282
+# ╟─35d2d2c5-6b70-4bb9-acdc-216557859282
+# ╠═40afa313-fd60-45ed-9b19-9123b9fc0579
 # ╟─381be17e-b257-4e51-aa79-941db153f398
 # ╟─e1517fd6-523f-4083-bb74-ebf666813002
+# ╟─f6f45939-55f8-42c3-b0d2-79c1cefb645c
+# ╟─d77216a7-038d-491f-b7c2-ba74d627e2a2
+# ╟─518657e8-1865-4ecf-bb57-73cb502b5b19
+# ╟─65a010db-d74f-4326-b909-8586c4d033a7
 # ╟─58bb3285-544f-4e8a-a27e-9b7e90804fe8
 # ╟─dd667e0e-e554-4dfe-9493-aa38a505210f
 # ╟─6de3b5df-9766-41ca-8d51-f18023a419a3
@@ -2007,7 +2308,7 @@ end
 # ╟─64213279-f47a-4b46-b1ac-730945d5b8f1
 # ╟─9c01846f-d4cc-43a8-9c0f-93f7e08bcefb
 # ╟─acf85ab7-3d8b-4e83-8a73-1ed00598882f
-# ╟─4ae6b55e-952a-4b70-937f-c81a2f790e83
+# ╠═4ae6b55e-952a-4b70-937f-c81a2f790e83
 # ╟─faccedff-2a3a-40b1-ae88-c42a69112d16
 # ╟─1634883c-2a93-4b31-bc3a-662a894733c4
 # ╟─f409f3e8-ef97-4fb9-a8e6-7a8f1e2b2d22

@@ -46,8 +46,8 @@ else
         #istart = max(1, length(snapshots)-10)
         #snapshots = snapshots[istart:end-2]
 
-        istart = max(1, length(snapshots)-30)
-        snapshots = snapshots[istart:end-11]
+        istart = max(1, length(snapshots)-11)
+        snapshots = snapshots[istart:end-2]
     end
 end
 

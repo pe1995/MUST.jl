@@ -18,7 +18,7 @@ Grid(b::Box; order=[1, 2, 3]) = begin
     #y = Base.convert.(Float64, y)
     #z = Base.convert.(Float64, z)
 
-    axes = [RegularBoxAxis(x), RegularBoxAxis(y), RegularBoxAxis(z)][order]
+    axes = [Axis(x), Axis(y), Axis(z)][order]
 
     RegularBoxGrid(axes)
 end
@@ -33,7 +33,7 @@ Grid(b::Box, zscale::Symbol; order=[1, 2, 3], scale=log) = begin
     #y = Base.convert.(Float64, y)
     #z = Base.convert.(Float64, z)
 
-    axes = [RegularBoxAxis(x), RegularBoxAxis(y), RegularBoxAxis(z)][order]
+    axes = [Axis(x), Axis(y), Axis(z)][order]
 
     RegularBoxGrid(axes)
 end
@@ -121,10 +121,14 @@ function gresample(b::Box;
 	grid = Grid(b, order=order)
 
 	# build the new axis
-	x_new = scale_axis(axis(b, :x), N=nx)
-	y_new = scale_axis(axis(b, :y), N=ny)
-	z_new = scale_axis(axis(b, :z), N=nz)
+	x_new = isnothing(nx) ? deepcopy(nodes(grid.axes[1])) : scale_axis(axis(b, :x), N=nx)
+	y_new = isnothing(ny) ? deepcopy(nodes(grid.axes[2])) : scale_axis(axis(b, :y), N=ny)
+	z_new = isnothing(nz) ? deepcopy(nodes(grid.axes[3])) : scale_axis(axis(b, :z), N=nz)
 	target_grid = Grid([x_new, y_new, z_new][order]...)
+
+    #@show nodes(axis(target_grid)[3])
+    #@show nodes(axis(grid)[3])
+
 
 	# interpolate 
 	ip = ginterpolate(grid, target_grid, method=method)
@@ -155,7 +159,7 @@ function gresample(b::Box;
 		end
 	end
 
-	xx, yy, zz = meshgrid(x_new, y_new, z_new)
+	xx, yy, zz = meshgrid(nodes(target_grid)...)
     xx = Base.convert.(TN, xx)
     yy = Base.convert.(TN, yy)
     zz = Base.convert.(TN, zz)

@@ -170,8 +170,13 @@ end
     eos = [reload(SqEoS, joinpath(grid.info[i, "binned_tables"], "eos.hdf5")) for i in 1:nrow(grid.info)]
     opa = [reload(SqOpacity, joinpath(grid.info[i, "binned_tables"], "binned_opacities.hdf5")) for i in 1:nrow(grid.info)]
 
-    models = [@optical(Average3D(eos[i], grid.info[i, "av_path"], logg=grid.info[i, "logg"]), eos[i], opa[i]) for i in 1:nrow(grid.info)]
+    models = []
+    for i in 1:nrow(grid.info)
+        @show i
+        append!(models, [@optical(Average3D(eos[i], grid.info[i, "av_path"], logg=grid.info[i, "logg"]), eos[i], opa[i])])
+    end
 
+    #models = [@optical(Average3D(eos[i], grid.info[i, "av_path"], logg=grid.info[i, "logg"]), eos[i], opa[i]) for i in 1:nrow(grid.info)]
 
     rho_norm = zeros(nrow(grid.info))
     l_norm = zeros(nrow(grid.info))
@@ -262,12 +267,12 @@ end
     n_xpatches
 end
 
-@everywhere function formation_opacities(mother_table, av_path, logg, name)
+@everywhere function formation_opacities(mother_table, av_path, logg, name, ext="_magg22")
 
     # The EoS has already been smoothed in the running process
     table_folder = mother_table
-    opacities    = reload(SqOpacity, joinpath(table_folder, "combined_opacities.hdf5"))
-    eos          = reload(SqEoS,     joinpath(table_folder, "combined_eos.hdf5"))
+    opacities    = reload(SqOpacity, joinpath(table_folder, "combined_opacities$(ext).hdf5"))
+    eos          = reload(SqEoS,     joinpath(table_folder, "combined_eos$(ext).hdf5"))
     aos          = @axed eos
 
 
@@ -278,12 +283,13 @@ end
     # Recompute the rosseland optical depth scale based on the combined opacities
     # This should be more accurate, because the rosseland optical depth requires 
     # integration over frequency, which is not available in the individual runs
-    if !isfile(joinpath(table_folder, "combined_ross_eos.hdf5"))
+    if !isfile(joinpath(table_folder, "combined_ross_eos$(ext).hdf5"))
         @info "computing rosseland ($name)"
         rosseland_opacity!(aos.eos.lnRoss, aos, opacities; weights=ω_midpoint(opacities))
         transfer_rosseland!(aos.eos, opacities)
-        save(aos.eos,   joinpath(table_folder, "combined_ross_eos.hdf5"))
-        save(opacities, joinpath(table_folder, "combined_opacities.hdf5"))
+        fill_nan!(aos, opacities)
+        save(aos.eos,   joinpath(table_folder, "combined_ross_eos$(ext).hdf5"))
+        save(opacities, joinpath(table_folder, "combined_opacities$(ext).hdf5"))
     end
 
 
@@ -299,18 +305,18 @@ end
 
     # Save the results
     formation_opacities = SqOpacity(d_κ, d_ross, opacities.src, opacities.λ, true)
-    save(formation_opacities, joinpath(table_folder, "combined_formation_opacities_$(name).hdf5"))
+    save(formation_opacities, joinpath(table_folder, "combined_formation_opacities_$(name)$(ext).hdf5"))
 
 end
 
-@everywhere function bin_opacities(mother_table, av_path, logg, name)
+@everywhere function bin_opacities(mother_table, av_path, logg, name, ext="_magg22")
     table_folder   = mother_table
 
 
     # TS quantities after post-processing
-    eos           = reload(SqEoS,     joinpath(table_folder, "combined_ross_eos.hdf5")) # ross for others
-    opacities     = reload(SqOpacity, joinpath(table_folder, "combined_opacities.hdf5"), mmap=true)
-    formOpacities = reload(SqOpacity, joinpath(table_folder, "combined_formation_opacities_$(name).hdf5"), mmap=true)
+    eos           = reload(SqEoS,     joinpath(table_folder, "combined_ross_eos$(ext).hdf5")) # ross for others
+    opacities     = reload(SqOpacity, joinpath(table_folder, "combined_opacities$(ext).hdf5"), mmap=true)
+    formOpacities = reload(SqOpacity, joinpath(table_folder, "combined_formation_opacities_$(name)$(ext).hdf5"), mmap=true)
 
     # λ Integration weights
     weights = ω_midpoint(opacities)
@@ -334,11 +340,11 @@ end
         opacities=opacities, 
         formation_opacity=-log10.(formOpacities.κ_ross), 
         Nbins=7, maxiter=1000, 
-        quadrants=[ 
-            TSO.Quadrant((0.0, 4.0),   (-100, 4.5), 4),
-            TSO.Quadrant((0.0, 4.0),   (4.5, 100), 1),
-            TSO.Quadrant((4.0, 100.0), (-100, 100), 2),
-        ],
+        #quadrants=[ 
+        #    TSO.Quadrant((0.0, 4.0),   (-100, 4.5), 4),
+        #    TSO.Quadrant((0.0, 4.0),   (4.5, 100), 1),
+        #    TSO.Quadrant((4.0, 100.0), (-100, 100), 2),
+        #],
         display=:none
     )
 
@@ -356,10 +362,12 @@ end
 
         !isdir(eos_table_name) && mkdir(eos_table_name) 
 
+        @show size(eos.lnPg)
         save(binned_opacities.opacities, joinpath(eos_table_name, "binned_opacities.hdf5"))
+        save(eos, joinpath(eos_table_name, "eos.hdf5"))
 
         # Copy the eos for convenience. Usually not a big deal because rather small
-        cp(joinpath(table_folder, "combined_ross_eos.hdf5"), joinpath(eos_table_name, "eos.hdf5"), force=true)
+        #cp(joinpath(table_folder, "combined_ross_eos.hdf5"), joinpath(eos_table_name, "eos.hdf5"), force=true)
     end
 
     binned_opacities8 = tabulate(bin8, weights, eos, opacities, transition_model=model)
@@ -523,7 +531,7 @@ end
 begin
 #= Step (A): The Grid =#
 
-    grid = MUST.StaggerGrid("stagger_grid.mgrid")
+    grid = MUST.StaggerGrid("stagger_grid_red.mgrid")
 
     ## Check for opacity table field
     mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
@@ -561,7 +569,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    resolution!(grid, patch_size=15, cut_bottom=0.45)
+    resolution!(grid, patch_size=15, cut_bottom=0.35)
     @show grid.info[!, "x_resolution"]  grid.info[!, "z_resolution"] grid.info[!, "x_size"]  grid.info[!, "z_size"]
   
 

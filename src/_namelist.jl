@@ -373,8 +373,8 @@ _spectrum_namelist_lte!(nml::M3DNamelist;
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
 				:lvlcheck=>1,
-                :n_nu=>32, :maxiter=>0, :decouple_continuum=>true)) = begin
-
+                :n_nu=>32, :maxiter=>0)) = begin
+    # :decouple_continuum=>true
 	set!(
 		nml; 
 		io_params=io_params, 
@@ -394,8 +394,8 @@ _spectrum_namelist_nlte!(nml::M3DNamelist;
                 :convlim=>1e-2),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
 				:lvlcheck=>1,
-                :n_nu=>32, :maxiter=>100, :decouple_continuum=>true)) = begin
-
+                :n_nu=>32, :maxiter=>100)) = begin
+    # :decouple_continuum=>true
 	set!(
 		nml; 
 		io_params=io_params, 
@@ -415,7 +415,7 @@ You can specify NLTE=true in order to load the default NLTE namelist.
 """
 function spectrum_namelist(model_name::String; NLTE=false,
 					model_folder="./input_multi3d/MUST",
-					linelist="./input_multi3d/vald_2490-25540.list",
+					linelist=nothing,#"./input_multi3d/vald_2490-25540.list",
                     absmet=nothing,
 					kwargs...)	
 	# Create an empty Namelist

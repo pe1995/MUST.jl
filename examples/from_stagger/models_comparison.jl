@@ -38,12 +38,12 @@ names = [
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg6_strong")
+	MUST.@in_dispatch("data/pretty_good_sun_new_magg7_strong")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3")
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.7.3")
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
@@ -703,7 +703,7 @@ labels
 res = reshape(collect(Iterators.product((5, 10, 20, 30, 80), (299))), :)
 
 # ╔═╡ 055f1b98-53d7-4368-bc75-d0073985d47d
-for (rx, rz) in res
+#=for (rx, rz) in res
 	target_x = rx
 	target_z = rz
 	label = "magg22_$(target_x)x$(target_x)x$(target_z)"
@@ -720,7 +720,7 @@ for (rx, rz) in res
 			method=:linear
 		)
 	end
-end
+end=#
 
 # ╔═╡ 313bb855-4d09-4df7-ba9d-f261cff27794
 label_stagger = "stagger_20x20x230"
@@ -732,13 +732,13 @@ eos_stagger = reload(
 )
 
 # ╔═╡ 14275f0e-62e2-4a6f-98e6-dcbed3a1e158
-snaps2multi(
+#=snaps2multi(
 	stagger,
 	eos=eos_stagger, 
 	label=label_stagger,
 	n_horizontal=20, 
 	n_vertical=230, outfolder="stagger_sun"
-)
+)=#
 
 # ╔═╡ 5b28c9b8-a991-45d6-a2d1-15f24142d277
 md"## Compute a time average"
@@ -816,7 +816,7 @@ end
 # ╟─c0347b03-fb0a-4660-a9f6-fc24272263ed
 # ╟─fcc3aaac-a5e2-45fa-9419-4aaa916fbe45
 # ╟─4c0bf79b-9b7b-4c35-a728-350a79e5eb83
-# ╠═a10e407c-70f8-4809-a0e4-eb334447d623
+# ╟─a10e407c-70f8-4809-a0e4-eb334447d623
 # ╟─919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
 # ╟─84bd1e80-ff21-4970-a5a3-fc7452da7e6f
 # ╟─e2dde825-4e66-42e2-b541-74ec0600fc81

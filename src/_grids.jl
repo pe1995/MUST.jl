@@ -27,14 +27,16 @@ RegularBoxGrid(axes::AbstractBoxAxis...) = RegularBoxGrid([axes...])
 RegularBoxGrid(axes::AbstractArray{T,1}...) where {T<:AbstractFloat} = begin
     RegularBoxGrid(RegularBoxAxis.(axes))
 end
-RegularBoxAxis(values)  = if is_uniform(values)
+Axis(values)  = if is_uniform(values)
+    #@show flipped(values)
     RegularBoxAxis(flipped(values))
 else
     @warn "Non-uniform spacing detected."
+    #@show flipped(values)
     RegularBoxAxis(flipped(values))
 end
 
-Grid(ax::AbstractVector...) = RegularBoxGrid(RegularBoxAxis.(ax)...)
+Grid(ax::AbstractVector...) = RegularBoxGrid(Axis.(ax)...)
 
 
 
@@ -56,7 +58,7 @@ flipped(values) = begin
     if issorted(values) 
         values
     else
-        @warn "One Axis is not sorted!"
+        #@warn "One Axis is not sorted!"
         if issorted(reverse(values))
             reverse(values)
         else
@@ -65,7 +67,7 @@ flipped(values) = begin
     end
 end
 
-nodes(axis::AbstractBoxAxis) = axis.nodes
-nodes(axis::RegularBoxGrid)  = [nodes(a) for a in axis]
-axis(g::RegularBoxGrid)      = g.axes
+nodes(a::AbstractBoxAxis) = a.nodes
+nodes(g::RegularBoxGrid) = [nodes(a) for a in axis(g)]
+axis(g::RegularBoxGrid) = g.axes
  

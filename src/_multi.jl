@@ -106,11 +106,42 @@ end
 Submit a job to the M3DIS code, which will compute the outgoing flux across in LTE or NLTE.
 IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis macro.
 """
-function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict())
+function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true)
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
     # Create the default namelist (with adjustments)
-    nml = spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
+
+    # Check if NLTE and twostep, in that case we follow up with an LTE run
+    nml = if NLTE & twostep
+        nml_nlte = spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
+        nml_spectrum = spectrum_namelist(model_name; NLTE=false, namelist_kwargs...)
+        path_nlte = joinpath(nml_nlte.io_params["datadir"], "$(model_name)_departure")
+
+        set!(
+            nml_spectrum; 
+            atom_params=(:precomputed_depart=>path_nlte,),
+            m3d_params=(:long_scheme=>"lobatto",)
+        )
+        set!(
+            nml_nlte; 
+            m3d_params=(:long_scheme=>"disk_center",)
+        )
+
+        # run the initial namelist first
+        write(nml_nlte, @in_m3dis("$(model_name)_departure.nml"))
+        @info "Running M3D (departure)."
+        if slurm
+            srun_m3dis("$(model_name)_departure.nml"; wait=true, m3dis_kwargs...)
+        else
+            run_m3dis("$(model_name)_departure.nml"; wait=true, m3dis_kwargs...)
+        end
+        @info "M3D completed (departure)."
+
+        nml_spectrum
+    else
+        spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)  
+    end
+
     write(nml, @in_m3dis("$(model_name).nml"))
 
     # run multi (with waiting)
@@ -132,7 +163,7 @@ end
 Submit jobs to the M3DIS code, which will compute the outgoing flux across in LTE or NLTE.
 IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis macro.
 """
-function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict())
+function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true)
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
     data_dir = whole_spectrum_namelist(model_names |> first; namelist_kwargs...).io_params["datadir"]
@@ -143,18 +174,64 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
     
     # Create the default namelist (with adjustments)
     results = []
+    results_nlte = []
+    nml = []
     for model_name in model_names
         # Create the default namelist (with adjustments)
-        nml = spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
-        write(nml, @in_m3dis("$(model_name).nml"))
+        nml_l = if NLTE & twostep
+            path_nlte = joinpath(data_dir, "$(model_name)_departure")
+            nml_nlte = spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
+            nml_spectrum = spectrum_namelist(model_name; NLTE=false, namelist_kwargs...)
+
+            set!(
+                nml_spectrum; 
+                atom_params=(:precomputed_depart=>path_nlte,),
+                m3d_params=(:long_scheme=>"lobatto",)
+            )
+            set!(
+                nml_nlte; 
+                m3d_params=(:long_scheme=>"disk_center",)
+            )
+    
+            # run the initial namelist first
+            write(nml_nlte, @in_m3dis("$(model_name)_departure.nml"))
+
+            @info "Running M3D (departure)."
+            r = if slurm
+                srun_m3dis("$(model_name)_departure.nml"; wait=false, m3dis_kwargs...)
+            else
+                run_m3dis("$(model_name)_departure.nml"; wait=false, m3dis_kwargs...)
+            end
+            append!(results_nlte, [r])
+            @info "M3D completed (departure)."
+    
+            nml_spectrum
+        else
+            spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)  
+        end
+
+        append!(nml, [nml_l])
+    end
+
+    # wait for success
+    for (i, r) in enumerate(results_nlte)
+        s = success(r)
+        @info "$(model_names[i]) finished with success status $(s). (departure)"
+    end
+
+
+    for (i, model_name) in enumerate(model_names)
+        write(nml[i], @in_m3dis("$(model_name).nml"))
 
         # run multi (with waiting)
         @info "Running M3D with NLTE=$(NLTE)."
-        if slurm
+        r = if slurm
             srun_m3dis("$(model_name).nml"; wait=false, m3dis_kwargs...)
         else
             run_m3dis("$(model_name).nml"; wait=false, m3dis_kwargs...)
         end
+
+        append!(results, [r])
     end
 
     # wait for success
@@ -199,6 +276,19 @@ end
 
 
 #= Effective temperature computations =#
+
+window(line::PythonCall.Py, args...; kwargs...) = begin
+    pyconvert.(Array, line.crop(args...; kwargs...))
+end
+
+window(run::M3DISRun, iline, args...; kwargs...) = begin
+    line = run.line[iline]
+    window(line, args...; kwargs...)
+end
+
+
+
+
 
 flux(run; norm=true) = begin
     norm ? (run.lam, run.flux ./ run.flux_cnt) : (run.lam, run.flux)

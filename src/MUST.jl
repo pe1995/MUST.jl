@@ -74,7 +74,7 @@ export ginterpolate, gevaluate, gevaluate!, gresample
 export plane_statistic 
 
 # Multi
-export whole_spectrum, spectrum, Teff, flux, M3DISRun
+export whole_spectrum, spectrum, Teff, flux, M3DISRun, window
 
 export axis, closest
 export ingredients

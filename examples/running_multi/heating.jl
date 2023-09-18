@@ -43,7 +43,7 @@ md"## Model Atmospheres
 Pick the model atmosphere. It should either be located in input_multi3d/MUST or the correct folder should be given to the namelist function."
 
 # ╔═╡ 04f7c167-3b1d-4ad8-be9f-58fbac9a20a0
-modelatmos = "m3dis_sun_magg22_20x20x280_2" 
+modelatmos = "m3dis_sun_magg22_5x5x299_2" 
 
 # ╔═╡ b7790d90-97bf-4f89-8c15-0d70f855471d
 modelatmosfolder = "input_multi3d/magg2022_150x300/"
@@ -65,20 +65,20 @@ We compute the heating from the unbinned and binned opacity table and then compa
 # ╔═╡ 5185341e-9299-40d5-9881-9e002c926bfc
 eos = reload(
 	SqEoS, 
-	"/u/peitner/DISPATCH/binned/DIS_MARCS_v1.6.3/eos.hdf5"
+	"/u/peitner/DISPATCH/binned/DIS_MARCS_v1.7.2/eos.hdf5"
 )
 
 # ╔═╡ fa7355e5-9072-4c4e-be9a-d5412f6cde5c
 opa = reload(
 	SqOpacity, 
-	"/u/peitner/DISPATCH/binned/DIS_MARCS_v1.6.3/binned_opacities.hdf5"
+	"/u/peitner/DISPATCH/binned/DIS_MARCS_v1.7.2/binned_opacities.hdf5"
 )
 
 # ╔═╡ 69ee39a1-ae7d-4ec9-bae2-b830f80836ed
 md"These tables need to be combined and saved in the Multi format in order to be able to run them in M3D. We save them in common folder directly in Multi to make things easier."
 
 # ╔═╡ e830f3c8-ce12-4e46-94fe-33b847ae9b61
-folder_eos_rel = "input_multi3d/M3D_MARCS_v1.6.3"
+folder_eos_rel = "input_multi3d/M3D_MARCS_v1.7.2"
 
 # ╔═╡ fb609e98-ab06-487e-8bf1-91e232e5687b
 folder_eos = MUST.@in_m3dis folder_eos_rel
@@ -106,7 +106,7 @@ m3d_binned = if compute
 				:linelist=>nothing,
 				:absmet=>nothing,
 				:atom_params=>(:atom_file=>"", ),
-				:spectrum_params=>(:daa=>5., :aa_blue=>3000, :aa_red=>4000),
+				:spectrum_params=>(:daa=>1., :aa_blue=>1500, :aa_red=>4000),
 				:atmos_params=>(:dims=>1, ),
 				:m3d_params=>(:n_nu=>1, )
 			),
@@ -125,7 +125,7 @@ m3d_unbinned = if compute
 			:linelist=>nothing,
 			:absmet=>absmet,
 			:atom_params=>(:atom_file=>"", ),
-			:spectrum_params=>(:daa=>5., :aa_blue=>1500, :aa_red=>9000),
+			:spectrum_params=>(:daa=>1., :aa_blue=>1500, :aa_red=>9000),
 			:atmos_params=>(:dims=>1, ),
 			:m3d_params=>(:n_nu=>1, )
 		),
