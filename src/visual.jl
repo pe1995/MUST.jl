@@ -69,7 +69,8 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
         xoff=10, 
         yoff=15, 
         zoff=10, 
-        show_time=false)
+        show_time=false,
+        fontsize="medium")
 
     # Define dimensions
     Nx, Ny, Nz = size(m_3d)
@@ -255,7 +256,7 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
 
     if show_time
         ts = @sprintf("%i", m_3d.parameter.time)
-        ax_3d.set_title("solar time: $(ts) min", fontsize="x-large")
+        ax_3d.set_title("solar time: $(ts) min", fontsize=fontsize)
     end
 
     fig_3d, ax_3d

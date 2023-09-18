@@ -66,8 +66,8 @@ end
 
 
 #= MUST interface =#
-export import_dispatch, in_dispatch, import_m3dis, in_m3dis
-export Space, spacebox, Box, add!, profile
+export import_dispatch, @in_dispatch, import_m3dis, @in_m3dis
+export Space, spacebox, Box, add!, profile, time_average_profile
 export multiBox
 export pick_snapshot
 export ginterpolate, gevaluate, gevaluate!, gresample
@@ -75,6 +75,9 @@ export plane_statistic
 
 # Multi
 export whole_spectrum, spectrum, Teff, flux, M3DISRun
+
+export axis, closest
+export ingredients
 
 #= Julia code files =#
 include("_constants.jl")

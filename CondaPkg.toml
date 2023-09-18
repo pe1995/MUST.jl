@@ -1,13 +1,14 @@
 [deps]
-cmake = ""
 ipython = ""
-pandas = ""
 matplotlib = ""
-dask = ""
 imageio = ""
-numpy = ""
 f90nml = ""
+seaborn = ""
+cmake = ""
+pandas = ""
+dask = ""
 astropy = ""
+numpy = ""
 scipy = ""
 
 [pip.deps]

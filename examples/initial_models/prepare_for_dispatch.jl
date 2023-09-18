@@ -51,7 +51,7 @@ end
 @everywhere begin
     name_extension    = "DIS_MARCS"
     version           = "0.1"
-    dispatch_location = "/home/eitner/shared/model_grid/dispatch2/"
+    dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
     MUST.@import_dispatch dispatch_location
 end
 
@@ -62,8 +62,8 @@ end
 #= Additional functionality =#
 
 @everywhere function resolution(av_model, min_x, max_x, min_z, max_z, hres, 
-                                patch_size=30; cut_bottom=0.3)
-    nz = ceil(length(av_model.z) * (1-cut_bottom)) * 0.95
+                                patch_size=20; cut_bottom=0.3)
+    nz = ceil(length(av_model.z) * (1-cut_bottom)) * 1.2
     dz = round((max_z - min_z) * (1-cut_bottom), sigdigits=2)
     target_res = round(dz/nz, sigdigits=2)
     @show target_res dz nz
@@ -112,8 +112,8 @@ end
 end
 
 @everywhere function resolutionHD(av_model, min_x, max_x, min_z, max_z, hres, 
-                                    patch_size=30; cut_bottom=0.3)
-    nx = ceil(abs(max_x - min_x)/abs(hres)) 
+                                    patch_size=30; cut_bottom=0.3, scale_resolution=1.2)
+    nx = ceil(abs(max_x - min_x)/abs(hres)) * scale_resolution
     dx = round((max_x - min_x) * (1-cut_bottom), sigdigits=2)
     target_res = round(dx/nx, sigdigits=2)
     nx = ceil(nx / patch_size) * patch_size
@@ -123,7 +123,7 @@ end
 
     ## So we need to make sure that we have an integer multiple of this number of
     ## patches in the other dimensions
-    dz = round((max_z - min_z) * (1-cut_bottom), sigdigits=2)
+    dz = round((max_z - min_z) * (1-cut_bottom), sigdigits=2) 
     
     ## we need this many more patches in x dimension
     dxz_frac = dz / dx
@@ -195,7 +195,7 @@ end
         it0 = argmin(abs.(log10.(models[i].τ) .- 0.0))
 
         ## where is the upper edge (roughly)
-        itup = argmin(abs.(log10.(models[i].τ) .- -5))
+        itup = argmin(abs.(log10.(models[i].τ) .- -5.5))
 
         ## Where can we start with the adiabat
         itlo = argmin(abs.(log10.(models[i].τ) .- 5))
@@ -261,8 +261,6 @@ end
 
     n_xpatches
 end
-
-
 
 @everywhere function formation_opacities(mother_table, av_path, logg, name)
 
@@ -331,10 +329,18 @@ end
                             formation_opacity=-log10.(formOpacities.κ_ross), 
                             Nbins=12, maxiter=1000, λ_split=(4.0, 5))
 
-    bins = ClusterBinning(TSO.KmeansBins;
-                            opacities=opacities, 
-                            formation_opacity=-log10.(formOpacities.κ_ross), 
-                            Nbins=6, maxiter=1000)
+    bins = ClusterBinning(
+        TSO.KmeansBins;
+        opacities=opacities, 
+        formation_opacity=-log10.(formOpacities.κ_ross), 
+        Nbins=7, maxiter=1000, 
+        quadrants=[ 
+            TSO.Quadrant((0.0, 4.0),   (-100, 4.5), 4),
+            TSO.Quadrant((0.0, 4.0),   (4.5, 100), 1),
+            TSO.Quadrant((4.0, 100.0), (-100, 100), 2),
+        ],
+        display=:none
+    )
 
     if isdir("$(name_extension)_$(name)_v$(version)")
         @warn "skipping binning for $(name)"
@@ -363,8 +369,7 @@ end
 @everywhere bin_opacities(args) = bin_opacities(args...)
 
 
-
-@everywhere function fromT_toE(table_folder, folder_new; upsample=1024)
+@everywhere function fromT_toE(table_folder, folder_new; upsample=2048)
     eos = reload(SqEoS,     joinpath(table_folder, "eos.hdf5"))
     opa = reload(SqOpacity, joinpath(table_folder, "binned_opacities.hdf5"));
 
@@ -391,12 +396,12 @@ end
 @inline patches(res, patch_size) = Int(floor(res / patch_size))
 
 function create_namelist(name, x_resolution, z_resolution, x_size, z_size, 
-                        patch_size, rt_patch_size, δz, l_cgs, d_cgs, logg, 
+                        patch_size, rt_patch_size, δz, l_cgs, d_cgs, logg, teff, 
                         eemin, nz, initial_path, n_bin, eos_table, tscale)
     ngrid = nrow(grid.info)
     phase = grid.name
 
-    dummy_nml = MUST.StellarNamelist(MUST.@in_dispatch("stellar_default.nml"))
+    dummy_nml = MUST.StellarNamelist("stellar_default.nml")
 
     # name of namelists
     name = "grid_$(name).nml"
@@ -411,22 +416,36 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     # also set the path and size of the initial model (also an info for this needs to be added.)
     dup = round(z_size /2 -δz, sigdigits=2) *1.
     
-    courant_rt = if logg >= 4
+    courant_rt = if (logg >= 4) & (teff<6500)
         1.0
-    elseif (logg < 4) & (logg >= 3)
-        0.5
+    elseif ((logg < 4) & (logg >= 3)) | (teff>=6500)
+        0.8
     else
-        0.2
+        0.7
     end
 
     courant_hd = if logg >= 4
-        0.4
+        0.3
     elseif (logg < 4) & (logg >= 3)
         0.25
     else
         0.2
     end
 
+    larger_than_sun = round(x_size/l_cgs / 4.6, sigdigits=1)
+    newton_time = 100 #* larger_than_sun
+    friction_time = 100 #* larger_than_sun
+    newton_scale = 0.1 #* larger_than_sun
+
+    # experiment with t scale based on size only
+    test_tscale = false
+    tscale = if test_tscale
+        round(x_size / (4.6 * 1e8), sigdigits=1) * 100.0
+    else
+        larger_than_sun*tscale
+    end
+
+    @show tscale
     @show dup δz z_size/2
 
     MUST.set!(nml, cartesian_params=(:size=>[round(x_size/l_cgs, digits=2), round(x_size/l_cgs, digits=2), round(z_size/l_cgs, digits=2)], 
@@ -440,13 +459,17 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                                     :ee_min_cgs=>round(log(eemin), digits=5), 
                                     :nz=>nz-1, 
                                     :initial_path=>initial_path),
+                    friction_params=(:end_time=>friction_time,),
                     gravity_params=(:constant=>-round(exp10(logg), digits=5),),
-                    newton_params=(:ee0_cgs=>round(log(eemin), digits=5), :position=>round((z_size/2 - 1.2*dup)/l_cgs, digits=2)),
+                    newton_params=(:ee0_cgs=>round(log(eemin), digits=5), 
+                                    :position=>round((z_size/2 - 1.2*dup)/l_cgs, digits=2), 
+                                    :end_time=>newton_time, 
+                                    :scale=>newton_scale),
                     sc_rt_params=(  :rt_llc=>[-round(x_size/2/l_cgs, digits=2), -round(x_size/2/l_cgs, digits=2), -round((z_size/2 + dup)/l_cgs, digits=2)], 
-                                    :rt_urc=>[ round(x_size/2/l_cgs, digits=2),  round(x_size/2/l_cgs, digits=2),  round((z_size/2 - 1.1*dup)/l_cgs, digits=2)], 
+                                    :rt_urc=>[ round(x_size/2/l_cgs, digits=2),  round(x_size/2/l_cgs, digits=2),  round((z_size/2 - dup)/l_cgs, digits=2)], 
                                     :n_bin=>n_bin,
                                     :courant=>courant_rt,
-                                    :rt_res=>rt_patch_size),
+                                    :rt_res=>[-1,-1,rt_patch_size]),
                     an_params=(:courant=>courant_hd,),
                     eos_params=(:table_loc=>eos_table,)
                 )
@@ -474,6 +497,7 @@ create_namelist!(grid::MUST.StaggerGrid) = begin
                                 g(i, "l_norm"),
                                 g(i, "rho_norm"),
                                 g(i, "logg"),
+                                g(i, "teff"),
                                 g(i, "ee_min"),
                                 g(i, "initial_model_size"),
                                 joinpath("input_data/grd/", 
@@ -502,7 +526,7 @@ begin
     grid = MUST.StaggerGrid("stagger_grid.mgrid")
 
     ## Check for opacity table field
-    mother_table_path = "/home/eitner/shared/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_v1.4"
+    mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
     if !("eos_root" in names(grid.info))
         @warn "The given grid does not contain information about the root EoS and opacity source. Adding the fallback table."
         grid.info[!, "eos_root"] = [mother_table_path for _ in 1:nrow(grid.info)]
@@ -517,9 +541,14 @@ begin
     end
 
     ## Do the binning in parallel across many workers, this is the most time consuming part
-    args = [(grid.info[i, "eos_root"], grid.info[i, "av_path"], 
-             grid.info[i, "logg"],     grid.info[i, "name"]) 
-                for i in 1:nrow(grid.info)]
+    args = [
+        (
+            grid.info[i, "eos_root"], 
+            grid.info[i, "av_path"], 
+            grid.info[i, "logg"], 
+            grid.info[i, "name"]
+        ) for i in 1:nrow(grid.info)
+    ]
     Distributed.pmap(bin_opacities, args)    
 
     ## Save the eos info
@@ -527,12 +556,12 @@ begin
     grid.info[!, "version"]          = [version for _ in 1:nrow(grid.info)]
     grid.info[!, "binned_tables"]    = ["$(name_extension)_$(grid.info[i, "name"])_v$(version)" for i in 1:nrow(grid.info)]
     grid.info[!, "binned_E_tables"]  = ["$(name_extension)_E_$(grid.info[i, "name"])_v$(version)" for i in 1:nrow(grid.info)]
-    grid.info[!, "rad_bins"]         = [6 for _ in 1:nrow(grid.info)]
+    grid.info[!, "rad_bins"]         = [7 for _ in 1:nrow(grid.info)]
 
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    resolution!(grid, patch_size=20, cut_bottom=0.4)
+    resolution!(grid, patch_size=15, cut_bottom=0.45)
     @show grid.info[!, "x_resolution"]  grid.info[!, "z_resolution"] grid.info[!, "x_size"]  grid.info[!, "z_size"]
   
 

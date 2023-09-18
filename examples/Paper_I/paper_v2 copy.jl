@@ -44,10 +44,7 @@ end
 
 # ╔═╡ c4846fea-8b7a-4338-bfa9-df9b9c0aff6f
 begin
-	#PythonPlot.matplotlib.rcParams["font.size"] = 12
-	np = MUST.pyimport("numpy")
-	matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
-	hl = 4
+	PythonPlot.matplotlib.rcParams["font.size"] = 12
 end;
 
 # ╔═╡ 5e79333c-94c1-47cd-86d5-a6ee22b4a62e
@@ -380,7 +377,7 @@ begin
 	
 	fA, axA = plt.subplots(3, 1, sharex=true, figsize=(5, 9))
 	plt.subplots_adjust(wspace=0, hspace=0)
-	#visual.basic_plot!.(axA)
+	visual.basic_plot!.(axA)
 
 	m3disA = pick_snapshot(out_folder[modelA], :recent) |> last
 	m3disA_x, m3disA_y, m3disA_yerr = time_average_profiles(
@@ -484,13 +481,13 @@ begin
 	)=#
 	
 
-	axA[0].legend(framealpha=0, labelspacing=0.01, handlelength=hl)
+	axA[0].legend(framealpha=0, fontsize="medium", labelspacing=0.01)
 	
-	axA[0].set_ylabel(L"\rm T\ [K]")
-	axA[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]")
-	axA[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]")
+	axA[0].set_ylabel(L"\rm T\ [K]", fontsize="medium")
+	axA[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]", fontsize="medium")
+	axA[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]", fontsize="medium")
 	
-	axA[2].set_xlabel(L"\rm \log \tau_{ross}")
+	axA[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
 	axA[2].set_xlim(-4, 2)
 	axA[0].set_ylim(4000, 10500)
 	axA[1].set_ylim(-8.75, -6.25)
@@ -520,19 +517,19 @@ begin
 	absolute_difference(snapA, snapB, x, y) = begin
 		xA, yA = MUST.profile(mean, snapA, x, y)
 		xB, yB = MUST.profile(mean, snapB, x, y)
-		common_tauB, ip(xB, yB) .- ip(xA, yA)
+		common_tauB, ip(xA, yA) .- ip(xB, yB)
 	end
 	absolute_difference(f, snapA, snapB, x, y) = begin
 		xA, yA = MUST.profile(f, snapA, x, y)
 		xB, yB = MUST.profile(f, snapB, x, y)
-		common_tauB, ip(xB, yB) .- ip(xA, yA)
+		common_tauB, ip(xA, yA) .- ip(xB, yB)
 	end
 	absolute_difference(f, xA, yA, snapB, x, y) = begin
 		xB, yB = MUST.profile(f, snapB, x, y)
-		common_tauB, ip(xB, yB) .- ip(xA, yA)
+		common_tauB, ip(xA, yA) .- ip(xB, yB)
 	end
 	absolute_difference(f, xA, yA, xB, yB, x, y) = begin
-		common_tauB, ip(xB, yB) .- ip(xA, yA)
+		common_tauB, ip(xA, yA) .- ip(xB, yB)
 	end
 end
 
@@ -541,19 +538,19 @@ begin
 	relative_difference(snapA, snapB, x, y) = begin
 		xA, yA = MUST.profile(mean, snapA, x, y)
 		xB, yB = MUST.profile(mean, snapB, x, y)
-		common_tauB, (ip(xB, yB) .- ip(xA, yA)) ./ ip(xA, yA) * 100.0
+		common_tauB, (ip(xA, yA) .- ip(xB, yB)) ./ ip(xB, yB) * 100.0
 	end
 	relative_difference(f, snapA, snapB, x, y) = begin
 		xA, yA = MUST.profile(f, snapA, x, y)
 		xB, yB = MUST.profile(f, snapB, x, y)
-		common_tauB, (ip(xB, yB) .- ip(xA, yA)) ./ ip(xA, yA) * 100.0
+		common_tauB, (ip(xA, yA) .- ip(xB, yB)) ./ ip(xB, yB) * 100.0
 	end
 	relative_difference(f, xA, yA, snapB, x, y) = begin
 		xB, yB = MUST.profile(f, snapB, x, y)
-		common_tauB, (ip(xB, yB) .- ip(xA, yA)) ./ ip(xA, yA) * 100.0
+		common_tauB, (ip(xA, yA) .- ip(xB, yB)) ./ ip(xB, yB) * 100.0
 	end
 	relative_difference(f, xA, yA, xB, yB, x, y) = begin
-		common_tauB, (ip(xB, yB) .- ip(xA, yA)) ./ ip(xA, yA) * 100.0
+		common_tauB, (ip(xA, yA) .- ip(xB, yB)) ./ ip(xB, yB) * 100.0
 	end
 end
 
@@ -566,7 +563,7 @@ begin
 	
 	fB, axB = plt.subplots(3, 1, sharex=true, figsize=(5, 12))
 	plt.subplots_adjust(wspace=0.25, hspace=0.0)
-	#visual.basic_plot!.(axB)
+	visual.basic_plot!.(axB)
 	
 
 	m3disB = pick_snapshot(out_folder[modelB], :recent) |> last
@@ -594,7 +591,7 @@ begin
 
 	
 
-	lwD = 2.0
+	lwD = 2.5
 	# relative comparison
 	begin
 		## logτ vs. T
@@ -608,7 +605,7 @@ begin
 				:log10τ_ross, :T
 			)...,
 			color="k",
-			label=L"\rm Stagger - M3DIS\ (D)",
+			label=L"\rm M3DIS\ (D)\ -\ Stagger",
 			lw=lwD
 		)
 		axB[0].fill_between( 
@@ -645,39 +642,55 @@ begin
 		
 		axB[0].plot(
 			common_tauB, 
-			(ip(marcs_model[:, 2], marcs_model[:, 5]) .- ip(m3disB_x, m3disB_y)) ./ ip(m3disB_x, m3disB_y) *100.0,
+			(ip(m3disB_x, m3disB_y) .- 
+				ip(marcs_model[:, 2], marcs_model[:, 5])) ./ 
+				ip(m3disB_x, m3disB_y) *100.0,
 			color="k",
-			label=L"\rm MARCS - M3DIS\ (D)",
+			label=L"\rm M3DIS\ (D)\ -\ MARCS",
 			ls=":",
 			lw=lwD
 		)
 		axB[0].fill_between( 
 			common_tauB, 
-			(ip(marcs_model[:, 2], marcs_model[:, 5]) .- ip(m3disB_x, m3disB_y.-m3disB_yerr)) ./ ip(m3disB_x, m3disB_y.-m3disB_yerr) *100.0,
-			(ip(marcs_model[:, 2], marcs_model[:, 5]) .- ip(m3disB_x, m3disB_y.+m3disB_yerr)) ./ ip(m3disB_x, m3disB_y.+m3disB_yerr) *100.0,
+			(ip(m3disB_x, m3disB_y.-m3disB_yerr) .- 
+				ip(marcs_model[:, 2], marcs_model[:, 5])) ./ 
+				ip(m3disB_x, m3disB_y.-m3disB_yerr) *100.0,
+			(ip(m3disB_x, m3disB_y.+m3disB_yerr) .- 
+				ip(marcs_model[:, 2], marcs_model[:, 5])) ./ 
+				ip(m3disB_x, m3disB_y.+m3disB_yerr) *100.0,
 			color="0.5", alpha=0.3
 		)
 
 		
 		axB[0].plot(
 			common_tauB, 
-			(ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2]) .- ip(m3disB_x, m3disB_y)) ./ ip(m3disB_x, m3disB_y) *100.0,
+			(ip(m3disB_x, m3disB_y) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2])) ./ 
+				ip(m3disB_x, m3disB_y) *100.0,
 			color="k",
-			label=L"\rm Co5bold - M3DIS\ (D)",
+			label=L"\rm M3DIS\ (D)\ -\ Co5bold",
 			ls="--",
 			lw=lwD
 		)
 		#stdB = √(m3disB_yerr .^2 .+ co5boldstd_τ[:, 2] .^2)
 		axB[0].fill_between( 
 			common_tauB, 
-			(ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2].+co5boldstd_τ[:, 2]) .- ip(m3disB_x, m3disB_y)) ./ ip(m3disB_x, m3disB_y) *100.0,
-			(ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2].-co5boldstd_τ[:, 2]) .- ip(m3disB_x, m3disB_y)) ./ ip(m3disB_x, m3disB_y) *100.0,
+			(ip(m3disB_x, m3disB_y) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2].+co5boldstd_τ[:, 2])) ./ 
+				ip(m3disB_x, m3disB_y) *100.0,
+			(ip(m3disB_x, m3disB_y) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2].-co5boldstd_τ[:, 2])) ./ 
+				ip(m3disB_x, m3disB_y) *100.0,
 			color="red", alpha=0.3
 		)
 		axB[0].fill_between( 
 			common_tauB, 
-			(ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2]) .- ip(m3disB_x, m3disB_y.-m3disB_yerr)) ./ ip(m3disB_x, m3disB_y.-m3disB_yerr) *100.0,
-			(ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2]) .- ip(m3disB_x, m3disB_y.+m3disB_yerr)) ./ ip(m3disB_x, m3disB_y.+m3disB_yerr) *100.0,
+			(ip(m3disB_x, m3disB_y.-m3disB_yerr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2])) ./ 
+				ip(m3disB_x, m3disB_y.-m3disB_yerr) *100.0,
+			(ip(m3disB_x, m3disB_y.+m3disB_yerr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 2])) ./ 
+				ip(m3disB_x, m3disB_y.+m3disB_yerr) *100.0,
 			color="0.5", alpha=0.3
 		)
 
@@ -694,7 +707,7 @@ begin
 				:log10τ_ross, :log10d
 			)...,
 			color="k",
-			label=L"\rm Stagger - M3DIS\ (D)",
+			label=L"\rm M3DIS\ (D)\ -\ Stagger",
 			lw=lwD
 		)
 		axB[1].fill_between( 
@@ -728,38 +741,46 @@ begin
 		)=#
 		axB[1].plot(
 			common_tauB, 
-			ip(marcs_model[:, 2], log10.(marcs_model[:, 11])) .- ip(m3disB_xr, m3disB_yr),
+			ip(m3disB_xr, m3disB_yr) .- 
+				ip(marcs_model[:, 2], log10.(marcs_model[:, 11])),
 			color="k",
-			label=L"\rm MARCS - M3DIS\ (D)",
+			label=L"\rm M3DIS\ (D)\ -\ MARCS",
 			ls=":",
 			lw=lwD
 		)
 		axB[1].fill_between( 
 			common_tauB, 
-			(ip(marcs_model[:, 2], log10.(marcs_model[:, 11])) .- ip(m3disB_xr, m3disB_yr.-m3disB_yerrr)),
-			(ip(marcs_model[:, 2], log10.(marcs_model[:, 11])) .- ip(m3disB_xr, m3disB_yr.+m3disB_yerrr)),
+			(ip(m3disB_xr, m3disB_yr.-m3disB_yerrr) .- 
+				ip(marcs_model[:, 2], log10.(marcs_model[:, 11]))),
+			(ip(m3disB_xr, m3disB_yr.+m3disB_yerrr) .- 
+				ip(marcs_model[:, 2], log10.(marcs_model[:, 11]))),
 			color="0.5", alpha=0.3
 		)
 
 
 		axB[1].plot(
 			common_tauB, 
-			ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3]) .- ip(m3disB_xr, m3disB_yr),
+			ip(m3disB_xr, m3disB_yr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3]),
 			color="k",
-			label=L"\rm CO5BOLD - M3DIS\ (D)",
+			label=L"\rm M3DIS\ (D)\ -\ Co5bold",
 			ls="--",
 			lw=lwD
 		)
 		axB[1].fill_between( 
 			common_tauB, 
-			(ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3].+co5boldstd_τ[:, 3]) .- ip(m3disB_xr, m3disB_yr)),
-			(ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3].-co5boldstd_τ[:, 3]) .- ip(m3disB_xr, m3disB_yr)),
+			(ip(m3disB_xr, m3disB_yr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3].+co5boldstd_τ[:, 3])),
+			(ip(m3disB_xr, m3disB_yr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3].-co5boldstd_τ[:, 3])),
 			color="red", alpha=0.3
 		)
 		axB[1].fill_between( 
 			common_tauB, 
-			(ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3]) .- ip(m3disB_xr, m3disB_yr.-m3disB_yerrr)),
-			(ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3]) .- ip(m3disB_xr, m3disB_yr.+m3disB_yerrr)),
+			(ip(m3disB_xr, m3disB_yr.-m3disB_yerrr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3])),
+			(ip(m3disB_xr, m3disB_yr.+m3disB_yerrr) .- 
+				ip(co5boldmean_τ[:, 1], co5boldmean_τ[:, 3])),
 			color="0.5", alpha=0.3
 		)
 		
@@ -834,18 +855,19 @@ begin
 		axB[2].set_ylim(-0.75, 0.75)
 	
 		
-		axB[1].legend(framealpha=0, ncol=1, labelspacing=0.01, handlelength=hl, loc="lower center")
-		axB[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]")
+		axB[1].legend(framealpha=0, fontsize="medium", ncol=1, labelspacing=0.01)
+		axB[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]", fontsize="medium")
 		axB[1].set_ylabel(
-			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]"
+			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]", fontsize="medium"
 		)
 		axB[2].set_ylabel(
-			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]"
+			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]", 
+			fontsize="medium"
 		)
 	end
 
-	axB[2].set_xlabel(L"\rm \log \tau_{ross}")
-	axB[2].set_xlabel(L"\rm \log \tau_{ross}")
+	axB[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
+	axB[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
 		
 
 	fB.savefig("comparison_other_models.pdf", bbox_inches="tight")
@@ -949,7 +971,7 @@ begin
 	
 	fC, axC = plt.subplots(3, 1, sharex=true, figsize=(5, 12))
 	plt.subplots_adjust(wspace=0.25, hspace=0.0)
-	#visual.basic_plot!.(axC)
+	visual.basic_plot!.(axC)
 	
 
 	lwC = 2
@@ -1138,18 +1160,19 @@ begin
 		axC[2].set_ylim(-0.47, 0.47)
 	
 		
-		axC[0].legend(framealpha=0, loc="upper center", ncol=1, labelspacing=0.01, handlelength=hl)
-		axC[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]")
+		axC[0].legend(framealpha=0, fontsize="medium", loc="upper center", ncol=1, labelspacing=0.01)
+		axC[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]", fontsize="medium")
 		axC[1].set_ylabel(
-			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]"
+			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]", fontsize="medium"
 		)
 		axC[2].set_ylabel(
-			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]"
+			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]", 
+			fontsize="medium"
 		)
 	end
 
-	axC[2].set_xlabel(L"\rm \log \tau_{ross}")
-	axC[2].set_xlabel(L"\rm \log \tau_{ross}")
+	axC[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
+	axC[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
 		
 
 	fC.savefig("comparison_resolution.pdf", bbox_inches="tight")
@@ -1199,7 +1222,7 @@ begin
 	
 	plt.close()
 	fD, axD = plt.subplots(1, 1, figsize=(5,6))
-	#visual.basic_plot!(axD)
+	visual.basic_plot!(axD)
 	
 	im = axD.scatter(
 		log10.(λ), -log10.(fopaD.κ_ross), 
@@ -1216,13 +1239,16 @@ begin
 
 
 	axD.set_ylabel(
-		L"\rm - \log \tau_{ross}\ (\log \tau_{\lambda}=1)"
+		L"\rm - \log \tau_{ross}\ (\log \tau_{\lambda}=1)",
+		fontsize="medium"
 	)
 	axD.set_xlabel(
-		L"\rm \log \lambda\ [\AA]"
+		L"\rm \log \lambda\ [\AA]",
+		fontsize="medium"
 	)
 	cbarD.set_label(
-		L"\rm opacity\ bins"
+		L"\rm opacity\ bins", 
+		fontsize="medium"
 	)
 	
 	fD.savefig("formation_opacities.pdf", bbox_inches="tight")
@@ -1277,11 +1303,11 @@ begin
 
 	# setup colorbar
 	cG = fG.colorbar(imG, ax=axG, fraction=0.046, pad=0.04)
-	cG.set_label(L"\rm U_z\ [km \times s^{-1}]")
+	cG.set_label(L"\rm U_z\ [km \times s^{-1}]", fontsize="medium")
 
 	# Other labels
-	axG.set_xlabel("x [Mm]")
-	axG.set_ylabel("y [Mm]")
+	axG.set_xlabel("x [Mm]", fontsize="medium")
+	axG.set_ylabel("y [Mm]", fontsize="medium")
 
 	#fG.savefig("vertical_velocity_surface.pdf", bbox_inches="tight")
 	fG.savefig("vertical_velocity_surface.png", bbox_inches="tight", dpi=600)
@@ -1333,7 +1359,7 @@ begin
 	fI, axI = plt.subplots(3, 2, figsize=(10,15))
 	for j in 0:1
 		for i in 0:2
-			#visual.basic_plot!(axI[i, j])
+			visual.basic_plot!(axI[i, j])
 		end
 	end
 	plt.subplots_adjust(wspace=0.3, hspace=0.1)
@@ -1401,15 +1427,15 @@ begin
 
 		#axI[i-1, 1].set_ylim(4000, 10000)
 		#axI[i-1, 1].set_xlim(-4.0, 1.75)
-		axI[i-1, 1].legend(framealpha=0, labelspacing=0.15, handlelength=hl)
-		axI[i-1, 1].set_ylabel(L"\rm T\ [K]")
+		axI[i-1, 1].legend(framealpha=0, fontsize="medium", labelspacing=0.15)
+		axI[i-1, 1].set_ylabel(L"\rm T\ [K]", fontsize="medium")
 	end
 
 	for (i, resolution) in enumerate(samplings)
-		axI[i-1, 0].set_ylabel(L"\rm Y\ [Mm]")	
+		axI[i-1, 0].set_ylabel(L"\rm Y\ [Mm]", fontsize="medium")	
 	end
-	axI[2, 0].set_xlabel(L"\rm X\ [Mm]")
-	axI[2, 1].set_xlabel(L"\rm \log \tau_{ross}")	
+	axI[2, 0].set_xlabel(L"\rm X\ [Mm]", fontsize="medium")
+	axI[2, 1].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")	
 
 
 	fI.savefig("resampling_effect.png", bbox_inches="tight", dpi=600)
@@ -1443,7 +1469,7 @@ begin
 	
 	fJ, axJ = plt.subplots(3, 1, sharex=true, figsize=(5, 9))
 	plt.subplots_adjust(wspace=0, hspace=0)
-	#visual.basic_plot!.(axJ)
+	visual.basic_plot!.(axJ)
 
 	for (i, model) in enumerate(modelsJ)
 		m3disJ = pick_snapshot(out_folder[model], :recent) |> last
@@ -1498,13 +1524,13 @@ begin
 		
 	end
 
-	axJ[0].legend(framealpha=0, labelspacing=0.01, handlelength=hl)
+	axJ[0].legend(framealpha=0, fontsize="medium", labelspacing=0.01)
 	
-	axJ[0].set_ylabel(L"\rm T\ [K]")
-	axJ[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]")
-	axJ[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]")
+	axJ[0].set_ylabel(L"\rm T\ [K]", fontsize="medium")
+	axJ[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]", fontsize="medium")
+	axJ[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]", fontsize="medium")
 	
-	axJ[2].set_xlabel(L"\rm \log \tau_{ross}")
+	axJ[2].set_xlabel(L"\rm \log \tau_{ross}", fontsize="medium")
 	axJ[2].set_xlim(-3.75, 3)
 	axJ[0].set_ylim(2600, 13500)
 	axJ[1].set_ylim(-8.75, -5.85)
@@ -1537,7 +1563,7 @@ begin
 		plt.close()
 		
 		fK, axK = plt.subplots(1, 1, figsize=(5, 6))
-		#visual.basic_plot!(axK)
+		visual.basic_plot!(axK)
 		
 		m3disK = pick_snapshot(out_folder[model], -1) |> last
 
@@ -1559,9 +1585,9 @@ begin
 		
 		# setup colorbar
 		cK = fK.colorbar(imK, ax=axK, fraction=0.046, pad=0.04)
-		cK.set_label(L"\rm U_z\ [km \times s^{-1}]")
-		axK.set_ylabel("y [Mm]")	
-		axK.set_xlabel("x [Mm]")
+		cK.set_label(L"\rm U_z\ [km \times s^{-1}]", fontsize="medium")
+		axK.set_ylabel("y [Mm]", fontsize="medium")	
+		axK.set_xlabel("x [Mm]", fontsize="medium")
 		axK.text(
 			0.97, 0.97, "$(teffK[i]) K, $(loggK[i]) dex", 
 			ha="right", va="top", 
@@ -1607,7 +1633,7 @@ end
 begin
 	plt.close()
 	fL, axL = plt.subplots(1, 1, figsize=(5, 6))
-	#visual.basic_plot!(axL)
+	visual.basic_plot!(axL)
 	
 	x_fft = 1 ./ fftfreq(MUST.axis(m3disL, :z) ./1e8)
 	y_fft = velocityFFTabsL
@@ -1615,7 +1641,7 @@ begin
 
 	axL.set_xlim(-0.2, 0.2)
 	axL.set_ylim(0.05, 1.1)
-	axL.legend(framealpha=0, handlelength=hl)
+	axL.legend(framealpha=0)
 	gcf()
 end
 
@@ -1629,7 +1655,7 @@ begin
 	
 	plt.close()
 	fM, axM = plt.subplots(1, 1, figsize=(10, 6))
-	#visual.basic_plot!(axM)
+	visual.basic_plot!(axM)
 	pickeveryM = 3
 
 	# We plot the velocity in x and z direction in a plane of contant y in the center
@@ -1644,7 +1670,7 @@ begin
 	TM = m3disM[:T][1:pickeveryM:end, y0, 1:pickeveryM:end]
 	
 	csM = axM.contour(xxM, zzM, TM, cmap="seismic", levels=10, linewidths=4, alpha=0.5)
-	plt.clabel(csM, inline=1)
+	plt.clabel(csM, inline=1, fontsize="medium")
 
 	norm = matplotlib.colors.Normalize(vmin=csM.cvalues.min(), vmax=csM.cvalues.max())
 	sm = plt.cm.ScalarMappable(norm=norm, cmap = csM.cmap)
@@ -1759,6 +1785,12 @@ begin
 		L"\rm 4500\ K, 4.0\ dex"
 	]
 	
+	plt.close()
+	fN, axN = plt.subplots(2, 2, figsize=(10, 12))
+	axN = axN.reshape(-1)
+	plt.subplots_adjust(hspace=0.1, wspace=0.15)
+	
+	visual.basic_plot!.(axN)
 	pickeveryN = 2
 
 	rellim(arr) = begin
@@ -1767,10 +1799,6 @@ begin
 	end
 	
 	for (i, mN) in enumerate(modelsN)
-		plt.close()
-		fN, axN = plt.subplots(1, 1, figsize=(5, 6))		
-		#visual.basic_plot!(axN)
-		
 		y0i = y0N[i]
 		m3disNi = pick_snapshot(out_folder[mN], -1) |> first
 
@@ -1784,10 +1812,10 @@ begin
 		TN = m3disNi[:T][1:pickeveryN:end, y0i, 1:pickeveryN:end]
 
 		
-		csN = axN.contour(
+		csN = axN[i-1].contour(
 			xxN, zzN, TN, cmap="seismic", levels=10, linewidths=3, alpha=0.7
 		)
-		plt.clabel(csN, inline=1)
+		plt.clabel(csN, inline=1, fontsize="medium")
 	
 		normN = matplotlib.colors.Normalize(
 			vmin=csN.cvalues.min(), vmax=csN.cvalues.max()
@@ -1796,13 +1824,13 @@ begin
 		#fM.colorbar(sm, ax=axM, fraction=visual.cbar_fraction, pad=visual.cbar_pad)
 
 		
-		axN.quiver(
+		axN[i-1].quiver(
 			xxN, zzN, uxN, uzN, color="k", scale=200, zorder=100, headwidth=3,
 		)
-		axN.axhline(0.0, color="k", ls="-", lw=2)
+		axN[i-1].axhline(0.0, color="k", ls="-", lw=2)
 
-		axN.set_xlim(rellim(xxN)...)
-		axN.set_ylim(rellim(zzN)...)
+		axN[i-1].set_xlim(rellim(xxN)...)
+		axN[i-1].set_ylim(rellim(zzN)...)
 	
 		#=τcN = granularstatistics(
 			modelsN[i], 
@@ -1811,22 +1839,22 @@ begin
 
 		labi = labelsN[i]*L"\rm \tau_{c}="*"$(τcN./60) min"=#
 
-		axN.text(
+		axN[i-1].text(
 			0.97, 0.05, labelsN[i], 
 			ha="right", va="bottom", 
-			transform=axN.transAxes,
-			color="white", backgroundcolor="k", zorder=150
+			transform=axN[i-1].transAxes,
+			color="white", fontsize="medium", backgroundcolor="k", zorder=150
 		)
-
-		axN.set_ylabel("\n\n"*L"\rm Z\ [Mm]")
-		axN.set_ylabel("\n\n"*L"\rm Z\ [Mm]")
-		
-		axN.set_xlabel(L"\rm X\ [Mm]")
-		axN.set_xlabel(L"\rm X\ [Mm]")
-	
-		fN.savefig("vertical_slice_velocity-$(labels[mN]).png", dpi=600, bbox_inches="tight")
-		fN.savefig("vertical_slice_velocity-$(labels[mN]).pdf", bbox_inches="tight")
 	end
+
+	axN[0].set_ylabel("\n\n"*L"\rm Z\ [Mm]", fontsize="medium")
+	axN[2].set_ylabel("\n\n"*L"\rm Z\ [Mm]", fontsize="medium")
+	
+	axN[2].set_xlabel(L"\rm X\ [Mm]", fontsize="medium")
+	axN[3].set_xlabel(L"\rm X\ [Mm]", fontsize="medium")
+
+	fN.savefig("vertical_slice_velocity.png", dpi=600, bbox_inches="tight")
+	fN.savefig("vertical_slice_velocity.pdf", bbox_inches="tight")
 	
 	gcf()
 end
@@ -1842,7 +1870,7 @@ begin
 		models["t65g45m00"],
 	]
 	
-	lwO = [1.5, 1.5, 1.5] .*2
+	lwO = [1.5, 1.5, 1.5]
 	
 	labelsO = [
 		L"\rm 5500\ K, 4.5\ dex", 
@@ -1850,25 +1878,44 @@ begin
 		L"\rm 6500\ K, 4.5\ dex"
 	]
 
-	colorsO = ["k", "cyan", "k"]
+	#=densitiesO = []
+	for (i, mO) in enumerate(modelsO)
+		m3disOi, m3disOi_τ = pick_snapshot(out_folder[mO], -1) 
+
+		x = reshape(log10.(m3disOi[:τ_ross])[1:100:end], :)
+		y = reshape(m3disOi[:T][1:100:end], :)
+
+		@show size(x)
+		dat = zeros(2, length(x))
+		dat[1, :] .= x
+		dat[2, :] .= y
+
+		d = stats.kde.gaussian_kde(dat)
+
+		xx, yy = meshgrid(
+			range(minimum(x), maximum(x), length=100) |> collect, 
+			range(minimum(y), maximum(y), length=100) |> collect
+		)
+		
+		dat = zeros(3, prod(size(xx)))
+		dat[1, :] .= reshape(xx, :)
+		dat[2, :] .= reshape(yy, :)
+		
+		dat[3, :] .= MUST.pyconvert(Array, d(dat[1:2, :]))
+		append!(densitiesO, [dat])
+	end=#
 end
+
+# ╔═╡ 44c71a07-3494-4e8a-8ed4-4ecfb1f95ed3
+@show size.(densitiesO)
 
 # ╔═╡ ff449d80-1610-45ef-9b0b-907d6de848f8
 begin
 	for (i, mO) in enumerate(modelsO)
-		plt.close()
 		fO, axO = plt.subplots(1, 1, figsize=(5, 6))
-		#visual.basic_plot!(axO)
+		visual.basic_plot!(axO)
 		
 		m3disOi, m3disOi_τ = pick_snapshot(out_folder[mO], -1) 
-
-		x = reshape(log10.(m3disOi[:τ_ross]), :) #[1:100:end]
-		y = reshape(m3disOi[:T], :) #[1:100:end]
-		axO.hist2d(
-			x, y, bins=500, cmin=1, cmap="Blues",
-			norm=matplotlib.colors.LogNorm()
-		)
-
 		axO.plot(
 			profile(
 				mean,
@@ -1877,47 +1924,24 @@ begin
 				:T
 			)...,
 			lw=lwO[i],
-			label="M3DIS (D)",
-			color=colorsO[i]
+			label=labelsO[i],
+			color="k"
 		)
 
-		if mO == models["best"]
-			axO.plot(
-				marcs_model[:, 2], marcs_model[:, 5], 
-				ls=":", 
-				color="k", 
-				label=L"\rm MARCS",
-				lw=2.5
-			)
+		#sns.kdeplot(
+		#	x=reshape(log10.(m3disOi[:τ_ross]), :)[1:3:end], 
+		#	y=reshape(m3disOi[:T], :)[1:3:end],
+		#	cmap="Blues",
+		#	ax=axO,
+		#	fill=true,
+		#	thresh=0.1
+		#)
 
-			axO.plot(
-				profile(
-					mean,
-					stagger_τ,
-					:log10τ_ross,
-					:T
-				)...,
-				lw=1.5,
-				label=L"\rm Stagger",
-				color="k"
-			)
-			axO.plot(
-				co5boldmean_τ[:, 1], co5boldmean_τ[:, 2],
-				lw=2,
-				color="k",
-				label=L"\rm CO5BOLD",
-				ls="--"
-			)
-		end
-
-
-		axO.text(
-			0.97, 0.05, labelsO[i], 
-			ha="right", va="bottom", 
-			transform=axO.transAxes,
-			color="white", backgroundcolor="k", zorder=150
-		)
-
+		#diO = densitiesO[i]
+		#axO.scatter(diO[1, :], diO[2, :], c=diO[3, :])
+		x = log10.(m3disOi[:τ_ross])[1:100:end]
+		y = m3disOi[:T][1:100:end]
+		axO.hist2d(x, y)
 		
 		axO.set_xlabel(
 			L"\rm \log \tau_{ross}"
@@ -1925,22 +1949,7 @@ begin
 		axO.set_ylabel(
 			L"\rm T \ [K]"
 		)
-
-		axO.set_xlim(-4.1, 2.1)
-
-		xmi, xma = MUST.pyconvert.(Any, axO.get_xlim())
-		ydata = y[xmi .< x .< xma]
-		axO.set_ylim(minimum(ydata), maximum(ydata))
-		axO.legend(
-			framealpha=0, ncol=1, labelspacing=0.01, handlelength=hl, loc="upper left"
-		)	
-
-		fO.savefig("full3D_T-$(labels[mO]).png", dpi=600, bbox_inches="tight")
-		fO.savefig("full3D_T-$(labels[mO]).pdf", bbox_inches="tight")
 	end
-
-	gcf()
-end
 
 # ╔═╡ Cell order:
 # ╟─485a693d-4872-47d4-975d-e91a7bbc0be7
@@ -1992,7 +2001,7 @@ end
 # ╠═84fc6b08-0825-41ab-b214-5fef7e2a2dc0
 # ╠═35d2d2c5-6b70-4bb9-acdc-216557859282
 # ╟─381be17e-b257-4e51-aa79-941db153f398
-# ╟─e1517fd6-523f-4083-bb74-ebf666813002
+# ╠═e1517fd6-523f-4083-bb74-ebf666813002
 # ╟─58bb3285-544f-4e8a-a27e-9b7e90804fe8
 # ╟─dd667e0e-e554-4dfe-9493-aa38a505210f
 # ╟─6de3b5df-9766-41ca-8d51-f18023a419a3
@@ -2009,7 +2018,7 @@ end
 # ╟─acf85ab7-3d8b-4e83-8a73-1ed00598882f
 # ╟─4ae6b55e-952a-4b70-937f-c81a2f790e83
 # ╟─faccedff-2a3a-40b1-ae88-c42a69112d16
-# ╟─1634883c-2a93-4b31-bc3a-662a894733c4
+# ╠═1634883c-2a93-4b31-bc3a-662a894733c4
 # ╟─f409f3e8-ef97-4fb9-a8e6-7a8f1e2b2d22
 # ╟─759b0406-1a86-42d9-b8d7-8784a1574c02
 # ╟─82b1bd73-d81a-404c-aefd-643b7008d2b7
@@ -2034,6 +2043,7 @@ end
 # ╠═6ce71e68-3e46-4ee7-9777-7a04342b5e2e
 # ╠═09c3002d-1839-4adf-9d47-1811f1c81bcd
 # ╟─22bc6765-400a-470b-9f9d-ff1365d97e33
-# ╟─64a75b01-b653-45d5-9c87-0f61391ca7a6
-# ╟─8db25fe1-0e7d-4004-98f1-8cae9c057ac9
-# ╟─ff449d80-1610-45ef-9b0b-907d6de848f8
+# ╠═64a75b01-b653-45d5-9c87-0f61391ca7a6
+# ╠═8db25fe1-0e7d-4004-98f1-8cae9c057ac9
+# ╠═44c71a07-3494-4e8a-8ed4-4ecfb1f95ed3
+# ╠═ff449d80-1610-45ef-9b0b-907d6de848f8

@@ -47,6 +47,12 @@ examples/Paper_I/.Conda*
 examples/Paper_I/*.atmos
 examples/Paper_I/*.mesh
 examples/Paper_I/models/*
+examples/Paper_I/co5bold_*
+examples/Paper_I/*/*.atmos
+examples/Paper_I/*/*.mesh
+examples/Paper_I/plots
+
+examples/*/core*
 
 !examples/initial_models/*.ipynb
 !examples/initial_models/Project.toml

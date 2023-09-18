@@ -20,10 +20,10 @@ md"# 3D-Cube Interpolation"
 MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
 
 # ╔═╡ 12883f0f-d6f6-40c8-b389-8a18bdc1606b
-model_location = MUST.@in_dispatch "data/pretty_good_sun_new_magg3"
+model_location = MUST.@in_dispatch "data/pretty_good_sun_new_magg5_rapidf"
 
 # ╔═╡ ce272b96-8e58-41d9-852c-44971ce370b7
-snap, snap_τ = MUST.pick_snapshot(model_location, :recent)
+snap, snap_τ = MUST.pick_snapshot(model_location, -1)
 
 # ╔═╡ 04fb3d30-9bd5-47f9-b58f-f0a8124b7593
 md"## Current Grid
@@ -232,7 +232,7 @@ end
 
 # ╔═╡ 485a35b0-ff12-4804-bf8c-82a62d9eba93
 box_resample2 = MUST.gresample(
-	snap, nz=299, method=:linear
+	snap, nx=80, ny=80, nz=299, method=:linear
 )
 
 # ╔═╡ 8fb3bbb2-3baa-4eff-a378-b5fb059e0eb5
@@ -320,8 +320,11 @@ begin
 	
 end
 
-# ╔═╡ ebd8b320-3568-415c-b4bc-ad1706f09c39
-md"The answer seems to be: No, it is not important for the post processing what the resilution is."
+# ╔═╡ c6f37a32-8c33-491f-aef5-925048c6bcb2
+begin
+	scatter(profile(MUST.mean, b_s2, :log10τ_ross, :T)..., markersize=1)
+	plot!(profile(MUST.mean, snap_τ, :log10τ_ross, :T)...)
+end
 
 # ╔═╡ 72d86e29-c236-48ab-b5ca-383f8cd5c2b0
 md"## Test: pchip interpolation instead of linear
@@ -361,7 +364,7 @@ md"## Test: What does resolution do?"
 
 # ╔═╡ e784defd-6a29-42c6-9837-23e648fb7c36
 box_resample_res = MUST.gresample(
-	snap, nx=10, ny=10, nz=280, method=:linear
+	snap, nx=80, ny=80, nz=299, method=:linear
 )
 
 # ╔═╡ 75228348-9c13-440d-918a-5fb1d92c96f8
@@ -372,7 +375,7 @@ begin
 		profile(MUST.mean, box_resample_res, :z, :T)...,
 		markershape=:circle, 
 		label="resample", 
-		markersize=4
+		markersize=1
 	)
 	
 	plot!(
@@ -430,7 +433,7 @@ end
 # ╠═75170e02-209d-42f7-a159-2a8ee480f148
 # ╟─0f0b091c-f796-4d82-b687-74459bc85750
 # ╟─a2c88970-91bd-4a50-a1f2-af713c4d380e
-# ╟─ebd8b320-3568-415c-b4bc-ad1706f09c39
+# ╠═c6f37a32-8c33-491f-aef5-925048c6bcb2
 # ╟─72d86e29-c236-48ab-b5ca-383f8cd5c2b0
 # ╠═2f7bb7d0-f90e-4166-bd45-9a9e6b784736
 # ╠═566f5a7c-d065-45ee-bc04-8328bf2716c9
