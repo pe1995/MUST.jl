@@ -9,6 +9,12 @@ M3DISRun(path::String) = begin
     M3DISRun(m3dis.read(@in_m3dis(path)))
 end
 
+M3DISRun(path::String, folder::String) = begin
+    M3DISRun(joinpath(folder, path))
+end
+
+
+
 
 
 
@@ -28,6 +34,47 @@ Base.getproperty(m::M3DISRun, arg::Symbol) = begin
         end
     end
 end
+
+find_model(runs, kind, abundance) = begin
+	models = [split(dirname(join(r.sfolder)), "/")[end-1] for r in runs]
+	found = []
+	for (i, model) in enumerate(models)
+		
+		if occursin(kind, model) 
+			abund = pyconvert(Any, runs[i].atom.abnd)
+			if abund ≈ abundance
+				append!(found, [runs[i]])
+			end
+		end
+	end
+
+	if length(found) == 0
+		@show kind, abundance
+	end
+	
+	if length(found) == 1
+		first(found)
+	else
+		found
+	end
+end
+
+extension_results(extension, folder="data") = begin
+	all_results = glob("*/", @in_m3dis(folder))
+	paths = []
+	
+	for (i, r) in enumerate(all_results)
+		if occursin(extension, r)
+			append!(paths, [r])
+		end
+	end
+
+	joinpath.(folder, last.(split.(dirname.(paths), "/")))
+end
+
+getabundances(run) = pyconvert(Float64, run.atom.abnd)
+
+
 
 
 
@@ -100,22 +147,26 @@ end
 
 
 
+
+
+
 """
 	spectrum(model_name; NLTE=false, slurm=true, [namelist_kwargs, m3dis_kwargs])
 
 Submit a job to the M3DIS code, which will compute the outgoing flux across in LTE or NLTE.
 IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis macro.
 """
-function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true)
+function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true, name="")
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
     # Create the default namelist (with adjustments)
+    mn(n) = join([n, name], "_")
 
     # Check if NLTE and twostep, in that case we follow up with an LTE run
     nml = if NLTE & twostep
         nml_nlte = spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
         nml_spectrum = spectrum_namelist(model_name; NLTE=false, namelist_kwargs...)
-        path_nlte = joinpath(nml_nlte.io_params["datadir"], "$(model_name)_departure")
+        path_nlte = joinpath(nml_nlte.io_params["datadir"], "$(mn(model_name))_departure")
 
         set!(
             nml_spectrum; 
@@ -128,12 +179,12 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
         )
 
         # run the initial namelist first
-        write(nml_nlte, @in_m3dis("$(model_name)_departure.nml"))
+        write(nml_nlte, @in_m3dis("$(mn(model_name))_departure.nml"))
         @info "Running M3D (departure)."
         if slurm
-            srun_m3dis("$(model_name)_departure.nml"; wait=true, m3dis_kwargs...)
+            srun_m3dis("$(mn(model_name))_departure.nml"; wait=true, m3dis_kwargs...)
         else
-            run_m3dis("$(model_name)_departure.nml"; wait=true, m3dis_kwargs...)
+            run_m3dis("$(mn(model_name))_departure.nml"; wait=true, m3dis_kwargs...)
         end
         @info "M3D completed (departure)."
 
@@ -142,19 +193,19 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
         spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)  
     end
 
-    write(nml, @in_m3dis("$(model_name).nml"))
+    write(nml, @in_m3dis("$(mn(model_name)).nml"))
 
     # run multi (with waiting)
     @info "Running M3D with NLTE=$(NLTE)."
     if slurm
-        srun_m3dis("$(model_name).nml"; wait=true, m3dis_kwargs...)
+        srun_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
     else
-        run_m3dis("$(model_name).nml"; wait=true, m3dis_kwargs...)
+        run_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
     end
     @info "M3D completed."
 
     # read the output
-    M3DISRun(joinpath(nml.io_params["datadir"], model_name))
+    M3DISRun(joinpath(nml.io_params["datadir"], mn(model_name)))
 end
 
 """
@@ -163,7 +214,7 @@ end
 Submit jobs to the M3DIS code, which will compute the outgoing flux across in LTE or NLTE.
 IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis macro.
 """
-function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true)
+function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true, wait=true, name="")
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
     data_dir = whole_spectrum_namelist(model_names |> first; namelist_kwargs...).io_params["datadir"]
@@ -179,7 +230,7 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
     for model_name in model_names
         # Create the default namelist (with adjustments)
         nml_l = if NLTE & twostep
-            path_nlte = joinpath(data_dir, "$(model_name)_departure")
+            path_nlte = joinpath(data_dir, join(["$(model_name)", name, "departure"], "_"))
             nml_nlte = spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
             nml_spectrum = spectrum_namelist(model_name; NLTE=false, namelist_kwargs...)
 
@@ -194,13 +245,13 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
             )
     
             # run the initial namelist first
-            write(nml_nlte, @in_m3dis("$(model_name)_departure.nml"))
+            write(nml_nlte, @in_m3dis(join(["$(model_name)", name, "departure"], "_")*".nml"))
 
             @info "Running M3D (departure)."
             r = if slurm
-                srun_m3dis("$(model_name)_departure.nml"; wait=false, m3dis_kwargs...)
+                srun_m3dis(join(["$(model_name)", name, "departure"], "_")*".nml"; wait=false, m3dis_kwargs...)
             else
-                run_m3dis("$(model_name)_departure.nml"; wait=false, m3dis_kwargs...)
+                run_m3dis(join(["$(model_name)", name, "departure"], "_")*".nml"; wait=false, m3dis_kwargs...)
             end
             append!(results_nlte, [r])
             @info "M3D completed (departure)."
@@ -221,28 +272,68 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
 
 
     for (i, model_name) in enumerate(model_names)
-        write(nml[i], @in_m3dis("$(model_name).nml"))
+        write(nml[i], @in_m3dis(join([model_name, name], "_")*".nml"))
 
         # run multi (with waiting)
         @info "Running M3D with NLTE=$(NLTE)."
         r = if slurm
-            srun_m3dis("$(model_name).nml"; wait=false, m3dis_kwargs...)
+            srun_m3dis(join([model_name, name], "_")*".nml"; wait=false, m3dis_kwargs...)
         else
-            run_m3dis("$(model_name).nml"; wait=false, m3dis_kwargs...)
+            run_m3dis(join([model_name, name], "_")*".nml"; wait=false, m3dis_kwargs...)
         end
 
         append!(results, [r])
     end
 
     # wait for success
-    for (i, r) in enumerate(results)
-        s = success(r)
-        @info "$(model_names[i]) finished with success status $(s)."
+    if wait
+        for (i, r) in enumerate(results)
+            s = success(r)
+            @info "$(model_names[i]) finished with success status $(s)."
+        end
+        # read the output
+        [M3DISRun(joinpath(data_dir, model_name)) for model_name in model_names]
+
+    else
+        results
+    end
+end
+
+"""
+    spectrum(model_names::AbstractVector{String}, namelist_kwargs::AbstractVector; NLTE=false, slurm=true, m3dis_kwargs=Dict(), twostep=true)
+
+Run `spectrum` for every model in `model_names` with different `namelist_kwargs`.
+"""
+function spectrum(model_names::AbstractVector{String}, runnames::Dict; kwargs...)
+    names = keys(runnames) |> collect
+    namelist_kwargs = [runnames[k] for k in names]
+
+    results = []
+    for (i, input_params) in enumerate(namelist_kwargs)
+        #@show input_params names[i]
+        r = spectrum(model_names; namelist_kwargs=input_params, name=names[i], wait=false, kwargs...)
+        append!(results, r)
     end
 
-    # read the output
-    [M3DISRun(joinpath(data_dir, model_name)) for model_name in model_names]
+    for (i, r) in enumerate(results)
+        s = success(r)
+    end
+
+    runs = []
+    data_dir = whole_spectrum_namelist(model_names |> first; first(namelist_kwargs)...).io_params["datadir"]
+
+    for (i, model_name) in enumerate(model_names)
+        for (j, input_params) in enumerate(namelist_kwargs)
+            r = M3DISRun(joinpath(data_dir, join([model_name, names[j]], "_")))
+            append!(runs, [r])
+        end
+    end
+
+    runs
 end
+
+
+
 
 
 

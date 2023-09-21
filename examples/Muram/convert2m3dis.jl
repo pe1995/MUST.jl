@@ -31,7 +31,7 @@ models = Box.(paths)
 labels = last.(split.(first.(split.(last.(split.(paths, "/")), ".hdf5")), "_"))
 
 # ╔═╡ 27aa01be-cdf9-496a-8ecf-3266f558c0c8
-xres = 30
+xres = 50
 
 # ╔═╡ 6ec71eaf-5d10-4dee-add8-ad633a5f78ff
 must2multi.snaps2multi(
@@ -40,6 +40,7 @@ must2multi.snaps2multi(
 	label=["$(l)_$(xres)x$(xres)" for (i, l) in enumerate(labels)],
 	name="muram_m2",
 	n_horizontal=xres,
+	n_vertical=200,
 	outfolder="muram_m2"
 )
 
