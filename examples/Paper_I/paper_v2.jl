@@ -284,6 +284,17 @@ labels = [
 	"M3DIS - t45g40m00"
 ]
 
+# ╔═╡ 1005536b-f9c3-4526-be24-17ad9b063524
+rt_resolution = [
+	300,
+	90,
+	180,
+	300,
+	300,
+	300, 
+	300
+]
+
 # ╔═╡ 68e9c5c9-34df-41f6-a4e6-7f5deb935d59
 md"Specific snapshots (generic)"
 
@@ -330,9 +341,40 @@ end
 # ╔═╡ 114947c5-43c4-4d82-9031-8f27903d0415
 resolution(snap) = @sprintf "%.1f km" first(diff(MUST.axis(snap, :z) ./1e5))
 
+# ╔═╡ 26ad98c3-8c6a-42f9-944b-035691fa9ad0
+resolution_ross(snap, rt_res, eos_snap) = begin
+	snap_re = gresample(snap; nz=rt_res)
+	κ = exp.(lookup(eos_snap, :lnRoss, log.(snap_re[:d]), log.(snap_re[:ee])))
+	add!(snap_re, κ, :kross)
+	o = MUST.optical_depth(snap_re, opacity=:kross, density=:d)
+	
+	res = []
+	for j in axes(snap_re.y, 2) 
+		for i in axes(snap_re.x, 1) 
+			column = log10.(o[i, j, :])
+			#column = log10.(snap[:τ_ross][i, j, :])
+			i0 = argmin(abs.(column))
+			dt = (abs(column[i0-1] - column[i0]) + abs(column[i0] - column[i0+1]))/2
+			append!(res, [dt])
+		end
+	end
+			
+	@sprintf "%.3f Δlgτ(lgτ=0)" mean(res)
+end
+
 # ╔═╡ c5e1dc32-de92-4deb-92a9-06818d898307
 for (i,snap) in enumerate(snapshots)
 	@info "Resolution $(out_folder[i]): $(resolution(snap))"
+end
+
+# ╔═╡ 574fe0c0-fdcc-493f-8aad-bbfdc5b55c6a
+for (i, snap) in enumerate(snapshots)
+	@info "Resolution (optical) $(out_folder[i]): $(resolution_ross(snap, rt_resolution[i], eos[i]))"
+end
+
+# ╔═╡ d1163018-162d-4489-aa43-c423bcfd64f7
+for (i,snap) in enumerate(snapshots)
+	@info "Resolution $(out_folder[i]): $(snap.parameter.time)"
 end
 
 # ╔═╡ 01f1b55d-ba4b-4d74-8eba-12ede107cfbf
@@ -1012,7 +1054,7 @@ begin
 		axB[1].legend(framealpha=0, ncol=1, labelspacing=0.01, handlelength=hl, loc="lower center")
 		axB[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]")
 		axB[1].set_ylabel(
-			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]"
+			L"\rm \Delta\ \left( <\log \rho>\right)"
 		)
 		axB[2].set_ylabel(
 			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]"
@@ -1410,8 +1452,11 @@ begin
 		
 		axC[1].legend(framealpha=0, loc="upper center", ncol=1, labelspacing=0.01, handlelength=hl)
 		axC[0].set_ylabel(L"\rm \Delta\ \left(<T> \right)\ /\ <T>\ [\%]")
+		#axC[1].set_ylabel(
+		#	L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]"
+		#)
 		axC[1].set_ylabel(
-			L"\rm \Delta\ \left( <\log \rho>\right)\ [g \times cm^{-3}]"
+			L"\rm \Delta\ \left( <\log \rho>\right)"
 		)
 		axC[2].set_ylabel(
 			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]"
@@ -2092,9 +2137,9 @@ begin
 			]
 			ymarcsN = ipN.(xmarcsN)
 			for point in eachindex(xmarcsN)
-				axN.plot(
-					[0.0], [-ymarcsN[point]/1e8], 
-					color=colorsN[point], marker="X", ls="", markersize=10, zorder=110
+				axN.text(
+					axN.get_xlim()[1], -ymarcsN[point]/1e8, L"-"*" $(levelsN[point])",
+					color=colorsN[point], zorder=110
 				)
 			end
 		#end
@@ -2275,14 +2320,18 @@ end
 # ╠═f6c1c537-9a8d-4746-abcd-17fd0a712353
 # ╠═cff24989-efe0-4c50-8163-7260869895d2
 # ╠═4fb7c54f-7f7a-48b7-a6a6-f80cb9c31360
+# ╠═1005536b-f9c3-4526-be24-17ad9b063524
 # ╟─68e9c5c9-34df-41f6-a4e6-7f5deb935d59
 # ╟─dd5a0ce9-2daa-4d99-9dbb-443c113e3af5
 # ╟─089e4d19-22ad-4da4-8886-6980d70b5f31
 # ╠═d9272f17-8f18-457e-80d3-aa7dd61831a9
 # ╟─418c34ff-1c08-4ae6-82bf-7ac2fced7244
 # ╟─23728e99-134a-445f-802b-f01467a03e10
-# ╟─114947c5-43c4-4d82-9031-8f27903d0415
-# ╟─c5e1dc32-de92-4deb-92a9-06818d898307
+# ╠═114947c5-43c4-4d82-9031-8f27903d0415
+# ╟─26ad98c3-8c6a-42f9-944b-035691fa9ad0
+# ╠═c5e1dc32-de92-4deb-92a9-06818d898307
+# ╟─574fe0c0-fdcc-493f-8aad-bbfdc5b55c6a
+# ╟─d1163018-162d-4489-aa43-c423bcfd64f7
 # ╟─01f1b55d-ba4b-4d74-8eba-12ede107cfbf
 # ╟─3fb509e5-c611-45e2-b475-f43bd28ac53a
 # ╠═84fc6b08-0825-41ab-b214-5fef7e2a2dc0

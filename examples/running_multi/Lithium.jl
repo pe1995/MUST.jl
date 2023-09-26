@@ -55,13 +55,17 @@ end
 # ╔═╡ 0d5f972c-f308-46a9-9b35-2abe5343329e
 snapshots = [
 	"muram_m2_HDm_50x50",
-	"muram_m2_SSDm_50x50"
+	"muram_m2_SSDm_50x50",
+	"muram_m2_HDl_50x50",
+	"muram_m2_SSDl_50x50",
+	"muram_m2_HDh_50x50",
+	"muram_m2_SSDh_50x50"
 ]
 
 # ╔═╡ f6de91e4-6de8-4502-b17d-17325464ffdf
 names = [
-	"HD", 
-	"SSD"
+	"HDm", 
+	"SSDm"
 ]
 
 # ╔═╡ bfc1d715-31ac-4a1f-b1c5-9d581f8c7c10
@@ -89,18 +93,23 @@ end
 begin
 	plt.close()
 
-	for (i, snap) in enumerate(snapshots)
+	fmode, amodel = plt.subplots(1, 1, figsize=(5, 6))
+
+	for (i, snap) in enumerate(names)
+		snap = snapshots[i]
 		b = MUST.multiBox(@in_m3dis(joinpath(modelatmosfolder, snap)))
 		
 		_, d = profile(MUST.mean, b, :z, :log10d)
 		_, T = profile(MUST.mean, b, :z, :T)
 			
-		plt.plot(d, T, marker="", label=names[i])
+		amodel.plot(d, T, marker="", label=names[i])
 	end
 
-	plt.xlabel("log10 ρ")
-	plt.ylabel("T")
-	plt.legend()
+	amodel.set_xlabel(L"\rm \log \rho\ [g \times cm^{-3}]")
+	amodel.set_ylabel(L"\rm T\ [K]")
+	amodel.set_ylim(2500, 11000)
+	amodel.set_xlim(-9, -6)
+	amodel.legend(handlelength=4, labelspacing=0.1, ncol=1, loc="upper left")
 	
 	gcf()
 end
@@ -298,7 +307,7 @@ begin
 	plt.close()
 
 	#colors_models = ["k", "royalblue"]
-	names_models = ["HD", "SSD"]
+	names_models = names #["HDm", "SSDm"]
 
 	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
 	
@@ -362,7 +371,7 @@ begin
 	plt.close()
 
 	fB, axB = plt.subplots(1, 1, figsize=(5, 6))
-	colors_modelsB = ["k", "royalblue"]
+	colors_modelsB = ["k", "royalblue", "tomato", "blue", "magenta", "cyan"]
 
 	fNLTE_models = []
 	fLTE_models = []

@@ -187,6 +187,9 @@ end
     d_lo = zeros(nrow(grid.info))
     T_lo = zeros(nrow(grid.info))
 
+    τ_up = -4.0
+    τ_surf = 0.0
+    τ_down = 4.0
 
     @show maximum(log10.(models[1].τ)) minimum(log10.(models[1].τ))
 
@@ -196,25 +199,42 @@ end
                                                 grid.info[i, "mi_x"], grid.info[i, "ma_x"], grid.info[i, "mi_z"], grid.info[i, "ma_z"], grid.info[i, "hres"],
                                                 patch_size; cut_bottom=cut_bottom)
         
+        
+
         ## Where is the optical surface
-        it0 = argmin(abs.(log10.(models[i].τ) .- 0.0))
+        it0 = argmin(abs.(log10.(models[i].τ) .- τ_surf))
 
         ## where is the upper edge (roughly)
-        itup = argmin(abs.(log10.(models[i].τ) .- -5.5))
+        itup = argmin(abs.(log10.(models[i].τ) .- τ_up))
 
         ## Where can we start with the adiabat
-        itlo = argmin(abs.(log10.(models[i].τ) .- 5))
+        itlo = argmin(abs.(log10.(models[i].τ) .- τ_down))
 
+        ## interpolator
+        ip_r = MUST.linear_interpolation(log10.(models[i].τ), models[i].lnρ)
+        ip_z = MUST.linear_interpolation(log10.(models[i].τ), models[i].z)
+        ip_E = MUST.linear_interpolation(log10.(models[i].τ), models[i].lnEi)
+        ip_T = MUST.linear_interpolation(log10.(models[i].τ), models[i].lnT)
 
-        rho_norm[i] = models[i].lnρ[it0] |> exp |> log10 |> round |> exp10 
-        l_norm[i]   = zd[i] |> abs |> log10 |> floor |> exp10
-        z_up[i]     = abs(models[i].z[itup] - models[i].z[it0])
-        eemin[i]    = exp.(models[i].lnEi[itup])
+        #rho_norm[i] = models[i].lnρ[it0] |> exp |> log10 |> round |> exp10 
+        rho_norm[i] = ip_r(τ_surf) |> exp |> log10 |> round |> exp10 
 
-        z_lo[i] = round(models[i].z[itlo], sigdigits=5)
-        d_lo[i] = round(exp.(models[i].lnρ[itlo]), sigdigits=5)
-        T_lo[i] = round(exp.(models[i].lnT[itlo]), sigdigits=5)
+        l_norm[i] = zd[i] |> abs |> log10 |> floor |> exp10
+        
+        #z_up[i] = abs(models[i].z[itup] - models[i].z[it0])
+        z_up[i] = abs(ip_z(τ_up) - ip_z(τ_surf))
 
+        #eemin[i] = exp.(models[i].lnEi[itup])
+        eemin[i] = exp.(ip_E(τ_up))
+
+        #z_lo[i] = round(models[i].z[itlo], sigdigits=5)
+        z_lo[i] = round(ip_z(τ_down), sigdigits=5)
+
+        #d_lo[i] = round(exp.(models[i].lnρ[itlo]), sigdigits=5)
+        d_lo[i] = round(exp.(ip_r(τ_down)), sigdigits=5)
+
+        #T_lo[i] = round(exp.(models[i].lnT[itlo]), sigdigits=5)
+        T_lo[i] = round(exp.(ip_T(τ_down)), sigdigits=5)
     end
 
     xd, xr, zd, zr
@@ -348,10 +368,10 @@ end
         display=:none
     )
 
-    if isdir("$(name_extension)_$(name)_v$(version)")
-        @warn "skipping binning for $(name)"
-        return
-    end
+    #if isdir("$(name_extension)_$(name)_v$(version)")
+    #    @warn "skipping binning for $(name)"
+    #    return
+    #end
 
     bin8  = binning(bins, opacities, -log10.(formOpacities.κ_ross)) 
 
@@ -440,17 +460,20 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         0.2
     end
 
-    larger_than_sun = round(x_size/l_cgs / 4.6, sigdigits=1)
+    larger_than_sun = x_size/l_cgs / 4.6
+    @show larger_than_sun
     newton_time = 100 #* larger_than_sun
     friction_time = 100 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
+    l_cgs = round(l_cgs * larger_than_sun, sigdigits=2)
+
     # experiment with t scale based on size only
     test_tscale = false
     tscale = if test_tscale
-        round(x_size / (4.6 * 1e8), sigdigits=1) * 100.0
+        round(x_size / (4.6 * 1e8), sigdigits=2) * 100.0
     else
-        larger_than_sun*tscale
+        round(larger_than_sun*tscale, sigdigits=2)
     end
 
     @show tscale
@@ -531,7 +554,7 @@ end
 begin
 #= Step (A): The Grid =#
 
-    grid = MUST.StaggerGrid("stagger_grid_red.mgrid")
+    grid = MUST.StaggerGrid("stagger_grid.mgrid")
 
     ## Check for opacity table field
     mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"

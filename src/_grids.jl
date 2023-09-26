@@ -4,9 +4,12 @@
     RegularBoxAxis(values)
 
 Regular Box Axis constructed from 1D array of axis nodes.
+It memorizes if the axis needs to be permuted in order to interpolate its data.
 """
 struct RegularBoxAxis{T} <: AbstractBoxAxis
-    nodes::Vector{T}
+    nodes    ::Vector{T}
+    sorted   ::Bool
+    sortmask ::Vector{Int64}
 end
 
 """
@@ -27,14 +30,16 @@ RegularBoxGrid(axes::AbstractBoxAxis...) = RegularBoxGrid([axes...])
 RegularBoxGrid(axes::AbstractArray{T,1}...) where {T<:AbstractFloat} = begin
     RegularBoxGrid(RegularBoxAxis.(axes))
 end
-Axis(values)  = if is_uniform(values)
+#=Axis(values) = if is_uniform(values)
     #@show flipped(values)
     RegularBoxAxis(flipped(values))
 else
-    @warn "Non-uniform spacing detected."
+    #@warn "Non-uniform spacing detected."
     #@show flipped(values)
     RegularBoxAxis(flipped(values))
 end
+=#
+Axis(values) = RegularBoxAxis(sort(values), issorted(values), sortperm(values))
 
 Grid(ax::AbstractVector...) = RegularBoxGrid(Axis.(ax)...)
 
@@ -42,7 +47,10 @@ Grid(ax::AbstractVector...) = RegularBoxGrid(Axis.(ax)...)
 
 
 
+
 #= Utilities =#
+
+permutation(a::RegularBoxAxis) = a.sortmask
 
 """
     is_uniform(values)

@@ -53,7 +53,6 @@ GridInterpolation(from::Vector{<:AbstractBoxAxis}, to::Vector{<:AbstractBoxAxis}
     interpolators = AxisInterpolation.(from, to; method=method)
 
     initial_size = [length(nodes(interpolators[i].old_axis)) for i in eachindex(interpolators)]
-    #append!(buffers, [similar(interpolators[1].weights, initial_size...)])
     buffers = [similar(interpolators[1].weights, initial_size...)]
 
     s_old = (length(nodes(f)) for f in from) |> collect
@@ -75,9 +74,16 @@ end
 
 
 
+
+
 #= General convenience =#
+
 method(ip::AxisInterpolation) = ip.method
 method(ip::GridInterpolation) = [i.method for i in ip.axes_interpolation]
+
+fromaxis(ip::AxisInterpolation) = ip.old_axis
+toaxis(ip::AxisInterpolation) = ip.new_axis
+
 
 
 
@@ -242,18 +248,20 @@ function interpolate_grid!(ip::GridInterpolation, values; return_copy=true)
         for ci in c
             # Now we loop through all other dimensions, and pick the axis
             # we are currently interpolating
-            idx = _fill_index(Base.Colon(), ci, i)
+            #idx = _fill_index(Base.Colon(), ci, i)
+            idx_from = _fill_index(permutation(fromaxis(ip.axes_interpolation[i])), ci, i)
+            idx_to = _fill_index(permutation(toaxis(ip.axes_interpolation[i])), ci, i)
             if method(ip.axes_interpolation[i]) == :linear
                 interpolate_axis!(  
-                    @view(buffers[i+1][idx...]),
-                    @view(buffers[i][idx...]),
+                    @view(buffers[i+1][idx_to...]),
+                    @view(buffers[i][idx_from...]),
                     ip.axes_interpolation[i].weights,
                     ip.axes_interpolation[i].indices
                 )
             elseif method(ip.axes_interpolation[i]) == :pchip
                 pchip_mono8!(  
-                    @view(buffers[i+1][idx...]),
-                    @view(buffers[i][idx...]),
+                    @view(buffers[i+1][idx_to...]),
+                    @view(buffers[i][idx_from...]),
                     nodes(ip.axes_interpolation[i].new_axis),
                     nodes(ip.axes_interpolation[i].old_axis)
                 )
@@ -268,7 +276,7 @@ function interpolate_grid!(ip::GridInterpolation, values; return_copy=true)
 end    
 
 function _fill_index(to_fill, cartesian, at)
-    new_index = [Base.Colon(), Tuple(cartesian)...]
+    new_index = Any[Base.Colon(), Tuple(cartesian)...]
     i = 1
     for j in eachindex(new_index)
         new_index[j] = if j==at

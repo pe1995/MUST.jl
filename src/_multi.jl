@@ -72,7 +72,59 @@ extension_results(extension, folder="data") = begin
 	joinpath.(folder, last.(split.(dirname.(paths), "/")))
 end
 
+
+
+
+
 getabundances(run) = pyconvert(Float64, run.atom.abnd)
+
+
+equivalentwidth(line::PythonCall.Py; LTE=false, kwargs...) = pyconvert(Any, line.calc_weq(; LTE=LTE, kwargs...))
+equivalentwidth(lines::AbstractArray, abundances::AbstractArray; kwargs...) = begin
+    m = sortperm(abundances)
+    linear_interpolation(abundances[m], equivalentwidth.(lines; kwargs...)[m])
+end
+equivalentwidth(runs::AbstractArray; line=1, kwargs...) = begin
+    lines = [run.line[line] for run in runs]
+    abund = getabundances.(runs)
+    equivalentwidth(lines, abund; kwargs...)
+end
+
+
+abundance(lines::AbstractArray, abundances::AbstractArray; kwargs...) = begin
+    ew = equivalentwidth.(lines; kwargs...)
+    m = sortperm(ew)
+    linear_interpolation(ew[m], abundances[m])
+end
+abundance(runs::AbstractArray; line=1, kwargs...) = begin
+    lines = [run.line[line] for run in runs]
+    abund = getabundances.(runs)
+    abundance(lines, abund; kwargs...)
+end  
+
+
+ΔNLTE(lines::AbstractArray, abundances::AbstractArray; at, reference=:LTE) = begin
+    fLTE = equivalentwidth(lines, abundances, LTE=true)
+    fNLTE = equivalentwidth(lines, abundances, LTE=false)
+
+    aLTE = abundance(lines, abundances, LTE=true)
+    aNLTE = abundance(lines, abundances, LTE=false)
+
+    if reference == :LTE
+        aNLTE(at |> fLTE) - at
+    elseif reference == :NLTE
+        at - aLTE(at |> fNLTE)
+    else
+        error("Pass either :LTE or :NLTE as reference.")
+    end
+end
+
+ΔNLTE(runs::AbstractArray; at, reference=:LTE, line=1) = begin
+    lines = [run.line[line] for run in runs]
+    abund = getabundances.(runs)
+
+    ΔNLTE(lines, abund; at=at, reference=reference)
+end
 
 
 
@@ -144,6 +196,8 @@ function whole_spectrum(model_names::AbstractVector{String}; namelist_kwargs=Dic
     # read the output
     [M3DISRun(joinpath(data_dir, model_name)) for model_name in model_names]
 end
+
+
 
 
 
@@ -337,6 +391,9 @@ end
 
 
 
+
+
+
 """
     heating(model_name, args...; kwargs...)
 
@@ -366,6 +423,10 @@ end
 
 
 
+
+
+
+
 #= Effective temperature computations =#
 
 window(line::PythonCall.Py, args...; kwargs...) = begin
@@ -376,6 +437,9 @@ window(run::M3DISRun, iline, args...; kwargs...) = begin
     line = run.line[iline]
     window(line, args...; kwargs...)
 end
+
+
+
 
 
 

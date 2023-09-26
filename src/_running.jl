@@ -10,6 +10,12 @@ function srun_dispatch(nml_name, threads::Int, memMB::Int, timeout::String; wait
 end
 
 
+
+
+
+
+
+
 """
 	srun_m3dis(nml_name; threads=70, memMB=200000, timeout="05:00:00", wait=false)
 
@@ -68,6 +74,11 @@ function run_m3dis(nml_name; threads=70, wait=true, ddir=@in_m3dis(""))
 
     r
 end
+
+
+
+
+
 
 
 
