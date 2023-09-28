@@ -165,6 +165,20 @@ marcs_model = readdlm(
 	skipstart=1
 )
 
+# ╔═╡ 0016626d-bb90-47eb-83f8-ec1f9d905a03
+md"We can also read other marcs models. The one above I modified to make it better readable as csv, but I now added a reader for the true MARCS models."
+
+# ╔═╡ dfb2ddf1-10ec-426d-8907-eec2b694fe5a
+marcs_models = MUST.MARCSModel.(
+	joinpath.(
+	"models/marcs/", [
+	"p5500_g+4.5_m0.0_t00_st_z+0.00_a+0.00_c+0.00_n+0.00_o+0.00_r+0.00_s+0.00.mod",
+	"p6000_g+4.5_m0.0_t00_st_z+0.00_a+0.00_c+0.00_n+0.00_o+0.00_r+0.00_s+0.00.mod",
+	"p6500_g+4.5_m0.0_t00_st_z+0.00_a+0.00_c+0.00_n+0.00_o+0.00_r+0.00_s+0.00.mod",
+	"p4500_g+4.0_m0.0_t00_st_z+0.00_a+0.00_c+0.00_n+0.00_o+0.00_r+0.00_s+0.00.mod"
+	])
+)
+
 # ╔═╡ c9a52157-81c4-4b8c-8dcd-b728a0890b00
 md"### Co5bold"
 
@@ -1185,7 +1199,19 @@ begin
 	begin
 		## logτ vs. T
 		axC[0].axhline(0.0, color="0.5", alpha=0.2)
-			axC[0].plot(
+		#=axC[0].plot(
+			relative_difference(
+				mean,
+				iresC_x, iresC_y,
+				lresC_x, lresC_y,
+				:log10τ_ross, :T
+			)...,
+			color="r",
+			label=L"\rm\ low\ (B)\ -\ interm.\ (D)",#@sprintf("%i km", 2.3/180 *1000),
+			lw=lwC,
+			ls="-"
+		)=#
+		axC[0].plot(
 			relative_difference(
 				mean,
 				bestC_x, bestC_y,
@@ -1240,38 +1266,24 @@ begin
 			color="0.5", alpha=0.2
 		)
 		axC[0].axhline(0.0, color="0.5", alpha=0.2)
-		#=axC[0].plot(
-			relative_difference(
-				mean,
-				lresC_x, lresC_y,
-				iresC_x, iresC_y,
-				:log10τ_ross, :T
-			)...,
-			color="k",
-			label=L"\rm\ interm.\ (B)\ -\ low\ (D)",#@sprintf("%i km", 2.3/180 *1000),
-			lw=lwC,
-			ls="-."
-		)
-		axC[0].fill_between( 
-			relative_difference(
-				mean,
-				lresC_x, lresC_y.-lresC_z,
-				iresC_x, iresC_y,#.+iresC_z,
-				:log10τ_ross, :T
-			)...,
-			relative_difference(
-				mean,
-				lresC_x, lresC_y.+lresC_z,
-				iresC_x, iresC_y,#.-iresC_z,
-				:log10τ_ross, :T
-			)[2],
-			color="0.5", alpha=0.2
-		)=#
+		
 
 		
 		
 		## logτ vs. logρ
 		axC[1].axhline(0.0, color="0.5", alpha=0.2)
+		#=axC[1].plot(
+			absolute_difference(
+				mean,
+				iresC_xr, iresC_yr,
+				lresC_xr, lresC_yr,
+				:log10τ_ross, :log10d
+			)...,
+			color="r",
+			label=label=L"\rm\ low\ (B)\ -\ interm.\ (D)",
+			lw=lwC,
+			ls="-"
+		)=#
 		axC[1].plot(
 			absolute_difference(
 				mean,
@@ -1327,8 +1339,24 @@ begin
 			color="0.5", alpha=0.2
 		)
 
+
+
+
+		
 		## logτ vs. rms
 		axC[2].axhline(0.0, color="0.5", alpha=0.2)
+		#=axC[2].plot(
+			absolute_difference(
+				rms5,
+				iresC_xu, iresC_yu,
+				lresC_xu, lresC_yu,
+				:log10τ_ross, :uz
+			)...,
+			color="r",
+			label=@sprintf("%i km", 2.3/180 *1000),
+			lw=lwC,
+			ls="-"
+		)=#
 		axC[2].plot(
 			absolute_difference(
 				rms5,
@@ -1385,6 +1413,7 @@ begin
 			color="0.5", alpha=0.2
 		)
 
+		
 		
 
 		axC[0].set_xlim(-4, 2)
@@ -1884,8 +1913,9 @@ begin
 			color="white", fontsize="large", backgroundcolor="k"
 		)
 
-		fK.savefig("vertical_velocity_surface_$(labels[model]).pdf", bbox_inches="tight")
-		fK.savefig("vertical_velocity_surface_$(labels[model]).png", bbox_inches="tight", dpi=600)
+		fK.savefig("vertical_velocity_surface_$(labels[model]).pdf",) #bbox_inches="tight")
+		fK.savefig("vertical_velocity_surface_$(labels[model]).png",)
+		#bbox_inches="tight", dpi=600)
 	end
 	
 	gcf()
@@ -2073,6 +2103,25 @@ begin
 		L"\rm 6500\ K, 4.5\ dex",
 		L"\rm 4500\ K, 4.0\ dex"
 	]
+
+	marcs_TN = [
+		marcs_model[:, 5],
+		marcs_models[1].structure["T"],
+		marcs_models[3].structure["T"],
+		marcs_models[4].structure["T"]
+	]
+
+	marcs_zN = [
+		-marcs_model[:, 4],
+		-marcs_models[1].structure["Depth"],
+		-marcs_models[3].structure["Depth"],
+		-marcs_models[4].structure["Depth"]
+	]
+
+
+	levelsGlobN = [
+		4000, 4500, 5000, 8500, 11500, 12500, 13500, 14500, 15500
+	]
 	
 	pickeveryN = 2
 
@@ -2082,7 +2131,7 @@ begin
 	end
 
 	# interpolate the MARCS model in temperature and z
-	ipN = MUST.linear_interpolation(marcs_model[:, 5], marcs_model[:, 4])
+	ipN = MUST.linear_interpolation.(marcs_TN, marcs_zN)
 	
 	for (i, mN) in enumerate(modelsN)
 		plt.close()
@@ -2103,7 +2152,7 @@ begin
 
 		nlevelsN = 10
 		csN = axN.contour(
-			xxN, zzN, TN, cmap="seismic", levels=nlevelsN, linewidths=3, alpha=0.7
+			xxN, zzN, TN, cmap="seismic", levels=levelsGlobN, linewidths=3, alpha=0.7
 		)
 		plt.clabel(csN, inline=1)
 	
@@ -2125,23 +2174,48 @@ begin
 
 		# add a 1D model on top
 		#if mN == models["best"]
+			to_the_rightN = MUST.pyconvert(Any, axN.get_xlim()[1] - axN.get_xlim()[0])
+			offsetN = MUST.pyconvert(Any, axN.get_xlim()[1])
+			byN = 0.03
+			y_top = MUST.pyconvert(Any, axN.get_ylim()[1])
+		
 			levelsN = MUST.pyconvert(Vector, csN.levels)
 			cmapN = csN.get_cmap()
 	   		colorsN = MUST.pyconvert(
-				Vector, cmapN(range(0, 1, length=nlevelsN) |> collect)
+				Vector, cmapN(range(0, 1, length=length(levelsN)) |> collect)
 			)
-			xmarcsN = [l for l in levelsN if marcs_model[1, 5] < l < marcs_model[end, 5]]
+		
+			xmarcsN = [l for l in levelsN if marcs_TN[i][1] < l < marcs_TN[i][end]]
 			colorsN = [
-				c for (i,c) in enumerate(colorsN) 
-					if marcs_model[1, 5] < levelsN[i] < marcs_model[end, 5]
+				c for (j, c) in enumerate(colorsN) 
+					if marcs_TN[i][1] < levelsN[j] < marcs_TN[i][end]
 			]
-			ymarcsN = ipN.(xmarcsN)
+			ymarcsN = ipN[i].(xmarcsN)
+		
 			for point in eachindex(xmarcsN)
+				#@show point xmarcsN[point] ymarcsN[point]/1e8
 				axN.text(
-					axN.get_xlim()[1], -ymarcsN[point]/1e8, L"-"*" $(levelsN[point])",
-					color=colorsN[point], zorder=110
+					offsetN + byN*to_the_rightN, 
+					ymarcsN[point]/1e8, 
+					L"-"*" $(xmarcsN[point])",
+					color=colorsN[point]#, zorder=110+point
 				)
 			end
+
+			axN.text(
+					offsetN + byN*to_the_rightN, 
+					min(maximum(marcs_zN[i])/1e8, y_top), 
+					" MARCS",
+					color="k",
+					ha="left", va="bottom"
+				)
+		
+			lineN = matplotlib.lines.Line2D(
+				[offsetN + byN*to_the_rightN, offsetN + byN*to_the_rightN],
+				[minimum(marcs_zN[i])/1e8, min(maximum(marcs_zN[i])/1e8, y_top)], color="k", lw=2,
+				zorder=150, clip_on=false
+			)
+			axN.add_line(lineN)
 		#end
 		
 	
@@ -2165,8 +2239,12 @@ begin
 		axN.set_xlabel(L"\rm X\ [Mm]")
 		axN.set_xlabel(L"\rm X\ [Mm]")
 	
-		fN.savefig("vertical_slice_velocity-$(labels[mN]).png", dpi=600, bbox_inches="tight")
-		fN.savefig("vertical_slice_velocity-$(labels[mN]).pdf", bbox_inches="tight")
+		fN.savefig(
+			"vertical_slice_velocity-$(labels[mN]).png", dpi=600#, bbox_inches="tight"
+		)
+		fN.savefig(
+			"vertical_slice_velocity-$(labels[mN]).pdf"#, bbox_inches="tight"
+		)
 	end
 	
 	gcf()
@@ -2182,6 +2260,18 @@ begin
 		models["best"], 
 		models["t65g45m00"],
 	]
+
+	marcs_TO = [
+		marcs_models[1].structure["T"],
+		marcs_model[:, 5],
+		marcs_models[3].structure["T"]
+	]
+
+	marcs_trO = [
+		marcs_models[1].structure["lgTauR"],
+		marcs_model[:, 2],
+		marcs_models[3].structure["lgTauR"]
+	]
 	
 	lwO = [1.5, 1.5, 1.5] .*2
 	
@@ -2191,7 +2281,7 @@ begin
 		L"\rm 6500\ K, 4.5\ dex"
 	]
 
-	colorsO = ["k", "cyan", "k"]
+	colorsO = ["k", "k", "k"]
 end
 
 # ╔═╡ ff449d80-1610-45ef-9b0b-907d6de848f8
@@ -2222,16 +2312,17 @@ begin
 			color=colorsO[i]
 		)
 
+		axO.plot(
+			marcs_trO[i], 
+			marcs_TO[i],
+			ls=":", 
+			color="k", 
+			label=L"\rm MARCS",
+			lw=2.5
+		)
+		
 		if mO == models["best"]
-			axO.plot(
-				marcs_model[:, 2], marcs_model[:, 5], 
-				ls=":", 
-				color="k", 
-				label=L"\rm MARCS",
-				lw=2.5
-			)
-
-			axO.plot(
+			#=axO.plot(
 				profile(
 					mean,
 					stagger_τ,
@@ -2248,7 +2339,7 @@ begin
 				color="k",
 				label=L"\rm CO5BOLD",
 				ls="--"
-			)
+			)=#
 		end
 
 
@@ -2307,7 +2398,9 @@ end
 # ╠═9a504c51-4e79-4ef4-8a4f-570f549422c0
 # ╠═0a2286e2-29e4-454b-b3a7-6a33a6828760
 # ╟─9465b4d5-08e2-453a-b758-6d4d6744c20b
-# ╠═d87a8635-7527-4584-81f6-eef0da1101d6
+# ╟─d87a8635-7527-4584-81f6-eef0da1101d6
+# ╟─0016626d-bb90-47eb-83f8-ec1f9d905a03
+# ╠═dfb2ddf1-10ec-426d-8907-eec2b694fe5a
 # ╟─c9a52157-81c4-4b8c-8dcd-b728a0890b00
 # ╠═515e5910-4bf1-4769-84b9-cff2a08751a0
 # ╠═fa715a70-036e-420a-a0fa-06cefc3ef3c0
@@ -2329,7 +2422,7 @@ end
 # ╟─23728e99-134a-445f-802b-f01467a03e10
 # ╠═114947c5-43c4-4d82-9031-8f27903d0415
 # ╟─26ad98c3-8c6a-42f9-944b-035691fa9ad0
-# ╠═c5e1dc32-de92-4deb-92a9-06818d898307
+# ╟─c5e1dc32-de92-4deb-92a9-06818d898307
 # ╟─574fe0c0-fdcc-493f-8aad-bbfdc5b55c6a
 # ╟─d1163018-162d-4489-aa43-c423bcfd64f7
 # ╟─01f1b55d-ba4b-4d74-8eba-12ede107cfbf

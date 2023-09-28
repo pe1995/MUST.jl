@@ -100,5 +100,7 @@ include("_running.jl")
 include("_multi.jl")
 include("_atmos2legacy.jl")
 include("_atmos2multi.jl")
+include("_read_marcs.jl")
+
 
 end
