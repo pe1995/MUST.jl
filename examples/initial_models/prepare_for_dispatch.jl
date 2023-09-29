@@ -49,9 +49,24 @@ end
 end
 
 @everywhere begin
-    name_extension    = "DIS_MARCS"
-    version           = "0.1"
-    dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
+    host = "gemini"
+
+    if host == "raven"
+        name_extension    = "DIS_MARCS"
+        version           = "0.1"
+        dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
+        initial_grid_path = "stagger_grid.mgrid"
+        final_grid_path   = "dispatch_grid.mgrid"
+        mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
+    elseif host == "gemini"
+        name_extension    = "DIS_MARCS"
+        version           = "0.1"
+        dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
+        initial_grid_path = "stagger_grid.mgrid"
+        final_grid_path   = "dispatch_grid.mgrid"
+        mother_table_path = "/home/eitner/shared/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_v1.6"
+    end
+
     MUST.@import_dispatch dispatch_location
 end
 
@@ -554,10 +569,9 @@ end
 begin
 #= Step (A): The Grid =#
 
-    grid = MUST.StaggerGrid("stagger_grid.mgrid")
+    grid = MUST.StaggerGrid(initial_grid_path)
 
     ## Check for opacity table field
-    mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
     if !("eos_root" in names(grid.info))
         @warn "The given grid does not contain information about the root EoS and opacity source. Adding the fallback table."
         grid.info[!, "eos_root"] = [mother_table_path for _ in 1:nrow(grid.info)]
@@ -617,5 +631,5 @@ begin
         cp(grid.info[i, "namelist_name"], joinpath(grid.info[i, "binned_E_tables"], "ininml.dat"), force=true)
     end
 
-    MUST.save(grid, "dispatch_grid.mgrid")
+    MUST.save(grid, final_grid_path)
 end

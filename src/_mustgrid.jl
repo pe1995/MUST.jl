@@ -24,6 +24,8 @@ mutable struct RestartMUSTGrid{DF<:DataFrame} <: AbstractMUSTGrid
     info        :: DF
 end
 
+
+
 #========== Constructors ==========#
 
 RangeMUSTGrid(seeds::T, limits::T; phase="phase1") where {F<:AbstractFloat, T<:Dict{Symbol, Dict{String, F}}} = begin
@@ -34,7 +36,7 @@ RangeMUSTGrid(info::DataFrame; t::Type=Float64, phase="phase1") = RangeMUSTGrid(
 
 IdentityMUSTGrid(; phase="phase_identity") = IdentityMUSTGrid(phase, DataFrame())
 
-RestartMUSTGrid(from::AbstractMUSTGrid; grid::T=T(), phase="phase2") where {F<:Any, T<:Dict{Symbol, Dict{String, Vector{F}}}} = begin
+RestartMUSTGrid(from::AbstractMUSTGrid; grid::T=T(), phase="phase2") where {T<:Dict{Symbol, Dict{String, Vector{<:Any}}}} = begin
     from_phase = from.name
     grid_in = Dict{Symbol, Dict{String, Vector{Any}}}()
     grid    = deepcopy(grid)
@@ -51,6 +53,8 @@ RestartMUSTGrid(from::AbstractMUSTGrid; grid::T=T(), phase="phase2") where {F<:A
 
     RestartMUSTGrid(grid_in, from_phase, phase, deepcopy(from.info))
 end
+
+
 
 #========== Functionality of the types ==========#
 
@@ -94,6 +98,9 @@ modify!(f::Function, grid::AbstractMUSTGrid, field::Symbol, parameter::String, a
     grid.info[!,string_from_keys(field, parameter)] = grid.grid[field][parameter]
     nothing
 end
+
+
+
 
 #========== Grid <-> Namelist creation ==========#
 
