@@ -152,7 +152,7 @@ end
 
 formation_opacities(args...; kwargs...) = TSO.compute_formation_opacities(args...; kwargs...)
 bin_opacities(args...; kwargs...) = TSO.bin_opacity_table(args...; kwargs...)
-fromT_to_E(args...; kwargs...) = TSO.convert_fromT_toE(args...; kwargs...)
+fromT_toE(args...; kwargs...) = TSO.convert_fromT_toE(args...; kwargs...)
 
 
 
