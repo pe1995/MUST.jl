@@ -50,9 +50,9 @@ Pick the model atmosphere. It should either be located in input_multi3d/MUST or 
 modelatmos = "m3dis_sun_magg22_20x20x299_3"
 
 # ╔═╡ 1a9a7946-fda5-4e01-b715-c3c36c1bf6ea
-#modelatmosfolder = "input_multi3d/magg2022_150x300/"
+modelatmosfolder = "input_multi3d/magg2022_150x300/"
 #modelatmosfolder = "input_multi3d/stagger_sun/"
-modelatmosfolder = "input_multi3d/atmos"
+#modelatmosfolder = "input_multi3d/atmos"
 #modelatmosfolder = "input_multi3d/magg2022_195x390/"
 
 # ╔═╡ 76bfd78b-0d58-4c59-9587-4b7627a2d357
@@ -86,13 +86,13 @@ snapshots = ["atmos.sun_MARCS"]
 snapshots_m3dis = [
 	"m3dis_sun_magg22_20x20x299_1",
 	"m3dis_sun_magg22_20x20x299_2",
-	"m3dis_sun_magg22_20x20x299_3",
+	#="m3dis_sun_magg22_20x20x299_3",
 	"m3dis_sun_magg22_20x20x299_4",
 	"m3dis_sun_magg22_20x20x299_5",
 	"m3dis_sun_magg22_20x20x299_6",
 	"m3dis_sun_magg22_20x20x299_7",
 	"m3dis_sun_magg22_20x20x299_8",
-	"m3dis_sun_magg22_20x20x299_9"
+	"m3dis_sun_magg22_20x20x299_9"=#
 ]
 
 # ╔═╡ 573b2070-18e5-4e53-8393-76549f2efce5
@@ -117,7 +117,7 @@ compute = false
 begin
 	 if compute
 		m3load = MUST.whole_spectrum(
-			snapshots, 
+			snapshots_m3dis, 
 			namelist_kwargs=(
 				:model_folder=>modelatmosfolder,
 				:linelist=>nothing,
@@ -130,12 +130,12 @@ begin
 					:absdat_file=>"./input_multi3d/TS_absdat.dat", :abund_file=>"./input_multi3d/abund_asplund07"
 				),
 				:atmos_params=>(
-					:atmos_format=>"Text", 
+					:atmos_format=>"MUST", 
 					:use_density=>true, 
 					:use_ne=>false
 				),
 			),
-			slurm=true
+			slurm=false
 		)
 	end
 end

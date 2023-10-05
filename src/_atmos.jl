@@ -1580,6 +1580,12 @@ pick_snapshot(folder::String, i; kwargs...) = pick_snapshot(converted_snapshots(
 
 
 
+
+
+
+
+
+
 ## functions between different boxes
 
 """
@@ -1616,6 +1622,9 @@ function time_statistic(f::Function, boxes)
 
     storage
 end
+
+
+
 
 
 
@@ -1731,3 +1740,39 @@ mesh(m::Box) = meshgrid(
 	axis(m, :y) ./1e8, 								
 	axis(m, :z) ./1e8
 )
+
+
+
+
+
+
+#= Flipping the atmos in the right direction, and also make the z axis negative below =#
+
+"""
+    flip!(box::Box)
+
+Flip the box object and possibly reverse the sign of the height scale (only geometrical).
+It used the density to determine where the bottom is.
+"""
+function flip!(box::Box; density=:d, temperature=:T)
+    # Determine if it is oriented from bottom to top
+    d = box[density][1, 1, :]
+    is_upside_down = first(d) < last(d)
+    
+    if is_upside_down
+        for (k, v) in box.data
+            reverse!(box.data[k]; dims=3)
+        end
+
+        reverse!(box.x, dims=3)
+        reverse!(box.y, dims=3)
+        reverse!(box.z, dims=3)
+    end
+
+    # Now it is from bottom to top, so the first value in z should be the smalles value
+    if box.z[1, 1, 1] > box.z[1, 1, end]
+        box.z .*= -1
+    end
+
+    box
+end
