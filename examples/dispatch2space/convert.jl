@@ -26,8 +26,10 @@ end
 end
 
 @everywhere begin
-    MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
-    MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2" EOS select
+    #MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
+    #MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2" EOS select
+    MUST.@import_dispatch "/home/eitner/shared/model_grid/dispatch2"
+    MUST.@import_dispatch "/home/eitner/shared/model_grid/dispatch2" EOS select
 
     add_selection = false
 end

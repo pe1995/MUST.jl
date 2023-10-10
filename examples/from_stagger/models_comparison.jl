@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.26
+# v0.19.27
 
 using Markdown
 using InteractiveUtils
@@ -22,7 +22,8 @@ md"# Investigating different Models"
 # ╔═╡ 931f7a1f-dccb-4727-9982-d04be9ffd688
 begin
 	mean = MUST.mean
-	MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
+	#MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
+	MUST.@import_dispatch "/home/eitner/shared/model_grid/dispatch2"
 end;
 
 # ╔═╡ ee6a633b-6ccc-412f-ba74-e105aa148afc
@@ -38,17 +39,17 @@ names = [
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/pretty_good_sun_new_magg7_large")
+	MUST.@in_dispatch("data/grid_t50g40m00")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.7.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1"),
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
 labels = [
-	"test_larger"
+	"test_restart"
 ]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
@@ -88,35 +89,36 @@ end
 # ╔═╡ d8693137-82f7-4ccb-b886-4115e3032392
 # ╠═╡ show_logs = false
 initial_model = [
-	@optical(Average3D(eos[i], MUST.@in_dispatch("input_data/sun_stagger.dat")), eos[i], opa[i])
+	@optical(Average3D(eos[i], 
+		MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1/inim.dat")), eos[i], opa[i])
 		for i in eachindex(eos)
 ]
 
 # ╔═╡ 4c8d357d-a41a-4274-b131-93ebb695b911
-stagger_model = [
+stagger_model = initial_model #=[
 	@optical(Average3D(eos[i], MUST.@in_dispatch("input_data/sun_stagger.dat")), 
 		eos[i], opa[i])
 	for i in eachindex(eos)
-]
+]=#
 
 # ╔═╡ c72cea6d-59bd-4721-8044-9fa28fb4039e
 marcs_model = readdlm("marcs_sun.txt", skipstart=1);
 
 # ╔═╡ 4a1730fb-1fbe-445a-b850-7539967dcbe2
-begin
+#=begin
 	folder_stagger = "/u/peitner/DISPATCH/MUST.jl/examples/stagger2bifrost"
 	stagger = MUST.Box("box_solar_stagger_MARCS_v1.4.31", 
 							folder=folder_stagger)
 	stagger_τ = MUST.Box("box_solar_stagger_MARCS_v1.4.31_t", 
 							folder=folder_stagger)
-end
+end=#
 
 # ╔═╡ 9faf1a6b-a027-4fcc-b572-872624b3f7e8
-begin
+#=begin
 	folder_muram = "/u/peitner/DISPATCH/examples/Muram"
 	muram = MUST.Box("box_MURaM_cube_small.221000_HDSun", folder=folder_muram)
 	muram_τ = MUST.Box("box_MURaM_cube_small.221000_HDSun_t", folder=folder_muram)
-end
+end=#
 
 # ╔═╡ 14dab588-7275-4a7e-bade-71375d3a16bc
 for i in eachindex(snapshots)
@@ -248,8 +250,8 @@ end
 
 # ╔═╡ d3ef4193-11e7-478d-aa11-ba3b8adbce55
 begin
-	plot(profile(mean, stagger_τ, :log10τ_ross, :T)..., 
-				lw=1.5, color=:black, label="Stagger", ls=:dash)
+	plot()#profile(mean, stagger_τ, :log10τ_ross, :T)..., 
+		#		lw=1.5, color=:black, label="Stagger", ls=:dash)
 
 	for (i, snapshot_τ) in enumerate(snapshots_τ)
 		plot!(profile(mean, snapshot_τ, :log10τ_ross, :T)..., 
@@ -267,8 +269,8 @@ end
 
 # ╔═╡ 05a4e3ef-58b5-4f96-94b8-51991c971451
 begin
-	plot(profile(mean, stagger, :z, :d)..., 
-				lw=1.5, color=:black, label="Stagger", ls=:dash)
+	plot()#profile(mean, stagger, :z, :d)..., 
+				#lw=1.5, color=:black, label="Stagger", ls=:dash)
 
 	plot!(legendforegroundcolor=nothing, legendbackgroundcolor=nothing,
 	legendposition=:bottomleft)
@@ -287,8 +289,8 @@ end
 
 # ╔═╡ 0a726cbb-1309-4071-9df1-93cd4355fb71
 begin
-	plot(profile(mean, stagger_τ, :log10τ_ross, :log10d)..., 
-				lw=2., color=:black, label="Stagger", ls=:dash)
+	plot()#profile(mean, stagger_τ, :log10τ_ross, :log10d)..., 
+		#		lw=2., color=:black, label="Stagger", ls=:dash)
 
 	plot!(legendforegroundcolor=nothing, legendbackgroundcolor=nothing,
 		legendposition=:bottomright)
@@ -310,9 +312,9 @@ end
 
 # ╔═╡ e10a8581-c0ab-4209-9e14-4d456dcf9a86
 begin
-	_, dStagger = profile(mean, stagger, :z, :d)
-	_, TStagger = profile(mean, stagger, :z, :T)
-	plot(dStagger, TStagger, lw=1.5, color=:black, label="Stagger", ls=:dash)
+	#_, dStagger = profile(mean, stagger, :z, :d)
+	#_, TStagger = profile(mean, stagger, :z, :T)
+	plot()#dStagger, TStagger, lw=1.5, color=:black, label="Stagger", ls=:dash)
 
 	plot!(legendforegroundcolor=nothing, legendbackgroundcolor=nothing)
 
@@ -343,8 +345,8 @@ rms(x) = √(sum(x .^2) / length(x))
 
 # ╔═╡ 83dc28ac-97f5-4833-8a6f-cd2d2624442a
 begin
-	plot(profile(rms, stagger_τ, :log10τ_ross, :uz)..., 
-				lw=1.5, color=:black, label="Stagger", ls=:dash)
+	plot()#profile(rms, stagger_τ, :log10τ_ross, :uz)..., 
+		#		lw=1.5, color=:black, label="Stagger", ls=:dash)
 
 	for (i, snapshot_τ) in enumerate(snapshots_τ)
 		plot!(profile(rms, snapshot_τ, :log10τ_ross, :uz)..., 
@@ -818,8 +820,8 @@ end
 # ╟─4c0bf79b-9b7b-4c35-a728-350a79e5eb83
 # ╟─a10e407c-70f8-4809-a0e4-eb334447d623
 # ╟─919c0ab0-23ad-4acd-ab2a-1c90cf0aa8e1
-# ╟─84bd1e80-ff21-4970-a5a3-fc7452da7e6f
-# ╟─e2dde825-4e66-42e2-b541-74ec0600fc81
+# ╠═84bd1e80-ff21-4970-a5a3-fc7452da7e6f
+# ╠═e2dde825-4e66-42e2-b541-74ec0600fc81
 # ╟─3615d990-9c9a-4e69-8f96-0e3c2ac6896b
 # ╠═a33fbc44-eade-4ef2-9a6d-87047b5cdb1f
 # ╠═87e8b92e-dd35-4024-b795-467a96660e7b
