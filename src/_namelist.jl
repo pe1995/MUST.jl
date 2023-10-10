@@ -177,7 +177,7 @@ function reverse_parse(value)
     val_str = ""
     if typeof(value) <: AbstractArray
         for val in value
-            val_str = val_str * "$(val),"
+            val_str = val_str * "$(reverse_parse(val)),"
         end
         val_str = val_str[1:end-1]
     elseif typeof(value) <:String

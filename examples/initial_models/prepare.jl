@@ -49,7 +49,7 @@ end
 end
 
 @everywhere begin
-    host = "gemini"
+    host = "raven"
 
     if host == "raven"
         name_extension    = "DIS_MARCS"

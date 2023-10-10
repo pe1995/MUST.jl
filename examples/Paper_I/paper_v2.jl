@@ -46,6 +46,7 @@ end
 begin
 	#PythonPlot.matplotlib.rcParams["font.size"] = 12
 	np = MUST.pyimport("numpy")
+	ndimage = MUST.pyimport("scipy.ndimage")
 	matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
 	hl = 4
 end;
@@ -1584,11 +1585,22 @@ md"### (F) Radiative Heating (Binning)"
 # ╔═╡ 64213279-f47a-4b46-b1ac-730945d5b8f1
 md"### (G) 2D surface"
 
-# ╔═╡ 9c01846f-d4cc-43a8-9c0f-93f7e08bcefb
-uz_surface_optical(snap) = begin
-	isurf = MUST.closest(log10.(MUST.axis(snap, :τ_ross, 3)), 0)
-	snap[:uz][:, :, isurf] #./1e5
+# ╔═╡ da45e33e-9013-443e-be60-e0b53d23d305
+surface_optical(snap) = begin
+	MUST.closest(log10.(MUST.axis(snap, :τ_ross, 3)), 0)
 end
+
+# ╔═╡ d59e82db-89f3-46fd-8af4-6bf96fab14cf
+surface_optical(snap, what) = begin
+	isurf = surface_optical(snap)
+	snap[what][:, :, isurf] 
+end
+
+# ╔═╡ c9004d63-d6e5-415a-87ef-3db717a3f788
+uz_surface_optical(snap) = surface_optical(snap, :uz)
+
+# ╔═╡ b214c18c-58ee-474f-809d-d07582ab5647
+rho_surface_optical(snap) = surface_optical(snap, :d)
 
 # ╔═╡ acf85ab7-3d8b-4e83-8a73-1ed00598882f
 extent(snap) = begin
@@ -1607,6 +1619,7 @@ begin
 
 	# limits for color bar
 	uzG  = uz_surface_optical(m3disG) ./1e5
+	#uzG = surface_optical(m3disG, :d)
 	vmin = minimum([minimum(u) for u in uzG])
 	vmax = maximum([maximum(u) for u in uzG])
 
@@ -2074,6 +2087,151 @@ granularstatistics(models["t60g45m00"])
 # ╔═╡ 09c3002d-1839-4adf-9d47-1811f1c81bcd
 granularstatistics(models["t65g45m00"])
 
+# ╔═╡ e8da9c4e-3474-41ea-a441-a22b089d20d6
+rellim(arr) = begin
+	(minimum(arr) + 0.005*(maximum(arr)-minimum(arr)),
+	 maximum(arr) - 0.005*(maximum(arr)-minimum(arr)))
+end
+
+# ╔═╡ 0f3f07fa-660e-4117-a46e-792150a707b9
+function vertical_velocity_slice_with_contours(
+	mN, y0i, label, marcsT, marcsZ, levels; 
+	pickevery=2, quantity=:T, scale=identity,
+	cbar_label="")
+
+	ipN = MUST.linear_interpolation(marcsT, marcsZ)
+	
+	plt.close()
+	fN, axN = plt.subplots(1, 1, figsize=(5, 6))		
+	
+	m3disNi = pick_snapshot(out_folder[mN], -1) |> first
+
+	y_y0N = MUST.axis(m3disNi, :y)[y0i] ./1e8
+	uxN = m3disNi[:ux][1:pickevery:end, y0i, 1:pickevery:end] ./1e5
+	uzN = m3disNi[:uz][1:pickevery:end, y0i, 1:pickevery:end] ./1e5
+
+	xxN = m3disNi.x[1:pickevery:end, y0i, 1:pickevery:end] ./1e8
+	zzN = m3disNi.z[1:pickevery:end, y0i, 1:pickevery:end] ./1e8
+
+	TN = scale.(m3disNi[quantity][1:pickevery:end, y0i, 1:pickevery:end])
+	TN .= MUST.pyconvert(Array, (ndimage.gaussian_filter(TN, sigma=2.8)))
+
+	csN = axN.contourf(
+		xxN, zzN, TN, 
+		cmap="terrain", levels=levels, alpha=0.95, #linewidths=3,
+	)
+	axN.contour(
+		xxN, zzN, TN, colors="k", #cmap="terrain",
+		levels=levels, alpha=0.15, linewidths=1.5, linestyles="solid",
+	)
+	#plt.clabel(csN, inline=1)
+
+	normN = matplotlib.colors.Normalize(
+		vmin=csN.cvalues.min(), vmax=csN.cvalues.max()
+	)
+	smN = plt.cm.ScalarMappable(norm=normN, cmap=csN.cmap)
+	fN.colorbar(smN, ax=axN, label=cbar_label).ax.invert_yaxis()
+	#fraction=visual.cbar_fraction, pad=visual.cbar_pad)
+
+	
+	axN.quiver(
+		xxN, zzN, uxN, uzN, color="k", scale=220, zorder=100, headwidth=3.2
+	)
+	axN.axhline(0.0, color="k", ls="-", lw=2)
+
+	axN.set_xlim(rellim(xxN)...)
+	axN.set_ylim(rellim(zzN)...)
+
+
+	# add a 1D model on top
+	#if mN == models["best"]
+		to_the_rightN = MUST.pyconvert(Any, axN.get_xlim()[1] - axN.get_xlim()[0])
+		offsetN = MUST.pyconvert(Any, axN.get_xlim()[0])
+		byN = -0.13
+		y_top = MUST.pyconvert(Any, axN.get_ylim()[1])
+	
+		levelsN = MUST.pyconvert(Vector, csN.levels)
+		cmapN = csN.get_cmap()
+		colorsN = MUST.pyconvert(
+			Vector, cmapN(range(0, 1, length=length(levelsN)) |> collect)
+		)
+	
+		xmarcsN = [l for l in levelsN if marcsT[1] < l < marcsT[end]]
+		colorsN = [
+			c for (j, c) in enumerate(colorsN) 
+				if marcsT[1] < levelsN[j] < marcsT[end]
+		]
+		ymarcsN = ipN.(xmarcsN)
+	
+		for point in eachindex(xmarcsN)
+			if ymarcsN[point]/1e8 > y_top
+				continue
+			end
+			#@show point xmarcsN[point] ymarcsN[point]/1e8
+			axN.text(
+				offsetN + (byN - 0.07)*to_the_rightN, 
+				ymarcsN[point]/1e8, 
+				"$(xmarcsN[point]) ",
+				ha="right", va="center", fontsize="small",
+				color="k" #, zorder=110+point
+			)
+			axN.text(
+				offsetN + byN*to_the_rightN, 
+				ymarcsN[point]/1e8, 
+				L"-",
+				ha="right", va="center", fontsize=25,
+				color=colorsN[point]#, zorder=110+point
+			)
+		end
+
+		axN.text(
+				offsetN + byN*to_the_rightN, 
+				min(maximum(marcsZ)/1e8, y_top), 
+				"MARCS ",
+				color="k",
+				ha="right", va="bottom"
+			)
+	
+		lineN = matplotlib.lines.Line2D(
+			[offsetN + byN*to_the_rightN, offsetN + byN*to_the_rightN],
+			[minimum(marcsZ)/1e8, min(maximum(marcsZ)/1e8, y_top)], 
+			color="k", lw=2,
+			zorder=150, clip_on=false
+		)
+		axN.add_line(lineN)
+	#end
+	
+
+	#=τcN = granularstatistics(
+		modelsN[i], 
+		x_limit=x_limitN[i], y_limit=y_y0N.+y_limitN[i], z_limit=z_limitN[i]
+	)
+
+	labi = labelsN[i]*L"\rm \tau_{c}="*"$(τcN./60) min"=#
+
+	axN.text(
+		0.97, 0.05, label, 
+		ha="right", va="bottom", 
+		transform=axN.transAxes,
+		color="white", backgroundcolor="k", zorder=150
+	)
+
+	axN.set_ylabel("\n\n"*L"\rm Z\ [Mm]")
+	axN.set_ylabel("\n\n"*L"\rm Z\ [Mm]")
+	
+	axN.set_xlabel(L"\rm X\ [Mm]")
+	axN.set_xlabel(L"\rm X\ [Mm]")
+
+	fN.savefig(
+		"vertical_slice_velocity-$(labels[mN])_$(quantity).png", dpi=600#, bbox_inches="tight"
+	)
+	fN.savefig(
+		"vertical_slice_velocity-$(labels[mN])_$(quantity).pdf"#, bbox_inches="tight"
+	)
+
+	fN, axN
+end
+
 # ╔═╡ 22bc6765-400a-470b-9f9d-ff1365d97e33
 begin
 	modelsN = [
@@ -2111,6 +2269,13 @@ begin
 		marcs_models[4].structure["T"]
 	]
 
+	marcs_TauN = [
+		marcs_model[:, 2],
+		marcs_models[1].structure["lgTauR"],
+		marcs_models[3].structure["lgTauR"],
+		marcs_models[4].structure["lgTauR"]
+	]
+
 	marcs_zN = [
 		-marcs_model[:, 4],
 		-marcs_models[1].structure["Depth"],
@@ -2119,131 +2284,46 @@ begin
 	]
 
 
-	levelsGlobN = [
-		4000, 4500, 5000, 8500, 11500, 12500, 13500, 14500, 15500
+	levelsGlobN = [[
+		3000, 3500, 4000, 4500, 5000, 6000, 8500, 11500, 12500, 13500, 14500, 15500, 16500, 17500, 18500
+	] for _ in eachindex(labelsN)]
+
+	#=levelsGlobN[3] = [
+		5000, 5500, 6000, 8500, 11500, 12500, 13500, 14500, 15500, 16500, 17500
 	]
+	levelsGlobN[4] = [
+		4000, 4500, 5000, 6000, 8500, 11500, 12500, 13500, 14000
+	]=#
+	#=levelsGlobN = [
+		exp.(range(log(4000), log(16000), length=20)) |> collect
+		for _ in eachindex(modelsN)
+	]=#
 	
 	pickeveryN = 2
-
-	rellim(arr) = begin
-		(minimum(arr) + 0.005*(maximum(arr)-minimum(arr)),
-		 maximum(arr) - 0.005*(maximum(arr)-minimum(arr)))
-	end
-
-	# interpolate the MARCS model in temperature and z
-	ipN = MUST.linear_interpolation.(marcs_TN, marcs_zN)
 	
 	for (i, mN) in enumerate(modelsN)
-		plt.close()
-		fN, axN = plt.subplots(1, 1, figsize=(5, 6))		
-		#visual.basic_plot!(axN)
-		
-		y0i = y0N[i]
-		m3disNi = pick_snapshot(out_folder[mN], -1) |> first
-
-		y_y0N = MUST.axis(m3disNi, :y)[y0i] ./1e8
-		uxN = m3disNi[:ux][1:pickeveryN:end, y0i, 1:pickeveryN:end] ./1e5
-		uzN = m3disNi[:uz][1:pickeveryN:end, y0i, 1:pickeveryN:end] ./1e5
+		vertical_velocity_slice_with_contours(
+			mN, y0N[i], labelsN[i], marcs_TN[i], marcs_zN[i], levelsGlobN[i],
+			pickevery=pickeveryN, cbar_label=L"\rm T\ [K]"
+		)
+	end
 	
-		xxN = m3disNi.x[1:pickeveryN:end, y0i, 1:pickeveryN:end] ./1e8
-		zzN = m3disNi.z[1:pickeveryN:end, y0i, 1:pickeveryN:end] ./1e8
-	
-		TN = m3disNi[:T][1:pickeveryN:end, y0i, 1:pickeveryN:end]
+	gcf()
+end
 
-		nlevelsN = 10
-		csN = axN.contour(
-			xxN, zzN, TN, cmap="seismic", levels=levelsGlobN, linewidths=3, alpha=0.7
-		)
-		plt.clabel(csN, inline=1)
-	
-		normN = matplotlib.colors.Normalize(
-			vmin=csN.cvalues.min(), vmax=csN.cvalues.max()
-		)
-		smN = plt.cm.ScalarMappable(norm=normN, cmap = csN.cmap)
-		#fM.colorbar(sm, ax=axM, fraction=visual.cbar_fraction, pad=visual.cbar_pad)
+# ╔═╡ 4874c7a5-6dd4-457a-876d-431e31b5875d
+begin
+	levelsGlobTauN = [
+		[-6, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7] for _ in eachindex(labelsN)
+	]
 
+	levelsGlobTauN[4] = [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7]
 		
-		axN.quiver(
-			xxN, zzN, uxN, uzN, color="k", scale=200, zorder=100, headwidth=3,
-		)
-		axN.axhline(0.0, color="k", ls="-", lw=2)
-
-		axN.set_xlim(rellim(xxN)...)
-		axN.set_ylim(rellim(zzN)...)
-
-
-		# add a 1D model on top
-		#if mN == models["best"]
-			to_the_rightN = MUST.pyconvert(Any, axN.get_xlim()[1] - axN.get_xlim()[0])
-			offsetN = MUST.pyconvert(Any, axN.get_xlim()[1])
-			byN = 0.03
-			y_top = MUST.pyconvert(Any, axN.get_ylim()[1])
-		
-			levelsN = MUST.pyconvert(Vector, csN.levels)
-			cmapN = csN.get_cmap()
-	   		colorsN = MUST.pyconvert(
-				Vector, cmapN(range(0, 1, length=length(levelsN)) |> collect)
-			)
-		
-			xmarcsN = [l for l in levelsN if marcs_TN[i][1] < l < marcs_TN[i][end]]
-			colorsN = [
-				c for (j, c) in enumerate(colorsN) 
-					if marcs_TN[i][1] < levelsN[j] < marcs_TN[i][end]
-			]
-			ymarcsN = ipN[i].(xmarcsN)
-		
-			for point in eachindex(xmarcsN)
-				#@show point xmarcsN[point] ymarcsN[point]/1e8
-				axN.text(
-					offsetN + byN*to_the_rightN, 
-					ymarcsN[point]/1e8, 
-					L"-"*" $(xmarcsN[point])",
-					color=colorsN[point]#, zorder=110+point
-				)
-			end
-
-			axN.text(
-					offsetN + byN*to_the_rightN, 
-					min(maximum(marcs_zN[i])/1e8, y_top), 
-					" MARCS",
-					color="k",
-					ha="left", va="bottom"
-				)
-		
-			lineN = matplotlib.lines.Line2D(
-				[offsetN + byN*to_the_rightN, offsetN + byN*to_the_rightN],
-				[minimum(marcs_zN[i])/1e8, min(maximum(marcs_zN[i])/1e8, y_top)], color="k", lw=2,
-				zorder=150, clip_on=false
-			)
-			axN.add_line(lineN)
-		#end
-		
-	
-		#=τcN = granularstatistics(
-			modelsN[i], 
-			x_limit=x_limitN[i], y_limit=y_y0N.+y_limitN[i], z_limit=z_limitN[i]
-		)
-
-		labi = labelsN[i]*L"\rm \tau_{c}="*"$(τcN./60) min"=#
-
-		axN.text(
-			0.97, 0.05, labelsN[i], 
-			ha="right", va="bottom", 
-			transform=axN.transAxes,
-			color="white", backgroundcolor="k", zorder=150
-		)
-
-		axN.set_ylabel("\n\n"*L"\rm Z\ [Mm]")
-		axN.set_ylabel("\n\n"*L"\rm Z\ [Mm]")
-		
-		axN.set_xlabel(L"\rm X\ [Mm]")
-		axN.set_xlabel(L"\rm X\ [Mm]")
-	
-		fN.savefig(
-			"vertical_slice_velocity-$(labels[mN]).png", dpi=600#, bbox_inches="tight"
-		)
-		fN.savefig(
-			"vertical_slice_velocity-$(labels[mN]).pdf"#, bbox_inches="tight"
+	for (i, mN) in enumerate(modelsN)
+		vertical_velocity_slice_with_contours(
+			mN, y0N[i], labelsN[i], marcs_TauN[i], marcs_zN[i], levelsGlobTauN[i],
+			pickevery=pickeveryN, quantity=:τ_ross, scale=log10, 
+			cbar_label=L"\rm \log \tau_{ross}"
 		)
 	end
 	
@@ -2398,7 +2478,7 @@ end
 # ╠═9a504c51-4e79-4ef4-8a4f-570f549422c0
 # ╠═0a2286e2-29e4-454b-b3a7-6a33a6828760
 # ╟─9465b4d5-08e2-453a-b758-6d4d6744c20b
-# ╟─d87a8635-7527-4584-81f6-eef0da1101d6
+# ╠═d87a8635-7527-4584-81f6-eef0da1101d6
 # ╟─0016626d-bb90-47eb-83f8-ec1f9d905a03
 # ╠═dfb2ddf1-10ec-426d-8907-eec2b694fe5a
 # ╟─c9a52157-81c4-4b8c-8dcd-b728a0890b00
@@ -2448,7 +2528,10 @@ end
 # ╟─516fe726-9d67-44dd-bbdb-f0ec17841185
 # ╟─dc93e1ef-c947-465c-ab37-b1fd251b695d
 # ╟─64213279-f47a-4b46-b1ac-730945d5b8f1
-# ╟─9c01846f-d4cc-43a8-9c0f-93f7e08bcefb
+# ╠═da45e33e-9013-443e-be60-e0b53d23d305
+# ╠═d59e82db-89f3-46fd-8af4-6bf96fab14cf
+# ╠═c9004d63-d6e5-415a-87ef-3db717a3f788
+# ╠═b214c18c-58ee-474f-809d-d07582ab5647
 # ╟─acf85ab7-3d8b-4e83-8a73-1ed00598882f
 # ╟─4ae6b55e-952a-4b70-937f-c81a2f790e83
 # ╟─faccedff-2a3a-40b1-ae88-c42a69112d16
@@ -2476,7 +2559,10 @@ end
 # ╠═5003a0ce-7aa0-4a5e-9765-6129d7660e1b
 # ╠═6ce71e68-3e46-4ee7-9777-7a04342b5e2e
 # ╠═09c3002d-1839-4adf-9d47-1811f1c81bcd
+# ╟─e8da9c4e-3474-41ea-a441-a22b089d20d6
+# ╟─0f3f07fa-660e-4117-a46e-792150a707b9
 # ╟─22bc6765-400a-470b-9f9d-ff1365d97e33
+# ╟─4874c7a5-6dd4-457a-876d-431e31b5875d
 # ╟─64a75b01-b653-45d5-9c87-0f61391ca7a6
 # ╟─8db25fe1-0e7d-4004-98f1-8cae9c057ac9
 # ╟─ff449d80-1610-45ef-9b0b-907d6de848f8

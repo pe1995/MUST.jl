@@ -109,3 +109,28 @@ function read_marcs_sub_table(f; start_at=nothing, end_at=nothing)
 
     data
 end
+
+function marcsBox(path::String)
+    model = MARCSModel(path)
+    xx = zeros(1, 1, model.k)
+    yy = zeros(1, 1, model.k)
+    zz = reshape(model.structure["Depth"], 1, 1, :)
+
+    d = reshape(model.structure["Density"], 1, 1, :) 
+    T = reshape(model.structure["T"], 1, 1, :)    
+    t = exp10.(reshape(model.structure["lgTauR"], 1, 1, :))    
+    pr = reshape(model.structure["Prad"], 1, 1, :)
+    pg = reshape(model.structure["Pg"], 1, 1, :)    
+
+    ne = reshape(model.structure["Pe"], 1, 1, :) ./ (KBoltzmann .* T)
+
+    data = Dict{Symbol, typeof(zz)}(
+        :Ne=>ne, :T=>T, :d=>d, :τ_ross=>t, :Pg=>pg, :Pr=>pr
+    )
+
+    for (k, v) in model.pressures
+        data[Symbol(k)] = reshape(v, 1, 1, :)
+    end
+
+    Box(xx, yy, zz, data, AtmosphericParameters())
+end
