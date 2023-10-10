@@ -1585,11 +1585,22 @@ md"### (F) Radiative Heating (Binning)"
 # ╔═╡ 64213279-f47a-4b46-b1ac-730945d5b8f1
 md"### (G) 2D surface"
 
-# ╔═╡ 9c01846f-d4cc-43a8-9c0f-93f7e08bcefb
-uz_surface_optical(snap) = begin
-	isurf = MUST.closest(log10.(MUST.axis(snap, :τ_ross, 3)), 0)
-	snap[:uz][:, :, isurf] #./1e5
+# ╔═╡ da45e33e-9013-443e-be60-e0b53d23d305
+surface_optical(snap) = begin
+	MUST.closest(log10.(MUST.axis(snap, :τ_ross, 3)), 0)
 end
+
+# ╔═╡ d59e82db-89f3-46fd-8af4-6bf96fab14cf
+surface_optical(snap, what) = begin
+	isurf = surface_optical(snap)
+	snap[what][:, :, isurf] 
+end
+
+# ╔═╡ c9004d63-d6e5-415a-87ef-3db717a3f788
+uz_surface_optical(snap) = surface_optical(snap, :uz)
+
+# ╔═╡ b214c18c-58ee-474f-809d-d07582ab5647
+rho_surface_optical(snap) = surface_optical(snap, :d)
 
 # ╔═╡ acf85ab7-3d8b-4e83-8a73-1ed00598882f
 extent(snap) = begin
@@ -1608,6 +1619,7 @@ begin
 
 	# limits for color bar
 	uzG  = uz_surface_optical(m3disG) ./1e5
+	#uzG = surface_optical(m3disG, :d)
 	vmin = minimum([minimum(u) for u in uzG])
 	vmax = maximum([maximum(u) for u in uzG])
 
@@ -2516,7 +2528,10 @@ end
 # ╟─516fe726-9d67-44dd-bbdb-f0ec17841185
 # ╟─dc93e1ef-c947-465c-ab37-b1fd251b695d
 # ╟─64213279-f47a-4b46-b1ac-730945d5b8f1
-# ╟─9c01846f-d4cc-43a8-9c0f-93f7e08bcefb
+# ╠═da45e33e-9013-443e-be60-e0b53d23d305
+# ╠═d59e82db-89f3-46fd-8af4-6bf96fab14cf
+# ╠═c9004d63-d6e5-415a-87ef-3db717a3f788
+# ╠═b214c18c-58ee-474f-809d-d07582ab5647
 # ╟─acf85ab7-3d8b-4e83-8a73-1ed00598882f
 # ╟─4ae6b55e-952a-4b70-937f-c81a2f790e83
 # ╟─faccedff-2a3a-40b1-ae88-c42a69112d16

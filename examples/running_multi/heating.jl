@@ -131,20 +131,20 @@ We compute the heating from the unbinned and binned opacity table and then compa
 # ╔═╡ 5185341e-9299-40d5-9881-9e002c926bfc
 eos = reload(
 	SqEoS, 
-	"/u/peitner/DISPATCH/binned/DIS_MARCS_v1.7.2/eos.hdf5"
+	"/u/peitner/DISPATCH/binned/DIS_MARCS_red_v1.7.5/eos.hdf5"
 )
 
 # ╔═╡ fa7355e5-9072-4c4e-be9a-d5412f6cde5c
 opa = reload(
 	SqOpacity, 
-	"/u/peitner/DISPATCH/binned/DIS_MARCS_v1.7.2/binned_opacities.hdf5"
+	"/u/peitner/DISPATCH/binned/DIS_MARCS_red_v1.7.5/binned_opacities.hdf5"
 )
 
 # ╔═╡ 69ee39a1-ae7d-4ec9-bae2-b830f80836ed
 md"These tables need to be combined and saved in the Multi format in order to be able to run them in M3D. We save them in common folder directly in Multi to make things easier."
 
 # ╔═╡ e830f3c8-ce12-4e46-94fe-33b847ae9b61
-folder_eos_rel = "input_multi3d/M3D_MARCS_v1.7.2"
+folder_eos_rel = "input_multi3d/M3D_MARCS_red_v1.7.5"
 
 # ╔═╡ fb609e98-ab06-487e-8bf1-91e232e5687b
 folder_eos = MUST.@in_m3dis folder_eos_rel
@@ -387,14 +387,14 @@ end
 # ╠═cbe117c0-f6c7-44bb-a86e-3d57362666d7
 # ╠═4668ca71-bd41-413a-8c67-d7e7dfe9b6ba
 # ╟─fb0a997b-f2dd-4a19-bdd6-c5293159eb2c
-# ╟─44f48b12-f884-49a6-94b9-728715daa2ab
+# ╠═44f48b12-f884-49a6-94b9-728715daa2ab
 # ╠═4fe50a65-7729-4a13-ab39-d81c62fae60d
 # ╠═12e97194-909a-493a-a242-9bf21e736713
 # ╟─858b7fc4-9d95-4a18-aabb-7621ccf90b91
 # ╠═0d6bc811-6e93-4f79-bbb2-1081c9314e7b
 # ╠═2295240c-cca2-441a-b901-437e1d7f8924
 # ╟─5d155f12-b42c-43da-918e-6714bfbb0eac
-# ╟─ae25d7f5-afad-4e41-8125-336c67047d33
+# ╠═ae25d7f5-afad-4e41-8125-336c67047d33
 # ╠═e85054fc-fa63-48cc-959a-1fa4c4df6965
 # ╠═06168a77-8a58-41a6-8305-dcc32a71ab7f
 # ╠═638dd690-d2f0-4381-b371-8fb444c18e5f

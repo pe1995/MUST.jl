@@ -427,6 +427,13 @@ end
 
 
 
+
+
+
+
+
+
+
 #= Effective temperature computations =#
 
 window(line::PythonCall.Py, args...; kwargs...) = begin
