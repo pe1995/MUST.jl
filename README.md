@@ -4,6 +4,13 @@ This package is capable of executing simulations via a SLURM distriubution syste
 In the following the main functionality is presented. Examples for most use-cases can be found in the `examples` folder.
 
 -------------------------
+
+# Table of Contents
+1. [Installation](#installation)
+2. [3D Model Atmospheres](#3d-model-atmospheres)
+3. [Atmosphere Analysis](#atmosphere-analysis)
+
+-------------------------
 ## Installation
 
 To use `MUST.jl` a julia installation is requiered. Please avoid using versions older than `julia 1.6`. After downloading julia, the `MUST.jl` package can be added, after permissions to the repository have been granted, by simply adding it though the package manager.
