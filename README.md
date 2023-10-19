@@ -168,6 +168,15 @@ MUST.save(b_τ, snapshots[i_s], folder=folder)
 which will check if all z columns are identical and assume that the scale is cartesian if they are.
 
 From this internal `Box` model we can convert to other formats, like e.g. the `MULTI3D` format.
+
+Note that you can always ensure a consistent orientation (from bottom to top, negative z values at the bottom, increasing upwards) by using the `flip!` function on this `Box` model.
+
+```julia
+flip!(b_s, density=:d, uz=:uz)
+```
+
+where you need to specify what field density and vetical velocity are. The density will be used to detect the ordering of arrays and z-velocity will be flipped in sign if the axis z needs to be flipped.
+
 ### MULTI3D Models
 
 *Relevant examples: `examples/dispatch2multi/box2multi.jl`*
@@ -177,7 +186,7 @@ A conversion from the `Box` model to the MULTI3D format can be done conveniently
 ```julia
 MUST.multiBox(box, eos, output_name, downsample_xy=downsample)
 ```
-where `downsample_xy` can be given to pick only every nth point in the horizontal as a downsampling technique. In case you want to the more transparend `TSO.jl` interface, you can use it like this
+where `downsample_xy` can be given to pick only every nth point in the horizontal as a downsampling technique. In case you want to use the more transparend `TSO.jl` interface, you can use it like this
 
 ```julia
 aos = @axed reload(SqEoS, eos_name)
@@ -190,7 +199,7 @@ model_box.data[:ne] = exp.(ne)
 MUST.multiBox(model_box, output_name, downsample_xy=downsample)
 ```
 where you can either use an EoS on the energy or temperature grid. 
-To load up the model again you may use the same function.
+To load up the model again you may use the same function
 
 ```julia
 MUST.multiBox(name)
@@ -198,6 +207,60 @@ MUST.multiBox(name)
 
 which returns it again as a `Box` model.
 
-### Reading MURaM Models
-### Converting `MUST.Box` Models
+There is a convenient collection which uses these models, that is included in this repository. However, because it uses `TSO.jl`, it is not part of the module. It can be loaded however, once you installed `TSO.jl` to your local environment.
 
+```julia
+must2multi = MUST.ingredients("convert2multi.jl")
+```
+
+which returns the script, which is located within the `src` folder. To use it one may call e.g.
+
+```julia
+must2multi.snaps2multi(
+	models..., 
+	eos=eos, 
+	label=["$(l)_$(xres)x$(xres)x$(zres)" for (i, l) in enumerate(labels)],
+	name="muram_m2",
+	n_horizontal=xres,
+	n_vertical=zres,
+	outfolder="nameoffolder/"
+)
+```
+
+Where the EoS needs to be a `TSO.SqEoS`. `Models` is a list of `MUST.Box` models, `labels` are the corresponding labels. Specifying a resolution here will lead to a resampling by linear interpolation, unless an other `method` is specified. See `gresample` function for more info.
+
+### MURaM Models
+
+*Relevant examples: `examples/Muram/convert2m3dis.jl, convert_muram.jl`*
+
+MURaM models are saved in a convenient format, which is why the conversion is straight forward. 
+
+```julia
+# Load a MURaM model
+MUST.MURaMBox(model_path)
+
+# interpolate to optical depth scale
+MUST.MURaMBox(model_path, opacity)
+```
+
+where you can get the opacity e.g. from an `TSO.SqOpacity` table.
+
+### Stagger Models
+
+*Relevant examples: `examples/stagger2box.ipynb`*
+
+Functions to read and convert Stagger snapshots are available. For this reader `msh, dat and aux` files are required within the same folder with the same filename (except the ending). Loading and converting is then very convenient.
+
+```julia
+s = MUST.StaggerSnap(filename, folder)
+```
+
+If additionally and EoS in the `MUST.jl` format is given, the gas pressure and rosseland opacity are recomputed from this EoS. Otherwise the values from the Stagger snapshot are used.
+
+```julia
+b = MUST.Box(s, eos=sqEOS)
+```
+
+Models in the `MUST.Box` format can then be converted to MULTI3D format as seen above. Please note that in M3D@DISPATCH the format needs to be specified as `"must"`, because the velocity in the vertical is not flipped in these models here.
+
+----------------
