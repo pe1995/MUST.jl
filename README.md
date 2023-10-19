@@ -129,7 +129,7 @@ b_s = MUST.Box(s, x, y, z)
 MUST.save(b_s; name="box_sn$(snapshots[i_s])", folder=folder)
 ```
 
-If you want to pick snapshots later using the rest of the API, it is important to name snapshots like specified in the `name` kwarg above. This will allow the code later to specify between geometrical and ``\tau``. If you want to convert the cube to the optical depth scale (recommended for visualisation) you can do this simply by specifying what fields of the `Box` relate to opacity and desity.
+If you want to pick snapshots later using the rest of the API, it is important to name snapshots like specified in the `name` kwarg above. This will allow the code later to specify between geometrical and $\rm \tau$. If you want to convert the cube to the optical depth scale (recommended for visualisation) you can do this simply by specifying what fields of the `Box` relate to opacity and desity.
 
 ```julia
 τ = MUST.optical_depth(b_s, opacity=:kr, density=:d)
@@ -158,7 +158,13 @@ that will check if name is a file, if not it will join
 path = isnothing(folder) ? @in_dispatch(name*".hdf5") : joinpath(folder, name*".hdf5")
 ```
 
-It will load the data arrays as memory maps automatically.
+It will load the data arrays as memory maps automatically. If you want to enforce the naming convention you can also try the automatic detection of the vertical scale using
+
+```julia
+MUST.save(b_τ, snapshots[i_s], folder=folder)
+```
+
+which will check if all z columns are identical and assume that the scale is cartesian if they are.
 
 ### Reading Multi models
 ### Reading MURaM models
