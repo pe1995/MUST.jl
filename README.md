@@ -264,3 +264,76 @@ b = MUST.Box(s, eos=sqEOS)
 Models in the `MUST.Box` format can then be converted to MULTI3D format as seen above. Please note that in M3D@DISPATCH the format needs to be specified as `"must"`, because the velocity in the vertical is not flipped in these models here.
 
 ----------------
+
+## Atmosphere Analysis
+
+*Relevant examples: `examples/Paper_I/paper_v2.jl`*
+
+The module contains usefull functionality that allow easy and transparent analysis of `MUST.Box` models. The most common usecase is the investigation of the average stratification of various quantities.
+
+### Plane Statistics
+
+Plane statistics are usefull to apply a given statistic plane wise to the entire data cube. The most convenient interface is the `plane_statistic` function, that is designed for exactly this usecase
+
+```julia
+# mean temperature of the snapshot box
+T = plane_statistic(mean, box, :T)
+
+# mean log density 
+lnRho = log.(plane_statistic(mean, box, :d))
+
+# plane-wise std of temperature
+stdT = plane_statistic(std, box, :T)
+```
+
+The corresponding axis, most of the time the z-axis, can be obtained as 1D array.
+
+```julia
+z = axis(box, :z)
+```
+
+If the axis is not z, but e.g. $\rm \tau$, one may either use 
+
+```julia
+# get the 3rd dimension of τ_ross array
+axis(box, :τ_ross, 3)
+```
+
+or simply use the shortcut
+
+```julia
+τ, T = profile(mean, box, :log10τ_ross, T)
+```
+
+where log10 or log can be added in front of any variable to apply the corresponding log directly. This is convenient when you want to past this in the plotting function directly, for example
+
+```julia
+plot(profile(mean, box, :log10τ_ross, T)...)
+```
+
+will plot the average temperature as a function of optical depth. Note that this will only be correct, if the given `Box` is indeed on the $\rm \tau$ scale. Computing the average quantites on the geometrical scale and plot against average optical depth is **not** equal to average planes in a cube interpolated to a uniform optical depth scale. One should always compute averages on planes of constant optical depth if one intents to compare on that scale.
+
+
+### Surfaces
+
+You can either get surfaces which are closest to a given axis value, or interpolate column wise.
+
+```julia
+# closest plane to optical surface
+MUST.closest(log10.(axis(snap, :τ_ross, 3)), 0)
+
+# interpolate to optical surface
+fh = MUST.height_where(τ_ross=1.0)
+plane = MUST.reduce_by_column(fh, box)
+```
+
+where `reduce_by_column` will create a new Box with size 1 in z-direction. `fh` is a function that takes in a rosseland opacity column and returns the interpolated column as a function of z, such that a call to `fh` with all fields of `box` as kwargs will return a function that can be evaluated at any point in optical depth and will return then corresponding height. This can be used to interpolate the cube to this height. A
+n easier interpolation can be achived by using the `interpolate_to` function
+
+```julia
+plane = MUST.interpolate_to(box, :T, τ_ross=0, logspace=true)
+```
+which is more convenient and will also interpolate by column.
+
+### Time Statistics
+
