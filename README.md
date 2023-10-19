@@ -3,8 +3,8 @@ Julia package for creating 3D stellar atmosphere models using the DISPATCH frame
 This package is capable of executing simulations via a SLURM distriubution system. It furthermore handles the reading, conversion and post-processing/visualisation of those simulations. It prepares the input for the Multi3D radiative transfer code. This package is complementary to the `TSO.jl` package, which is responsible for opacity realted questions.
 In the following the main functionality is presented. Examples for most use-cases can be found in the `examples` folder.
 
-## Installation
 -------------------------
+## Installation
 
 To use `MUST.jl` a julia installation is requiered. Please avoid using versions older than `julia 1.6`. After downloading julia, the `MUST.jl` package can be added, after permissions to the repository have been granted, by simply adding it though the package manager.
 
@@ -47,11 +47,12 @@ $ julia --project
 
 Which should work in most cases. 
 
+-------------------------
 ## 3D Model Atmospheres
-------------------------
+
 The main functionality of `MUST.jl` is to read different stellar atmospheres in different formats and convert them to one comman format that can be used for post-processing purposes. For this, there are two different model representations available, the `MUST.Space` and `MUST.Box`. The `MUST.Space` is designed as a loose array of points associated with different coordinates, that can have any shape or orientation. This is important if models with unspecified, ungirdded orientation are present. In most cases, this is not relevant unless there is mesh refinement active in Dispatch. In any case, for any post-processing purposes the model should always be converted in a `MUST.Box` object, which tabulates any data present as 3D arrays.
 
-### Reading Dispatch models
+### Reading Dispatch Models
 
 *Relevant examples: `examples/dispatch2space/convert.jl, prepare_restart.jl`*
 
@@ -166,7 +167,37 @@ MUST.save(b_τ, snapshots[i_s], folder=folder)
 
 which will check if all z columns are identical and assume that the scale is cartesian if they are.
 
-### Reading Multi models
-### Reading MURaM models
-### Saving `MUST.Box` models
+From this internal `Box` model we can convert to other formats, like e.g. the `MULTI3D` format.
+### MULTI3D Models
+
+*Relevant examples: `examples/dispatch2multi/box2multi.jl`*
+
+A conversion from the `Box` model to the MULTI3D format can be done conveniently. For this only the path to the hdf5 file of the model needs to be given to the correspoding function. Note that an electron density is needed, however in MULTI3D `use_ne` can be set to `false`. In that case the elecctron density can be filled with any value, it won't be used. If the EoS is loaded in the `MUST.jl` format, it can be passed to the function to direclty compute `Ne`.
+
+```julia
+MUST.multiBox(box, eos, output_name, downsample_xy=downsample)
+```
+where `downsample_xy` can be given to pick only every nth point in the horizontal as a downsampling technique. In case you want to the more transparend `TSO.jl` interface, you can use it like this
+
+```julia
+aos = @axed reload(SqEoS, eos_name)
+ne = if !TSO.is_internal_energy(aos)
+    lookup(aos, :lnNe, log.(model_box[:d]), log.(model_box[:T]))
+else
+    lookup(aos, :lnNe, log.(model_box[:d]), log.(model_box[:ee]))
+end
+model_box.data[:ne] = exp.(ne)
+MUST.multiBox(model_box, output_name, downsample_xy=downsample)
+```
+where you can either use an EoS on the energy or temperature grid. 
+To load up the model again you may use the same function.
+
+```julia
+MUST.multiBox(name)
+```
+
+which returns it again as a `Box` model.
+
+### Reading MURaM Models
+### Converting `MUST.Box` Models
 
