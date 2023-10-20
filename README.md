@@ -173,10 +173,15 @@ b, bτ = snapshotBox(snapshots[end-1], folder=folder)
 The naming convention of the saved snapshots will make it possible to browse the folder for converted models on different scales later, such that we can pick specific snapshots using e.g.
 
 ```julia
-pick_snapshot(out_folder, :recent)
+pick_snapshot(folder, :recent)
 ```
 
-which will return geometrical and optical depth snapshots, if available with above names. `:recent` will return the last available snapshot, but you can pass any snapshot number that is converted.
+which will return geometrical and optical depth snapshots, if available with above names. `:recent` will return the last available snapshot, but you can pass any snapshot number that is converted. You can obtain a list of converted snapshots from
+
+```julia
+converted_snapshots(folder)
+```
+which will return a dictionary, containing the folder, and for every found snapshot number the corresponding box names, if they were found at all.
 You can however pick them any way you like. You can load them later using a simple
 
 ```julia
