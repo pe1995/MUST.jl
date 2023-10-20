@@ -101,8 +101,8 @@ Put more emphasis on the horizontal extend.
 function resolutionHD(av_model, min_x, max_x, min_z, max_z, hres, 
                                     patch_size=30; cut_bottom=0.3, scale_resolution=1.2)
     nx = ceil(abs(max_x - min_x)/abs(hres)) * scale_resolution
-    dx = round((max_x - min_x) * (1-cut_bottom), sigdigits=2)
-    target_res = round(dx/nx, sigdigits=2)
+    dx = round((max_x - min_x) * (1-cut_bottom), sigdigits=3)
+    target_res = round(dx/nx, sigdigits=3)
     nx = ceil(nx / patch_size) * patch_size
 
     ## how many patches do we need then
@@ -110,7 +110,7 @@ function resolutionHD(av_model, min_x, max_x, min_z, max_z, hres,
 
     ## So we need to make sure that we have an integer multiple of this number of
     ## patches in the other dimensions
-    dz = round((max_z - min_z) * (1-cut_bottom), sigdigits=2) 
+    dz = round((max_z - min_z) * (1-cut_bottom), sigdigits=3) 
     
     ## we need this many more patches in x dimension
     dxz_frac = dz / dx
@@ -134,8 +134,8 @@ function resolutionHD(av_model, min_x, max_x, min_z, max_z, hres,
     nx = n_patches * patch_size
     nz = n_zpatches * patch_size
 
-    target_res = round(dx/nx, sigdigits=2)
-    dx = round(nx * target_res, sigdigits=2)
+    target_res = round(dx/nx, sigdigits=3)
+    dx = round(nx * target_res, sigdigits=3)
     res_points = nz / nx
     dz = res_points * dx
     
@@ -200,11 +200,11 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     end
 
     larger_than_sun = x_size/l_cgs / 4.6
-    newton_time = 60 #* larger_than_sun
-    friction_time = 100 #* larger_than_sun
+    newton_time = 100 #* larger_than_sun
+    friction_time = 150 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
-    l_cgs = MUST.roundto(l_cgs * larger_than_sun, 0.1, magnitude=1e1)
+    l_cgs = MUST.roundto(l_cgs * larger_than_sun, 0.1, magnitude=1e3)
 
     # experiment with t scale based on size only
     test_tscale = true
@@ -221,13 +221,14 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         tscale
     end
 
+    x = round(z_size/l_cgs, sigdigits=3) * 2
     MUST.set!(
         nml, 
-        cartesian_params=(:size=>[round(x_size/l_cgs, digits=2), round(x_size/l_cgs, digits=2), round(z_size/l_cgs, digits=2)], 
+        cartesian_params=(:size=>[x, x, round(z_size/l_cgs, sigdigits=3)], 
                         :dims=>[patches(x_resolution, patch_size), 
                                 patches(x_resolution, patch_size), 
                                 patches(z_resolution, patch_size)],
-                        :position=>[0,0,round(-dup/l_cgs, digits=2)]),
+                        :position=>[0,0,round(-dup/l_cgs, sigdigits=3)]),
         patch_params=(:n=>[patch_size, patch_size, patch_size],),
         scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
         stellar_params=(:g_cgs=>round(exp10(logg), digits=5), 
@@ -239,14 +240,14 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         newton_params=(:ee0_cgs=>round(log(eemin), digits=5), 
                         :position=>round((z_size/2 - 1.2*dup)/l_cgs, digits=2), 
                         :end_time=>newton_time, 
-                        :decay_scale=>10.0,
+                        :decay_scale=>25.0,
                         :scale=>newton_scale),
-        sc_rt_params=(  :rt_llc=>[-round(x_size/2/l_cgs, digits=2), -round(x_size/2/l_cgs, digits=2), -round((z_size/2 + dup)/l_cgs, digits=2)], 
-                        :rt_urc=>[ round(x_size/2/l_cgs, digits=2),  round(x_size/2/l_cgs, digits=2),  round((z_size/2 - dup)/l_cgs, digits=2)], 
+        sc_rt_params=(  :rt_llc=>[-x, -x, -round((z_size/2 + dup)/l_cgs, sigdigits=3)], 
+                        :rt_urc=>[ x,  x,  round((z_size/2 - dup)/l_cgs, sigdigits=3)], 
                         :n_bin=>n_bin,
                         :courant=>courant_rt,
                         :start_time=>newton_time,
-                        :decay_scale=>10.0,
+                        :decay_scale=>25.0,
                         :rt_freq=>0.0,
                         :rt_res=>[-1,-1,rt_patch_size]),
         an_params=(:courant=>courant_hd,),
@@ -297,18 +298,15 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     d_lo = zeros(nrow(grid.info))
     T_lo = zeros(nrow(grid.info))
 
-    τ_up = -4.0
+    τ_up = -4.5
     τ_surf = 0.0
-    τ_down = 4.0
+    τ_down = 4.5
 
     for i in 1:nrow(grid.info)
         ## What should the resolution be
         xd[i], xr[i], zd[i], zr[i] = resolutionHD(models[i], 
                                                 grid.info[i, "mi_x"], grid.info[i, "ma_x"], grid.info[i, "mi_z"], grid.info[i, "ma_z"], grid.info[i, "hres"],
                                                 patch_size; cut_bottom=cut_bottom)
-        
-        
-
         ## Where is the optical surface
         it0 = argmin(abs.(log10.(models[i].τ) .- τ_surf))
 

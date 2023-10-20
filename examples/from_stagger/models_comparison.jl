@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.27
+# v0.19.29
 
 using Markdown
 using InteractiveUtils
@@ -23,7 +23,7 @@ md"# Investigating different Models"
 begin
 	mean = MUST.mean
 	#MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
-	MUST.@import_dispatch "/home/eitner/shared/model_grid/dispatch2"
+	MUST.@import_dispatch "/mnt/beegfs/gemini/groups/bergemann/users/eitner/model_grid/dispatch2"
 end;
 
 # ╔═╡ ee6a633b-6ccc-412f-ba74-e105aa148afc
@@ -39,17 +39,17 @@ names = [
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/grid_t50g40m00")
+	MUST.@in_dispatch("data/grid_t5777g44m00")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t5777g44m00_v0.1"),
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
 labels = [
-	"test_restart"
+	"test_new_opacity"
 ]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
@@ -65,7 +65,7 @@ begin
 	
 	for i in eachindex(names)
 		snapshot, snapshot_τ = MUST.pick_snapshot(
-			MUST.converted_snapshots(out_folder[i]), :recent
+			MUST.converted_snapshots(out_folder[i]), 164
 		)
 		
 		append!(snapshots, [snapshot])
@@ -90,9 +90,18 @@ end
 # ╠═╡ show_logs = false
 initial_model = [
 	@optical(Average3D(eos[i], 
-		MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1/inim.dat")), eos[i], opa[i])
+		MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t5777g44m00_v0.1/inim.dat")), eos[i], opa[i])
 		for i in eachindex(eos)
 ]
+
+# ╔═╡ c1183224-cc9d-4cd3-ac52-681eb8455df3
+test_model = @optical(
+	Average3D(eos[1], 
+	MUST.@in_dispatch(
+		"input_data/grd/t5777g44m0005_00010_av.dat")
+	), 
+	eos[1], opa[1]
+)
 
 # ╔═╡ 4c8d357d-a41a-4274-b131-93ebb695b911
 stagger_model = initial_model #=[
@@ -232,10 +241,16 @@ end
 
 # ╔═╡ 8a8a40e0-5b03-4c17-93a3-4eccf12e3717
 begin
-	plot(-initial_model[1].z, exp.(initial_model[1].lnT), 
+	#plot()
+	#plot(-initial_model[1].z, exp.(initial_model[1].lnT), 
+	#			lw=1.5, color=:black, label="initial condition", ls=:dash)
+	
+	plot(-test_model.z, exp.(test_model.lnT), 
 				lw=1.5, color=:black, label="initial condition", ls=:dash)
 
-	
+	plot!(-marcs_model[:, 4], marcs_model[:, 5], 
+		color=:royalblue, ls=:dot, lw=2.5, label="MARCS")
+
 	
 	for (i, snapshot) in enumerate(snapshots)
 		plot!(profile(mean, snapshot, :z, :T)..., 
@@ -252,6 +267,9 @@ end
 begin
 	plot()#profile(mean, stagger_τ, :log10τ_ross, :T)..., 
 		#		lw=1.5, color=:black, label="Stagger", ls=:dash)
+
+	plot!(log10.(test_model.τ), exp.(test_model.lnT), 
+				lw=1.5, color=:black, label="initial condition", ls=:dash)
 
 	for (i, snapshot_τ) in enumerate(snapshots_τ)
 		plot!(profile(mean, snapshot_τ, :log10τ_ross, :T)..., 
@@ -789,6 +807,7 @@ end
 # ╟─3e747391-ba4b-47bf-b363-abcb46a9309b
 # ╟─ed6c250a-84d5-4ac6-bf54-9e8fcdbe55a3
 # ╠═d8693137-82f7-4ccb-b886-4115e3032392
+# ╠═c1183224-cc9d-4cd3-ac52-681eb8455df3
 # ╠═4c8d357d-a41a-4274-b131-93ebb695b911
 # ╠═c72cea6d-59bd-4721-8044-9fa28fb4039e
 # ╠═4a1730fb-1fbe-445a-b850-7539967dcbe2

@@ -103,7 +103,7 @@ begin
         ) for i in 1:nrow(grid.info)
     ]
     @everywhere form_opacities(args) = prepare4dispatch.formation_opacities(args[1:3]...; logg=args[4], extension=args[5])
-    #map(form_opacities, args)    
+    map(form_opacities, args)    
 
     ## Do the binning in parallel across many workers, this is the most time consuming part
     args = [
@@ -137,7 +137,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=24, cut_bottom=0.25)
+    prepare4dispatch.resolution!(grid, patch_size=22, cut_bottom=0.1)
 end
 
 #====================== Step (C): Conversion =================================#

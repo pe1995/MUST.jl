@@ -1,17 +1,17 @@
 """
-    snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=true)
+    snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=true, add_selection=false, to_multi=true)
 
 Convert the snapshot with number `number` from dispatch to a Space object.
 In the current version, this relies on the dispatch python package.
 This may change in the future.
 
 # Examples
-```jldoctest
+```julia
 MUST.@import_dispatch "/path/to/dispatch2"
 box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"))
 ```
 """
-function snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=true, add_selection=false)
+function snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=true, add_selection=false, to_multi=true)
     folder = if !isdir(folder)
         #@warn "Given folder does not exist. Trying to add dispatch location"
         @in_dispatch folder
@@ -75,6 +75,7 @@ function snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=tru
         # Add additional columns already in CGS after converting
         add_from_EOS!(s, eos_sq, :T)
         add_from_EOS!(s, eos_sq, :kr)
+        add_from_EOS!(s, eos_sq, :Ne)
 
         # Check if Teff should be added
         if save_info
@@ -101,6 +102,12 @@ function snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=tru
             b_τ 
         else
             nothing
+        end
+
+        # convert to Multi format and save in the same folder, keep the number of the snapshot!
+        if to_multi
+            b_s.data[:ne] = b_s.data[:Ne]
+            multiBox(b_s, joinpath(folder, "m3dis_$(number)"))
         end
 
         b_s, b_τ

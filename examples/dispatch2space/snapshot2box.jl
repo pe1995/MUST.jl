@@ -30,6 +30,9 @@ md"Pick a couple (or one specific) to convert them. This takes a while and can, 
 # ╔═╡ 85ba291b-7456-45b2-a926-09865a77b3fa
 b, bτ = snapshotBox(snapshots[end-1], folder=folder)
 
+# ╔═╡ fcbbabc0-633a-4575-90e7-34ee17d2b80c
+minimum(b.z)
+
 # ╔═╡ Cell order:
 # ╠═136196ea-6f25-11ee-0b3c-ffd40a627be2
 # ╠═73be8ecf-bb0a-4361-8839-cc0b21df09be
@@ -38,3 +41,4 @@ b, bτ = snapshotBox(snapshots[end-1], folder=folder)
 # ╠═b1cd3611-f1e4-4e7d-814a-e4c6656ea6ce
 # ╟─cce53fe6-8d5e-49cb-bcce-52877a7d898e
 # ╠═85ba291b-7456-45b2-a926-09865a77b3fa
+# ╠═fcbbabc0-633a-4575-90e7-34ee17d2b80c
