@@ -49,7 +49,7 @@ end
 end
 
 @everywhere begin
-    host = "raven"
+    host = "gemini"
 
     if host == "raven"
         name_extension    = "DIS_MARCS"
@@ -91,16 +91,19 @@ begin
     end
 end
 
-#=================== Step (B): Fomation opacities ============================#
+#================ Step (B): Fomation opacities (parallel) ====================#
 begin
-    for i in 1:nrow(grid.info)
-        prepare4dispatch.formation_opacities(
+    args = [
+        (
             grid.info[i, "eos_root"], 
             grid.info[i, "av_path"], 
-            grid.info[i, "name"];
-            logg=grid.info[i, "logg"],
-            extension=extension)
-    end
+            grid.info[i, "name"],
+            grid.info[i, "logg"],
+            extension
+        ) for i in 1:nrow(grid.info)
+    ]
+    @everywhere form_opacities(args) = prepare4dispatch.formation_opacities(args[1:3]...; logg=args[4], extension=args[5])
+    #map(form_opacities, args)    
 
     ## Do the binning in parallel across many workers, this is the most time consuming part
     args = [
@@ -111,10 +114,18 @@ begin
             grid.info[i, "logg"], 
             :kmeans,
             Nbins,
+            [ 
+                TSO.Quadrant((0.0, 100.0), (1.25, 100), 3, stripes=:κ),
+                TSO.Quadrant((0.0, 100.0), (-100, 1.25), 4, stripes=:λ),
+            ],
             extension
         ) for i in 1:nrow(grid.info)
     ]
-    @everywhere bin_opacities(args) = prepare4dispatch.bin_opacities(args[1:3]...; logg=args[4], method=args[5], Nbins=args[6], extension=args[7])
+    @everywhere bin_opacities(args) = prepare4dispatch.bin_opacities(
+        args[1:3]...; 
+        logg=args[4], method=args[5], Nbins=args[6], extension=args[8],
+        quadrants=args[7]
+        )
     Distributed.pmap(bin_opacities, args)    
     
     ## Save the eos info
@@ -124,10 +135,9 @@ begin
     grid.info[!, "binned_E_tables"]  = [TSO.join_full(name_extension, "E", grid.info[i, "name"], version, add_start=false) for i in 1:nrow(grid.info)]
     grid.info[!, "rad_bins"]         = [Nbins for _ in 1:nrow(grid.info)]
 
-
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=20, cut_bottom=0.35)
+    prepare4dispatch.resolution!(grid, patch_size=24, cut_bottom=0.25)
 end
 
 #====================== Step (C): Conversion =================================#

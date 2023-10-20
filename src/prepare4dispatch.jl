@@ -163,7 +163,8 @@ fromT_toE(args...; kwargs...) = TSO.convert_fromT_toE(args...; kwargs...)
 
 function create_namelist(name, x_resolution, z_resolution, x_size, z_size, 
                         patch_size, rt_patch_size, δz, l_cgs, d_cgs, logg, teff, 
-                        eemin, nz, initial_path, n_bin, eos_table, tscale)
+                        eemin, nz, initial_path, n_bin, eos_table, 
+                        tscale, vmax, vmin)
     #ngrid = nrow(grid.info)
     #phase = grid.name
 
@@ -199,18 +200,25 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     end
 
     larger_than_sun = x_size/l_cgs / 4.6
-    newton_time = 100 #* larger_than_sun
+    newton_time = 60 #* larger_than_sun
     friction_time = 100 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
-    l_cgs = round(l_cgs * larger_than_sun, sigdigits=2)
+    l_cgs = MUST.roundto(l_cgs * larger_than_sun, 0.1, magnitude=1e1)
 
     # experiment with t scale based on size only
-    test_tscale = false
+    test_tscale = true
+    Δt(R, u, c=1.0) = c * R / u
+
     tscale = if test_tscale
-        round(x_size / (4.6 * 1e8), sigdigits=2) * 100.0
+        # Chose dt, such that with the given scaling c is a given value at the highest 
+        # absolute velocity in the given stagger model. There will be higher 
+        # velocities during the simulation, so there has to be room for larger
+        # currants. Round to the next quater
+        max(100.0, MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
-        round(larger_than_sun*tscale, sigdigits=2)
+        #round(larger_than_sun*tscale, sigdigits=2)
+        tscale
     end
 
     MUST.set!(
@@ -231,13 +239,15 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         newton_params=(:ee0_cgs=>round(log(eemin), digits=5), 
                         :position=>round((z_size/2 - 1.2*dup)/l_cgs, digits=2), 
                         :end_time=>newton_time, 
-                        :decay_scale=>5.0,
+                        :decay_scale=>10.0,
                         :scale=>newton_scale),
         sc_rt_params=(  :rt_llc=>[-round(x_size/2/l_cgs, digits=2), -round(x_size/2/l_cgs, digits=2), -round((z_size/2 + dup)/l_cgs, digits=2)], 
                         :rt_urc=>[ round(x_size/2/l_cgs, digits=2),  round(x_size/2/l_cgs, digits=2),  round((z_size/2 - dup)/l_cgs, digits=2)], 
                         :n_bin=>n_bin,
                         :courant=>courant_rt,
                         :start_time=>newton_time,
+                        :decay_scale=>10.0,
+                        :rt_freq=>0.0,
                         :rt_res=>[-1,-1,rt_patch_size]),
         an_params=(:courant=>courant_hd,),
         eos_params=(:table_loc=>eos_table,)
@@ -344,7 +354,6 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     grid.info[!, "patch_size"] = [patch_size for _ in 1:nrow(grid.info)]
     grid.info[!, "rt_patch_size"] = [patch_size*2 for _ in 1:nrow(grid.info)]
 
-
     grid.info[!, "rho_norm"] = rho_norm
     grid.info[!, "l_norm"] = l_norm
     grid.info[!, "z_up"] = z_up
@@ -354,7 +363,6 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     grid.info[!, "z_lo"] = z_lo
     grid.info[!, "d_lo"] = d_lo
     grid.info[!, "T_lo"] = T_lo
-
 
     nothing
 end
@@ -384,7 +392,9 @@ create_namelist!(grid::MUST.StaggerGrid) = begin
                                 g(i, "rad_bins"),
                                 joinpath("input_data/grd/", 
                                             g(i, "binned_E_tables")),
-                                g(i, "tscale"))
+                                g(i, "tscale"),
+                                g(i, "vmax"),
+                                g(i, "vmin"))
         append!(names, [name])
     end
 

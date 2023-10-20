@@ -61,7 +61,7 @@ The main functionality of `MUST.jl` is to read different stellar atmospheres in 
 
 ### Reading Dispatch Models
 
-*Relevant examples: `examples/dispatch2space/convert.jl, prepare_restart.jl`*
+*Relevant examples: `examples/dispatch2space/convert.jl, prepare_restart.jl, snapshot2box.jl`*
 
 For converting from Dispatch to `MUST.jl` the Dispatch python routines are used. For tnis, the location of the `dispatch2` installation has to be known.
 
@@ -70,13 +70,10 @@ using MUST
 MUST.@import_dispatch "path/to/dispatch2/"
 ```
 This macro will import the dispatch location into the right possition, such that the python modules can be found. Next, the list of snapshots that should be converted has to be loaded. 
-For this the `Glob` module may be used.
 
 ```julia
-using Glob
 folder = MUST.@in_dispatch "data/yourmodelhere/"
-content_of_folder = glob("*/", folder)
-snapshots = sort(MUST.list_of_snapshots(content_of_folder))
+snapshots = sort(MUST.list_of_snapshots(folder))
 ```
 
 where `MUST.@in_dispatch` will append the correct experiment folder to your dispatch location, so that you can give it relative to the `stellar_atmospheres` experiment. The snapshots themselves can now be read using the python rourtine, and then assambled to a actual 3D object, to avoid intransparent patch-like data structures.
@@ -148,13 +145,30 @@ b_τ = MUST.height_scale_fast(b_s, :τ_ross)
 MUST.save(b_τ; name="box_tau_sn$(snapshots[i_s])", folder=folder)
 ```
 
-This naming convention will make it possible to browse the folder for converted models on different scales later, such that we can pick specific snapshots using e.g.
+A handy shortcut that contains the above procedure is provided as well. After loading the dispatch2 module through the usage of the macro mentioned above it is possible to use the following function, that incorporates above steps
+
+```julia
+using MUST
+
+# Load the dispatch2 module
+@import_dispatch "path/to/dispatch2"
+folder = @in_dispatch "data/yourdispatchmodel"
+
+# list of all snapshots in that folder (dispatch format)
+snapshots = list_of_snapshots(folder)
+
+# convert the given snapshot to a Box, also on optical depth scale
+b, bτ = snapshotBox(snapshots[end-1], folder=folder)
+```
+
+The naming convention of the saved snapshots will make it possible to browse the folder for converted models on different scales later, such that we can pick specific snapshots using e.g.
 
 ```julia
 pick_snapshot(out_folder, :recent)
 ```
 
-which will return geometrical and optical depth snapshots, if available with above names. You can however pick them any way you like. You can load them later using a simple
+which will return geometrical and optical depth snapshots, if available with above names. `:recent` will return the last available snapshot, but you can pass any snapshot number that is converted.
+You can however pick them any way you like. You can load them later using a simple
 
 ```julia
 b = MUST.Box(name, folder=nothing)

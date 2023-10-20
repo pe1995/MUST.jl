@@ -90,6 +90,10 @@ function list_of_snapshots(list_of_files::Vector{String})
 	los
 end
 
+list_of_snapshots(folder::String) = list_of_snapshots(glob("*/", folder))
+
+
+
 function _snapshot_folder(i_snap::Int, list_of_files::Vector{String})
 	snap_int = -1
 	snap_str = ""

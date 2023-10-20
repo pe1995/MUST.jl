@@ -109,6 +109,39 @@ end
 
 uniqueidx(v) = unique(i -> v[i], eachindex(v))
 
+"""
+    roundto(x, y)
+
+Round the given value `x` to multiples of `y`.
+
+# Examples
+```jldoctest
+julia> roundto(π, 0.01)
+3.14
+julia> roundto(π, 0.25)
+3.25
+julia> roundto(2.6086956525e8, 0.25)
+2.5e8
+```
+"""
+roundto(x, y; magnitude=nothing) = begin
+    order_of_magnitude = if isnothing(magnitude) 
+        exp10(round(log10(x)))
+    else
+        exp10(round(log10(x))) / magnitude
+    end
+
+    x = x / order_of_magnitude
+    x = if (x % y) >= y/2
+        div(x, y) * y + y
+    else
+        div(x, y) * y
+    end
+
+    x = x * order_of_magnitude
+end
+
+
 
 
 #= Integration functions =#

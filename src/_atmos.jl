@@ -657,6 +657,29 @@ function save(s::MUST.Box; folder=nothing, name=nothing)
     path
 end
 
+"""
+    save(s::Box, number::Int)
+
+Identify on which scale the box is and save it with the correct name.
+"""
+save(s::Box, number::Int; folder=nothing) = begin
+    name = is_geo_scale(s) ? "box_sn$(number)" : "box_tau_sn$(number)"
+
+    save(s, name=name, folder=folder)
+end
+
+is_geo_scale(s::Box) = begin
+    all_equal = trues(size(s.z, 3))
+    zref = s.z[1, 1, :]
+    for iy in axes(s.y, 2)
+        for ix in axes(s.x, 1)
+            all_equal .= all_equal .& (zref .≈ s.z[ix, iy, :])
+        end
+    end
+
+    all(all_equal)
+end
+
 function save(p::AtmosphericParameters, fid)
     eles = [keys(p.composition)...]
     vals = eltype(values(p.composition))[p.composition[e] for e in eles]
@@ -1651,8 +1674,7 @@ Base.axes(b::Box, args...; kwargs...) = axes(b.z, args...; kwargs...)
 Base.size(b::Box, args...; kwargs...) = size(b.z, args...; kwargs...)
 
 closest(a, v) = argmin(abs.(a .- v))
-
-
+    
 
 is_log(x) = begin
 	sx = String(x)
@@ -1754,7 +1776,7 @@ mesh(m::Box) = meshgrid(
 Flip the box object and possibly reverse the sign of the height scale (only geometrical).
 It used the density to determine where the bottom is.
 """
-function flip!(box::Box; density=:d, temperature=:T)
+function flip!(box::Box; density=:d, uz=:uz)
     # Determine if it is oriented from bottom to top
     d = box[density][1, 1, :]
     is_upside_down = first(d) < last(d)
@@ -1769,9 +1791,10 @@ function flip!(box::Box; density=:d, temperature=:T)
         reverse!(box.z, dims=3)
     end
 
-    # Now it is from bottom to top, so the first value in z should be the smalles value
+    # Now it is from bottom to top, so the first value in z should be the smallest value
     if box.z[1, 1, 1] > box.z[1, 1, end]
         box.z .*= -1
+        box.data[uz] .*= -1
     end
 
     box
