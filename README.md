@@ -10,14 +10,14 @@ You can jump through the documentation by using the follwing topic shortcuts. No
 
 1. [Installation](#installation)
 2. [3D Model Atmospheres](#3d-model-atmospheres)
-    2.1 [Reading Dispatch Models](#reading-dispatch-models)
-    2.2 [MULTI3D Models](#multi3d-models)
-    2.3 [MURaM Models](#muram-models)
-    2.4 [Stagger Models](#stagger-models)
+    1. [Reading Dispatch Models](#reading-dispatch-models)
+    2. [MULTI3D Models](#multi3d-models)
+    3. [MURaM Models](#muram-models)
+    4. [Stagger Models](#stagger-models)
 3. [Atmosphere Analysis](#atmosphere-analysis)
 4. [Running Dispatch](#running-dispatch)
-    4.1 [Running MULTI3D](#running-multi3d)
-    4.1 [Running StAt](#running-stellar-atmospheres)
+    1. [Running MULTI3D](#running-multi3d)
+    2. [Running StAt](#running-stellar-atmospheres)
 
 -------------------------
 ## Installation
