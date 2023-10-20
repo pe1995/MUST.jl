@@ -5,10 +5,19 @@ In the following the main functionality is presented. Examples for most use-case
 
 -------------------------
 
-# Table of Contents
+# Shortcuts
+You can jump through the documentation by using the follwing topic shortcuts. Note that less relevant sections of the documentation may not appear here.
+
 1. [Installation](#installation)
 2. [3D Model Atmospheres](#3d-model-atmospheres)
+    2.1 [Reading Dispatch Models](#reading-dispatch-models)
+    2.2 [MULTI3D Models](#multi3d-models)
+    2.3 [MURaM Models](#muram-models)
+    2.4 [Stagger Models](#stagger-models)
 3. [Atmosphere Analysis](#atmosphere-analysis)
+4. [Running Dispatch](#running-dispatch)
+    4.1 [Running MULTI3D](#running-multi3d)
+    4.1 [Running StAt](#running-stellar-atmospheres)
 
 -------------------------
 ## Installation
@@ -348,8 +357,7 @@ fh = MUST.height_where(τ_ross=1.0)
 plane = MUST.reduce_by_column(fh, box)
 ```
 
-where `reduce_by_column` will create a new Box with size 1 in z-direction. `fh` is a function that takes in a rosseland opacity column and returns the interpolated column as a function of z, such that a call to `fh` with all fields of `box` as kwargs will return a function that can be evaluated at any point in optical depth and will return then corresponding height. This can be used to interpolate the cube to this height. A
-n easier interpolation can be achived by using the `interpolate_to` function
+where `reduce_by_column` will create a new Box with size 1 in z-direction. `fh` is a function that takes in a rosseland opacity column and returns the interpolated column as a function of z, such that a call to `fh` with all fields of `box` as kwargs will return a function that can be evaluated at any point in optical depth and will return then corresponding height. This can be used to interpolate the cube to this height. An easier interpolation can be achived by using the `interpolate_to` function
 
 ```julia
 plane = MUST.interpolate_to(box, :T, τ_ross=0, logspace=true)
@@ -358,3 +366,21 @@ which is more convenient and will also interpolate by column.
 
 ### Time Statistics
 
+
+--------------
+
+## Running Dispatch
+
+It is furthermore possible to run Dispatch (MULTI3D or stellar atmosperes) directly through `MUST.jl`. This includes automatic creation of namelists, submitting the job and fetching the output. This functionality can even be executed within a SLURM allocation, and hence provides easy access to the functional and repeated execution of tasks when considering grids. 
+
+Note that the grid computation functionality of `MUST.jl` is outdated, and needs to be updated according to the new philosophy, as can be seen in `examples/initial_models`. The desired interface should be more similar to the one developed for MULTI3D. 
+
+### Running MULTI3D
+
+*Relevant examples: `examples/Paper_I/running_multi/opacity_tables.jl, effective_temperature.jl`*
+
+### Running Stellar Atmospheres
+
+*Relevant examples: `examples/Paper_I/running_dispatch/create_MUSTGrid.jl`*
+
+**This interface is outdated and needs updates!**
