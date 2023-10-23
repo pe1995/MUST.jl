@@ -103,7 +103,7 @@ begin
         ) for i in 1:nrow(grid.info)
     ]
     @everywhere form_opacities(args) = prepare4dispatch.formation_opacities(args[1:3]...; logg=args[4], extension=args[5])
-    map(form_opacities, args)    
+    #map(form_opacities, args)    
 
     ## Do the binning in parallel across many workers, this is the most time consuming part
     args = [
@@ -126,7 +126,7 @@ begin
         logg=args[4], method=args[5], Nbins=args[6], extension=args[8],
         quadrants=args[7]
         )
-    Distributed.pmap(bin_opacities, args)    
+    #Distributed.pmap(bin_opacities, args)    
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]

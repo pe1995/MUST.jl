@@ -31,6 +31,25 @@ find_integer(f, dxz_frac, n_patches, to_y = 0.1; digits=1) = begin
     n_xpatches
 end
 
+find_integer_simple(f, dxdz_approx, desired_n_patches; step=0.1) = begin
+    actual_x_patches = desired_n_patches * dxdz_approx
+    while !isinteger(actual_x_patches)
+        dxdz_approx = f(dxdz_approx, step)
+        dxdz_approx = round(dxdz_approx, sigdigits=2)
+        actual_x_patches = desired_n_patches * dxdz_approx
+    end
+
+    actual_x_patches
+end
+
+find_integer_simple(dxdz_approx, desired_n_patches; step=0.1) = begin
+    p = find_integer_simple(+, dxdz_approx, desired_n_patches)
+    m = find_integer_simple(-, dxdz_approx, desired_n_patches)
+    a = dxdz_approx * desired_n_patches
+
+    [p, m][argmin([abs(p - a), abs(m - a)])]
+end
+
 @inline patches(res, patch_size) = Int(floor(res / patch_size))
 
 
@@ -143,6 +162,48 @@ function resolutionHD(av_model, min_x, max_x, min_z, max_z, hres,
 end
 
 
+"""
+    resolution(av_model, min_x, max_x, min_z, max_z, hres, patch_size=20; cut_bottom=0.3)
+
+Compute the needed resolution based on input parameters from other 3D simulation.
+Make everything easier and avoid rounding.
+"""
+function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf, τ_bottom, hres,
+                                    patch_size=30; scale_resolution=1.2)
+    dx = abs(max_x - min_x)
+    dz = abs(max_z - min_z)
+    dxdz = dx / dz
+
+    # This is the rt resolution we need. In HD we use half the points
+    vres = minimum(abs.(diff(av_model.z))) *2.0
+
+    ip_z = MUST.linear_interpolation(log10.(av_model.τ), av_model.z)
+    actual_top = ip_z(τ_top)
+    actual_bottom = ip_z(τ_bottom)
+    actual_dz = abs(actual_top - actual_bottom)
+
+    # now we need to add so many patches of the given size that is matches at least
+    # the desired resolution
+    desired_resolution = scale_resolution * vres
+    desired_n_points = actual_dz / desired_resolution
+    desired_n_patches = ceil(desired_n_points / patch_size)
+
+    # we need to make sure that x patches are integer, so we need to round here
+    dxdz_approx = round(dxdz, sigdigits=2)
+    step = 0.1
+
+    actual_x_patches = find_integer_simple(dxdz_approx, desired_n_patches, step=step)
+    
+    # For some reason the fraction needs to be integer as well...
+    actual_x_patches = round(dxdz, sigdigits=1) * desired_n_patches
+    actual_dx = actual_x_patches / desired_n_patches * actual_dz
+
+    #@show actual_x_patches actual_dx desired_n_patches desired_n_points actual_dz
+
+    actual_dx, actual_x_patches*patch_size, actual_dz, desired_n_patches*patch_size
+end
+
+
 
 
 
@@ -162,7 +223,7 @@ fromT_toE(args...; kwargs...) = TSO.convert_fromT_toE(args...; kwargs...)
 #= Namelist generation =#
 
 function create_namelist(name, x_resolution, z_resolution, x_size, z_size, 
-                        patch_size, rt_patch_size, δz, l_cgs, d_cgs, logg, teff, 
+                        patch_size, rt_patch_size, δz, zs, zh, z_lo, l_cgs, d_cgs, logg, teff, 
                         eemin, nz, initial_path, n_bin, eos_table, 
                         tscale, vmax, vmin)
     #ngrid = nrow(grid.info)
@@ -181,7 +242,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     # shift the box down by the right amount (there needs to be a parameter from the initial model for this)
     # set the EoS and the number of bins correctly 
     # also set the path and size of the initial model (also an info for this needs to be added.)
-    dup = round(z_size /2 -δz, sigdigits=2) *1.
+    # this is how much the cube needs to be shifted down so that the amount of star above the surface is equal
+    dup = (z_size /2 -δz) *1.0
     
     courant_rt = if (logg >= 4) & (teff<6500)
         1.0
@@ -204,7 +266,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     friction_time = 150 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
-    l_cgs = MUST.roundto(l_cgs * larger_than_sun, 0.1, magnitude=1e3)
+    l_cgs = round(l_cgs * larger_than_sun, sigdigits=3) #MUST.roundto(l_cgs * larger_than_sun, 0.1, magnitude=1e3)
 
     # experiment with t scale based on size only
     test_tscale = true
@@ -215,13 +277,14 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         # absolute velocity in the given stagger model. There will be higher 
         # velocities during the simulation, so there has to be room for larger
         # currants. Round to the next quater
-        max(100.0, MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
+        max(100.0, round(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
         #round(larger_than_sun*tscale, sigdigits=2)
         tscale
     end
 
-    x = round(z_size/l_cgs, sigdigits=3) * 2
+    x = round(z_size/l_cgs, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
+    #@show patches(x_resolution, patch_size) patches(z_resolution, patch_size) round(z_size/l_cgs, sigdigits=3) x
     MUST.set!(
         nml, 
         cartesian_params=(:size=>[x, x, round(z_size/l_cgs, sigdigits=3)], 
@@ -238,7 +301,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         friction_params=(:end_time=>friction_time, :decay_scale=>10.0),
         gravity_params=(:constant=>-round(exp10(logg), digits=5),),
         newton_params=(:ee0_cgs=>round(log(eemin), digits=5), 
-                        :position=>round((z_size/2 - 1.2*dup)/l_cgs, digits=2), 
+                        :position=>round((z_size/2 - 1.2*dup)/l_cgs, sigdigits=3), 
                         :end_time=>newton_time, 
                         :decay_scale=>25.0,
                         :scale=>newton_scale),
@@ -295,18 +358,35 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     eemin = zeros(nrow(grid.info))
 
     z_lo = zeros(nrow(grid.info))
+    z_s = zeros(nrow(grid.info))
+    z_h = zeros(nrow(grid.info))
     d_lo = zeros(nrow(grid.info))
     T_lo = zeros(nrow(grid.info))
 
     τ_up = -4.5
     τ_surf = 0.0
-    τ_down = 4.5
+    τ_down = 5.5
 
     for i in 1:nrow(grid.info)
         ## What should the resolution be
-        xd[i], xr[i], zd[i], zr[i] = resolutionHD(models[i], 
-                                                grid.info[i, "mi_x"], grid.info[i, "ma_x"], grid.info[i, "mi_z"], grid.info[i, "ma_z"], grid.info[i, "hres"],
-                                                patch_size; cut_bottom=cut_bottom)
+        #xd[i], xr[i], zd[i], zr[i] = resolutionHD(models[i], 
+        #                                        grid.info[i, "mi_x"], grid.info[i, "ma_x"], grid.info[i, "mi_z"], grid.info[i, "ma_z"], grid.info[i, "hres"],
+        #                                        patch_size; cut_bottom=cut_bottom)
+
+        xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
+            models[i], 
+            grid.info[i, "mi_x"], 
+            grid.info[i, "ma_x"], 
+            grid.info[i, "mi_z"], 
+            grid.info[i, "ma_z"], 
+            τ_up,
+            τ_surf,
+            τ_down,
+            grid.info[i, "hres"],
+            patch_size, 
+            scale_resolution=1.0
+        )
+
         ## Where is the optical surface
         it0 = argmin(abs.(log10.(models[i].τ) .- τ_surf))
 
@@ -323,24 +403,26 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         ip_T = MUST.linear_interpolation(log10.(models[i].τ), models[i].lnT)
 
         #rho_norm[i] = models[i].lnρ[it0] |> exp |> log10 |> round |> exp10 
-        rho_norm[i] = ip_r(τ_surf) |> exp |> log10 |> round |> exp10 
+        rho_norm[i] = round(exp.(ip_r(τ_surf)), sigdigits=3) 
 
-        l_norm[i] = zd[i] |> abs |> log10 |> floor |> exp10
+        l_norm[i] = zd[i] |> abs #|> log10 |> floor |> exp10
         
         #z_up[i] = abs(models[i].z[itup] - models[i].z[it0])
         z_up[i] = abs(ip_z(τ_up) - ip_z(τ_surf))
+        z_s[i] = ip_z(τ_surf)
+        z_h[i] = ip_z(τ_up)
 
         #eemin[i] = exp.(models[i].lnEi[itup])
         eemin[i] = exp.(ip_E(τ_up))
 
         #z_lo[i] = round(models[i].z[itlo], sigdigits=5)
-        z_lo[i] = round(ip_z(τ_down), sigdigits=5)
+        z_lo[i] = ip_z(τ_down)
 
         #d_lo[i] = round(exp.(models[i].lnρ[itlo]), sigdigits=5)
-        d_lo[i] = round(exp.(ip_r(τ_down)), sigdigits=5)
+        d_lo[i] = exp.(ip_r(τ_down))
 
         #T_lo[i] = round(exp.(models[i].lnT[itlo]), sigdigits=5)
-        T_lo[i] = round(exp.(ip_T(τ_down)), sigdigits=5)
+        T_lo[i] = exp.(ip_T(τ_down))
     end
 
     xd, xr, zd, zr
@@ -355,6 +437,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     grid.info[!, "rho_norm"] = rho_norm
     grid.info[!, "l_norm"] = l_norm
     grid.info[!, "z_up"] = z_up
+    grid.info[!, "z_s"] = z_s
+    grid.info[!, "z_h"] = z_h
     grid.info[!, "ee_min"] = eemin
     grid.info[!, "initial_model_size"] = [length(models[i].z) for i in 1:nrow(grid.info)]
 
@@ -378,6 +462,9 @@ create_namelist!(grid::MUST.StaggerGrid) = begin
                                 g(i, "patch_size"),
                                 g(i, "rt_patch_size"),
                                 g(i, "z_up"),
+                                g(i, "z_s"),
+                                g(i, "z_h"),
+                                g(i, "z_lo"),
                                 g(i, "l_norm"),
                                 g(i, "rho_norm"),
                                 g(i, "logg"),
