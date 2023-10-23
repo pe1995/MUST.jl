@@ -266,6 +266,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     friction_time = 150 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
+    l_cgs_raw = l_cgs * larger_than_sun
     l_cgs = round(l_cgs * larger_than_sun, sigdigits=3) #MUST.roundto(l_cgs * larger_than_sun, 0.1, magnitude=1e3)
 
     # experiment with t scale based on size only
@@ -277,21 +278,21 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         # absolute velocity in the given stagger model. There will be higher 
         # velocities during the simulation, so there has to be room for larger
         # currants. Round to the next quater
-        max(100.0, round(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
+        max(100.0, round(Δt(l_cgs_raw, max(abs(vmax), abs(vmin)), 1.5), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
         #round(larger_than_sun*tscale, sigdigits=2)
         tscale
     end
 
-    x = round(z_size/l_cgs, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
+    x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     #@show patches(x_resolution, patch_size) patches(z_resolution, patch_size) round(z_size/l_cgs, sigdigits=3) x
     MUST.set!(
         nml, 
-        cartesian_params=(:size=>[x, x, round(z_size/l_cgs, sigdigits=3)], 
+        cartesian_params=(:size=>[x, x, round(z_size/l_cgs_raw, sigdigits=3)], 
                         :dims=>[patches(x_resolution, patch_size), 
                                 patches(x_resolution, patch_size), 
                                 patches(z_resolution, patch_size)],
-                        :position=>[0,0,round(-dup/l_cgs, sigdigits=3)]),
+                        :position=>[0,0,round(-dup/l_cgs_raw, sigdigits=3)]),
         patch_params=(:n=>[patch_size, patch_size, patch_size],),
         scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
         stellar_params=(:g_cgs=>round(exp10(logg), digits=5), 
@@ -301,12 +302,12 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         friction_params=(:end_time=>friction_time, :decay_scale=>10.0),
         gravity_params=(:constant=>-round(exp10(logg), digits=5),),
         newton_params=(:ee0_cgs=>round(log(eemin), digits=5), 
-                        :position=>round((z_size/2 - 1.2*dup)/l_cgs, sigdigits=3), 
+                        :position=>round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
                         :end_time=>newton_time, 
                         :decay_scale=>25.0,
                         :scale=>newton_scale),
-        sc_rt_params=(  :rt_llc=>[-x, -x, -round((z_size/2 + dup)/l_cgs, sigdigits=3)], 
-                        :rt_urc=>[ x,  x,  round((z_size/2 - dup)/l_cgs, sigdigits=3)], 
+        sc_rt_params=(  :rt_llc=>[-x, -x, -round((z_size/2 + dup)/l_cgs_raw, sigdigits=3)], 
+                        :rt_urc=>[ x,  x,  round((z_size/2 - dup)/l_cgs_raw, sigdigits=3)], 
                         :n_bin=>n_bin,
                         :courant=>courant_rt,
                         :start_time=>newton_time,
