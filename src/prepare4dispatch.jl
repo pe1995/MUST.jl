@@ -334,7 +334,8 @@ end
 #= Modification of initial grid (interface) =#
 
 resolution!(grid::MUST.AbstractMUSTGrid; 
-                            patch_size=30, cut_bottom=0.3) = begin
+                            patch_size=30, cut_bottom=0.3, 
+                            τ_up=-4.5, τ_surf=0.0, τ_down=5.5) = begin
     xr, zr = zeros(Int, nrow(grid.info)), zeros(Int, nrow(grid.info))
     xd, zd = zeros(Float64, nrow(grid.info)), zeros(Float64, nrow(grid.info))
 
@@ -363,10 +364,6 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     z_h = zeros(nrow(grid.info))
     d_lo = zeros(nrow(grid.info))
     T_lo = zeros(nrow(grid.info))
-
-    τ_up = -4.5
-    τ_surf = 0.0
-    τ_down = 5.5
 
     for i in 1:nrow(grid.info)
         ## What should the resolution be
