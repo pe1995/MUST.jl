@@ -384,7 +384,7 @@ Note that the grid computation functionality of `MUST.jl` is outdated, and needs
 
 *Relevant examples: `examples/Paper_I/running_multi/opacity_tables.jl, effective_temperature.jl`*
 
-Running M3D@DISPATCH from within julia is straight forward. If you have a working, compiled version of MULTI3D available, you can either use the existing high-level functions to automatically create namelists, or run whatever namelist you can think of. The execution task can either be piped to slurm, or just as a normal background task. You may either wait for the execution to finish or submit it to the background and fetch it later. The following given an example for running M3D for a couple of different snapshots of a MURaM model in full 3D.
+Running M3D@DISPATCH from within julia is straight forward. If you have a working, compiled version of MULTI3D available, you can either use the existing high-level functions to automatically create namelists, or run whatever namelist you can think of. The execution task can either be piped to slurm, or just as a normal background task. You may either wait for the execution to finish or submit it to the background and fetch it later. The following gives an example for running M3D for a couple of different snapshots of a MURaM model in full 3D.
 
 ```julia
 using MUST
@@ -452,7 +452,7 @@ params = Dict("test1", input_parameters1, "test2", input_parameters2)
 # run all of it in parallel using slurm
 MUST.spectrum(
     snapshots, 	    # run these snapshots
-    params, 	    # and those those paramters
+    params, 	    # and those paramters
     NLTE=true, 	    # in NLTE
     slurm=true,     # using Slurm (+ wait)
     twostep=false   # first dep. => LTE + dep.
