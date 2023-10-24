@@ -262,8 +262,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     end
 
     larger_than_sun = x_size/l_cgs / 4.6
-    newton_time = 100 #* larger_than_sun
-    friction_time = 150 #* larger_than_sun
+    newton_time = 60 #* larger_than_sun
+    friction_time = 100 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
     l_cgs_raw = l_cgs * larger_than_sun
@@ -278,7 +278,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         # absolute velocity in the given stagger model. There will be higher 
         # velocities during the simulation, so there has to be room for larger
         # currants. Round to the next quater
-        max(100.0, round(Δt(l_cgs_raw, max(abs(vmax), abs(vmin)), 1.0), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
+        max(100.0, round(Δt(l_cgs_raw, max(abs(vmax), abs(vmin)), 1.25), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
         #round(larger_than_sun*tscale, sigdigits=2)
         tscale
@@ -302,16 +302,16 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         friction_params=(:end_time=>friction_time, :decay_scale=>10.0),
         gravity_params=(:constant=>-round(exp10(logg), digits=5),),
         newton_params=(:ee0_cgs=>round(log(eemin), digits=5), 
-                        :position=>round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
+                        :position=>0.1,#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
                         :end_time=>newton_time, 
-                        :decay_scale=>25.0,
+                        :decay_scale=>20.0,
                         :scale=>newton_scale),
         sc_rt_params=(  :rt_llc=>[-x, -x, -round((z_size/2 + dup)/l_cgs_raw, sigdigits=3)], 
                         :rt_urc=>[ x,  x,  round((z_size/2 - dup)/l_cgs_raw, sigdigits=3)], 
                         :n_bin=>n_bin,
                         :courant=>courant_rt,
                         :start_time=>newton_time,
-                        :decay_scale=>25.0,
+                        :decay_scale=>20.0,
                         :rt_freq=>0.0,
                         :rt_res=>[-1,-1,rt_patch_size]),
         an_params=(:courant=>courant_hd,),
@@ -411,7 +411,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         z_h[i] = ip_z(τ_up)
 
         #eemin[i] = exp.(models[i].lnEi[itup])
-        eemin[i] = exp.(ip_E(τ_up))
+        eemin[i] = exp.(ip_E(τ_surf))
 
         #z_lo[i] = round(models[i].z[itlo], sigdigits=5)
         z_lo[i] = ip_z(τ_down)

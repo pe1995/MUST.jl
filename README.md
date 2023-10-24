@@ -302,7 +302,7 @@ Models in the `MUST.Box` format can then be converted to MULTI3D format as seen 
 
 # Atmosphere Analysis
 
-*Relevant examples: `examples/Paper_I/paper_v2.jl`*
+*Relevant examples: `examples/Paper_I/paper_v2.jl, examples/initial_models/analyse.jl`*
 
 The module contains usefull functionality that allow easy and transparent analysis of `MUST.Box` models. The most common usecase is the investigation of the average stratification of various quantities.
 
@@ -383,6 +383,104 @@ Note that the grid computation functionality of `MUST.jl` is outdated, and needs
 ## Running MULTI3D
 
 *Relevant examples: `examples/Paper_I/running_multi/opacity_tables.jl, effective_temperature.jl`*
+
+Running M3D@DISPATCH from within julia is straight forward. If you have a working, compiled version of MULTI3D available, you can either use the existing high-level functions to automatically create namelists, or run whatever namelist you can think of. The execution task can either be piped to slurm, or just as a normal background task. You may either wait for the execution to finish or submit it to the background and fetch it later. The following given an example for running M3D for a couple of different snapshots of a MURaM model in full 3D.
+
+```julia
+using MUST
+
+# location of the dispatch2 M3D installation
+@import_m3dis "path/to/Multi3D"
+
+# folder where snapshots are saved
+modelatmosfolder = "./input_multi3d/muram_m2"
+
+# names of the snapshots within this folder
+snapshots = [
+	"muram_m2_HDm_50x50",
+	"muram_m2_SSDm_50x50",
+	"muram_m2_HDl_50x50",
+	"muram_m2_SSDl_50x50",
+	"muram_m2_HDh_50x50",
+	"muram_m2_SSDh_50x50"
+]
+
+# linelist or absmet file path
+linelist = "./input_multi3d/vald_2490-25540.list"
+absmet = "./input_multi3d/absmet"
+
+# input parameters that you want to specify (optional)
+input_parameters = Dict(
+    :model_folder=>modelatmosfolder,
+    :linelist=>linelist,
+    :absmet=>nothing,
+    :atom_params=>(
+    	:atom_file=>"./input_multi3d/atoms/atom.li12_col", 
+    	:use_atom_abnd=>false,
+    	:abundance=>2.1,
+    	:exclude_trace_cont=>true,
+    	:exclude_from_line_list=>true,
+    	:hydrogen_BPO=>false
+    ),
+    :spectrum_params=>(
+    	:daa=>0.01, :aa_blue=>6706, :aa_red=>6710
+    ),
+    :composition_params=>(
+    	:absdat_file=>"./input_multi3d/TS_absdat.dat",
+    	:abund_file=>"./input_multi3d/abund_asplund07"
+    ),
+    :atmos_params=>(
+    	:atmos_format=>"MUST", 
+    	:use_density=>true, 
+    	:use_ne=>false,
+    	:FeH=>-2.0,
+    	:dims=>16
+    ),
+    :m3d_params=>(
+    	:n_nu=>1, 
+    	:quad_scheme=>"set_a2"
+    )
+)
+```
+
+Now from this general setup you can produce a input dict with different run-names and variations of `input_parameters`, and run those in parallel. The run-name will be appended to the output name (name of the atmosphere), such that every model is run for every input setup.
+
+```julia
+# modify input parameters as you want
+params = Dict("test1", input_parameters1, "test2", input_parameters2)
+
+# run all of it in parallel using slurm
+MUST.spectrum(
+    snapshots, 	    # run these snapshots
+    params, 	    # and those those paramters
+    NLTE=true, 	    # in NLTE
+    slurm=true,     # using Slurm (+ wait)
+    twostep=false   # first dep. => LTE + dep.
+)
+```
+
+Note that you can if course also run M3D with individual snapshots and only one setup. For this you only specify the snapshot(s) and `namelist_kwargs` in agreement with the M3D input parameters. Please read the M3D documentation for more info. There are a couple of different namelist templates and higher level functions available (e.g. `spectrum(), whole_spectrum()`, etc.). Take a look at `src/_multi.jl` and `src/namelist.jl`.
+In case all of this is to high-level for you, take a look at the direct execution functions `srun_m3dis()` and `run_m3dis()` for slurm, and non-slurm, respectively. These just handle the execution of pre-created namelists. So if you have a different way of creating your namelists you can just call those functions to run them.
+
+The result will be saved in the normal M3D format. There is a thin wrapper available, which uses the excellent `m3dis.py` package to read the output into julia. Note that, if not done automatically, you may need to call `MUST.pyconvert()` onto the result to bring it to julia types.
+
+```julia
+# read results stored in resultspaths
+m3druns = MUST.M3DISRun.(resultpaths) 
+
+# handle the output for e.g. different abundances
+abund = MUST.getabundances.(m3druns)         # get abundances
+MUST.equivalentwidth(m3druns, line=1)        # interpolate EW
+MUST.abundance(m3druns, line=1)              # interpolate abundance
+MUST.ΔNLTE(m3druns, line=1, reference=:LTE)  # compute NLTE corrections
+
+# or execute directly for individual lines
+lines = [run.line[10] for run in m3druns]    # Base.getproperty is redirected to m3dis.py
+MUST.abundance(lines, abund)                 # interpolate abundance for line 10
+```
+
+The `m3dis.run` object is stored in the `m3drun.run` field and can hence be used as a normal python object if needed. `Base.getproperty()`, so e.g. `m3drun.flux` should automatically access the corresponding field of the python object.
+
 
 ## Running Stellar Atmospheres
 

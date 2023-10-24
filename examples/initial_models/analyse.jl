@@ -75,7 +75,7 @@ end
 
 # ╔═╡ 3c9cecd9-8c59-4311-93fa-5137655fdfef
 initial_model = [
-	@optical(Average3D(joinpath(eos_folder[i], "inim.dat")), eos[i], opa[i])
+	@optical(Average3D(eos[i], joinpath(eos_folder[i], "inim.dat")), eos[i], opa[i])
 	for i in eachindex(eos)
 ]
 
@@ -178,6 +178,37 @@ begin
 	gcf()
 end
 
+# ╔═╡ 6c4f5ac6-a03b-4237-aa8f-fe50f77bde6f
+begin
+	plt.close()
+
+	fE, axE = plt.subplots(1, 1, figsize=(5, 6))
+
+	for i in eachindex(names)
+		axE.plot(
+			log10.(initial_model[i].τ), exp.(initial_model[i].lnT), 
+			lw=1., 
+			color=colors[i],
+			alpha=0.7,
+			ls="--"
+		)
+		
+		axE.plot(
+			profile(mean, snapshots_τ[i], :log10τ_ross, :T)..., 
+			lw=2., 
+			color=colors[i], 
+			label=labels[i]
+		)
+	end
+
+	axE.legend()
+	axE.set_ylabel("temperature [K]")
+	axE.set_xlabel(L"\rm \tau_{ross}\ [cm]")
+	
+	
+	gcf()
+end
+
 # ╔═╡ 292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 md"# Optical surface"
 
@@ -261,6 +292,7 @@ end
 # ╟─ef9b0e78-00f0-41d0-8429-2d36f54c0a02
 # ╟─36eabb43-1660-4e11-8bca-e7f09568d695
 # ╟─e99b4bed-f093-4fe6-ad1d-af0f2235470b
+# ╟─6c4f5ac6-a03b-4237-aa8f-fe50f77bde6f
 # ╟─292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 # ╟─12446032-6cc4-4eac-94cc-6ccb8de46c5d
 # ╟─488b2eec-daf8-4920-9140-7d67c6ca3de1
