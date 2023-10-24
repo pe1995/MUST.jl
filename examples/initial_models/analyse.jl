@@ -16,6 +16,12 @@ begin
 	using DelimitedFiles
 end;
 
+# ╔═╡ bd7cdaf2-c05e-4bc9-afbb-cfb61260d62c
+md"# Analysing Grid Models"
+
+# ╔═╡ 827e54c7-d0a3-455a-8837-52255eeff202
+md"## Setup"
+
 # ╔═╡ 9e9c5903-762d-43d7-adf2-0eccee134974
 begin
 	mean = MUST.mean
@@ -82,6 +88,9 @@ initial_model = [
 # ╔═╡ f3ffa698-bcea-4ab3-9b63-84d518c14068
 md"# Average figures"
 
+# ╔═╡ 5e882897-d396-470c-ad46-37a39326225c
+md"## Height vs. Temperature"
+
 # ╔═╡ ef9b0e78-00f0-41d0-8429-2d36f54c0a02
 begin
 	plt.close()
@@ -113,6 +122,9 @@ begin
 	gcf()
 end
 
+# ╔═╡ e05efb00-233b-44b9-9204-156ae2ed0762
+md"## Height vs. Density"
+
 # ╔═╡ 36eabb43-1660-4e11-8bca-e7f09568d695
 begin
 	plt.close()
@@ -143,6 +155,9 @@ begin
 	
 	gcf()
 end
+
+# ╔═╡ b34da749-03ae-4f6c-92fb-c5809abeb339
+md"## Density vs. Temperature"
 
 # ╔═╡ e99b4bed-f093-4fe6-ad1d-af0f2235470b
 begin
@@ -177,6 +192,9 @@ begin
 	
 	gcf()
 end
+
+# ╔═╡ 14796f14-183e-496f-b5d8-41149b31d463
+md"## optical depth vs. Temperature"
 
 # ╔═╡ 6c4f5ac6-a03b-4237-aa8f-fe50f77bde6f
 begin
@@ -276,7 +294,78 @@ begin
 	gcf()
 end
 
+# ╔═╡ c46c5b32-a1cd-43d3-b087-7f6af7adb88d
+md"# Time evolution"
+
+# ╔═╡ f2f27ccc-358b-4bec-9506-b31c27d6f759
+begin
+	models = 1
+
+	xlim = [-4e8, 2e8]
+	ylim = [2500, 16000]
+
+	# what to plot 
+	profile_to_plot(f, s, sτ) = profile(f, s, :z, :T)
+end
+
+# ╔═╡ 7d10a077-75c1-4aee-b732-35a7ff71d109
+md"## Evolution from Newton to RT"
+
+# ╔═╡ 139e7d21-e102-48de-bcbd-ee1a1e78bb5d
+if models > 0
+	sc = converted_snapshots(out_folder[models])
+	snaps_converted = sort(MUST.list_snapshots(sc))
+	
+	plt.close()
+
+	fF, axF = plt.subplots(1, 1, figsize=(5, 6))
+
+	axF.plot(
+		-initial_model[models].z, exp.(initial_model[models].lnT), 
+		lw=1., 
+		color=colors[models],
+		alpha=0.7,
+		ls="--"
+	)
+	
+	for (c, i) in enumerate(snaps_converted)
+		s, st = pick_snapshot(sc, i)
+
+		if c == 1
+			axF.plot(
+				profile_to_plot(mean, s, st)..., 
+				lw=2., 
+				color=colors[models], 
+				label=labels[models]
+			)
+		else
+			axF.plot(
+				profile_to_plot(mean, s, st)..., 
+				lw=2., 
+				color=colors[models],
+				alpha=0.5
+			)
+		end
+	end
+
+	if !isnothing(xlim)
+		axF.set_xlim(xlim...)
+	end
+
+	if !isnothing(ylim)
+		axF.set_ylim(ylim...)
+	end
+	
+	axF.legend()
+	axF.set_ylabel("temperature [K]")
+	axF.set_xlabel("z [cm]")
+	
+	gcf()
+end
+
 # ╔═╡ Cell order:
+# ╟─bd7cdaf2-c05e-4bc9-afbb-cfb61260d62c
+# ╟─827e54c7-d0a3-455a-8837-52255eeff202
 # ╠═4a837d4c-724c-11ee-0b6b-21a88a56df5b
 # ╟─9e9c5903-762d-43d7-adf2-0eccee134974
 # ╠═4abf1ef3-e08c-46db-a4b5-a986434c2938
@@ -289,11 +378,19 @@ end
 # ╠═b633c06f-afaf-429d-8f41-4aea94100853
 # ╟─3c9cecd9-8c59-4311-93fa-5137655fdfef
 # ╟─f3ffa698-bcea-4ab3-9b63-84d518c14068
+# ╟─5e882897-d396-470c-ad46-37a39326225c
 # ╟─ef9b0e78-00f0-41d0-8429-2d36f54c0a02
+# ╟─e05efb00-233b-44b9-9204-156ae2ed0762
 # ╟─36eabb43-1660-4e11-8bca-e7f09568d695
+# ╟─b34da749-03ae-4f6c-92fb-c5809abeb339
 # ╟─e99b4bed-f093-4fe6-ad1d-af0f2235470b
+# ╟─14796f14-183e-496f-b5d8-41149b31d463
 # ╟─6c4f5ac6-a03b-4237-aa8f-fe50f77bde6f
 # ╟─292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 # ╟─12446032-6cc4-4eac-94cc-6ccb8de46c5d
 # ╟─488b2eec-daf8-4920-9140-7d67c6ca3de1
 # ╟─1ffcf11f-58dd-41dd-921f-995d0a84f0d0
+# ╟─c46c5b32-a1cd-43d3-b087-7f6af7adb88d
+# ╠═f2f27ccc-358b-4bec-9506-b31c27d6f759
+# ╟─7d10a077-75c1-4aee-b732-35a7ff71d109
+# ╟─139e7d21-e102-48de-bcbd-ee1a1e78bb5d
