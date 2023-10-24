@@ -137,7 +137,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, cut_bottom=0.1)
+    prepare4dispatch.resolution!(grid, patch_size=22)
 end
 
 #====================== Step (C): Conversion =================================#

@@ -20,7 +20,7 @@ You can jump through the documentation by using the follwing topic shortcuts. No
     2. [Running StAt](#running-stellar-atmospheres)
 
 -------------------------
-## Installation
+# Installation
 
 To use `MUST.jl` a julia installation is requiered. Please avoid using versions older than `julia 1.6`. After downloading julia, the `MUST.jl` package can be added, after permissions to the repository have been granted, by simply adding it though the package manager.
 
@@ -64,11 +64,11 @@ $ julia --project
 Which should work in most cases. 
 
 -------------------------
-## 3D Model Atmospheres
+# 3D Model Atmospheres
 
 The main functionality of `MUST.jl` is to read different stellar atmospheres in different formats and convert them to one comman format that can be used for post-processing purposes. For this, there are two different model representations available, the `MUST.Space` and `MUST.Box`. The `MUST.Space` is designed as a loose array of points associated with different coordinates, that can have any shape or orientation. This is important if models with unspecified, ungirdded orientation are present. In most cases, this is not relevant unless there is mesh refinement active in Dispatch. In any case, for any post-processing purposes the model should always be converted in a `MUST.Box` object, which tabulates any data present as 3D arrays.
 
-### Reading Dispatch Models
+## Reading Dispatch Models
 
 *Relevant examples: `examples/dispatch2space/convert.jl, prepare_restart.jl, snapshot2box.jl`*
 
@@ -212,7 +212,7 @@ flip!(b_s, density=:d, uz=:uz)
 
 where you need to specify what field density and vetical velocity are. The density will be used to detect the ordering of arrays and z-velocity will be flipped in sign if the axis z needs to be flipped.
 
-### MULTI3D Models
+## MULTI3D Models
 
 *Relevant examples: `examples/dispatch2multi/box2multi.jl`*
 
@@ -264,7 +264,7 @@ must2multi.snaps2multi(
 
 Where the EoS needs to be a `TSO.SqEoS`. `Models` is a list of `MUST.Box` models, `labels` are the corresponding labels. Specifying a resolution here will lead to a resampling by linear interpolation, unless an other `method` is specified. See `gresample` function for more info.
 
-### MURaM Models
+## MURaM Models
 
 *Relevant examples: `examples/Muram/convert2m3dis.jl, convert_muram.jl`*
 
@@ -280,7 +280,7 @@ MUST.MURaMBox(model_path, opacity)
 
 where you can get the opacity e.g. from an `TSO.SqOpacity` table.
 
-### Stagger Models
+## Stagger Models
 
 *Relevant examples: `examples/stagger2box.ipynb`*
 
@@ -300,13 +300,13 @@ Models in the `MUST.Box` format can then be converted to MULTI3D format as seen 
 
 ----------------
 
-## Atmosphere Analysis
+# Atmosphere Analysis
 
 *Relevant examples: `examples/Paper_I/paper_v2.jl`*
 
 The module contains usefull functionality that allow easy and transparent analysis of `MUST.Box` models. The most common usecase is the investigation of the average stratification of various quantities.
 
-### Plane Statistics
+## Plane Statistics
 
 Plane statistics are usefull to apply a given statistic plane wise to the entire data cube. The most convenient interface is the `plane_statistic` function, that is designed for exactly this usecase
 
@@ -349,7 +349,7 @@ plot(profile(mean, box, :log10τ_ross, T)...)
 will plot the average temperature as a function of optical depth. Note that this will only be correct, if the given `Box` is indeed on the $\rm \tau$ scale. Computing the average quantites on the geometrical scale and plot against average optical depth is **not** equal to average planes in a cube interpolated to a uniform optical depth scale. One should always compute averages on planes of constant optical depth if one intents to compare on that scale.
 
 
-### Surfaces
+## Surfaces
 
 You can either get surfaces which are closest to a given axis value, or interpolate column wise.
 
@@ -369,22 +369,22 @@ plane = MUST.interpolate_to(box, :T, τ_ross=0, logspace=true)
 ```
 which is more convenient and will also interpolate by column.
 
-### Time Statistics
+## Time Statistics
 
 
 --------------
 
-## Running Dispatch
+# Running Dispatch
 
 It is furthermore possible to run Dispatch (MULTI3D or stellar atmosperes) directly through `MUST.jl`. This includes automatic creation of namelists, submitting the job and fetching the output. This functionality can even be executed within a SLURM allocation, and hence provides easy access to the functional and repeated execution of tasks when considering grids. 
 
 Note that the grid computation functionality of `MUST.jl` is outdated, and needs to be updated according to the new philosophy, as can be seen in `examples/initial_models`. The desired interface should be more similar to the one developed for MULTI3D. 
 
-### Running MULTI3D
+## Running MULTI3D
 
 *Relevant examples: `examples/Paper_I/running_multi/opacity_tables.jl, effective_temperature.jl`*
 
-### Running Stellar Atmospheres
+## Running Stellar Atmospheres
 
 *Relevant examples: `examples/Paper_I/running_dispatch/create_MUSTGrid.jl`*
 

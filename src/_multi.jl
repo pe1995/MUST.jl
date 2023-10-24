@@ -197,6 +197,36 @@ function whole_spectrum(model_names::AbstractVector{String}; namelist_kwargs=Dic
     [M3DISRun(joinpath(data_dir, model_name)) for model_name in model_names]
 end
 
+opacityTable(models; folder, linelist, λs, λe, δλ, H_atom="input_multi3d/atoms/atom.h20",
+				in_log=true, slurm=false, kwargs...) = begin
+    whole_spectrum(
+		models, 
+		namelist_kwargs=(
+			:model_folder=>folder,
+			:linelist=>nothing,
+			:absmet=>nothing,
+			:linelist_params=>(:line_lists=>linelist,),
+			:atom_params=>(:atom_file=>H_atom, ),
+			:spectrum_params=>(:daa=>δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>in_log),
+			:atmos_params=>(
+				:dims=>1, 
+				:atmos_format=>"Text",
+				:use_density=>true, 
+				:use_ne=>false
+			),
+			:m3d_params=>(
+				:n_nu=>1, 
+				:ilambd=>0,
+				:quad_scheme=>"disk_center",
+				:long_scheme=>"disk_center",
+				:make_opac_table=>true
+			),
+            kwargs...
+		),
+		slurm=slurm
+	)
+end
+
 
 
 
