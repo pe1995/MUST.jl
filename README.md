@@ -17,7 +17,7 @@ You can jump through the documentation by using the follwing topic shortcuts. No
 3. [Atmosphere Analysis](#atmosphere-analysis)
 4. [Running Dispatch](#running-dispatch)
     1. [Running MULTI3D](#running-multi3d)
-    2. [Running StAt](#running-stellar-atmospheres)
+    2. [Running Stellar Atmospheres](#running-stellar-atmospheres)
 
 -------------------------
 # Installation
