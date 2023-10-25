@@ -521,16 +521,16 @@ modelgrids = MUST.ingredients("modelgrids.jl")
 
 # new grid object with the info about the models + average model
 ig = modelgrids.interpolate_from_grid(
-	grid, 
-	teff=[5000.0, 6000.0], 
-	logg=[4.0, 4.5], 
-	feh=[0.0, 0.0]
+    grid, 
+    teff=[5000.0, 6000.0], 
+    logg=[4.0, 4.5], 
+    feh=[0.0, 0.0]
 )
 
 # or add the models to the existing grid
 ig = modelgrids.interpolate_from_grid!(...)
 ```
-3. Run `prepare.jl` with this grid. You don't need this particular script, but follow the steps in the script is encouraged. This will create a `dispatch_grid.mgrid`, input namelists and binned opacities.
+3. Run `prepare.jl` with this grid. You don't need this particular script, but following the steps in the script is encouraged. This will create a `dispatch_grid.mgrid`, input namelists and binned opacities.
 5. Run the final grid using the `run!()` function.
 ```julia
 @import_dispatch "path/to/dispatch2"
@@ -538,7 +538,7 @@ ig = modelgrids.interpolate_from_grid!(...)
 # load the prepared dispatch grid
 grid = MUST.StaggerGrid("dispatch_grid.mgrid")
 
-# run it. Threads, mem and timeout at passed to each job step
+# run it. Threads, mem and timeout are passed to each job step
 MUST.run!(grid; threads=40, memMB=90000, timeout="24:00:00", slurm=true)
 ```
 
