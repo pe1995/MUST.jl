@@ -201,9 +201,7 @@ MUST.save(b_τ, snapshots[i_s], folder=folder)
 ```
 
 which will check if all z columns are identical and assume that the scale is cartesian if they are.
-
 From this internal `Box` model we can convert to other formats, like e.g. the `MULTI3D` format.
-
 Note that you can always ensure a consistent orientation (from bottom to top, negative z values at the bottom, increasing upwards) by using the `flip!` function on this `Box` model.
 
 ```julia
@@ -483,7 +481,78 @@ The `m3dis.run` object is stored in the `m3drun.run` field and can hence be used
 
 
 ## Running Stellar Atmospheres
+*Relevant examples: `examples/initial_models/prepare.jl, random_models.jl, run.jl`*
 
-*Relevant examples: `examples/Paper_I/running_dispatch/create_MUSTGrid.jl`*
+Running MUST@DISPATCH is similar to running M3D@DISPATCH. Namelists can either be run via a slurm job submission or by submission to the background. If slurm submissions are executed within a slurm allocation, they will be executed as job steps automatically. `MUST.jl` also offers the possibility to create namelists automatically. 
 
-**This interface is outdated and needs updates!**
+You can either load an existing namelist and then modify the fields, or just set the fields manually (Note that currently the namelist type is not very flexible, because the name of the fields are hardcoded. If there are additional fields needed, you need to modify the struct StellarNamelist. This is a bit inconvenient and may need change in the future). The same interface is used in the MULTI case under the hood.
+
+```julia
+# load an empty namelist
+nml = MUST.StellarNamelist()
+
+# or load an example namelist
+nml = MUST.StellarNamelist("stellar_default.nml")
+
+# Set whatever fields you want
+MUST.set!(
+    nml, 
+    patch_params=(:n=>[patch_size, patch_size, patch_size],),
+    scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale)
+)
+
+# Save the namelist in dispatch
+MUST.write(nml, MUST.@in_dispatch(name))
+```
+
+There is a script `prepare.jl` in the mentioned example folder, that is made for creating a large number of namelists for a grid of models. There are multiple steps involved, like the creation of initial 1D models and the corresponding binning of opacites, which involve the `TSO.jl` package. This is why the corresponding source file is available as `ingredient`.
+
+```julia
+prepare4dispatch = MUST.ingredients("prepare4dispatch.jl")
+```
+
+In order to run the scripe `prepare.jl`, which will create everything you need, including opactiy tables, you need to have a `MUST.StaggerGrid` available, which contains information about the Stagger grid which will be used to determine initial conditions. There are other initial conditions one can think of, but at the current time this is the preferred one. The steps are as follows.
+
+1. Create the `MUST.StaggerGrid`. For this you need the Stagger grid, which is at the moment not public. A default `stagger_grid.mgrid` is available, which consists of a couple of models from the grid. But you can enhance this table with whatever model you can think of. Have a look at the file, models don't need to be Stagger at all. You only need the lists quantities (like e.g. size of the box, the average model on the geometrical scale, etc.).
+2. This grid can be used to create random initial conditions. At the moment, this is done by interpolating in the grid in terms of every quantity, **including** the average model. This may be replaced by a adiabatic initial condition. Also the resolution of the models is interpolated in the grid. This means that the more models you have in the initial grid the better the interpolation will be.
+```julia
+grid = MUST.StaggerGrid("stagger_grid.mgrid")
+modelgrids = MUST.ingredients("modelgrids.jl")
+
+# new grid object with the info about the models + average model
+ig = modelgrids.interpolate_from_grid(
+	grid, 
+	teff=[5000.0, 6000.0], 
+	logg=[4.0, 4.5], 
+	feh=[0.0, 0.0]
+)
+
+# or the models to the existing grid
+ig = modelgrids.interpolate_from_grid!(...)
+```
+3. Run `prepare.jl` with this grid. You don't need this particular script, but follow the steps in the script is encouraged. This will create a `dispatch_grid.mgrid`, input namelists and binned opacities.
+5. Run the final grid using the `run!()` function.
+```julia
+@import_dispatch "path/to/dispatch2"
+
+# load the prepared dispatch grid
+grid = MUST.StaggerGrid("dispatch_grid.mgrid")
+
+# run it. Threads, mem and timeout at passed to each job step
+MUST.run!(grid; threads=40, memMB=90000, timeout="24:00:00", slurm=true)
+```
+
+The success of the results will be recorded upon end in the success column, prepended with the name of the grid. Success will be judged based on the availability of all snapshots that should be there. One could also use the return status of the application -- which is available -- however sometimes dispatch may either crash without a false success status or end with a error status, even though it reached the end. You can switch between the two by specifing the `use_status` kwarg. 
+Within the grid running procedure, the name of the namelist is used to run dispatch the same way as MULTI.
+
+```julia
+# run in slurm
+srun_dispatch(nml; threads=40, memMB=1024, timeout="24:00:00")
+
+# or run in shell
+run_dispatch(nml; threads=70, wait=true, ddir=@in_dispatch(""))
+```
+
+where the first line can be run within a sbatch allocation. You can therefore scrip previous steps, if you already have a namelist, initial model (or adiabat) and opacity table ready. The results of all computations, successfull or not, can be retreived after converting your favourite snapshot, as described [in previous sections](#reading-dispatch-models).
+
+___________

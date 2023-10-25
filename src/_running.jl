@@ -1,12 +1,64 @@
 ## Methods for submitting dispatch jobs via a slurm submission 
 
-"""Submit dispatch job."""
-function srun_dispatch(nml_name, threads::Int, memMB::Int, timeout::String; wait=false)
-    ddir    = MUST.@in_dispatch("")
-    command = `srun -N 1 -n 1 -c $(threads) --mem=$(memMB)mb --time=$(timeout) --exclusive -D $(ddir) ./dispatch.x $(nml_name)`
+"""
+    srun_dispatch(nml_name, threads::Int, memMB::Int, timeout::String; wait=false)
+
+Submit dispatch job.
+"""
+function srun_dispatch(nml_name; threads::Int, memMB::Int, timeout::String, wait=false)
+    ddir = @in_dispatch("")
+    #command = `srun -N 1 -n 1 -c $(threads) --mem=$(memMB)mb --time=$(timeout) --exclusive -D $(ddir) ./dispatch.x $(nml_name)`
     #run(command, wait=wait)
+    #run(pipeline(command, stdout=joinpath(ddir, "$(nml_name).log"), 
+    #                      stderr=joinpath(ddir, "$(nml_name).err")), wait=wait)
+
+    exec_name = "$(nml_name).export.sh"
+	exec_path = @in_dispatch("$(nml_name).export.sh")
+	
+	# Do an export script before
+	open(exec_path, "w") do f
+		write(f, "#!/bin/bash\n")
+		write(f, "source ~/.bashrc\n")
+		write(f, "export KMP_NUM_THREADS=$(threads)\n")
+		write(f, "export OMP_NUM_THREADS=$(threads)\n")
+		write(f, "./dispatch.x $(nml_name)")
+	end
+	
+	run(`chmod +x $(exec_path)`)
+    command = `srun -N 1 -n 1 -J m3dis -c $(threads) --mem=$(memMB)mb --time=$(timeout) --exclusive -D $(ddir) ./$(exec_name)`
+    
     run(pipeline(command, stdout=joinpath(ddir, "$(nml_name).log"), 
                           stderr=joinpath(ddir, "$(nml_name).err")), wait=wait)
+end
+
+"""
+    run_dispatch(nml_name; threads=70, wait=true)
+
+Similar `to srun_dispatch()`, but running in the shell directly.
+"""
+function run_dispatch(nml_name; threads=70, wait=true, ddir=@in_dispatch(""))
+
+    exec_name = "$(nml_name).export.sh"
+    exec_path = @in_dispatch("$(nml_name).export.sh")
+
+    # Do an export script before
+    open(exec_path, "w") do f
+    write(f, "#!/bin/bash\n")
+    write(f, "source ~/.bashrc\n")
+    write(f, "export KMP_NUM_THREADS=$(threads)\n")
+    write(f, "export OMP_NUM_THREADS=$(threads)\n")
+    write(f, "./dispatch.x $(nml_name)")
+    end
+
+    run(`chmod +x $(exec_path)`)
+    currdir = pwd()
+    cd(ddir)
+    command = `./$(exec_name)`
+    r = run(pipeline(command, stdout=joinpath(ddir, "$(nml_name).log"), 
+            stderr=joinpath(ddir, "$(nml_name).err")), wait=wait)
+    cd(currdir)
+
+    r
 end
 
 
@@ -94,25 +146,36 @@ Run a MUSTGrid from start to end.
     each namelist can check Base.process_exited() before running it. For this the 
     RestartMUSTGrid shoudl get the running process list.
 """
-function run!(grid::AbstractMUSTGrid; threads::Int=12, memMB::Int=1333, timeout="00:40:00",submission_pause=1)
+function run!(grid::AbstractMUSTGrid; threads::Int=12, memMB::Int=1333, timeout="00:40:00",submission_pause=1, slurm=true, use_status=true)
     allowed_nmls = allowed_namelists(grid)
+
+    if !slurm
+        @warn "Submitting jobs without memory management."
+    end
 
     results = []
     for name in allowed_nmls
-        append!(results, [srun_dispatch(name, threads, memMB, timeout)])
+        r = if slurm
+            srun_dispatch(name, threads=threads, memMB=memMB, timeout=timeout)
+        else
+            run_dispatch(name, threads=threads)
+        end
+        append!(results, [r])
         
         @info "$(name) submitted."
         sleep(submission_pause)
     end
 
     # wait for completion
+    succ = []
     for (i,r)  in enumerate(results)
         s = success(r)
+        append!(succ, [s])
         @info "$(allowed_nmls[i]) finished with success status $(s)."
     end
 
     # check success
-    grid.info[!,"$(grid.name)_success"] = check_success(grid)
+    grid.info[!,"$(grid.name)_success"] = use_status ? succ : check_success(grid)
 end
 
 allowed_namelists(grid::AbstractMUSTGrid) = grid.info[!,"$(grid.name)_name"]
@@ -123,11 +186,11 @@ Generic check_success.
     Check if the simulation has ended based on the expected number of snapshots
 """
 check_success(grid::AbstractMUSTGrid) = begin
-    nml_names   = grid.info[!,"$(grid.name)_name"]
-    nml_folders = [MUST.@in_dispatch(joinpath("data",split(n, ".nml")[1]))  for n in nml_names] 
-    nmls        = [MUST.StellarNamelist(MUST.@in_dispatch(n)) for n in nml_names]
+    nml_names   = allowed_namelists(grid)
+    nml_folders = [@in_dispatch(joinpath("data", split(n, ".nml")[1]))  for n in nml_names] 
+    nmls        = [StellarNamelist(@in_dispatch(n)) for n in nml_names]
 
-    suc = [check_success(grid, n, f) for (n,f) in zip(nmls,nml_folders)]
+    [check_success(grid, n, f) for (n,f) in zip(nmls,nml_folders)]
 end
 
 function check_success(grid::AbstractMUSTGrid, nml::AbstractNamelist, output_folder::String)
@@ -135,7 +198,7 @@ function check_success(grid::AbstractMUSTGrid, nml::AbstractNamelist, output_fol
     end_point = floor(nml.io_params["end_time"] / nml.io_params["out_time"])
 
     content_of_folder = glob("*/", output_folder)
-    snapshots         = sort(MUST.list_of_snapshots(content_of_folder))
+    snapshots         = sort(list_of_snapshots(content_of_folder))
 
     length(snapshots) -2 >= end_point
 end

@@ -11,6 +11,7 @@ end
 
 
 
+
 #============================================================== Constructors =#
 
 """
@@ -35,6 +36,7 @@ end
 
 
 
+
 #==================================================================== Saving =#
 
 save(grid::StaggerGrid, path) = CSV.write(path, grid.info)
@@ -46,6 +48,7 @@ save(grid::StaggerGrid, path) = CSV.write(path, grid.info)
 
 Base.getindex(g::StaggerGrid, k::String, i=!) = g.info[i, k]
 Base.:+(g1::StaggerGrid, g2::StaggerGrid) = StaggerGrid(g1.name, vcat(g1.info, g2.info))
+
 
 
 
@@ -79,3 +82,14 @@ function interpolate_quantity(grid::StaggerGrid, what; teff, logg, feh, method="
 		), 
 	)
 end
+
+
+
+
+#=================================================================== running =#
+
+allowed_namelists(grid::StaggerGrid) = grid.info[!,"namelist_name"]
+
+
+
+#=============================================================================#
