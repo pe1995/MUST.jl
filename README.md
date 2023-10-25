@@ -511,7 +511,7 @@ There is a script `prepare.jl` in the mentioned example folder, that is made for
 prepare4dispatch = MUST.ingredients("prepare4dispatch.jl")
 ```
 
-In order to run the scripe `prepare.jl`, which will create everything you need, including opactiy tables, you need to have a `MUST.StaggerGrid` available, which contains information about the Stagger grid which will be used to determine initial conditions. There are other initial conditions one can think of, but at the current time this is the preferred one. The steps are as follows.
+In order to run the script `prepare.jl`, which will create everything you need, including opactiy tables, you need to have a `MUST.StaggerGrid` available, which contains information about the Stagger grid which will be used to determine initial conditions. There are other initial conditions one can think of, but at the current time this is the preferred one. The steps are as follows.
 
 1. Create the `MUST.StaggerGrid`. For this you need the Stagger grid, which is at the moment not public. A default `stagger_grid.mgrid` is available, which consists of a couple of models from the grid. But you can enhance this table with whatever model you can think of. Have a look at the file, models don't need to be Stagger at all. You only need the lists quantities (like e.g. size of the box, the average model on the geometrical scale, etc.).
 2. This grid can be used to create random initial conditions. At the moment, this is done by interpolating in the grid in terms of every quantity, **including** the average model. This may be replaced by a adiabatic initial condition. Also the resolution of the models is interpolated in the grid. This means that the more models you have in the initial grid the better the interpolation will be.
@@ -527,7 +527,7 @@ ig = modelgrids.interpolate_from_grid(
 	feh=[0.0, 0.0]
 )
 
-# or the models to the existing grid
+# or add the models to the existing grid
 ig = modelgrids.interpolate_from_grid!(...)
 ```
 3. Run `prepare.jl` with this grid. You don't need this particular script, but follow the steps in the script is encouraged. This will create a `dispatch_grid.mgrid`, input namelists and binned opacities.
