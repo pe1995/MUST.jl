@@ -8,7 +8,7 @@ using InteractiveUtils
 # ╠═╡ show_logs = false
 begin
 	using Pkg; Pkg.activate(".")
-	using MUST
+	using MUST 
 	using Glob
 	using PythonPlot
 	using TSO 
@@ -18,6 +18,9 @@ end;
 
 # ╔═╡ bd7cdaf2-c05e-4bc9-afbb-cfb61260d62c
 md"# Analysing Grid Models"
+
+# ╔═╡ 12a3c142-99ad-4166-bf8f-6fd9f1336a66
+
 
 # ╔═╡ 827e54c7-d0a3-455a-8837-52255eeff202
 md"## Setup"
@@ -32,26 +35,30 @@ end;
 
 # ╔═╡ 4abf1ef3-e08c-46db-a4b5-a986434c2938
 names = [
-	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"sub_giant",
+	"sub_giant_8",
 ]
 
 # ╔═╡ 40e718a0-bed0-46bd-a77f-4c7039290b45
 out_folder = [
+	@in_dispatch("data/grid_t50g40m00_test"),
 	@in_dispatch("data/grid_t50g40m00")
 ]
 
 # ╔═╡ ce9f7f32-078b-44b7-93d9-d10330c9d26a
 eos_folder = [
 	@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1"),
+	@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1")
 ]
 
 # ╔═╡ b3df2bd4-8ed3-4ecb-97ff-dcd1e86c053d
 labels = [
 	"test subgiant"
+	"test subgiant bnd+8"
 ]
 
 # ╔═╡ 17ca4c8c-9563-4be4-8ab7-a7446ba28dec
-colors = ["black"]
+colors = ["magenta", "black"]
 
 # ╔═╡ cfc0ab3e-5989-414a-8631-97acee2ae886
 list_of_snapshots(out_folder[1])
@@ -221,7 +228,34 @@ begin
 
 	axE.legend()
 	axE.set_ylabel("temperature [K]")
-	axE.set_xlabel(L"\rm \tau_{ross}\ [cm]")
+	axE.set_xlabel(L"\rm \log \tau_{ross}")
+	
+	
+	gcf()
+end
+
+# ╔═╡ 4d623d6f-7366-468b-930e-71878b72aa5f
+md"## RMS velocity"
+
+# ╔═╡ 3bf11523-ad8f-49c9-84dc-5554364a8b3b
+begin
+	plt.close() 
+
+	fG, axG = plt.subplots(1, 1, figsize=(5, 6))
+
+	rms5(x) = sqrt.(mean(x .^2)) ./1e5
+	
+	for i in eachindex(names)
+		axG.plot(
+			profile(rms5, snapshots_τ[i], :log10τ_ross, :uz)..., 
+			color=colors[i], 
+			label=labels[i]
+		)
+	end
+
+	axG.legend()
+	axG.set_ylabel(L"\rm rms(U_z)\ [km\ \times\ s^{-1}]")
+	axG.set_xlabel(L"\rm \log \tau_{ross}")
 	
 	
 	gcf()
@@ -299,7 +333,7 @@ md"# Time evolution"
 
 # ╔═╡ f2f27ccc-358b-4bec-9506-b31c27d6f759
 begin
-	models = 1
+	models = 2
 
 	xlim = [-4e8, 2e8]
 	ylim = [2500, 16000]
@@ -311,11 +345,14 @@ end
 # ╔═╡ 7d10a077-75c1-4aee-b732-35a7ff71d109
 md"## Evolution from Newton to RT"
 
+# ╔═╡ 5b856c06-da72-41be-adc7-6d4e4570ad45
+cmap = plt.cm.get_cmap("coolwarm")
+
 # ╔═╡ 139e7d21-e102-48de-bcbd-ee1a1e78bb5d
 if models > 0
 	sc = converted_snapshots(out_folder[models])
 	snaps_converted = sort(MUST.list_snapshots(sc))
-	
+
 	plt.close()
 
 	fF, axF = plt.subplots(1, 1, figsize=(5, 6))
@@ -327,6 +364,10 @@ if models > 0
 		alpha=0.7,
 		ls="--"
 	)
+
+	color_sequence = [
+		cmap(i/length(snaps_converted)) for i in eachindex(snaps_converted)
+	]
 	
 	for (c, i) in enumerate(snaps_converted)
 		s, st = pick_snapshot(sc, i)
@@ -335,14 +376,14 @@ if models > 0
 			axF.plot(
 				profile_to_plot(mean, s, st)..., 
 				lw=2., 
-				color=colors[models], 
+				color=color_sequence[c], 
 				label=labels[models]
 			)
 		else
 			axF.plot(
 				profile_to_plot(mean, s, st)..., 
 				lw=2., 
-				color=colors[models],
+				color=color_sequence[c],
 				alpha=0.5
 			)
 		end
@@ -365,6 +406,7 @@ end
 
 # ╔═╡ Cell order:
 # ╟─bd7cdaf2-c05e-4bc9-afbb-cfb61260d62c
+# ╠═12a3c142-99ad-4166-bf8f-6fd9f1336a66
 # ╟─827e54c7-d0a3-455a-8837-52255eeff202
 # ╠═4a837d4c-724c-11ee-0b6b-21a88a56df5b
 # ╟─9e9c5903-762d-43d7-adf2-0eccee134974
@@ -386,6 +428,8 @@ end
 # ╟─e99b4bed-f093-4fe6-ad1d-af0f2235470b
 # ╟─14796f14-183e-496f-b5d8-41149b31d463
 # ╟─6c4f5ac6-a03b-4237-aa8f-fe50f77bde6f
+# ╟─4d623d6f-7366-468b-930e-71878b72aa5f
+# ╟─3bf11523-ad8f-49c9-84dc-5554364a8b3b
 # ╟─292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 # ╟─12446032-6cc4-4eac-94cc-6ccb8de46c5d
 # ╟─488b2eec-daf8-4920-9140-7d67c6ca3de1
@@ -393,4 +437,5 @@ end
 # ╟─c46c5b32-a1cd-43d3-b087-7f6af7adb88d
 # ╠═f2f27ccc-358b-4bec-9506-b31c27d6f759
 # ╟─7d10a077-75c1-4aee-b732-35a7ff71d109
+# ╠═5b856c06-da72-41be-adc7-6d4e4570ad45
 # ╟─139e7d21-e102-48de-bcbd-ee1a1e78bb5d
