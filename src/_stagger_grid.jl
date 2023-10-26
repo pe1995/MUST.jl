@@ -1,4 +1,4 @@
-#= Type definitions =#
+#========================================================== Type definitions =#
 
 """
 Information of a part of the Stagger grid. Contains location of
@@ -11,7 +11,8 @@ end
 
 
 
-#= Constructors =#
+
+#============================================================== Constructors =#
 
 """
     StaggerGrid(path)
@@ -35,23 +36,60 @@ end
 
 
 
-#= Saving =#
+
+#==================================================================== Saving =#
 
 save(grid::StaggerGrid, path) = CSV.write(path, grid.info)
 
 
 
-#= Interpolation =#
+
+#=============================================================== Convenience =#
+
+Base.getindex(g::StaggerGrid, k::String, i=!) = g.info[i, k]
+Base.:+(g1::StaggerGrid, g2::StaggerGrid) = StaggerGrid(g1.name, vcat(g1.info, g2.info))
+
+
+
+
+#============================================================= Interpolation =#
  
-function interpolate_quantity(grid, what; teff, logg, feh, method="linear")
+"""
+	interpolate_quantity(grid::StaggerGrid, what; teff, logg, feh, method="linear")
+
+Interpolate quantity `what` from within the grid to the new teff, loww and feh values.
+Uses scipy griddata for scattered interpolation. Convert output to julia.
+
+# Examples
+
+```julia
+vmin = interpolate_quantity(grid, "vmin"; teff=teff, logg=logg, feh=feh)
+```
+"""
+function interpolate_quantity(grid::StaggerGrid, what; teff, logg, feh, method="linear")
 	logg_gr = grid.info[!, "logg"]
 	teff_gr = grid.info[!, "teff"]
 	feh_gr  = grid.info[!, "feh"]
 	what_gr = grid.info[!, what]
-	
 
-	first(sci.griddata(
-		(logg_gr, teff_gr, feh_gr), what_gr, ([logg], [teff], [feh]), 
-		method=method)
+	pyconvert(
+		Any,
+		first(
+			scipy_interpolate.griddata(
+				(logg_gr, teff_gr, feh_gr), what_gr, ([logg], [teff], [feh]), 
+				method=method
+			)
+		), 
 	)
 end
+
+
+
+
+#=================================================================== running =#
+
+allowed_namelists(grid::StaggerGrid) = grid.info[!,"namelist_name"]
+
+
+
+#=============================================================================#

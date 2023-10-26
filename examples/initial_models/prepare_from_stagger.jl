@@ -114,6 +114,9 @@ function model_properties(name, path, snap_name)
     d = MUST.plane_statistic(MUST.mean, b, :d)
     z = MUST.axis(b, :z)
 
+	# save the box in the multi format (for Nick)
+	MUST.multiBox(b, "$(name)_stagger")
+
     resolution(model) = minimum(abs.(diff(MUST.axis(model, :z))))
     resolution_horizontal(model) = minimum(abs.(diff(MUST.axis(model, :x))))
 	Δt(R, u, c=1.0) = c * R / u
@@ -144,7 +147,7 @@ function model_properties(name, path, snap_name)
 end
 
 # ╔═╡ 1086a2da-df30-4f07-863d-100590ce42f7
-compute = false
+compute = true
 
 # ╔═╡ f748b6fd-52b4-4367-a81f-5015246ea653
 begin

@@ -25,6 +25,7 @@ import Base.keys
 import Base.read!, Base.write
 import Base.size, Base.axes
 import Base.Broadcast.broadcastable
+import Base.:+
 
 
 #= Python modules =#

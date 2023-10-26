@@ -1,0 +1,97 @@
+### A Pluto.jl notebook ###
+# v0.19.30
+
+using Markdown
+using InteractiveUtils
+
+# ╔═╡ f89573bc-8b9b-4897-8ad6-7b10fbdf9b4d
+# ╠═╡ show_logs = false
+begin
+	using Pkg; Pkg.activate(".")
+	using TSO
+	using MUST
+	using Plots
+	using Printf
+	using DataFrames
+	using DelimitedFiles
+end
+
+# ╔═╡ a0516377-218a-4260-ae15-acf6ac36f2c1
+md"# Random Models
+The goal is to read an existing grid of average 3D models and interpolate within this grid to obtain new initial conditions."
+
+# ╔═╡ a0e60cf6-7268-11ee-2e25-17dd31433d8f
+md"## Setup"
+
+# ╔═╡ 4e200464-64d6-48d2-9c80-b4e91e5b2d3b
+md"## Interpolation Grid"
+
+# ╔═╡ 4ce94434-db5a-4323-81e8-c0c5340bab18
+grid = MUST.StaggerGrid("stagger_grid.mgrid")
+
+# ╔═╡ 5701903e-59f3-4495-9dcc-4e730ed2e15f
+md"## Get any model within
+The simplest way to get any model within this grid, is to interpolate in Teff, logg and FeH. The corresponding 1D initial models can also be interpolated point-wise to the new point in the grid. The more average 3D models available the better. Alternatively, also adiabts can be used for this.
+Because this includes MUST and TSO, it is only available as ingredient, to keep both repos separate"
+
+# ╔═╡ c72e1a5a-d13a-481a-b732-3b6be3326326
+modelgrids = MUST.ingredients("modelgrids.jl")
+
+# ╔═╡ 27f3dc38-c32c-4e35-b5a6-cce2443e64d3
+ig = modelgrids.interpolate_from_grid(
+	grid, 
+	teff=[5000.0, 6000.0], 
+	logg=[4.0, 4.5], 
+	feh=[0.0, 0.0]
+)
+
+# ╔═╡ 47f9397e-a5fc-4c7a-a2f6-cf2eb45653e0
+md"## Validate interpolation"
+
+# ╔═╡ 213cb3c7-7e08-4929-9c7c-fee75f004ded
+begin
+	m1 = Average3D(ig["av_path", 1])
+	other_models = [Average3D(grid["av_path", i]) for i in 1:nrow(grid.info)]
+end
+
+# ╔═╡ 6618d5a5-3c28-4b73-8fd9-a386c4e422d6
+begin
+	plot(framestyle=:box, grid=false)
+
+	for i in eachindex(other_models)
+		plot!(
+			-other_models[i].z, other_models[i].lnT, linewidth=1, color=:black,
+			label=nothing
+		)
+	end
+
+	plot!(
+		-m1.z, m1.lnT, linewidth=7, color=:red, 
+		label="T:$(ig["teff", 1]) G:$(ig["logg", 1]) M:$(ig["feh", 1])"
+	)
+
+	plot!(
+		-other_models[6].z, other_models[6].lnT, linewidth=2, color=:cyan,
+		label="Grid Node", linestyle=:dash
+	)
+
+	plot!(xlim=[minimum(-m1.z), maximum(-m1.z)])
+	plot!(ylim=[minimum(m1.lnT), maximum(m1.lnT)])
+	plot!(xlabel="z", ylabel="log T")
+	
+
+	plot!()
+end
+
+# ╔═╡ Cell order:
+# ╟─a0516377-218a-4260-ae15-acf6ac36f2c1
+# ╟─a0e60cf6-7268-11ee-2e25-17dd31433d8f
+# ╠═f89573bc-8b9b-4897-8ad6-7b10fbdf9b4d
+# ╟─4e200464-64d6-48d2-9c80-b4e91e5b2d3b
+# ╠═4ce94434-db5a-4323-81e8-c0c5340bab18
+# ╟─5701903e-59f3-4495-9dcc-4e730ed2e15f
+# ╠═c72e1a5a-d13a-481a-b732-3b6be3326326
+# ╠═27f3dc38-c32c-4e35-b5a6-cce2443e64d3
+# ╟─47f9397e-a5fc-4c7a-a2f6-cf2eb45653e0
+# ╠═213cb3c7-7e08-4929-9c7c-fee75f004ded
+# ╟─6618d5a5-3c28-4b73-8fd9-a386c4e422d6

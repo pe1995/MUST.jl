@@ -17,10 +17,10 @@ You can jump through the documentation by using the follwing topic shortcuts. No
 3. [Atmosphere Analysis](#atmosphere-analysis)
 4. [Running Dispatch](#running-dispatch)
     1. [Running MULTI3D](#running-multi3d)
-    2. [Running StAt](#running-stellar-atmospheres)
+    2. [Running Stellar Atmospheres](#running-stellar-atmospheres)
 
 -------------------------
-## Installation
+# Installation
 
 To use `MUST.jl` a julia installation is requiered. Please avoid using versions older than `julia 1.6`. After downloading julia, the `MUST.jl` package can be added, after permissions to the repository have been granted, by simply adding it though the package manager.
 
@@ -64,11 +64,11 @@ $ julia --project
 Which should work in most cases. 
 
 -------------------------
-## 3D Model Atmospheres
+# 3D Model Atmospheres
 
 The main functionality of `MUST.jl` is to read different stellar atmospheres in different formats and convert them to one comman format that can be used for post-processing purposes. For this, there are two different model representations available, the `MUST.Space` and `MUST.Box`. The `MUST.Space` is designed as a loose array of points associated with different coordinates, that can have any shape or orientation. This is important if models with unspecified, ungirdded orientation are present. In most cases, this is not relevant unless there is mesh refinement active in Dispatch. In any case, for any post-processing purposes the model should always be converted in a `MUST.Box` object, which tabulates any data present as 3D arrays.
 
-### Reading Dispatch Models
+## Reading Dispatch Models
 
 *Relevant examples: `examples/dispatch2space/convert.jl, prepare_restart.jl, snapshot2box.jl`*
 
@@ -201,9 +201,7 @@ MUST.save(b_τ, snapshots[i_s], folder=folder)
 ```
 
 which will check if all z columns are identical and assume that the scale is cartesian if they are.
-
 From this internal `Box` model we can convert to other formats, like e.g. the `MULTI3D` format.
-
 Note that you can always ensure a consistent orientation (from bottom to top, negative z values at the bottom, increasing upwards) by using the `flip!` function on this `Box` model.
 
 ```julia
@@ -212,7 +210,7 @@ flip!(b_s, density=:d, uz=:uz)
 
 where you need to specify what field density and vetical velocity are. The density will be used to detect the ordering of arrays and z-velocity will be flipped in sign if the axis z needs to be flipped.
 
-### MULTI3D Models
+## MULTI3D Models
 
 *Relevant examples: `examples/dispatch2multi/box2multi.jl`*
 
@@ -264,7 +262,7 @@ must2multi.snaps2multi(
 
 Where the EoS needs to be a `TSO.SqEoS`. `Models` is a list of `MUST.Box` models, `labels` are the corresponding labels. Specifying a resolution here will lead to a resampling by linear interpolation, unless an other `method` is specified. See `gresample` function for more info.
 
-### MURaM Models
+## MURaM Models
 
 *Relevant examples: `examples/Muram/convert2m3dis.jl, convert_muram.jl`*
 
@@ -280,7 +278,7 @@ MUST.MURaMBox(model_path, opacity)
 
 where you can get the opacity e.g. from an `TSO.SqOpacity` table.
 
-### Stagger Models
+## Stagger Models
 
 *Relevant examples: `examples/stagger2box.ipynb`*
 
@@ -300,13 +298,13 @@ Models in the `MUST.Box` format can then be converted to MULTI3D format as seen 
 
 ----------------
 
-## Atmosphere Analysis
+# Atmosphere Analysis
 
-*Relevant examples: `examples/Paper_I/paper_v2.jl`*
+*Relevant examples: `examples/Paper_I/paper_v2.jl, examples/initial_models/analyse.jl`*
 
 The module contains usefull functionality that allow easy and transparent analysis of `MUST.Box` models. The most common usecase is the investigation of the average stratification of various quantities.
 
-### Plane Statistics
+## Plane Statistics
 
 Plane statistics are usefull to apply a given statistic plane wise to the entire data cube. The most convenient interface is the `plane_statistic` function, that is designed for exactly this usecase
 
@@ -349,7 +347,7 @@ plot(profile(mean, box, :log10τ_ross, T)...)
 will plot the average temperature as a function of optical depth. Note that this will only be correct, if the given `Box` is indeed on the $\rm \tau$ scale. Computing the average quantites on the geometrical scale and plot against average optical depth is **not** equal to average planes in a cube interpolated to a uniform optical depth scale. One should always compute averages on planes of constant optical depth if one intents to compare on that scale.
 
 
-### Surfaces
+## Surfaces
 
 You can either get surfaces which are closest to a given axis value, or interpolate column wise.
 
@@ -369,23 +367,192 @@ plane = MUST.interpolate_to(box, :T, τ_ross=0, logspace=true)
 ```
 which is more convenient and will also interpolate by column.
 
-### Time Statistics
+## Time Statistics
 
 
 --------------
 
-## Running Dispatch
+# Running Dispatch
 
 It is furthermore possible to run Dispatch (MULTI3D or stellar atmosperes) directly through `MUST.jl`. This includes automatic creation of namelists, submitting the job and fetching the output. This functionality can even be executed within a SLURM allocation, and hence provides easy access to the functional and repeated execution of tasks when considering grids. 
 
 Note that the grid computation functionality of `MUST.jl` is outdated, and needs to be updated according to the new philosophy, as can be seen in `examples/initial_models`. The desired interface should be more similar to the one developed for MULTI3D. 
 
-### Running MULTI3D
+## Running MULTI3D
 
 *Relevant examples: `examples/Paper_I/running_multi/opacity_tables.jl, effective_temperature.jl`*
 
-### Running Stellar Atmospheres
+Running M3D@DISPATCH from within julia is straight forward. If you have a working, compiled version of MULTI3D available, you can either use the existing high-level functions to automatically create namelists, or run whatever namelist you can think of. The execution task can either be piped to slurm, or just as a normal background task. You may either wait for the execution to finish or submit it to the background and fetch it later. The following gives an example for running M3D for a couple of different snapshots of a MURaM model in full 3D.
 
-*Relevant examples: `examples/Paper_I/running_dispatch/create_MUSTGrid.jl`*
+```julia
+using MUST
 
-**This interface is outdated and needs updates!**
+# location of the dispatch2 M3D installation
+@import_m3dis "path/to/Multi3D"
+
+# folder where snapshots are saved
+modelatmosfolder = "./input_multi3d/muram_m2"
+
+# names of the snapshots within this folder
+snapshots = [
+	"muram_m2_HDm_50x50",
+	"muram_m2_SSDm_50x50",
+	"muram_m2_HDl_50x50",
+	"muram_m2_SSDl_50x50",
+	"muram_m2_HDh_50x50",
+	"muram_m2_SSDh_50x50"
+]
+
+# linelist or absmet file path
+linelist = "./input_multi3d/vald_2490-25540.list"
+absmet = "./input_multi3d/absmet"
+
+# input parameters that you want to specify (optional)
+input_parameters = Dict(
+    :model_folder=>modelatmosfolder,
+    :linelist=>linelist,
+    :absmet=>nothing,
+    :atom_params=>(
+    	:atom_file=>"./input_multi3d/atoms/atom.li12_col", 
+    	:use_atom_abnd=>false,
+    	:abundance=>2.1,
+    	:exclude_trace_cont=>true,
+    	:exclude_from_line_list=>true,
+    	:hydrogen_BPO=>false
+    ),
+    :spectrum_params=>(
+    	:daa=>0.01, :aa_blue=>6706, :aa_red=>6710
+    ),
+    :composition_params=>(
+    	:absdat_file=>"./input_multi3d/TS_absdat.dat",
+    	:abund_file=>"./input_multi3d/abund_asplund07"
+    ),
+    :atmos_params=>(
+    	:atmos_format=>"MUST", 
+    	:use_density=>true, 
+    	:use_ne=>false,
+    	:FeH=>-2.0,
+    	:dims=>16
+    ),
+    :m3d_params=>(
+    	:n_nu=>1, 
+    	:quad_scheme=>"set_a2"
+    )
+)
+```
+
+Now from this general setup you can produce a input dict with different run-names and variations of `input_parameters`, and run those in parallel. The run-name will be appended to the output name (name of the atmosphere), such that every model is run for every input setup.
+
+```julia
+# modify input parameters as you want
+params = Dict("test1", input_parameters1, "test2", input_parameters2)
+
+# run all of it in parallel using slurm
+MUST.spectrum(
+    snapshots, 	    # run these snapshots
+    params, 	    # and those paramters
+    NLTE=true, 	    # in NLTE
+    slurm=true,     # using Slurm (+ wait)
+    twostep=false   # first dep. => LTE + dep.
+)
+```
+
+Note that you can if course also run M3D with individual snapshots and only one setup. For this you only specify the snapshot(s) and `namelist_kwargs` in agreement with the M3D input parameters. Please read the M3D documentation for more info. There are a couple of different namelist templates and higher level functions available (e.g. `spectrum(), whole_spectrum()`, etc.). Take a look at `src/_multi.jl` and `src/namelist.jl`.
+In case all of this is to high-level for you, take a look at the direct execution functions `srun_m3dis()` and `run_m3dis()` for slurm, and non-slurm, respectively. These just handle the execution of pre-created namelists. So if you have a different way of creating your namelists you can just call those functions to run them.
+
+The result will be saved in the normal M3D format. There is a thin wrapper available, which uses the excellent `m3dis.py` package to read the output into julia. Note that, if not done automatically, you may need to call `MUST.pyconvert()` onto the result to bring it to julia types.
+
+```julia
+# read results stored in resultspaths
+m3druns = MUST.M3DISRun.(resultpaths) 
+
+# handle the output for e.g. different abundances
+abund = MUST.getabundances.(m3druns)         # get abundances
+MUST.equivalentwidth(m3druns, line=1)        # interpolate EW
+MUST.abundance(m3druns, line=1)              # interpolate abundance
+MUST.ΔNLTE(m3druns, line=1, reference=:LTE)  # compute NLTE corrections
+
+# or execute directly for individual lines
+lines = [run.line[10] for run in m3druns]    # Base.getproperty is redirected to m3dis.py
+MUST.abundance(lines, abund)                 # interpolate abundance for line 10
+```
+
+The `m3dis.run` object is stored in the `m3drun.run` field and can hence be used as a normal python object if needed. `Base.getproperty()`, so e.g. `m3drun.flux` should automatically access the corresponding field of the python object.
+
+
+## Running Stellar Atmospheres
+*Relevant examples: `examples/initial_models/prepare.jl, random_models.jl, run.jl`*
+
+Running MUST@DISPATCH is similar to running M3D@DISPATCH. Namelists can either be run via a slurm job submission or by submission to the background. If slurm submissions are executed within a slurm allocation, they will be executed as job steps automatically. `MUST.jl` also offers the possibility to create namelists automatically. 
+
+You can either load an existing namelist and then modify the fields, or just set the fields manually (Note that currently the namelist type is not very flexible, because the name of the fields are hardcoded. If there are additional fields needed, you need to modify the struct StellarNamelist. This is a bit inconvenient and may need change in the future). The same interface is used in the MULTI case under the hood.
+
+```julia
+# load an empty namelist
+nml = MUST.StellarNamelist()
+
+# or load an example namelist
+nml = MUST.StellarNamelist("stellar_default.nml")
+
+# Set whatever fields you want
+MUST.set!(
+    nml, 
+    patch_params=(:n=>[patch_size, patch_size, patch_size],),
+    scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale)
+)
+
+# Save the namelist in dispatch
+MUST.write(nml, MUST.@in_dispatch(name))
+```
+
+There is a script `prepare.jl` in the mentioned example folder, that is made for creating a large number of namelists for a grid of models. There are multiple steps involved, like the creation of initial 1D models and the corresponding binning of opacites, which involve the `TSO.jl` package. This is why the corresponding source file is available as `ingredient`.
+
+```julia
+prepare4dispatch = MUST.ingredients("prepare4dispatch.jl")
+```
+
+In order to run the script `prepare.jl`, which will create everything you need, including opactiy tables, you need to have a `MUST.StaggerGrid` available, which contains information about the Stagger grid which will be used to determine initial conditions. There are other initial conditions one can think of, but at the current time this is the preferred one. The steps are as follows.
+
+1. Create the `MUST.StaggerGrid`. For this you need the Stagger grid, which is at the moment not public. A default `stagger_grid.mgrid` is available, which consists of a couple of models from the grid. But you can enhance this table with whatever model you can think of. Have a look at the file, models don't need to be Stagger at all. You only need the lists quantities (like e.g. size of the box, the average model on the geometrical scale, etc.).
+2. This grid can be used to create random initial conditions. At the moment, this is done by interpolating in the grid in terms of every quantity, **including** the average model. This may be replaced by a adiabatic initial condition. Also the resolution of the models is interpolated in the grid. This means that the more models you have in the initial grid the better the interpolation will be.
+```julia
+grid = MUST.StaggerGrid("stagger_grid.mgrid")
+modelgrids = MUST.ingredients("modelgrids.jl")
+
+# new grid object with the info about the models + average model
+ig = modelgrids.interpolate_from_grid(
+    grid, 
+    teff=[5000.0, 6000.0], 
+    logg=[4.0, 4.5], 
+    feh=[0.0, 0.0]
+)
+
+# or add the models to the existing grid
+ig = modelgrids.interpolate_from_grid!(...)
+```
+3. Run `prepare.jl` with this grid. You don't need this particular script, but following the steps in the script is encouraged. This will create a `dispatch_grid.mgrid`, input namelists and binned opacities.
+5. Run the final grid using the `run!()` function.
+```julia
+@import_dispatch "path/to/dispatch2"
+
+# load the prepared dispatch grid
+grid = MUST.StaggerGrid("dispatch_grid.mgrid")
+
+# run it. Threads, mem and timeout are passed to each job step
+MUST.run!(grid; threads=40, memMB=90000, timeout="24:00:00", slurm=true)
+```
+
+The success of the results will be recorded upon end in the success column, prepended with the name of the grid. Success will be judged based on the availability of all snapshots that should be there. One could also use the return status of the application -- which is available -- however sometimes dispatch may either crash without a false success status or end with a error status, even though it reached the end. You can switch between the two by specifing the `use_status` kwarg. 
+Within the grid running procedure, the name of the namelist is used to run dispatch the same way as MULTI.
+
+```julia
+# run in slurm
+srun_dispatch(nml; threads=40, memMB=1024, timeout="24:00:00")
+
+# or run in shell
+run_dispatch(nml; threads=70, wait=true, ddir=@in_dispatch(""))
+```
+
+where the first line can be run within a sbatch allocation. You can therefore scrip previous steps, if you already have a namelist, initial model (or adiabat) and opacity table ready. The results of all computations, successfull or not, can be retreived after converting your favourite snapshot, as described [in previous sections](#reading-dispatch-models).
+
+___________

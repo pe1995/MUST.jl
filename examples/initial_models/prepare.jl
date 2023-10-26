@@ -70,7 +70,7 @@ end
         mother_table_path = "/home/eitner/shared/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_v1.6"
         extension         = "magg22"
         version           = "v0.1"
-        Nbins             = 7
+        Nbins             = 8
     end
 
     MUST.@import_dispatch dispatch_location
@@ -103,7 +103,18 @@ begin
         ) for i in 1:nrow(grid.info)
     ]
     @everywhere form_opacities(args) = prepare4dispatch.formation_opacities(args[1:3]...; logg=args[4], extension=args[5])
-    #map(form_opacities, args)    
+    map(form_opacities, args)    
+
+    # Determine where lines should be split from continuum
+    qlim = [
+        round(
+            prepare4dispatch.quadrantlimit(
+                grid.info[i, "eos_root"], n, extension=extension, λ_lim=5.0
+            ),
+            sigdigits=3
+        ) for (i, n) in enumerate(grid.info[!, "name"])
+    ]
+    @show qlim
 
     ## Do the binning in parallel across many workers, this is the most time consuming part
     args = [
@@ -112,11 +123,13 @@ begin
             grid.info[i, "av_path"], 
             grid.info[i, "name"],
             grid.info[i, "logg"], 
-            :kmeans,
+            :kmeans, 
             Nbins,
             [ 
-                TSO.Quadrant((0.0, 100.0), (1.25, 100), 3, stripes=:κ),
-                TSO.Quadrant((0.0, 100.0), (-100, 1.25), 4, stripes=:λ),
+                TSO.Quadrant((0.0, 4.0), (qlim[i], 5.0), 2, stripes=:κ),
+                TSO.Quadrant((0.0, 4.0), (5.0, 100), 1, stripes=:κ),
+                TSO.Quadrant((4.0, 100.0), (qlim[i], 100), 1, stripes=:κ),
+                TSO.Quadrant((0.0, 100.0), (-100, qlim[i]), 4, stripes=:λ),
             ],
             extension
         ) for i in 1:nrow(grid.info)
@@ -126,7 +139,7 @@ begin
         logg=args[4], method=args[5], Nbins=args[6], extension=args[8],
         quadrants=args[7]
     )
-    #Distributed.pmap(bin_opacities, args)    
+    Distributed.pmap(bin_opacities, args)    
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]
@@ -137,7 +150,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=20, τ_up=-4.5, τ_down=6.0)
+    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.25, τ_surf=0.0, τ_down=6.0)
 end
 
 #====================== Step (C): Conversion =================================#
@@ -160,3 +173,5 @@ begin
 
     MUST.save(grid, final_grid_path)
 end
+
+#=============================================================================#

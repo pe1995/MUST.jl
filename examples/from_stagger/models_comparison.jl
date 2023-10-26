@@ -40,17 +40,17 @@ names = [
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/test_here")
+	MUST.@in_dispatch("data/grid_t50g40m00")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_cnt_v1.7.6"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1"),
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
 labels = [
-	"test_new_opacity"
+	"test_subgiant"
 ]
 
 # ╔═╡ ee39604b-6bd0-434e-b06d-417a4ab8cb7e
@@ -66,7 +66,7 @@ begin
 	
 	for i in eachindex(names)
 		snapshot, snapshot_τ = MUST.pick_snapshot(
-			MUST.converted_snapshots(out_folder[i]), 164
+			MUST.converted_snapshots(out_folder[i]), :recent
 		)
 		
 		append!(snapshots, [snapshot])
@@ -91,7 +91,7 @@ end
 # ╠═╡ show_logs = false
 initial_model = [
 	@optical(Average3D(eos[i], 
-		MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t5777g44m00_v0.1/inim.dat")), eos[i], opa[i])
+		MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1/inim.dat")), eos[i], opa[i])
 		for i in eachindex(eos)
 ]
 
@@ -243,14 +243,14 @@ end
 # ╔═╡ 8a8a40e0-5b03-4c17-93a3-4eccf12e3717
 begin
 	#plot()
-	#plot(-initial_model[1].z, exp.(initial_model[1].lnT), 
-	#			lw=1.5, color=:black, label="initial condition", ls=:dash)
-	
-	plot(-test_model.z, exp.(test_model.lnT), 
+	plot(-initial_model[1].z, exp.(initial_model[1].lnT), 
 				lw=1.5, color=:black, label="initial condition", ls=:dash)
+	
+	#plot(-test_model.z, exp.(test_model.lnT), 
+	#			lw=1.5, color=:black, label="initial condition", ls=:dash)
 
-	plot!(-marcs_model[:, 4], marcs_model[:, 5], 
-		color=:royalblue, ls=:dot, lw=2.5, label="MARCS")
+	#plot!(-marcs_model[:, 4], marcs_model[:, 5], 
+	#	color=:royalblue, ls=:dot, lw=2.5, label="MARCS")
 
 	
 	for (i, snapshot) in enumerate(snapshots)
@@ -269,16 +269,19 @@ begin
 	plot()#profile(mean, stagger_τ, :log10τ_ross, :T)..., 
 		#		lw=1.5, color=:black, label="Stagger", ls=:dash)
 
-	plot!(log10.(test_model.τ), exp.(test_model.lnT), 
-				lw=1.5, color=:black, label="initial condition", ls=:dash)
+	#plot!(log10.(test_model.τ), exp.(test_model.lnT), 
+	#			lw=1.5, color=:black, label="initial condition", ls=:dash)
 
 	for (i, snapshot_τ) in enumerate(snapshots_τ)
 		plot!(profile(mean, snapshot_τ, :log10τ_ross, :T)..., 
 				lw=2., color=colors[i], label=labels[i], ls=:solid)
 	end
 
-	plot!(marcs_model[:, 2], marcs_model[:, 5], 
-		color=:royalblue, ls=:dot, lw=2.5, label="MARCS")
+	plot!(log10.(initial_model[1].τ), exp.(initial_model[1].lnT), 
+				lw=1.5, color=:black, label="initial condition", ls=:dash)
+
+	#lot!(marcs_model[:, 2], marcs_model[:, 5], 
+	#	color=:royalblue, ls=:dot, lw=2.5, label="MARCS")
 
 	xlabel!("τ-ross [log]")
 	ylabel!("T [K]")
@@ -318,6 +321,9 @@ begin
 		plot!(profile(mean, snapshot_τ, :log10τ_ross, :log10d)..., 
 				lw=1.5, color=colors[i], label=labels[i])
 	end
+
+	plot!(log10.(initial_model[1].τ), log10.(exp.(initial_model[1].lnρ)), 
+				lw=1.5, color=:black, label="initial condition", ls=:dash)
 	
 
 	plot!(marcs_model[:, 2], log10.(marcs_model[:, 11]), 
@@ -805,7 +811,7 @@ end
 # ╠═ee39604b-6bd0-434e-b06d-417a4ab8cb7e
 # ╟─5856ad8f-b6ce-4175-a158-c415bd546a7e
 # ╠═452a144e-b725-4de2-b3e1-2f614210d62e
-# ╟─3e747391-ba4b-47bf-b363-abcb46a9309b
+# ╠═3e747391-ba4b-47bf-b363-abcb46a9309b
 # ╟─ed6c250a-84d5-4ac6-bf54-9e8fcdbe55a3
 # ╠═d8693137-82f7-4ccb-b886-4115e3032392
 # ╠═c1183224-cc9d-4cd3-ac52-681eb8455df3
@@ -823,10 +829,10 @@ end
 # ╟─9fd5896c-8d4f-499d-9f97-c589d8d256c2
 # ╟─85d4b142-1529-495a-bc6d-64f5f0efa3b9
 # ╟─3d1e1cd9-5601-468d-a3f1-a3dd51177a37
-# ╟─8a8a40e0-5b03-4c17-93a3-4eccf12e3717
-# ╟─d3ef4193-11e7-478d-aa11-ba3b8adbce55
+# ╠═8a8a40e0-5b03-4c17-93a3-4eccf12e3717
+# ╠═d3ef4193-11e7-478d-aa11-ba3b8adbce55
 # ╟─05a4e3ef-58b5-4f96-94b8-51991c971451
-# ╟─0a726cbb-1309-4071-9df1-93cd4355fb71
+# ╠═0a726cbb-1309-4071-9df1-93cd4355fb71
 # ╟─e10a8581-c0ab-4209-9e14-4d456dcf9a86
 # ╟─07815fd8-f292-4760-a950-8b56a5908acf
 # ╠═fa8e10f7-da54-4165-887f-30e740e1f264
