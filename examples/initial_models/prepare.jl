@@ -49,7 +49,7 @@ end
 end
 
 @everywhere begin
-    host = "gemini"
+    host = "raven"
 
     if host == "raven"
         name_extension    = "DIS_MARCS"
@@ -125,7 +125,7 @@ begin
         args[1:3]...; 
         logg=args[4], method=args[5], Nbins=args[6], extension=args[8],
         quadrants=args[7]
-        )
+    )
     #Distributed.pmap(bin_opacities, args)    
     
     ## Save the eos info
@@ -137,7 +137,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, cut_bottom=0.1)
+    prepare4dispatch.resolution!(grid, patch_size=20, τ_up=-4.5, τ_down=6.0)
 end
 
 #====================== Step (C): Conversion =================================#

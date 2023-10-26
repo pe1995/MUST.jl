@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.29
+# v0.19.30
 
 using Markdown
 using InteractiveUtils
@@ -22,8 +22,9 @@ md"# Investigating different Models"
 # ╔═╡ 931f7a1f-dccb-4727-9982-d04be9ffd688
 begin
 	mean = MUST.mean
+	MUST.@import_dispatch "../../../dispatch2"
 	#MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
-	MUST.@import_dispatch "/mnt/beegfs/gemini/groups/bergemann/users/eitner/model_grid/dispatch2"
+	#MUST.@import_dispatch "/mnt/beegfs/gemini/groups/bergemann/users/eitner/model_grid/dispatch2"
 end;
 
 # ╔═╡ ee6a633b-6ccc-412f-ba74-e105aa148afc
@@ -39,12 +40,12 @@ names = [
 
 # ╔═╡ 9a7ce3c5-45f6-4589-a838-daaddf89e94f
 out_folder = [
-	MUST.@in_dispatch("data/grid_t5777g44m00")
+	MUST.@in_dispatch("data/test_here")
 ]
 
 # ╔═╡ 82a51f3d-9e49-44ab-ae36-0069b6bd405c
 eos_folder = [
-	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t5777g44m00_v0.1"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_cnt_v1.7.6"),
 ]
 
 # ╔═╡ fe1d7b10-88a5-46c1-a244-589bacf75970
