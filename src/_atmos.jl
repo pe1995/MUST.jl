@@ -85,6 +85,37 @@ end
 
 
 
+function _var_from_patch(var, fname, shp, off, li, ui, idxd; density=:d)
+    if var==:ux
+        varidx = pyconvert(Any, idxd[String(:px)]) + 1
+        didx = pyconvert(Any, idxd[String(:d)]) + 1
+
+        d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+        mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
+    elseif var==:uy
+        varidx = pyconvert(Any, idxd[String(:py)]) + 1
+        didx = pyconvert(Any, idxd[String(:d)]) + 1
+
+        d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+        mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
+    elseif var==:uz
+        varidx = pyconvert(Any, idxd[String(:pz)]) + 1
+        didx = pyconvert(Any, idxd[String(:d)]) + 1
+
+        d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+        mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
+    elseif var==:ee
+        varidx = pyconvert(Any, idxd[String(:e)]) + 1
+        didx = pyconvert(Any, idxd[String(:d)]) + 1
+
+        d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+        mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
+    else
+        varidx = pyconvert(Any, idxd[String(:e)]) + 1
+        mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+    end
+end
+
 """
 Create a Space object from a Dispatch simulation snapshot.
 
@@ -100,7 +131,7 @@ Returns
 MUST.Space type object
 
 """
-function Space(snapshot::Py, quantities::Symbol...) 
+function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false) 
     qs = Dict{Symbol,Vector{Float32}}(q=>Float32[] for q in quantities)
     qs[:x] = Float32[]; qs[:y] = Float32[]; qs[:z] = Float32[]
     qs[:i_patch] = Int[]
@@ -108,19 +139,31 @@ function Space(snapshot::Py, quantities::Symbol...)
     
     for (i,patch) in enumerate(snapshot.patches)
         # grid of this patch relative to the global grid
-        patch_size = (length(patch.xi),length(patch.yi),length(patch.zi))
+        #patch_size = (length(patch.xi),length(patch.yi),length(patch.zi))
         x = pyconvert.(Float32, patch.xi)
         y = pyconvert.(Float32, patch.yi) 
         z = pyconvert.(Float32, patch.zi)
+        patch_size = (length(x), length(y), length(z))
         patch_dimensions[i,1] = length(patch.xi)
         patch_dimensions[i,2] = length(patch.yi)
         patch_dimensions[i,3] = length(patch.zi)
+
+        # New: Dont rely on numpy for mmaps
+        fname = pyconvert(Any, patch.filename)
+		shp = Tuple(pyconvert.(Any, patch.ncell))
+		off = pyconvert(Vector{Int}, patch.offset)
+		li = pyconvert(Vector{Int}, patch.li)
+		ui = pyconvert(Vector{Int}, patch.ui)
+        idxd = patch.idx.__dict__
         
         # extract the quantites for this patch
-        for (iq, q) in enumerate(quantities)
-            q_matrix = pyconvert(Array{Float32, 3}, numpy.array(patch.var(String(q))))
-            q_array  = zeros(Float32, prod(patch_size))
-            coords   = zeros(Float32, (prod(patch_size),3))
+        for (iq, q) in enumerate(quantities)            
+            q_matrix = use_numpy ? 
+                pyconvert(Array{Float32, 3}, numpy.array(patch.var(String(q)))) :
+                _var_from_patch(q, fname, shp, off, li, ui, idxd, density=density) 
+            
+            q_array = zeros(Float32, prod(patch_size))
+            coords = zeros(Float32, (prod(patch_size),3))
             j = 1
             @inbounds for iz in 1:patch_size[3]
                 @inbounds for iy in 1:patch_size[2]
