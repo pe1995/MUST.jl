@@ -55,7 +55,7 @@ labels = [
 ]
 
 # ╔═╡ 17ca4c8c-9563-4be4-8ab7-a7446ba28dec
-colors = ["magenta", "black"]
+colors = ["black"]
 
 # ╔═╡ cfc0ab3e-5989-414a-8631-97acee2ae886
 list_of_snapshots(out_folder[1])
@@ -117,6 +117,8 @@ begin
 			label=labels[i]
 		)
 	end
+
+	axA.axvline(7.52e7)
 
 	axA.legend()
 	axA.set_ylabel("temperature [K]")
@@ -417,7 +419,7 @@ end
 # ╟─3c9cecd9-8c59-4311-93fa-5137655fdfef
 # ╟─f3ffa698-bcea-4ab3-9b63-84d518c14068
 # ╟─5e882897-d396-470c-ad46-37a39326225c
-# ╟─ef9b0e78-00f0-41d0-8429-2d36f54c0a02
+# ╠═ef9b0e78-00f0-41d0-8429-2d36f54c0a02
 # ╟─e05efb00-233b-44b9-9204-156ae2ed0762
 # ╟─36eabb43-1660-4e11-8bca-e7f09568d695
 # ╟─b34da749-03ae-4f6c-92fb-c5809abeb339

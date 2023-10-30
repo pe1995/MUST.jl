@@ -16,7 +16,7 @@ end
 @import_dispatch "../../../dispatch2"
 
 # ╔═╡ 7cf60e1b-ba47-4e56-b346-2cb255496676
-folder = @in_dispatch "data/test_here"
+folder = @in_dispatch "data/grid_t50g40m00"
 
 # ╔═╡ 57fbb4cd-2478-4cfa-8ce5-3df0b83aaf79
 md"What snapshots are available"
