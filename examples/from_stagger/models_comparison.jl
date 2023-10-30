@@ -22,8 +22,9 @@ md"# Investigating different Models"
 # ╔═╡ 931f7a1f-dccb-4727-9982-d04be9ffd688
 begin
 	mean = MUST.mean
+	MUST.@import_dispatch "../../../dispatch2"
 	#MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
-	MUST.@import_dispatch "/mnt/beegfs/gemini/groups/bergemann/users/eitner/model_grid/dispatch2"
+	#MUST.@import_dispatch "/mnt/beegfs/gemini/groups/bergemann/users/eitner/model_grid/dispatch2"
 end;
 
 # ╔═╡ ee6a633b-6ccc-412f-ba74-e105aa148afc
