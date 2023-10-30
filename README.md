@@ -260,7 +260,7 @@ must2multi.snaps2multi(
 )
 ```
 
-Where the EoS needs to be a `TSO.SqEoS`. `Models` is a list of `MUST.Box` models, `labels` are the corresponding labels. Specifying a resolution here will lead to a resampling by linear interpolation, unless an other `method` is specified. See `gresample` function for more info.
+Where the EoS needs to be a `TSO.SqEoS`. `Models` is a list of `MUST.Box` models, `labels` are the corresponding labels. Specifying a resolution here will lead to a resampling by linear interpolation, unless an other `method` is specified. See `gresample` function for more info. You can leave out the EoS, in which case it is assumed that the electron density is available as `:ne`. If it is not, it will be set to 1.0. Make sure to use `use_ne=.false.` in M3D in that case especially.
 
 ## MURaM Models
 

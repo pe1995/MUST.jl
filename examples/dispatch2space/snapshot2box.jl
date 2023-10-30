@@ -16,7 +16,7 @@ end
 @import_dispatch "../../../dispatch2"
 
 # ╔═╡ 7cf60e1b-ba47-4e56-b346-2cb255496676
-folder = @in_dispatch "data/grid_t5777g44m00"
+folder = @in_dispatch "data/grid_t50g40m00"
 
 # ╔═╡ 57fbb4cd-2478-4cfa-8ce5-3df0b83aaf79
 md"What snapshots are available"
@@ -31,7 +31,7 @@ md"Pick a couple (or one specific) to convert them. This takes a while and can, 
 snapshots[100]
 
 # ╔═╡ 85ba291b-7456-45b2-a926-09865a77b3fa
-b, bτ = snapshotBox(snapshots[10], folder=folder)
+b, bτ = snapshotBox(snapshots[end-1], folder=folder)
 
 # ╔═╡ Cell order:
 # ╠═136196ea-6f25-11ee-0b3c-ffd40a627be2
