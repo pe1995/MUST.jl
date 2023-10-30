@@ -234,6 +234,11 @@ quadrantlimit(table_folder, name; extension, λ_lim=5.0) = begin
     TSO.median(-log10.(fopa.κ_ross)[log10.(opa.λ) .> λ_lim])
 end
 
+clean(table_folder, name; extension) = begin
+    name_ext = TSO.join_full(name, extension)
+	rm(joinpath(table_folder, "combined_formation_opacities$(name_ext).hdf5"))
+end
+
 
 
 
@@ -296,7 +301,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         # absolute velocity in the given stagger model. There will be higher 
         # velocities during the simulation, so there has to be room for larger
         # currants. Round to the next quater
-        max(100.0, round(Δt(l_cgs_raw, max(abs(vmax), abs(vmin)), 1.25), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
+        max(100.0, round(Δt(x_size, max(abs(vmax), abs(vmin)), 0.75), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
         #round(larger_than_sun*tscale, sigdigits=2)
         tscale
