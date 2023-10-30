@@ -17,6 +17,7 @@ using DelimitedFiles
 using TimerOutputs
 using NetCDF
 using Integrals
+using Mmap
 import Base.filter, Base.filter!
 import Base.getindex
 import Base.getproperty

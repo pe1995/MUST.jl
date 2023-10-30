@@ -55,12 +55,15 @@ end
         name_extension    = "DIS_MARCS"
         version           = "0.1"
         dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
-        initial_grid_path = "stagger_grid.mgrid"
-        final_grid_path   = "dispatch_grid.mgrid"
+        #initial_grid_path = "stagger_grid.mgrid"
+        #final_grid_path   = "dispatch_grid.mgrid"
+        initial_grid_path = "random_setup.mgrid"
+        final_grid_path   = "random_grid.mgrid"
         mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
         extension         = "magg22"
         version           = "v0.1"
-        Nbins             = 7
+        Nbins             = 8
+        clean             = true
     elseif host == "gemini"
         name_extension    = "DIS_MARCS"
         version           = "0.1"
@@ -71,6 +74,7 @@ end
         extension         = "magg22"
         version           = "v0.1"
         Nbins             = 8
+        clean             = false
     end
 
     MUST.@import_dispatch dispatch_location
@@ -99,46 +103,53 @@ begin
             grid.info[i, "av_path"], 
             grid.info[i, "name"],
             grid.info[i, "logg"],
-            extension
-        ) for i in 1:nrow(grid.info)
-    ]
-    @everywhere form_opacities(args) = prepare4dispatch.formation_opacities(args[1:3]...; logg=args[4], extension=args[5])
-    #map(form_opacities, args)    
-
-    # Determine where lines should be split from continuum
-    qlim = [
-        round(
-            prepare4dispatch.quadrantlimit(
-                grid.info[i, "eos_root"], n, extension=extension, λ_lim=5.0
-            ),
-            sigdigits=3
-        ) for (i, n) in enumerate(grid.info[!, "name"])
-    ]
-
-    ## Do the binning in parallel across many workers, this is the most time consuming part
-    args = [
-        (
-            grid.info[i, "eos_root"], 
-            grid.info[i, "av_path"], 
-            grid.info[i, "name"],
-            grid.info[i, "logg"], 
+            extension,
             :kmeans, 
             Nbins,
-            [ 
-                TSO.Quadrant((0.0, 4.0), (qlim[i], 5.0), 2, stripes=:κ),
-                TSO.Quadrant((0.0, 4.0), (5.0, 100), 1, stripes=:κ),
-                TSO.Quadrant((4.0, 100.0), (qlim[i], 100), 1, stripes=:κ),
-                TSO.Quadrant((0.0, 100.0), (-100, qlim[i]), 4, stripes=:λ),
-            ],
-            extension
         ) for i in 1:nrow(grid.info)
     ]
-    @everywhere bin_opacities(args) = prepare4dispatch.bin_opacities(
-        args[1:3]...; 
-        logg=args[4], method=args[5], Nbins=args[6], extension=args[8],
-        quadrants=args[7]
-    )
-    #Distributed.pmap(bin_opacities, args)    
+
+    ## To save disk space, the formation opacities can be deleted after binning
+    ## For this it is required to run this sequentially
+    @everywhere formation_and_bin(args) = begin
+        eos_root = args[1]
+        av_path = args[2]
+        name = args[3]
+        logg = args[4]
+        extension = args[5]
+        method = args[6]
+        Nbins = args[7]
+
+        @info "Opacity Binning: $(name)"
+
+        ## formation opacities
+        prepare4dispatch.formation_opacities(eos_root, av_path, name; logg=logg, extension=extension)
+
+        qlim = round(
+            prepare4dispatch.quadrantlimit(eos_root, name, extension=extension, λ_lim=5.0), 
+            sigdigits=3
+        )
+
+        quadrants = [ 
+            TSO.Quadrant((0.0, 4.0), (qlim, 5.0), 2, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (5.0, 100), 1, stripes=:κ),
+            TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
+        ]
+           
+        ## bin opacities
+        prepare4dispatch.bin_opacities(
+            eos_root, av_path, name; 
+            logg=logg, method=method, Nbins=Nbins, extension=extension,
+            quadrants=quadrants
+        )
+
+        ## remove the formation opacities
+        clean && prepare4dispatch.clean(eos_root, name, extension=extension)
+    end
+
+    ## End-to-end binning, with clean-up
+    #Distributed.pmap(formation_and_bin, args)
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]

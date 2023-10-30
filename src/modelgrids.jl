@@ -100,7 +100,11 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	folder = "interpolated"
 	mesh   = "interpolated"
 
-	name = "t$(teff/1000)g$(logg*10)m$(feh)"
+	tname = MUST.@sprintf "%i" teff/100
+	gname = MUST.@sprintf "%.2f" logg*10
+	fname = MUST.@sprintf "%.3f" feh
+	name = "t$(tname)g$(gname)m$(fname)"
+
 	snapshot = "interpolated"
 	ma_x = MUST.interpolate_quantity(grid, "ma_x"; teff=teff, logg=logg, feh=feh)
 	ma_y = MUST.interpolate_quantity(grid, "ma_y"; teff=teff, logg=logg, feh=feh)
@@ -116,7 +120,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	
 	hres = MUST.interpolate_quantity(grid, "hres"; teff=teff, logg=logg, feh=feh)
 
-	av_path = abspath("$(name)_00001_av.dat")
+	av_path = abspath("$(name)_99999_av.dat")
 	open(av_path, "w") do f
         MUST.writedlm(f, [-reverse(model.z) reverse(exp.(model.lnT)) reverse(model.lnρ)])
     end

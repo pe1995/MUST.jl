@@ -234,6 +234,11 @@ quadrantlimit(table_folder, name; extension, λ_lim=5.0) = begin
     TSO.median(-log10.(fopa.κ_ross)[log10.(opa.λ) .> λ_lim])
 end
 
+clean(table_folder, name; extension) = begin
+    name_ext = TSO.join_full(name, extension)
+	rm(joinpath(table_folder, "combined_formation_opacities$(name_ext).hdf5"))
+end
+
 
 
 

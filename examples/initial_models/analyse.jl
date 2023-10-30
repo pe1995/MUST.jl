@@ -33,6 +33,7 @@ end;
 # ╔═╡ 4abf1ef3-e08c-46db-a4b5-a986434c2938
 names = [
 	"sub_giant",
+	#"sub_giant_8",
 ]
 
 # ╔═╡ 40e718a0-bed0-46bd-a77f-4c7039290b45
@@ -42,12 +43,14 @@ out_folder = [
 
 # ╔═╡ ce9f7f32-078b-44b7-93d9-d10330c9d26a
 eos_folder = [
+	#@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1"),
 	@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1")
 ]
 
 # ╔═╡ b3df2bd4-8ed3-4ecb-97ff-dcd1e86c053d
 labels = [
 	"test subgiant"
+	#"test subgiant bnd+8"
 ]
 
 # ╔═╡ 17ca4c8c-9563-4be4-8ab7-a7446ba28dec
