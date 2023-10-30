@@ -37,7 +37,7 @@ names = [
 
 # ╔═╡ 40e718a0-bed0-46bd-a77f-4c7039290b45
 out_folder = [
-	@in_dispatch("data/grid_t50g40m00")
+	@in_dispatch("data/grid_t50g40m00_testrt")
 ]
 
 # ╔═╡ ce9f7f32-078b-44b7-93d9-d10330c9d26a

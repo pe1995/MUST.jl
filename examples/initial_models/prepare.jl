@@ -49,7 +49,7 @@ end
 end
 
 @everywhere begin
-    host = "raven"
+    host = "gemini"
 
     if host == "raven"
         name_extension    = "DIS_MARCS"
@@ -149,7 +149,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.25, τ_surf=0.0, τ_down=6.0)
+    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4., τ_surf=0.0, τ_down=6.0)
 end
 
 #====================== Step (C): Conversion =================================#
