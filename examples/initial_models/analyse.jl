@@ -19,9 +19,6 @@ end;
 # ╔═╡ bd7cdaf2-c05e-4bc9-afbb-cfb61260d62c
 md"# Analysing Grid Models"
 
-# ╔═╡ 12a3c142-99ad-4166-bf8f-6fd9f1336a66
-
-
 # ╔═╡ 827e54c7-d0a3-455a-8837-52255eeff202
 md"## Setup"
 
@@ -36,25 +33,25 @@ end;
 # ╔═╡ 4abf1ef3-e08c-46db-a4b5-a986434c2938
 names = [
 	"sub_giant",
-	"sub_giant_8",
+	#"sub_giant_8",
 ]
 
 # ╔═╡ 40e718a0-bed0-46bd-a77f-4c7039290b45
 out_folder = [
-	@in_dispatch("data/grid_t50g40m00_test"),
+	#@in_dispatch("data/grid_t50g40m00_test"),
 	@in_dispatch("data/grid_t50g40m00")
 ]
 
 # ╔═╡ ce9f7f32-078b-44b7-93d9-d10330c9d26a
 eos_folder = [
-	@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1"),
+	#@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1"),
 	@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1")
 ]
 
 # ╔═╡ b3df2bd4-8ed3-4ecb-97ff-dcd1e86c053d
 labels = [
 	"test subgiant"
-	"test subgiant bnd+8"
+	#"test subgiant bnd+8"
 ]
 
 # ╔═╡ 17ca4c8c-9563-4be4-8ab7-a7446ba28dec
@@ -333,7 +330,7 @@ md"# Time evolution"
 
 # ╔═╡ f2f27ccc-358b-4bec-9506-b31c27d6f759
 begin
-	models = 2
+	models = 1
 
 	xlim = [-4e8, 2e8]
 	ylim = [2500, 16000]
@@ -406,7 +403,6 @@ end
 
 # ╔═╡ Cell order:
 # ╟─bd7cdaf2-c05e-4bc9-afbb-cfb61260d62c
-# ╠═12a3c142-99ad-4166-bf8f-6fd9f1336a66
 # ╟─827e54c7-d0a3-455a-8837-52255eeff202
 # ╠═4a837d4c-724c-11ee-0b6b-21a88a56df5b
 # ╟─9e9c5903-762d-43d7-adf2-0eccee134974
