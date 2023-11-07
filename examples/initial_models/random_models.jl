@@ -73,7 +73,7 @@ function random_paramters(grid, N;
 end
 
 # ╔═╡ d1415b10-403e-4736-9930-14c451f4f366
-paras = random_paramters(grid, 20, teff=[4500, 6500], logg=[4.0, 4.5], feh=[0.0, 0.0])
+paras = random_paramters(grid, 10, teff=[4500, 6500], logg=[4.0, 4.5], feh=[0.0, 0.0])
 
 # ╔═╡ 27f3dc38-c32c-4e35-b5a6-cce2443e64d3
 ig = modelgrids.interpolate_from_grid(
@@ -94,23 +94,25 @@ end
 
 # ╔═╡ 6618d5a5-3c28-4b73-8fd9-a386c4e422d6
 begin
-	plot(framestyle=:box, grid=false)
+	plot(framestyle=:box, grid=false, legend_foreground_color=nothing)
 
 	for i in eachindex(other_models)
-		plot!(
-			-other_models[i].z, other_models[i].lnT, linewidth=1, color=:black,
-			label=nothing
-		)
+		if i == 1
+			plot!(
+				-other_models[i].z, other_models[i].lnT, linewidth=1, color=:black,
+				label="grid nodes"
+			)
+		else
+			plot!(
+				-other_models[i].z, other_models[i].lnT, linewidth=1, color=:black,
+				label=nothing
+			)
+		end
 	end
 
 	plot!(
 		-m1.z, m1.lnT, linewidth=7, color=:red, 
 		label="T:$(ig["teff", 1]) G:$(ig["logg", 1]) M:$(ig["feh", 1])"
-	)
-
-	plot!(
-		-other_models[6].z, other_models[6].lnT, linewidth=2, color=:cyan,
-		label="Grid Node", linestyle=:dash
 	)
 
 	plot!(xlim=[minimum(-m1.z), maximum(-m1.z)])

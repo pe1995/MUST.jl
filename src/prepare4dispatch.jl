@@ -317,11 +317,11 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     end
 
     stellar_w = round(0.1 * velocity_ratio / larger_than_sun, sigdigits=3)
-    strength = round(0.1 / velocity_ratio, sigdigits=3)
+    strength = 0.1 #round(0.1 / velocity_ratio, sigdigits=3)
 
     #tscale = larger_than_sun * 100
     #@show stellar_w
-    @show tscale larger_than_sun velocity_ratio
+    #@show tscale larger_than_sun velocity_ratio
 
     x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     #@show patches(x_resolution, patch_size) patches(z_resolution, patch_size) round(z_size/l_cgs, sigdigits=3) x
@@ -334,20 +334,20 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :position=>[0,0,round(-dup/l_cgs_raw, sigdigits=3)]),
         patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.1),
         scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
-        stellar_params=(:g_cgs=>round(exp10(logg), digits=5), 
-                        :ee_min_cgs=>round(log(eemin), digits=5), 
+        stellar_params=(:g_cgs=>round(exp10(logg), sigdigits=5), 
+                        :ee_min_cgs=>round(log(eemin), sigdigits=5), 
                         :nz=>nz-1, 
                         :w_perturb=>stellar_w,
                         :initial_path=>initial_path),
         friction_params=(:end_time=>friction_time, :decay_scale=>10.0, :time=>strength,),
-        gravity_params=(:constant=>-round(exp10(logg), digits=5),),
-        newton_params=(:ee0_cgs=>round(log(eemin), digits=5), 
+        gravity_params=(:constant=>-round(exp10(logg), sigdigits=5),),
+        newton_params=(:ee0_cgs=>round(log(eemin), sigdigits=5), 
                         :position=>0.1,#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
                         :end_time=>newton_time, 
                         :decay_scale=>20.0,
                         :scale=>newton_scale),
-        sc_rt_params=(  :rt_llc=>[-x, -x, -round((z_size/2 + dup)/l_cgs_raw, sigdigits=3)], 
-                        :rt_urc=>[ x,  x,  round((z_size/2 - dup)/l_cgs_raw, sigdigits=3)], 
+        sc_rt_params=(  :rt_llc=>[-x/2, -x/2, -round((z_size/2 + dup)/l_cgs_raw, sigdigits=3)], 
+                        :rt_urc=>[ x/2,  x/2,  round((z_size/2 - dup)/l_cgs_raw, sigdigits=3)], 
                         :n_bin=>n_bin,
                         :courant=>courant_rt,
                         #:start_time=>newton_time,
@@ -452,7 +452,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         z_h[i] = ip_z(τ_up)
 
         #eemin[i] = exp.(models[i].lnEi[itup])
-        eemin[i] = exp.(ip_E(-1.0))
+        eemin[i] = exp.(ip_E(-0.5))
 
         #z_lo[i] = round(models[i].z[itlo], sigdigits=5)
         z_lo[i] = ip_z(τ_down)

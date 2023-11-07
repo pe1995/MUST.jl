@@ -32,29 +32,26 @@ end;
 
 # ╔═╡ 4abf1ef3-e08c-46db-a4b5-a986434c2938
 names = [
-	"sub_giant",
-	#"sub_giant_8",
+	"subgiant"
 ]
 
 # ╔═╡ 40e718a0-bed0-46bd-a77f-4c7039290b45
 out_folder = [
-	@in_dispatch("data/grid_t50g40m00_testrt")
+	@in_dispatch("data/grid_t50g40m00_courant")
 ]
 
 # ╔═╡ ce9f7f32-078b-44b7-93d9-d10330c9d26a
 eos_folder = [
-	#@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1"),
 	@in_dispatch("input_data/grd/DIS_MARCS_E_t50g40m00_v0.1")
 ]
 
 # ╔═╡ b3df2bd4-8ed3-4ecb-97ff-dcd1e86c053d
 labels = [
-	"test subgiant"
-	#"test subgiant bnd+8"
+	"(ASP) T: 5000, logg:4.0"
 ]
 
 # ╔═╡ 17ca4c8c-9563-4be4-8ab7-a7446ba28dec
-colors = ["black"]
+colors = ["black", "magenta", "cyan", "lime"]
 
 # ╔═╡ cfc0ab3e-5989-414a-8631-97acee2ae886
 list_of_snapshots(out_folder[1])
@@ -74,7 +71,7 @@ begin
 	
 	for i in eachindex(names)
 		snapshot, snapshot_τ = pick_snapshot(
-			converted_snapshots(out_folder[i]), :recent
+			converted_snapshots(out_folder[i]), 9
 		)
 		
 		append!(snapshots, [snapshot])
@@ -87,6 +84,15 @@ initial_model = [
 	@optical(Average3D(eos[i], joinpath(eos_folder[i], "inim.dat")), eos[i], opa[i])
 	for i in eachindex(eos)
 ]
+
+# ╔═╡ 78fe8ace-6e6c-4b01-b7fe-a11d4c9f916e
+md"## Some Stagger models"
+
+# ╔═╡ 2cb56ce6-273b-4b7a-86a1-cfb56ea9d9e1
+begin
+	subgiantpath = "Stagger_grid_multi/t50g40m00_stagger"
+	subgiant_stagger = MUST.multiBox(subgiantpath)
+end
 
 # ╔═╡ f3ffa698-bcea-4ab3-9b63-84d518c14068
 md"# Average figures"
@@ -101,6 +107,13 @@ begin
 	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
 
 	for i in eachindex(names)
+		#=x = reshape(snapshots[i].z, :)
+		y = reshape(snapshots[i][:T], :) 
+		axA.hist2d(
+			x, y, bins=200, cmin=1, cmap="Blues",
+			norm=matplotlib.colors.LogNorm()
+		)=#
+		
 		axA.plot(
 			-initial_model[i].z, exp.(initial_model[i].lnT), 
 			lw=1., 
@@ -117,11 +130,17 @@ begin
 		)
 	end
 
-	axA.axvline(7.52e7)
-
+	axA.axvline(maximum(snapshots[1].z))
+	axA.axvline(maximum(snapshots[1].z)-0.38333333*2.21e8)
+	axA.axvline(0.4023*2.21e8)
+	
+	
 	axA.legend()
 	axA.set_ylabel("temperature [K]")
 	axA.set_xlabel("z [cm]")
+
+	axA.set_xlim(-1e8, 2e8)
+	axA.set_ylim(2500, 11500)
 	
 	
 	gcf()
@@ -198,6 +217,71 @@ begin
 	gcf()
 end
 
+# ╔═╡ ddcf3053-c8ff-4765-9a99-2c85534485fc
+md"## Height vs. velocity"
+
+# ╔═╡ 8c8cf29c-a1de-4033-acc9-92df7d055caf
+7*15
+
+# ╔═╡ d93e8b41-6f7a-4163-82dc-80a844e57e9d
+rms5(x) = sqrt.(mean(x .^2)) ./1e5
+
+# ╔═╡ 2527e21b-e956-4d9c-956d-22db9efbaadc
+begin
+	plt.close()
+
+	fH, axH = plt.subplots(1, 1, figsize=(5, 6))
+
+	for i in eachindex(names)
+		z, u = profile(rms5, snapshots[i], :z, :uz)
+		
+		axH.plot(
+			z, u,
+			lw=2., 
+			color=colors[i], 
+			label=labels[i]
+		)
+
+		#=z, u = profile(maximum, snapshots[i], :z, :uz)
+		axH.plot(
+			z, u./1e5,
+			lw=2., 
+			color="red",
+			label="maximum"
+		)
+
+		z, u = profile(minimum, snapshots[i], :z, :uz)
+		axH.plot(
+			z, u./1e5,
+			lw=2., 
+			color="blue",
+			label="minimum"
+		)
+
+		z, u = profile(mean, snapshots[i], :z, :uz)
+		axH.plot(
+			z, u./1e5,
+			lw=2., 
+			color="cyan",
+			label="mean"
+		)=#
+	end
+
+	z, u = profile(rms5, subgiant_stagger, :z, :uz)
+	axH.plot(
+		z, u,
+		lw=2., 
+		color="blue", 
+		label="Stagger"
+	)
+
+	axH.legend()
+	axH.set_xlabel(L"\rm z\ [cm]")
+	axH.set_ylabel(L"\rm rms(U_z)\ [km\ \times\ s^{-1}]")	
+	
+	gcf()
+end
+
 # ╔═╡ 14796f14-183e-496f-b5d8-41149b31d463
 md"## optical depth vs. Temperature"
 
@@ -240,8 +324,6 @@ begin
 	plt.close() 
 
 	fG, axG = plt.subplots(1, 1, figsize=(5, 6))
-
-	rms5(x) = sqrt.(mean(x .^2)) ./1e5
 	
 	for i in eachindex(names)
 		axG.plot(
@@ -333,18 +415,33 @@ md"# Time evolution"
 begin
 	models = 1
 
-	xlim = [-4e8, 2e8]
-	ylim = [2500, 16000]
+	#xlim = [-9, -6.3]
+	#ylim = [2500, 10000]
+	xlim = [-0.5e8, 2e8]
+	ylim = [2500, 10000]
+
+	xlabel = L"\rm density\ [g\ \times\ cm^{-3}]"
+	ylabel = L"\rm temperature\ [K]"
 
 	# what to plot 
-	profile_to_plot(f, s, sτ) = profile(f, s, :z, :T)
+	profile_to_plot(f, s, sτ) = begin
+		z, T = profile(f, s, :z, :T)
+		z, R = profile(f, s, :z, :log10d)
+
+		z, T
+	end
+
+	initial_profile_to_plot(m) = begin
+		log10.(exp.(m.lnρ)), exp.(m.lnT)
+		-m.z, exp.(m.lnT)
+	end
 end
 
 # ╔═╡ 7d10a077-75c1-4aee-b732-35a7ff71d109
 md"## Evolution from Newton to RT"
 
 # ╔═╡ 5b856c06-da72-41be-adc7-6d4e4570ad45
-cmap = plt.cm.get_cmap("coolwarm")
+cmap = plt.cm.get_cmap("seismic")
 
 # ╔═╡ 139e7d21-e102-48de-bcbd-ee1a1e78bb5d
 if models > 0
@@ -356,7 +453,7 @@ if models > 0
 	fF, axF = plt.subplots(1, 1, figsize=(5, 6))
 
 	axF.plot(
-		-initial_model[models].z, exp.(initial_model[models].lnT), 
+		initial_profile_to_plot(initial_model[models])..., 
 		lw=1., 
 		color=colors[models],
 		alpha=0.7,
@@ -366,6 +463,8 @@ if models > 0
 	color_sequence = [
 		cmap(i/length(snaps_converted)) for i in eachindex(snaps_converted)
 	]
+
+	#axF.axvline(0.57e8)
 	
 	for (c, i) in enumerate(snaps_converted)
 		s, st = pick_snapshot(sc, i)
@@ -373,14 +472,14 @@ if models > 0
 		if c == 1
 			axF.plot(
 				profile_to_plot(mean, s, st)..., 
-				lw=2., 
+				lw=1., 
 				color=color_sequence[c], 
 				label=labels[models]
 			)
 		else
 			axF.plot(
 				profile_to_plot(mean, s, st)..., 
-				lw=2., 
+				lw=1., 
 				color=color_sequence[c],
 				alpha=0.5
 			)
@@ -396,8 +495,8 @@ if models > 0
 	end
 	
 	axF.legend()
-	axF.set_ylabel("temperature [K]")
-	axF.set_xlabel("z [cm]")
+	axF.set_ylabel(ylabel)
+	axF.set_xlabel(xlabel)
 	
 	gcf()
 end
@@ -416,6 +515,8 @@ end
 # ╟─ab79e004-4abb-449b-a50c-d8f093efa8e6
 # ╠═b633c06f-afaf-429d-8f41-4aea94100853
 # ╟─3c9cecd9-8c59-4311-93fa-5137655fdfef
+# ╟─78fe8ace-6e6c-4b01-b7fe-a11d4c9f916e
+# ╠═2cb56ce6-273b-4b7a-86a1-cfb56ea9d9e1
 # ╟─f3ffa698-bcea-4ab3-9b63-84d518c14068
 # ╟─5e882897-d396-470c-ad46-37a39326225c
 # ╠═ef9b0e78-00f0-41d0-8429-2d36f54c0a02
@@ -423,6 +524,10 @@ end
 # ╟─36eabb43-1660-4e11-8bca-e7f09568d695
 # ╟─b34da749-03ae-4f6c-92fb-c5809abeb339
 # ╟─e99b4bed-f093-4fe6-ad1d-af0f2235470b
+# ╟─ddcf3053-c8ff-4765-9a99-2c85534485fc
+# ╠═8c8cf29c-a1de-4033-acc9-92df7d055caf
+# ╠═d93e8b41-6f7a-4163-82dc-80a844e57e9d
+# ╟─2527e21b-e956-4d9c-956d-22db9efbaadc
 # ╟─14796f14-183e-496f-b5d8-41149b31d463
 # ╟─6c4f5ac6-a03b-4237-aa8f-fe50f77bde6f
 # ╟─4d623d6f-7366-468b-930e-71878b72aa5f

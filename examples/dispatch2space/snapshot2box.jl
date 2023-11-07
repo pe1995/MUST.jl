@@ -16,19 +16,19 @@ end
 @import_dispatch "../../../dispatch2"
 
 # ╔═╡ 7cf60e1b-ba47-4e56-b346-2cb255496676
-folder = @in_dispatch "data/grid_t50g40m00"
+folder = length(ARGS)>=1 ? @in_dispatch(ARGS[1]) : @in_dispatch("data/grid_t50g40m00")
 
 # ╔═╡ 57fbb4cd-2478-4cfa-8ce5-3df0b83aaf79
 md"What snapshots are available"
 
 # ╔═╡ b1cd3611-f1e4-4e7d-814a-e4c6656ea6ce
-snapshots = list_of_snapshots(folder)
+snapshots = sort(list_of_snapshots(folder))
 
 # ╔═╡ cce53fe6-8d5e-49cb-bcce-52877a7d898e
 md"Pick a couple (or one specific) to convert them. This takes a while and can, depending on the size of the model, require some memory. This is because at the moment every Patch hat to be loaded into RAM first. When reloading, this is not the case anymore and mmaps are used. This may be optimized in the future."
 
 # ╔═╡ 063012be-c751-409b-bc32-277d75804de1
-to_convert = snapshots[10]
+to_convert = length(ARGS)==2 ? snapshots[parse(Int, ARGS[2])+1] : snapshots[end]
 
 # ╔═╡ 85ba291b-7456-45b2-a926-09865a77b3fa
 b, bτ = snapshotBox(to_convert, folder=folder)
