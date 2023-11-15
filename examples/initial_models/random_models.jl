@@ -73,7 +73,13 @@ function random_paramters(grid, N;
 end
 
 # ╔═╡ d1415b10-403e-4736-9930-14c451f4f366
-paras = random_paramters(grid, 10, teff=[4500, 6500], logg=[4.0, 4.5], feh=[0.0, 0.0])
+begin
+	#paras = random_paramters(grid, 10, teff=[4500, 6500], logg=[4.0, 4.5], feh=[0.0, 0.0])
+	paras = zeros(1, 3)
+	paras[:, 1] .= 5000.0
+	paras[:, 2] .= 4.0
+	paras[:, 3] .= 0.0
+end
 
 # ╔═╡ 27f3dc38-c32c-4e35-b5a6-cce2443e64d3
 ig = modelgrids.interpolate_from_grid(
@@ -124,7 +130,7 @@ begin
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
-MUST.save(ig, "random_setup.mgrid")
+MUST.save(ig, "node_setup.mgrid")
 
 # ╔═╡ Cell order:
 # ╟─a0516377-218a-4260-ae15-acf6ac36f2c1

@@ -106,8 +106,16 @@ end
 function model_properties(name, path, snap_name)
     ## we get the temperature and logg from the name only at this stage
     teff =  parse(Float64, name[2:findfirst('g', name)-1]) .*100
-    logg =  parse(Float64, name[findfirst('g', name)+1:findfirst('m', name)-1]) ./10
-    feh  = -parse(Float64, name[findfirst('m', name)+1:end]) ./10
+    logg =  try
+		parse(Float64, name[findfirst('g', name)+1:findfirst('m', name)-1]) ./10
+	catch
+		parse(Float64, name[findfirst('g', name)+1:findfirst('p', name)-1]) ./10
+	end
+    feh  = try
+		-parse(Float64, name[findfirst('m', name)+1:end]) ./10
+	catch
+		parse(Float64, name[findfirst('p', name)+1:end]) ./10
+	end
 
     b = MUST.Box(MUST.StaggerSnap(snap_name, path))
     T = MUST.plane_statistic(MUST.mean, b, :T)
@@ -115,7 +123,7 @@ function model_properties(name, path, snap_name)
     z = MUST.axis(b, :z)
 
 	# save the box in the multi format (for Nick)
-	MUST.multiBox(b, "$(name)_stagger")
+	#MUST.multiBox(b, "$(name)_stagger")
 
     resolution(model) = minimum(abs.(diff(MUST.axis(model, :z))))
     resolution_horizontal(model) = minimum(abs.(diff(MUST.axis(model, :x))))
@@ -155,13 +163,31 @@ begin
 		
 	if compute
 		for i in 1:nrow(info)
+			if occursin("t45g30", info[i, "name"])
+				@info "skipping $(info[i, "name"])"
+				append!(teff,    [missing])
+				append!(logg,    [missing])
+				append!(feh,     [missing])
+				append!(mi_x,    [missing])
+				append!(ma_x,    [missing])
+				append!(mi_y,    [missing])
+				append!(ma_y,    [missing])
+				append!(mi_z,    [missing])
+				append!(ma_z,    [missing])
+				append!(vmin,    [missing])
+				append!(vmax,    [missing])
+				append!(tscale,  [missing])
+				append!(hres,    [missing])
+				append!(av_path, [missing])
+				continue
+			end
+
 		    @info "processing $(info[i, "name"])"
 		    res = model_properties(
 				info[i, "name"], 
 				info[i, "folder"], 
 				info[i, "snapshot"]
 			)
-		
 		    append!(teff,    [res[1]])
 		    append!(logg,    [res[2]])
 		    append!(feh,     [res[3]])
@@ -201,13 +227,14 @@ begin
 		info[!, "hres"]    = hres
 		info[!, "av_path"] = av_path
 
-		CSV.write("stagger_grid.mgrid", info)
+		deleteat!(info, ismissing.(teff))
+		CSV.write("stagger_grid_full.mgrid", info)
 		info
 	end
 end
 
 # ╔═╡ 9cdefadb-0714-45e2-a538-b9a301c44035
-grid = MUST.StaggerGrid("stagger_grid.mgrid")
+grid = MUST.StaggerGrid("stagger_grid_full.mgrid")
 
 # ╔═╡ 32523905-6be4-4d05-82a8-90120ef35d14
 exampleRow = 6

@@ -28,7 +28,7 @@ snapshots = sort(list_of_snapshots(folder))
 md"Pick a couple (or one specific) to convert them. This takes a while and can, depending on the size of the model, require some memory. This is because at the moment every Patch hat to be loaded into RAM first. When reloading, this is not the case anymore and mmaps are used. This may be optimized in the future."
 
 # ╔═╡ 063012be-c751-409b-bc32-277d75804de1
-to_convert = length(ARGS)==2 ? snapshots[parse(Int, ARGS[2])+1] : snapshots[end]
+to_convert = length(ARGS)==2 ? snapshots[parse(Int, ARGS[2])+1] : snapshots[end-1]
 
 # ╔═╡ 85ba291b-7456-45b2-a926-09865a77b3fa
 b, bτ = snapshotBox(to_convert, folder=folder)

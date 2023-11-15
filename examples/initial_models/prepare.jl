@@ -66,16 +66,21 @@ end
     elseif host == "gemini"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
+
         initial_grid_path = "stagger_grid.mgrid"
         final_grid_path   = "dispatch_grid.mgrid"
         #initial_grid_path = "random_setup.mgrid"
         #final_grid_path   = "random_grid.mgrid"
+        #initial_grid_path = "node_setup.mgrid"
+        #final_grid_path   = "node_grid.mgrid"
+
         #mother_table_path = "/home/eitner/shared/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_v1.6"
         #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_asplund_m0_a0_v1.6"
-        #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.6"
-        mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.5"
+        mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.6"
+        #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.5"
+       
         extension         = "magg_m0_a0"
-        version           = "v0.4"
+        version           = "v0.3"
         Nbins             = 8
         clean             = false
     end
@@ -109,7 +114,7 @@ begin
             extension,
             :kmeans, 
             Nbins,
-            i==1 ? true : false
+            false #i==1 ? true : false
         ) for i in 1:nrow(grid.info)
     ]
 
@@ -139,7 +144,6 @@ begin
             sigdigits=3
         )
 
-        @show qlim 
         quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 5.0), 2, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (5.0, 100), 1, stripes=:κ),
@@ -160,7 +164,7 @@ begin
     end
 
     ## End-to-end binning, with clean-up
-    Distributed.pmap(formation_and_bin, args)
+    #Distributed.pmap(formation_and_bin, args)
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]
@@ -171,7 +175,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.25, τ_surf=0.0, τ_down=6.0)
+    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.5, τ_surf=0.0, τ_down=7.0)
 end
 
 #====================== Step (C): Conversion =================================#
