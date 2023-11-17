@@ -42,6 +42,46 @@ function equation_of_state(grid::MUST.AbstractMUSTGrid, point::String; kwargs...
 	equation_of_state(grid, i; kwargs...)
 end
 
+find_closest_eos(grid::MUST.AbstractMUSTGrid, teff, feh) = begin
+	mother_tables = grid["eos_root"]
+	path = if all(mother_tables .== mother_tables[1])
+		mother_tables[1]
+	else
+		# check if there are models with the same metallicity
+		fehall = grid["feh"]
+		tempall = grid["teff"]
+
+		matchingtables = feh .== fehall
+		if all(.!matchingtables)
+			# closest metallicity
+			imin = argmin(abs.(fehall .- feh))
+			fehmin = fehall[imin]
+
+			# all tables with this metallicity
+			fehminall = fehmin .≈ fehall
+
+			# pick the one where the temp is closest
+			tempminall = tempall[fehminall]
+			mothertablesminall = mother_tables[fehminall]
+			imin = argmin(abs.(tempminall .- teff))
+
+			mothertablesminall[imin]
+		else
+			# pick the one where the temp is closest
+			tempminall = tempall[matchingtables]
+			mothertablesminall = mother_tables[fehminall]
+			imin = argmin(abs.(tempminall .- teff))
+
+			mothertablesminall[imin]
+		end
+	end
+
+	reload(
+			SqEoS,
+			joinpath(path, "combined_eos.hdf5")
+		)
+end
+
 
 
 #================================================ interpolate average models =#
@@ -87,13 +127,31 @@ end
 
 
 
+#================================================================== Adiabats =#
+
+function adiabat(mother_table, av_path, logg, common_size; save=false)
+	eos = reload(
+		SqEoS,
+		joinpath(mother_table, "combined_eos.hdf5")
+	)
+
+	data = flip(Average3D(av_path, logg=logg))
+	start_point = TSO.pick_point(data, 1)
+	end_point = TSO.pick_point(data, length(data.z))
+	
+	a = TSO.upsample(TSO.adiabat(start_point, end_point, eos; kwargs...), common_size)
+	a = TSO.flip(a, depth=true)
+	if save
+		open(av_path, "w") do f
+			MUST.writedlm(f, [a.z, a.lnT, a.lnρ])
+		end
+	end
+end
+
+
 #===========================================================interpolate grid =#
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F) where {F<:AbstractFloat}
-	logg_gr = grid.info[!, "logg"]
-	teff_gr = grid.info[!, "teff"]
-	feh_gr  = grid.info[!, "feh"]
-
 	# create the iniitial model from interpolating the average snapshots
 	model = interpolate_average(grid, teff=teff, logg=logg, feh=feh)
 
@@ -122,8 +180,8 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 
 	av_path = abspath("$(name)_99999_av.dat")
 	open(av_path, "w") do f
-        MUST.writedlm(f, [-reverse(model.z) reverse(exp.(model.lnT)) reverse(model.lnρ)])
-    end
+		MUST.writedlm(f, [-reverse(model.z) reverse(exp.(model.lnT)) reverse(model.lnρ)])
+	end
 	
 	MUST.StaggerGrid(
         "interpolated",

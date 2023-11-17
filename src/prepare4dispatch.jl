@@ -177,7 +177,13 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
     # This is the rt resolution we need. In HD we use half the points
     vres = minimum(abs.(diff(av_model.z))) *2.0
 
-    ip_z = MUST.linear_interpolation(log10.(av_model.τ), av_model.z)
+    mask = sortperm(av_model.τ)
+    ip_z = MUST.linear_interpolation(
+        MUST.Interpolations.deduplicate_knots!(log10.(av_model.τ[mask])), 
+        av_model.z[mask], 
+        extrapolation_bc=MUST.Flat()
+    )
+
     actual_top = ip_z(τ_top)
     actual_bottom = ip_z(τ_bottom)
     actual_dz = abs(actual_top - actual_bottom)
@@ -247,7 +253,7 @@ end
 
 function create_namelist(name, x_resolution, z_resolution, x_size, z_size, 
                         patch_size, rt_patch_size, δz, zs, zh, z_lo, l_cgs, d_cgs, logg, teff, 
-                        eemin, nz, initial_path, n_bin, eos_table, 
+                        eemin, ee0, zee0, nz, initial_path, n_bin, eos_table, 
                         tscale, vmax, vmin)
     #ngrid = nrow(grid.info)
     #phase = grid.name
@@ -341,8 +347,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :initial_path=>initial_path),
         friction_params=(:end_time=>friction_time, :decay_scale=>10.0, :time=>strength,),
         gravity_params=(:constant=>-round(exp10(logg), sigdigits=5),),
-        newton_params=(:ee0_cgs=>round(log(eemin), sigdigits=5), 
-                        :position=>0.1,#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
+        newton_params=(:ee0_cgs=>round(log(ee0), sigdigits=5), 
+                        :position=>round(zee0/l_cgs_raw, sigdigits=3),#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
                         :end_time=>newton_time, 
                         :decay_scale=>20.0,
                         :scale=>newton_scale),
@@ -399,6 +405,9 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     l_norm = zeros(nrow(grid.info))
     z_up = zeros(nrow(grid.info))
     eemin = zeros(nrow(grid.info))
+    ee0 = zeros(nrow(grid.info))
+    zee0 = zeros(nrow(grid.info))
+
 
     z_lo = zeros(nrow(grid.info))
     z_s = zeros(nrow(grid.info))
@@ -411,35 +420,36 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         #xd[i], xr[i], zd[i], zr[i] = resolutionHD(models[i], 
         #                                        grid.info[i, "mi_x"], grid.info[i, "ma_x"], grid.info[i, "mi_z"], grid.info[i, "ma_z"], grid.info[i, "hres"],
         #                                        patch_size; cut_bottom=cut_bottom)
-
-        xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
-            models[i], 
-            grid.info[i, "mi_x"], 
-            grid.info[i, "ma_x"], 
-            grid.info[i, "mi_z"], 
-            grid.info[i, "ma_z"], 
-            τ_up,
-            τ_surf,
-            τ_down,
-            grid.info[i, "hres"],
-            patch_size, 
-            scale_resolution=1.0
-        )
-
         ## Where is the optical surface
-        it0 = argmin(abs.(log10.(models[i].τ) .- τ_surf))
-
-        ## where is the upper edge (roughly)
-        itup = argmin(abs.(log10.(models[i].τ) .- τ_up))
-
-        ## Where can we start with the adiabat
-        itlo = argmin(abs.(log10.(models[i].τ) .- τ_down))
+        #it0 = argmin(abs.(log10.(models[i].τ) .- τ_surf))
+        ### where is the upper edge (roughly)
+        #itup = argmin(abs.(log10.(models[i].τ) .- τ_up))
+        ### Where can we start with the adiabat
+        #itlo = argmin(abs.(log10.(models[i].τ) .- τ_down))
 
         ## interpolator
-        ip_r = MUST.linear_interpolation(log10.(models[i].τ), models[i].lnρ)
-        ip_z = MUST.linear_interpolation(log10.(models[i].τ), models[i].z)
-        ip_E = MUST.linear_interpolation(log10.(models[i].τ), models[i].lnEi)
-        ip_T = MUST.linear_interpolation(log10.(models[i].τ), models[i].lnT)
+        m = TSO.flip(models[i])
+        mask = sortperm(m.τ)
+        ip_r = MUST.linear_interpolation(
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            m.lnρ[mask], 
+            extrapolation_bc=MUST.Flat()
+        )
+        ip_z = MUST.linear_interpolation(
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            m.z[mask], 
+            extrapolation_bc=MUST.Flat()
+        )
+        ip_E = MUST.linear_interpolation(
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            m.lnEi[mask], 
+            extrapolation_bc=MUST.Flat()
+        )
+        ip_T = MUST.linear_interpolation(
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            m.lnT[mask], 
+            extrapolation_bc=MUST.Flat()
+        )
 
         #rho_norm[i] = models[i].lnρ[it0] |> exp |> log10 |> round |> exp10 
         rho_norm[i] = round(exp.(ip_r(τ_surf)), sigdigits=3) 
@@ -452,7 +462,9 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         z_h[i] = ip_z(τ_up)
 
         #eemin[i] = exp.(models[i].lnEi[itup])
-        eemin[i] = exp.(ip_E(-0.5))
+        eemin[i] = exp.(ip_E(τ_surf))
+        ee0[i] = exp.(ip_E(-0.5))
+        zee0[i] = ip_z(-1.0)
 
         #z_lo[i] = round(models[i].z[itlo], sigdigits=5)
         z_lo[i] = ip_z(τ_down)
@@ -462,6 +474,20 @@ resolution!(grid::MUST.AbstractMUSTGrid;
 
         #T_lo[i] = round(exp.(models[i].lnT[itlo]), sigdigits=5)
         T_lo[i] = exp.(ip_T(τ_down))
+
+        xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
+            m, 
+            grid.info[i, "mi_x"], 
+            grid.info[i, "ma_x"], 
+            grid.info[i, "mi_z"], 
+            grid.info[i, "ma_z"], 
+            τ_up,
+            τ_surf,
+            τ_down,
+            grid.info[i, "hres"],
+            patch_size, 
+            scale_resolution=1.0
+        )
     end
 
     xd, xr, zd, zr
@@ -480,6 +506,9 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     grid.info[!, "z_h"] = z_h
     grid.info[!, "ee_min"] = eemin
     grid.info[!, "initial_model_size"] = [length(models[i].z) for i in 1:nrow(grid.info)]
+
+    grid.info[!, "ee0"] = ee0
+    grid.info[!, "zee0"] = zee0
 
     grid.info[!, "z_lo"] = z_lo
     grid.info[!, "d_lo"] = d_lo
@@ -509,6 +538,8 @@ create_namelist!(grid::MUST.StaggerGrid) = begin
                                 g(i, "logg"),
                                 g(i, "teff"),
                                 g(i, "ee_min"),
+                                g(i, "ee0"),
+                                g(i, "zee0"),
                                 g(i, "initial_model_size"),
                                 joinpath("input_data/grd/", 
                                             g(i, "binned_E_tables"), 
