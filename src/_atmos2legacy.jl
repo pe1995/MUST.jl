@@ -78,7 +78,7 @@ end
 """
 Convert legacy snapshot to Box object.
 """
-function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip_interpolation=false)
+function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip_interpolation=false, max_resolution=true)
     stagger_box = if !skip_interpolation
         if !gridded
             @warn "Data is assumed to be unstructured! Interpolation will be very slow for the whole cube."
@@ -91,7 +91,7 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
             new_z = uniform_grid(stagger_space, length(s[:z]), :z)
             Box(stagger_space, new_x, new_y, new_z)
         else
-            uniform!(s)
+            uniform!(s, max_resolution=max_resolution)
             new_x = s[:x]
             new_y = s[:y]
             new_z = s[:z]
@@ -165,7 +165,7 @@ Interpolate a Stagger snapshot column wise to new equidistant grid. It assumes
 that the data is gridded and already unifrom in x and y.
 It will interpolate the cube column by column in z and keep the dimensions.
 """
-function uniform!(s::StaggerSnap, max_resolution=true)
+function uniform!(s::StaggerSnap; max_resolution=true)
     T     = eltype(valtype(s.data))
     old_z = s[:z]
     
