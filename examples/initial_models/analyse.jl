@@ -301,7 +301,7 @@ cmap = plt.get_cmap("tab20")
 cmap_initial = plt.get_cmap("tab20_r")
 
 # ╔═╡ 13a647a4-3d71-4afb-ba31-867e108a8154
-nmodels = sum([length(snapshots_picks[name])
+nmodels = length(snapshots_picks) == 0 ? 0 : sum([length(snapshots_picks[name])
 	for name in keys(snapshots_picks)
 ])
 
@@ -486,13 +486,15 @@ begin
 		end
 	end
 
-	z, u = profile(rms5, subgiant_stagger, :z, :uz)
-	axA.plot(
-		z, u,
-		lw=2., 
-		color="black", 
-		label="Stagger"
-	)
+	if !isnothing(subgiant_stagger)
+		z, u = profile(rms5, subgiant_stagger, :z, :uz)
+		axA.plot(
+			z, u,
+			lw=2., 
+			color="black", 
+			label="Stagger"
+		)
+	end
 
 	axA.legend()
 	axA.set_xlabel(L"\rm z\ [cm]")
@@ -567,6 +569,9 @@ end
 
 # ╔═╡ 292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 md"# Optical surface"
+
+# ╔═╡ 795357b7-4d73-4bb6-899a-574183fc97e1
+md"## Vertical velocity"
 
 # ╔═╡ 12446032-6cc4-4eac-94cc-6ccb8de46c5d
 extent(snap) = begin
@@ -644,7 +649,11 @@ md"## Pick models"
 md"Pick models for time evolution:"
 
 # ╔═╡ 146e68f1-d03f-42b5-bd43-76ce21edcfae
-@bind models confirm(Select([keys(snapshots_picks)...]))
+if nmodels>0
+	@bind models confirm(Select([keys(snapshots_picks)...]))
+else
+	models = []
+end
 
 # ╔═╡ 38767bff-5a3b-4085-b313-ddacb941da71
 md"Tick box to start time evolution: $(@bind start_timeevolution CheckBox(default=false))"
@@ -807,6 +816,7 @@ end
 # ╟─4d623d6f-7366-468b-930e-71878b72aa5f
 # ╟─3bf11523-ad8f-49c9-84dc-5554364a8b3b
 # ╟─292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
+# ╟─795357b7-4d73-4bb6-899a-574183fc97e1
 # ╟─12446032-6cc4-4eac-94cc-6ccb8de46c5d
 # ╟─488b2eec-daf8-4920-9140-7d67c6ca3de1
 # ╟─1ffcf11f-58dd-41dd-921f-995d0a84f0d0

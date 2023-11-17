@@ -134,10 +134,10 @@ begin
         @info "Opacity Binning: $(name)"
 
         ## formation opacities
-        prepare4dispatch.formation_opacities(
-            eos_root, av_path, name; 
-            logg=logg, extension=extension, do_ross=do_ross
-        )
+        #prepare4dispatch.formation_opacities(
+        #    eos_root, av_path, name; 
+        #    logg=logg, extension=extension, do_ross=do_ross
+        #)
 
         qlim = round(
             prepare4dispatch.quadrantlimit(eos_root, name, extension=extension, λ_lim=5.0), 
@@ -164,7 +164,7 @@ begin
     end
 
     ## End-to-end binning, with clean-up
-    #Distributed.pmap(formation_and_bin, args)
+    Distributed.pmap(formation_and_bin, args)
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]
