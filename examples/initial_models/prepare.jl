@@ -49,20 +49,20 @@ end
 end
 
 @everywhere begin
-    host = "gemini"
+    host = "raven"
 
     if host == "raven"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
-        #initial_grid_path = "stagger_grid.mgrid"
-        #final_grid_path   = "dispatch_grid.mgrid"
-        initial_grid_path = "random_setup.mgrid"
-        final_grid_path   = "random_grid.mgrid"
+        initial_grid_path = "stagger_grid.mgrid"
+        final_grid_path   = "dispatch_grid.mgrid"
+        #initial_grid_path = "random_setup.mgrid"
+        #final_grid_path   = "random_grid.mgrid"
         mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
         extension         = "magg22"
         version           = "v0.1"
         Nbins             = 8
-        clean             = true
+        clean             = false
     elseif host == "gemini"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
