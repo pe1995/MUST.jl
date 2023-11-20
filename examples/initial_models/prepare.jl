@@ -145,8 +145,8 @@ begin
         )
 
         quadrants = [ 
-            TSO.Quadrant((0.0, 4.0), (qlim, 5.0), 2, stripes=:κ),
-            TSO.Quadrant((0.0, 4.0), (5.0, 100), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (qlim, 4.0), 2, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (4.0, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
         ]
@@ -175,7 +175,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.5, τ_surf=0.0, τ_down=7.0)
+    prepare4dispatch.resolution!(grid, patch_size=13, τ_up=-4.5, τ_surf=0.0, τ_down=7.0)
 end
 
 #====================== Step (C): Conversion =================================#

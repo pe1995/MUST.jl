@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.30
+# v0.19.32
 
 using Markdown
 using InteractiveUtils
@@ -7,13 +7,13 @@ using InteractiveUtils
 # ╔═╡ f89573bc-8b9b-4897-8ad6-7b10fbdf9b4d
 # ╠═╡ show_logs = false
 begin
-	using Pkg; Pkg.activate("."); Pkg.add("LazySets")
+	using Pkg; Pkg.activate(".")
 	using TSO
 	using MUST
 	using Plots
 	using Printf
 	using DataFrames
-	using DelimitedFiles
+	using DelimitedFiles 
 	using LazySets
 	using Polyhedra
 end
@@ -29,7 +29,7 @@ md"## Setup"
 md"## Interpolation Grid"
 
 # ╔═╡ 4ce94434-db5a-4323-81e8-c0c5340bab18
-grid = MUST.StaggerGrid("stagger_grid.mgrid")
+grid = MUST.StaggerGrid("stagger_grid_full.mgrid")
 
 # ╔═╡ 5701903e-59f3-4495-9dcc-4e730ed2e15f
 md"## Get any model within
@@ -74,11 +74,11 @@ end
 
 # ╔═╡ d1415b10-403e-4736-9930-14c451f4f366
 begin
-	#paras = random_paramters(grid, 10, teff=[4500, 6500], logg=[4.0, 4.5], feh=[0.0, 0.0])
-	paras = zeros(1, 3)
+	paras = random_paramters(grid, 10, teff=[4500, 6500], logg=[4.0, 4.5], feh=[0.0, 0.0])
+	#=paras = zeros(1, 3)
 	paras[:, 1] .= 5000.0
 	paras[:, 2] .= 4.0
-	paras[:, 3] .= 0.0
+	paras[:, 3] .= 0.0=#
 end
 
 # ╔═╡ 27f3dc38-c32c-4e35-b5a6-cce2443e64d3
@@ -130,7 +130,7 @@ begin
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
-MUST.save(ig, "node_setup.mgrid")
+MUST.save(ig, "random_grid.mgrid")
 
 # ╔═╡ Cell order:
 # ╟─a0516377-218a-4260-ae15-acf6ac36f2c1
@@ -140,8 +140,8 @@ MUST.save(ig, "node_setup.mgrid")
 # ╠═4ce94434-db5a-4323-81e8-c0c5340bab18
 # ╟─5701903e-59f3-4495-9dcc-4e730ed2e15f
 # ╠═c72e1a5a-d13a-481a-b732-3b6be3326326
-# ╟─6e0c166b-58a5-4a25-a726-a66cc357731c
-# ╠═6dffcedb-ae0b-4bb4-9490-94c22ec3e953
+# ╠═6e0c166b-58a5-4a25-a726-a66cc357731c
+# ╟─6dffcedb-ae0b-4bb4-9490-94c22ec3e953
 # ╠═d1415b10-403e-4736-9930-14c451f4f366
 # ╠═27f3dc38-c32c-4e35-b5a6-cce2443e64d3
 # ╟─47f9397e-a5fc-4c7a-a2f6-cf2eb45653e0
