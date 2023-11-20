@@ -11,7 +11,16 @@ MUST.@import_dispatch "/path/to/dispatch2"
 box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"))
 ```
 """
-function snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=true, add_selection=false, to_multi=true)
+function snapshotBox(
+    number; 
+    folder, 
+    optical_depth_scale=true, 
+    save_snapshot=true, 
+    add_selection=false, 
+    to_multi=false,
+    is_box=true, 
+    use_mmap=false
+    )
     folder = if !isdir(folder)
         #@warn "Given folder does not exist. Trying to add dispatch location"
         @in_dispatch folder
@@ -52,12 +61,18 @@ function snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=tru
         # Convert its content to pure Julia
         s, add_selection = if add_selection
             try
-                Space(snap, :d, :ee, :ux, :uy, :uz, :e, :qr, :tt, :pg), true
+                !is_box ? 
+                    (Space(snap, :d, :ee, :ux, :uy, :uz, :e, :qr, :tt, :pg), true) :
+                    (Box(snap, :d, :ee, :ux, :uy, :uz, :e, :qr, :tt, :pg, use_mmap=use_mmap), true)
             catch
-                Space(snap, :d, :ee, :ux, :uy, :uz, :e), false
+                !is_box ?
+                    (Space(snap, :d, :ee, :ux, :uy, :uz, :e), false) :
+                    (Box(snap, :d, :ee, :ux, :uy, :uz, :e, use_mmap=use_mmap), false)
             end
         else
-            Space(snap, :d, :ee, :ux, :uy, :uz, :e), false
+            !is_box ?
+                (Space(snap, :d, :ee, :ux, :uy, :uz, :e), false) :
+                (Box(snap, :d, :ee, :ux, :uy, :uz, :e, use_mmap=use_mmap), false)
         end
 
         # Apply the conversion
@@ -84,8 +99,13 @@ function snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=tru
         end
 
         # Also save the snapshot as Box (a regular gridded 3D-cube) to save time later
-        b_s = Box(s)
-        s = nothing
+        b_s = if !is_box 
+            b = Box(s) 
+            s = nothing
+            b
+        else
+            s
+        end
 
         # Add the optical depth
         τ = optical_depth(b_s, opacity=:kr, density=:d)

@@ -272,16 +272,29 @@ labels_initial = NamedTuple(
 # ╔═╡ e6d33b23-e77c-43d3-b401-c5620721d659
 md"## Stagger models"
 
-# ╔═╡ fc89d465-d724-41e2-ac10-d96391cf5731
-md"Load a Stagger model in the Multi format:"
+# ╔═╡ bd41fb98-70c4-4192-8753-6fee82f14576
+function allStaggerModels(folder)
+	allmodels = glob("*.mesh", folder)
+	allmodels = [m for m in allmodels if !occursin("_orig", m)]
+	allnames = first.(split.(basename.(allmodels), ".mesh"))
+end
+
+# ╔═╡ b90c53aa-9ca6-421c-9b2f-f650a1f0832f
+
 
 # ╔═╡ db7db6d6-25c3-4f43-a49b-1ef5881606ac
-@bind subgiantpath TextField(default="Stagger_grid_multi/t50g40m00_stagger")
+md"Load a Stagger model in the Multi format from folder: $(@bind staggermodelpath TextField(default=\"Stagger_grid_multi/\"))"
+
+# ╔═╡ 80f8c89e-5c14-4df6-8a05-f5fe79a7585e
+md"Pick a Stagger model: $(@bind selectedStagger Select(allStaggerModels(staggermodelpath)))"
+
+# ╔═╡ 50bc1f52-0638-427a-8cc0-f8cd49535114
+
 
 # ╔═╡ 3d1d9e3e-aa7d-4ef0-9c3e-41816285a938
 begin
-	subgiant_stagger = try
-		MUST.multiBox(subgiantpath)
+	model_stagger = try
+		MUST.multiBox(joinpath(staggermodelpath, selectedStagger))
 	catch
 		@warn "No stagger model could be found"
 		nothing
@@ -324,11 +337,14 @@ end
 # ╔═╡ f3ffa698-bcea-4ab3-9b63-84d518c14068
 md"# Average figures"
 
+# ╔═╡ ce691c30-5025-4ffc-8185-eced3087ca13
+md"Tick box to start plotting profiles: $(@bind plot_given CheckBox(default=false))"
+
 # ╔═╡ 5e882897-d396-470c-ad46-37a39326225c
 md"## Height vs. Temperature"
 
 # ╔═╡ ef9b0e78-00f0-41d0-8429-2d36f54c0a02
-let
+plot_given && let
 	plt.close()
 
 	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
@@ -376,7 +392,7 @@ end
 md"## Height vs. Density"
 
 # ╔═╡ 36eabb43-1660-4e11-8bca-e7f09568d695
-let
+plot_given && let
 	plt.close()
 
 	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
@@ -423,7 +439,7 @@ end
 md"## Density vs. Temperature"
 
 # ╔═╡ e99b4bed-f093-4fe6-ad1d-af0f2235470b
-let
+plot_given && let
 	plt.close()
 
 	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
@@ -468,7 +484,7 @@ md"## Height vs. velocity"
 rms5(x) = sqrt.(mean(x .^2)) ./1e5
 
 # ╔═╡ 2527e21b-e956-4d9c-956d-22db9efbaadc
-begin
+plot_given && let
 	plt.close()
 
 	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
@@ -486,8 +502,8 @@ begin
 		end
 	end
 
-	if !isnothing(subgiant_stagger)
-		z, u = profile(rms5, subgiant_stagger, :z, :uz)
+	if !isnothing(model_stagger)
+		z, u = profile(rms5, model_stagger, :z, :uz)
 		axA.plot(
 			z, u,
 			lw=2., 
@@ -507,7 +523,7 @@ end
 md"## optical depth vs. Temperature"
 
 # ╔═╡ 6c4f5ac6-a03b-4237-aa8f-fe50f77bde6f
-let
+plot_given && let
 	plt.close()
 
 	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
@@ -545,7 +561,7 @@ end
 md"## RMS velocity"
 
 # ╔═╡ 3bf11523-ad8f-49c9-84dc-5554364a8b3b
-let
+plot_given && let
 	plt.close() 
 
 	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
@@ -602,7 +618,7 @@ begin
 end
 
 # ╔═╡ 1ffcf11f-58dd-41dd-921f-995d0a84f0d0
-if nmodels > 0
+if (nmodels > 0) && plot_given
 	fDs, axDs = [], []
 
 	vmin = minimum([minimum(u) for name in keys(uz) for u in uz[name]]) ./1e5
@@ -792,8 +808,11 @@ end
 # ╟─d55bae1d-1ca1-4537-8af1-c025a966c3b3
 # ╟─271e4e9c-def2-4b3e-b383-45d95fbb309b
 # ╟─e6d33b23-e77c-43d3-b401-c5620721d659
-# ╟─fc89d465-d724-41e2-ac10-d96391cf5731
+# ╟─bd41fb98-70c4-4192-8753-6fee82f14576
+# ╟─b90c53aa-9ca6-421c-9b2f-f650a1f0832f
 # ╟─db7db6d6-25c3-4f43-a49b-1ef5881606ac
+# ╟─80f8c89e-5c14-4df6-8a05-f5fe79a7585e
+# ╟─50bc1f52-0638-427a-8cc0-f8cd49535114
 # ╟─3d1d9e3e-aa7d-4ef0-9c3e-41816285a938
 # ╟─bb0cb1ab-7e03-4a5e-bfd8-60bf17e007d5
 # ╟─b7c0a489-b7f7-4105-bce3-ae0c1074c650
@@ -802,6 +821,7 @@ end
 # ╟─13a647a4-3d71-4afb-ba31-867e108a8154
 # ╟─17ca4c8c-9563-4be4-8ab7-a7446ba28dec
 # ╟─f3ffa698-bcea-4ab3-9b63-84d518c14068
+# ╟─ce691c30-5025-4ffc-8185-eced3087ca13
 # ╟─5e882897-d396-470c-ad46-37a39326225c
 # ╟─ef9b0e78-00f0-41d0-8429-2d36f54c0a02
 # ╟─e05efb00-233b-44b9-9204-156ae2ed0762
