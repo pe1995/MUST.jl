@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.32
+# v0.19.30
 
 using Markdown
 using InteractiveUtils
@@ -40,13 +40,16 @@ md"# Stagger cubes
 ## Pick Snapshot"
 
 # ╔═╡ a043761b-5033-4a49-a549-40edb3ac0fcb
-md"Pick location of Stagger grid: $(@bind datafolder TextField(default=\"/ptmp/peitner/Stagger_grid/\"))"
+md"Pick location of Stagger grid: $(@bind datafolder TextField(default=\"/mnt/beegfs/gemini/groups/bergemann/users/shared-storage/bergemann-data/Stagger_zaz/grid/\"))"
 
 # ╔═╡ f3e0f3e6-fab5-4fe8-9085-263b1f251818
 md"Select from available models: $(@bind stagger_model Select(all_models_at(datafolder)))"
 
 # ╔═╡ dfa4df7d-136a-451f-9c81-943ad5ca4b16
 md"Select from available snapshots: $(@bind snapshot_name Select(all_snapshots(joinpath(datafolder, stagger_model))))"
+
+# ╔═╡ 7f706c09-e8ed-4e7b-a2d8-9ad7d1d169ab
+
 
 # ╔═╡ ebf5816b-60c1-424c-b6da-830b605cceb1
 md"## Convert to Box
@@ -95,6 +98,7 @@ end
 # ╟─a043761b-5033-4a49-a549-40edb3ac0fcb
 # ╟─f3e0f3e6-fab5-4fe8-9085-263b1f251818
 # ╟─dfa4df7d-136a-451f-9c81-943ad5ca4b16
+# ╟─7f706c09-e8ed-4e7b-a2d8-9ad7d1d169ab
 # ╟─ebf5816b-60c1-424c-b6da-830b605cceb1
 # ╟─f35b1eaa-9876-4e84-8bbb-63154860b380
 # ╠═d7300bbe-51eb-462a-9b30-d20b85e73452

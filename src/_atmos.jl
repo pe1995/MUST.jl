@@ -426,6 +426,139 @@ end
 end   
 
 
+
+#= Boxes from snapshots wihout Spaces =#
+
+_add_if_not_exists!(arr, data) = begin
+	@inbounds for entry in data
+		if !(entry in arr)
+			append!(arr, entry)
+		end
+	end
+end
+
+function _build_cube(patch_data)
+	# (x, y, z), (li, ui), (patches...)
+	patch_range = zeros(Int, 3, 2, length(patch_data))
+
+	global_x = []
+	global_y = []
+	global_z = []
+	@inbounds for i in eachindex(patch_data)
+		_add_if_not_exists!(global_x, patch_data[i][:x])
+		_add_if_not_exists!(global_y, patch_data[i][:y])
+		_add_if_not_exists!(global_z, patch_data[i][:z])
+	end
+
+	global_x .= sort(global_x)
+	global_y .= sort(global_y)
+	global_z .= sort(global_z)
+
+	p = zeros(3)
+	@inbounds for i in eachindex(patch_data)
+		p[1] = first(patch_data[i][:x])
+		p[2] = first(patch_data[i][:y])
+		p[3] = first(patch_data[i][:z])
+		patch_range[:, 1, i] .= _find_in_meshgrid(p, global_x, global_y, global_z)
+
+		p[1] = last(patch_data[i][:x])
+		p[2] = last(patch_data[i][:y])
+		p[3] = last(patch_data[i][:z])
+		patch_range[:, 2, i] .= _find_in_meshgrid(p, global_x, global_y, global_z)
+	end
+	
+	global_x, global_y, global_z, patch_range
+end
+
+"""
+	Box(snap::Py)
+
+Convert a snapshot to a `Box`. Assumes that the patch arangement is cubic, i.e. there is no local mesh refinement. If this is not true, convert to `Space` first, and the interpolate to `Box`.
+"""
+function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
+	# first we loop through and get the sizes of all patches
+	patch_data = []
+	@inbounds for (i, patch) in enumerate(snap.patches)
+		x = pyconvert.(Float32, patch.xi)
+        y = pyconvert.(Float32, patch.yi) 
+        z = pyconvert.(Float32, patch.zi)
+
+        fname = pyconvert(Any, patch.filename)
+		shp = Tuple(pyconvert.(Any, patch.ncell))
+		off = pyconvert(Vector{Int}, patch.offset)
+		li = pyconvert(Vector{Int}, patch.li)
+		ui = pyconvert(Vector{Int}, patch.ui)
+        idxd = patch.idx.__dict__
+
+		meta = Dict(
+			:x=>x,
+			:y=>y,
+			:z=>z,
+			:fname=>fname,
+			:shp=>shp,
+            :off=>off,
+            :li=>li,
+            :ui=>ui,
+            :idxd=>idxd
+		)
+		append!(patch_data, [meta])
+	end
+
+	x, y, z, patch_range = _build_cube(patch_data)
+	
+	# now we create the data arrays
+	data = if use_mmap
+		Dict{Symbol,Array{Float32,3}}(
+			q=>Array{Float32, 3}(undef, length(x), length(y), length(z)) 
+			for q in quantities
+		)
+	else
+		pname = tempname(pwd())
+		io = open(pname, "w+")
+		d = mmap(io, Array{Float32, 4}, (length(x), length(y), length(z), length(quantities)))
+		Dict{Symbol,Array{Float32,3}}(
+			q=>@view d[:, :, :, i] 
+			for (i, q) in enumerate(quantities)
+		)
+	end
+
+	# and we loop through the patches, read the mmaps, and fill them in the data arrays
+	r = zeros(Int, 3, 2)
+	@inbounds for (i, pd) in enumerate(patch_data)
+		r .= patch_range[:, :, i]
+		@inbounds for (j, q) in enumerate(quantities)
+			data[q][r[1,1]:r[1,2], r[2,1]:r[2,2], r[3,1]:r[3,2]] .= _var_from_patch(
+				q, 
+				pd[:fname], 
+				pd[:shp], 
+				pd[:off], 
+				pd[:li], 
+				pd[:ui], 
+				pd[:idxd], 
+				density=density
+			)
+		end
+	end
+
+	time = pyconvert(Any, snap.nml_list["snapshot_nml"]["time"])
+	xx, yy, zz = meshgrid(x, y, z)
+	Box(
+		xx, yy, zz, data,
+		AtmosphericParameters(
+			time, 
+			Base.convert(typeof(time), -99.0), 
+			Base.convert(typeof(time), -99.0), 
+			Dict{Symbol, typeof(time)}()
+		)
+	)
+end
+
+
+
+
+
+
+
 """
 Filter the Space object.
 
@@ -542,13 +675,22 @@ function add_from_EOS(b::MUST.Box, eos::AbstractEOS, quantity::Symbol;
                 EOS_paras=(:d,:ee), 
                 convert_to=Base.identity)
     r = similar(b[EOS_paras[1]]) 
-    for j in axes(b.z, 2)
-        for i in axes(b.z ,1)
+    r .= convert_to.(
+        lookup(
+            eos, 
+            String(quantity), 
+            b[EOS_paras[1]],
+            b[EOS_paras[2]]
+            )
+        )
+
+    #=@inbounds for j in axes(b.z, 2)
+        @inbounds for i in axes(b.z ,1)
             r[i, j, :] = convert_to.(lookup(eos, String(quantity), 
                             view(b[EOS_paras[1]], i, j, :), 
                             view(b[EOS_paras[2]], i, j, :)))
         end
-    end
+    end=#
 
     r
 end
@@ -1592,7 +1734,9 @@ function converted_snapshots(folder)
 	snaps
 end
 
-"""Sort converted snapshots."""
+"""
+Sort converted snapshots.
+"""
 list_snapshots(snapshots) = sort([k for k in keys(snapshots) if k != "folder"])
 
 """
