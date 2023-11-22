@@ -54,15 +54,15 @@ end
     if host == "raven"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
-        initial_grid_path = "stagger_grid.mgrid"
-        final_grid_path   = "dispatch_grid.mgrid"
-        #initial_grid_path = "random_setup.mgrid"
-        #final_grid_path   = "random_grid.mgrid"
+        #initial_grid_path = "stagger_grid.mgrid"
+        #final_grid_path   = "dispatch_grid.mgrid"
+        initial_grid_path = "random_grid.mgrid"
+        final_grid_path   = "random_models.mgrid"
         mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
         extension         = "magg22"
         version           = "v0.1"
         Nbins             = 8
-        clean             = false
+        clean             = true
     elseif host == "gemini"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
@@ -134,10 +134,10 @@ begin
         @info "Opacity Binning: $(name)"
 
         ## formation opacities
-        #prepare4dispatch.formation_opacities(
-        #    eos_root, av_path, name; 
-        #    logg=logg, extension=extension, do_ross=do_ross
-        #)
+        prepare4dispatch.formation_opacities(
+            eos_root, av_path, name; 
+            logg=logg, extension=extension, do_ross=do_ross
+        )
 
         qlim = round(
             prepare4dispatch.quadrantlimit(eos_root, name, extension=extension, λ_lim=5.0), 
@@ -175,7 +175,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=13, τ_up=-4.5, τ_surf=0.0, τ_down=7.0)
+    prepare4dispatch.resolution!(grid, patch_size=15, τ_up=-5.0, τ_surf=0.0, τ_down=7.0)
 end
 
 #====================== Step (C): Conversion =================================#

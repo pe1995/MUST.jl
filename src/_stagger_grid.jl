@@ -67,16 +67,18 @@ vmin = interpolate_quantity(grid, "vmin"; teff=teff, logg=logg, feh=feh)
 ```
 """
 function interpolate_quantity(grid::StaggerGrid, what; teff, logg, feh, method="linear")
-	logg_gr = grid.info[!, "logg"]
-	teff_gr = grid.info[!, "teff"]
 	feh_gr  = grid.info[!, "feh"]
-	what_gr = grid.info[!, what]
+	femask = feh_gr .≈ feh_gr[argmin(abs.(feh .- feh_gr))]
+
+	logg_gr = grid.info[femask, "logg"]
+	teff_gr = grid.info[femask, "teff"]
+	what_gr = grid.info[femask, what]
 
 	pyconvert(
 		Any,
 		first(
 			scipy_interpolate.griddata(
-				(logg_gr, teff_gr, feh_gr), what_gr, ([logg], [teff], [feh]), 
+				(logg_gr, teff_gr), what_gr, ([logg], [teff]), 
 				method=method
 			)
 		), 
