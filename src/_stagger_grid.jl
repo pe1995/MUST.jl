@@ -92,13 +92,22 @@ end
 
 allowed_namelists(grid::StaggerGrid) = grid.info[!,"namelist_name"]
 
-stage_namelists(grid::StaggerGrid, folder="run_grid") = begin
+stage_namelists(grid::StaggerGrid, folder="run_grid"; clean_namelists=false) = begin
 	nml_names = basename.(grid["namelist_name"])
 	nml_path = grid["namelist_name"]
 	folder_run = @in_dispatch(folder)
 
-	@assert isdir(folder_run)
+	if !isdir(folder_run)
+		mkdir(folder_run)
+	end
+
+	# clean up dispatch from logs and namelists
 	glob("*", folder_run) .|> rm
+	if clean_namelists
+		glob("grid_*.nml", @in_dispatch("")) .|> rm
+		glob("grid_*.log", @in_dispatch("")) .|> rm
+		glob("grid_*.err", @in_dispatch("")) .|> rm
+	end
 
 	for (i, n) in enumerate(nml_names)
 		cp(nml_path[i], joinpath(folder_run, n))

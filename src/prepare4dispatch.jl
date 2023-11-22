@@ -169,13 +169,13 @@ Compute the needed resolution based on input parameters from other 3D simulation
 Make everything easier and avoid rounding.
 """
 function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf, τ_bottom, hres,
-                                    patch_size=30; scale_resolution=1.2)
+                                    patch_size=30; scale_resolution=1.0)
     dx = abs(max_x - min_x)
     dz = abs(max_z - min_z)
     dxdz = dx / dz
 
     # This is the rt resolution we need. In HD we use half the points
-    vres = minimum(abs.(diff(av_model.z))) *2.0
+    vres = minimum(abs.(diff(av_model.z))) *2.0 *scale_resolution
 
     mask = sortperm(av_model.τ)
     ip_z = MUST.linear_interpolation(
