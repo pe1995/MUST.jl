@@ -92,7 +92,7 @@ end
 
 allowed_namelists(grid::StaggerGrid) = grid.info[!,"namelist_name"]
 
-stage_namelists(grid::StaggerGrid, folder="run_grid"; clean_namelists=false) = begin
+stage_namelists(grid::StaggerGrid, folder="run_grid"; clean_logs=true, clean_namelists=false) = begin
 	nml_names = basename.(grid["namelist_name"])
 	nml_path = grid["namelist_name"]
 	folder_run = @in_dispatch(folder)
@@ -103,15 +103,20 @@ stage_namelists(grid::StaggerGrid, folder="run_grid"; clean_namelists=false) = b
 
 	# clean up dispatch from logs and namelists
 	glob("*", folder_run) .|> rm
-	if clean_namelists
-		glob("grid_*.nml", @in_dispatch("")) .|> rm
-		glob("grid_*.log", @in_dispatch("")) .|> rm
-		glob("grid_*.err", @in_dispatch("")) .|> rm
-	end
 
 	for (i, n) in enumerate(nml_names)
 		cp(nml_path[i], joinpath(folder_run, n))
-		cp(nml_path[i], joinpath(@in_dispatch(""), n))
+	end
+
+	if clean_namelists
+		glob("grid_*.nml", @in_dispatch("")) .|> rm
+		for (i, n) in enumerate(nml_names)
+			cp(joinpath(folder_run, n), joinpath(@in_dispatch(""), n))
+		end
+	end
+	if clean_logs
+		glob("grid_*.log", @in_dispatch("")) .|> rm
+		glob("grid_*.err", @in_dispatch("")) .|> rm
 	end
 end
 

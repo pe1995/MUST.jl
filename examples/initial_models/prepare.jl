@@ -164,7 +164,7 @@ begin
     end
 
     ## End-to-end binning, with clean-up
-    Distributed.pmap(formation_and_bin, args)
+    #Distributed.pmap(formation_and_bin, args)
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]
@@ -175,7 +175,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=15, τ_up=-5.0, τ_surf=0.0, τ_down=7.0)
+    prepare4dispatch.resolution!(grid, patch_size=15, τ_up=-5.0, τ_surf=0.0, τ_down=7.0, scale_resolution=0.8)
 end
 
 #====================== Step (C): Conversion =================================#
@@ -197,6 +197,9 @@ begin
     end
 
     MUST.save(grid, final_grid_path)
+
+    # Stage the grid for execution, possible remove other output
+    MUST.stage_namelists(grid, clean_namelists=false, clean_logs=true)
 end
 
 #=============================================================================#

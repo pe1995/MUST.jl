@@ -175,7 +175,7 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
     dxdz = dx / dz
 
     # This is the rt resolution we need. In HD we use half the points
-    vres = minimum(abs.(diff(av_model.z))) *2.0 *scale_resolution
+    vres = minimum(abs.(diff(av_model.z))) *2.0 
 
     mask = sortperm(av_model.τ)
     ip_z = MUST.linear_interpolation(
@@ -190,7 +190,7 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
 
     # now we need to add so many patches of the given size that is matches at least
     # the desired resolution
-    desired_resolution = scale_resolution * vres
+    desired_resolution = vres / scale_resolution
     desired_n_points = actual_dz / desired_resolution
     desired_n_patches = ceil(desired_n_points / patch_size)
 
@@ -381,7 +381,7 @@ end
 #= Modification of initial grid (interface) =#
 
 resolution!(grid::MUST.AbstractMUSTGrid; 
-                            patch_size=30, cut_bottom=0.3, 
+                            patch_size=30, scale_resolution=1.0, 
                             τ_up=-4.5, τ_surf=0.0, τ_down=5.5) = begin
     xr, zr = zeros(Int, nrow(grid.info)), zeros(Int, nrow(grid.info))
     xd, zd = zeros(Float64, nrow(grid.info)), zeros(Float64, nrow(grid.info))
@@ -486,7 +486,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
             τ_down,
             grid.info[i, "hres"],
             patch_size, 
-            scale_resolution=1.0
+            scale_resolution=scale_resolution
         )
     end
 
