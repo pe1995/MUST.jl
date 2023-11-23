@@ -274,25 +274,28 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     # this is how much the cube needs to be shifted down so that the amount of star above the surface is equal
     dup = (z_size /2 -δz) *1.0
     
-    courant_rt = if (logg >= 4) & (teff<6500)
+    #=courant_rt = if (logg >= 4) & (teff<6500)
         1.0
     elseif ((logg < 4) & (logg >= 3)) | (teff>=6500)
         0.8
     else
         0.7
-    end
+    end=#
+    courant_rt = 0.2
 
-    courant_hd = if logg >= 4
+    #=courant_hd = if logg >= 4
         0.3
     elseif (logg < 4) & (logg >= 3)
         0.25
     else
         0.2
-    end
+    end=#
+    courant_hd = 0.2
+
 
     larger_than_sun = x_size/1e8 / 4.6
-    newton_time = 60 #* larger_than_sun
-    friction_time = 100 #* larger_than_sun
+    newton_time = 50 #* larger_than_sun
+    friction_time = 70 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
     l_cgs_raw = 1e8 * larger_than_sun
@@ -314,7 +317,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         dx = x_size / (patches(x_resolution, patch_size) * patch_size)
         #@show dx/max(abs(vmax), abs(vmin)) larger_than_sun max(abs(vmax), abs(vmin))
 
-        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.4) / 5e-3, sigdigits=3)
+        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.35) / 5e-3, sigdigits=3)
         #max(100.0, round(100.0 / dynamic_scale_ratio, sigdigits=3))
         #max(100.0, round(Δt(dx, max(abs(vmax), abs(vmin)), 1.25), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
@@ -338,7 +341,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                                 patches(x_resolution, patch_size), 
                                 patches(z_resolution, patch_size)],
                         :position=>[0,0,round(-dup/l_cgs_raw, sigdigits=3)]),
-        patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.1),
+        patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.2),
         scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
         stellar_params=(:g_cgs=>round(exp10(logg), sigdigits=5), 
                         :ee_min_cgs=>round(log(eemin), sigdigits=5), 
@@ -358,11 +361,11 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :courant=>courant_rt,
                         #:start_time=>newton_time,
                         #:decay_scale=>20.0,
-                        :rt_freq=>1.0,
-                        :rt_grace=>0.05,
+                        :rt_freq=>0.0,
+                        :rt_grace=>0.1,
                         :rt_res=>[-1,-1,rt_patch_size]),
         an_params=(:courant=>courant_hd,),
-        eos_params=(:table_loc=>eos_table,)
+        eos_params=(:table_loc=>eos_table, :gamma=>1.666667)
     )
     
     # write the namelists
@@ -374,6 +377,31 @@ end
 
 
 
+
+#= adiabats =#
+
+#================================================================== Adiabats =#
+
+function adiabat(eospath, av_path, logg; common_size=1000, saveat=nothing, kwargs...)
+	eos = reload(
+        SqEoS,
+        joinpath(eospath)
+    )
+
+	data = TSO.flip(Average3D(av_path, logg=logg))
+	start_point = TSO.pick_point(data, 1)
+	end_point = TSO.pick_point(data, length(data.z))
+	
+	a = TSO.upsample(TSO.adiabat(start_point, end_point, eos; kwargs...), common_size)
+	a = TSO.flip(a, depth=false)
+	if !isnothing(saveat)
+		open(saveat, "w") do f
+			MUST.writedlm(f, [a.z exp.(a.lnT) a.lnρ])
+		end
+	end
+
+	a
+end
 
 
 
@@ -452,7 +480,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         )
 
         #rho_norm[i] = models[i].lnρ[it0] |> exp |> log10 |> round |> exp10 
-        rho_norm[i] = round(exp.(ip_r(τ_surf)), sigdigits=3) 
+        rho_norm[i] = round(exp.(ip_r(-1.0)), sigdigits=5) 
 
         l_norm[i] = zd[i] |> abs #|> log10 |> floor |> exp10
         
@@ -463,8 +491,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
 
         #eemin[i] = exp.(models[i].lnEi[itup])
         eemin[i] = exp.(ip_E(τ_surf))
-        ee0[i] = exp.(ip_E(-0.5))
-        zee0[i] = ip_z(-1.0)
+        ee0[i] = exp.(ip_E(0.0))
+        zee0[i] = ip_z(-0.5)
 
         #z_lo[i] = round(models[i].z[itlo], sigdigits=5)
         z_lo[i] = ip_z(τ_down)

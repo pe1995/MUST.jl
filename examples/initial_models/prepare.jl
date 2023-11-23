@@ -63,6 +63,7 @@ end
         version           = "v0.1"
         Nbins             = 8
         clean             = true
+        use_adiabat       = true
     elseif host == "gemini"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
@@ -83,6 +84,7 @@ end
         version           = "v0.3"
         Nbins             = 8
         clean             = false
+        use_adiabat       = false
     end
 
     MUST.@import_dispatch dispatch_location
@@ -175,7 +177,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=15, τ_up=-5.0, τ_surf=0.0, τ_down=7.0, scale_resolution=0.8)
+    prepare4dispatch.resolution!(grid, patch_size=15, τ_up=-4.5, τ_surf=0.0, τ_down=7.0, scale_resolution=0.7)
 end
 
 #====================== Step (C): Conversion =================================#
@@ -184,7 +186,18 @@ begin
 
     ## Copy the average model in the same folder so that we can link it all to the right place
     for i in 1:nrow(grid.info)
-        cp(grid.info[i, "av_path"], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), force=true)
+        if !use_adiabat
+            cp(grid.info[i, "av_path"], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), force=true)
+        else
+            prepare4dispatch.adiabat(
+                joinpath(grid.info[i, "binned_E_tables"], "eos.hdf5"),
+                grid.info[i, "av_path"], 
+                grid.info[i, "logg"],
+                saveat=joinpath(grid.info[i, "binned_E_tables"], "inim.dat"),
+                ee_min=grid.info[i, "ee_min"],
+                common_size=grid.info[i, "initial_model_size"]
+            )
+        end
     end
 end
 

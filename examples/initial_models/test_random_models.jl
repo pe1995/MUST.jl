@@ -31,7 +31,7 @@ randomgrid = MUST.StaggerGrid("random_models.mgrid")
 eos_folder = "/u/peitner/DISPATCH/TSO.jl/examples/binning_opacities/tables/TSO_MARCS_v1.6"
 
 # ╔═╡ 9de39e0c-7525-42d3-86ac-2e5c06e37759
-i_test = findfirst(randomgrid["name"] .== "t48g44.00m0.000")
+i_test = findfirst(randomgrid["name"] .== "t45.86g44.00m0.000")
 
 # ╔═╡ 4ce7b47f-f8b8-400e-9c41-4c1b0b09046a
 edges = [
@@ -56,9 +56,9 @@ opa = reload(
 
 
 # ╔═╡ fc9e065d-c19a-4edb-95a7-322ac5a575b4
-#=model = @optical(
+model = @optical(
 	Average3D(eos, randomgrid["av_path", i_test], logg=randomgrid["logg", i_test]), eos, opa
-)=#
+)
 
 # ╔═╡ a2da7fef-8afb-4f73-898f-944122dff5f3
 models_stagger = [
@@ -119,6 +119,25 @@ m_ip = interpolate_average_test(
 	logg=randomgrid["logg", i_test], 
 	feh=randomgrid["feh", i_test]
 )
+
+# ╔═╡ 86d785dc-befc-47f4-aac5-d7e23652a714
+
+
+# ╔═╡ 0ec025ac-a545-4dcb-94b4-8c366e604a17
+md"An adiabat for this model would look like this"
+
+# ╔═╡ 9d8528ed-de0f-4f74-99fe-bd864442a9ba
+ad = modelgrids.adiabat(
+	eos_folder, 
+	randomgrid["av_path", i_test], 
+	randomgrid["logg", i_test],
+	1000,
+	ee_min=randomgrid["ee_min", i_test],
+	eospath=joinpath(randomgrid["binned_E_tables", i_test], "eos.hdf5")
+)
+
+# ╔═╡ bdf65b83-2b93-471b-922f-21464b4dcea1
+
 
 # ╔═╡ 602803ec-1801-4b4e-a18d-4c41de0451ab
 model_stagger_tau = """
@@ -251,11 +270,13 @@ end
 let
 	plot(framestyle=:box, grid=false, legendforegroundcolor=nothing)
 	
-	for i in eachindex(edges)
+	#=for i in eachindex(edges)
 		plot!(models_stagger[i].z, models_stagger[i].lnT, label=staggergrid["name", edges[i]])
-	end
+	end=#
 
-	#plot!(m_ip.z, m_ip.lnT, label=randomgrid["name", i_test])
+	plot!(model.z, model.lnT, label=randomgrid["name", i_test])
+	plot!(ad.z, ad.lnT, label="adiabat")
+	
 	plot!()
 end
 
@@ -289,12 +310,16 @@ end
 # ╠═fc9e065d-c19a-4edb-95a7-322ac5a575b4
 # ╠═a2da7fef-8afb-4f73-898f-944122dff5f3
 # ╟─171e7f10-8d6d-4670-9c92-5027efb0ce29
-# ╠═e3f4417e-9aa2-401d-8b59-b9611c7e8bad
+# ╟─e3f4417e-9aa2-401d-8b59-b9611c7e8bad
 # ╠═dded0e6d-d0f4-4eff-8a91-8ab32791c61c
+# ╟─86d785dc-befc-47f4-aac5-d7e23652a714
+# ╟─0ec025ac-a545-4dcb-94b4-8c366e604a17
+# ╠═9d8528ed-de0f-4f74-99fe-bd864442a9ba
+# ╟─bdf65b83-2b93-471b-922f-21464b4dcea1
 # ╟─602803ec-1801-4b4e-a18d-4c41de0451ab
 # ╟─a593e6fd-6702-4aaf-8917-64ae7290aeb5
 # ╟─123b165f-0a6c-4894-9157-a538452cf139
 # ╟─20df94f0-1d93-4604-9c2c-193856d1f4f9
 # ╟─250c95e4-e4c5-4272-b8d8-a1b4fd3d72d1
-# ╟─e5c4f17b-da5a-4b72-8de1-6a215804e7b0
+# ╠═e5c4f17b-da5a-4b72-8de1-6a215804e7b0
 # ╟─124f13ff-e0cc-4d85-9854-0b68c1061776

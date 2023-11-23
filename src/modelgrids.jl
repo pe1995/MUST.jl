@@ -129,27 +129,6 @@ end
 
 
 
-#================================================================== Adiabats =#
-
-function adiabat(mother_table, av_path, logg, common_size; save=false)
-	eos = reload(
-		SqEoS,
-		joinpath(mother_table, "combined_eos.hdf5")
-	)
-
-	data = flip(Average3D(av_path, logg=logg))
-	start_point = TSO.pick_point(data, 1)
-	end_point = TSO.pick_point(data, length(data.z))
-	
-	a = TSO.upsample(TSO.adiabat(start_point, end_point, eos; kwargs...), common_size)
-	a = TSO.flip(a, depth=true)
-	if save
-		open(av_path, "w") do f
-			MUST.writedlm(f, [a.z, a.lnT, a.lnρ])
-		end
-	end
-end
-
 
 #========================================================= Select Parameters =#
 
