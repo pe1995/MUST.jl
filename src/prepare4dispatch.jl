@@ -491,8 +491,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
 
         #eemin[i] = exp.(models[i].lnEi[itup])
         eemin[i] = exp.(ip_E(τ_surf))
-        ee0[i] = exp.(ip_E(0.0))
-        zee0[i] = ip_z(-0.5)
+        ee0[i] = exp.(ip_E(-1.0))
+        zee0[i] = ip_z(-1.0)
 
         #z_lo[i] = round(models[i].z[itlo], sigdigits=5)
         z_lo[i] = ip_z(τ_down)

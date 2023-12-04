@@ -31,6 +31,9 @@ md"## Interpolation Grid"
 # ╔═╡ 4ce94434-db5a-4323-81e8-c0c5340bab18
 grid = MUST.StaggerGrid("stagger_grid_full.mgrid")
 
+# ╔═╡ b3b31521-9967-4ab8-9bf0-3bde45e2db6b
+deleteat!(grid.info, .!isfile.(grid["av_path"]))
+
 # ╔═╡ 5701903e-59f3-4495-9dcc-4e730ed2e15f
 md"## Get any model within
 The simplest way to get any model within this grid, is to interpolate in Teff, logg and FeH. The corresponding 1D initial models can also be interpolated point-wise to the new point in the grid. The more average 3D models available the better. Alternatively, also adiabts can be used for this.
@@ -142,6 +145,7 @@ MUST.save(ig, "random_grid.mgrid")
 # ╠═f89573bc-8b9b-4897-8ad6-7b10fbdf9b4d
 # ╟─4e200464-64d6-48d2-9c80-b4e91e5b2d3b
 # ╠═4ce94434-db5a-4323-81e8-c0c5340bab18
+# ╠═b3b31521-9967-4ab8-9bf0-3bde45e2db6b
 # ╟─5701903e-59f3-4495-9dcc-4e730ed2e15f
 # ╠═c72e1a5a-d13a-481a-b732-3b6be3326326
 # ╟─6e0c166b-58a5-4a25-a726-a66cc357731c
