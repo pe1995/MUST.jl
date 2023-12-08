@@ -67,16 +67,18 @@ vmin = interpolate_quantity(grid, "vmin"; teff=teff, logg=logg, feh=feh)
 ```
 """
 function interpolate_quantity(grid::StaggerGrid, what; teff, logg, feh, method="linear")
-	logg_gr = grid.info[!, "logg"]
-	teff_gr = grid.info[!, "teff"]
 	feh_gr  = grid.info[!, "feh"]
-	what_gr = grid.info[!, what]
+	femask = feh_gr .≈ feh_gr[argmin(abs.(feh .- feh_gr))]
+
+	logg_gr = grid.info[femask, "logg"]
+	teff_gr = grid.info[femask, "teff"]
+	what_gr = grid.info[femask, what]
 
 	pyconvert(
 		Any,
 		first(
 			scipy_interpolate.griddata(
-				(logg_gr, teff_gr, feh_gr), what_gr, ([logg], [teff], [feh]), 
+				(logg_gr, teff_gr), what_gr, ([logg], [teff]), 
 				method=method
 			)
 		), 
@@ -90,6 +92,33 @@ end
 
 allowed_namelists(grid::StaggerGrid) = grid.info[!,"namelist_name"]
 
+stage_namelists(grid::StaggerGrid, folder="run_grid"; clean_logs=true, clean_namelists=false) = begin
+	nml_names = basename.(grid["namelist_name"])
+	nml_path = grid["namelist_name"]
+	folder_run = @in_dispatch(folder)
+
+	if !isdir(folder_run)
+		mkdir(folder_run)
+	end
+
+	# clean up dispatch from logs and namelists
+	glob("*", folder_run) .|> rm
+
+	for (i, n) in enumerate(nml_names)
+		cp(nml_path[i], joinpath(folder_run, n))
+	end
+
+	if clean_namelists
+		glob("grid_*.nml", @in_dispatch("")) .|> rm
+		for (i, n) in enumerate(nml_names)
+			cp(joinpath(folder_run, n), joinpath(@in_dispatch(""), n))
+		end
+	end
+	if clean_logs
+		glob("grid_*.log", @in_dispatch("")) .|> rm
+		glob("grid_*.err", @in_dispatch("")) .|> rm
+	end
+end
 
 
 #=============================================================================#

@@ -26,7 +26,8 @@ First we need to locate the Stagger models"
 
 # ╔═╡ 95bce920-6553-427f-a741-46d1614e656c
 begin
-	folder = "/mnt/beegfs/gemini/groups/bergemann/users/shared-storage/bergemann-data/Stagger_zaz/grid/"
+	#folder = "/mnt/beegfs/gemini/groups/bergemann/users/shared-storage/bergemann-data/Stagger_zaz/grid/"
+	folder = "/ptmp/peitner/Stagger_grid/"
 	listOfFolders = [f[1:end-1] for f in glob("*/", folder) if isdir(f)]
 	listOfFolderNames = [f[first(findlast("/", f))+1:end] for f in listOfFolders]
 	FolderNamesMask   = [f[1]=='t' for f in listOfFolderNames]

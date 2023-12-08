@@ -1,6 +1,7 @@
 using MUST 
 using TSO
-
+using LazySets
+using Polyhedra
 
 
 #==================================================================== Models =#
@@ -90,6 +91,7 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 	logg_gr = grid.info[!, "logg"]
 	teff_gr = grid.info[!, "teff"]
 	feh_gr  = grid.info[!, "feh"]
+	femask = feh_gr .≈ feh_gr[argmin(abs.(feh .- feh_gr))]
 	
 	# read all average models and interpolate them to the same number of points
 	models = [initial_model(grid, String(name))
@@ -99,8 +101,8 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 	models = [TSO.upsample(m, common_size) for m in models]
 
 	# now we interpolate all points to one common point, for every point
-	scatter_int(v, x, y, z) = MUST.pyconvert(typeof(x),
-		first(MUST.scipy_interpolate.griddata((logg_gr, teff_gr, feh_gr), v, ([x], [y], [z]), method="linear"))
+	scatter_int(v, x, y) = MUST.pyconvert(typeof(x),
+		first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask]), v, ([x], [y]), method="linear"))
 	)
 	
 	points = zeros(eltype(models[1].z), length(models), 3)
@@ -114,12 +116,12 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 			points[j, 2] = models[j].lnT[i]
 			points[j, 3] = models[j].lnρ[i]
 		end
-		z[i] = scatter_int(points[:, 1], logg, teff, feh)
-		t[i] = scatter_int(points[:, 2], logg, teff, feh)
-		d[i] = scatter_int(points[:, 3], logg, teff, feh)
+		z[i] = scatter_int(points[femask, 1], teff, logg)
+		t[i] = scatter_int(points[femask, 2], teff, logg)
+		d[i] = scatter_int(points[femask, 3], teff, logg)
 	end
 
-	r_target = scatter_int(r_models, logg, teff, feh)
+	r_target = scatter_int(r_models[femask], teff, logg)
 	npoints  = ceil(Int, abs(maximum(z) - minimum(z)) / r_target)
 
 	TSO.upsample(Model1D(z=z, lnT=t, lnρ=d, logg=logg), npoints)
@@ -127,26 +129,62 @@ end
 
 
 
-#================================================================== Adiabats =#
 
-function adiabat(mother_table, av_path, logg, common_size; save=false)
-	eos = reload(
-		SqEoS,
-		joinpath(mother_table, "combined_eos.hdf5")
-	)
+#========================================================= Select Parameters =#
 
-	data = flip(Average3D(av_path, logg=logg))
-	start_point = TSO.pick_point(data, 1)
-	end_point = TSO.pick_point(data, length(data.z))
+"""
+	random_paramters(grid, N; [teff, logg, feh])
+
+Random set of parameters within the convex hull of the grid.
+Ranges for teff, logg and feh can be given as kwargs.
+Random points will be within the give grid, so that a scatter interpolation
+(e.g. scipy.griddata) can be used on them.
+
+# Examples
+
+```jldoctest
+julia> random_paramters(grid, 10, teff=[4500, 6500], logg=[4.0, 4.5], feh=[0.0, 0.0])
+10×3 Matrix{Float64}:
+ 5381.59  4.08404  0.0
+ 4639.25  4.44625  0.0
+ 6281.92  4.32518  0.0
+ 4661.24  4.47237  0.0
+ 5935.55  4.00568  0.0
+ 5893.84  4.32614  0.0
+ 4688.96  4.48417  0.0
+ 5157.83  4.21643  0.0
+ 6224.38  4.35535  0.0
+ 5161.6   4.35618  0.0
+```
+"""
+function random_paramters(grid, N; 
+	teff=[minimum(grid["teff"]), maximum(grid["teff"])], 
+	logg=[minimum(grid["logg"]), maximum(grid["logg"])], 
+	feh=[minimum(grid["feh"]), maximum(grid["feh"])])
 	
-	a = TSO.upsample(TSO.adiabat(start_point, end_point, eos; kwargs...), common_size)
-	a = TSO.flip(a, depth=true)
-	if save
-		open(av_path, "w") do f
-			MUST.writedlm(f, [a.z, a.lnT, a.lnρ])
+	points = [[t, l, f] for (t, l, f) in zip(grid["teff"], grid["logg"], grid["feh"])]
+	hull = convex_hull(points)
+	P = VPolytope(hull)
+	
+	rand_points = zeros(N, 3)
+	found = 0
+	while found < N
+		t = MUST.randrange(teff...)
+		l = MUST.randrange(logg...) 
+		f = MUST.randrange(feh...)
+	
+		if [t, l, f] ∈ P
+			found += 1
+			rand_points[found, 1] = t
+			rand_points[found, 2] = l
+			rand_points[found, 3] = f
 		end
 	end
+
+	rand_points
 end
+
+
 
 
 #===========================================================interpolate grid =#
@@ -158,7 +196,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	folder = "interpolated"
 	mesh   = "interpolated"
 
-	tname = MUST.@sprintf "%i" teff/100
+	tname = MUST.@sprintf "%.2f" teff/100
 	gname = MUST.@sprintf "%.2f" logg*10
 	fname = MUST.@sprintf "%.3f" feh
 	name = "t$(tname)g$(gname)m$(fname)"

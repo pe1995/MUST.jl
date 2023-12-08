@@ -53,20 +53,25 @@ end
     if host == "raven"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
-        initial_grid_path = "stagger_grid.mgrid"
-        final_grid_path   = "dispatch_grid.mgrid"
-        #initial_grid_path = "random_setup.mgrid"
-        #final_grid_path   = "random_grid.mgrid"
+        #initial_grid_path = "stagger_grid.mgrid"
+        #final_grid_path   = "dispatch_grid.mgrid"
+        initial_grid_path = "random_grid.mgrid"
+        initial_cl_path   = "random_grid_avail.mgrid"
+        initial_mod_path  = "random_grid_solar.mgrid"
+        final_grid_path   = "random_models.mgrid"
         mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
         extension         = "magg22"
         version           = "v0.1"
         Nbins             = 8
-        clean             = false
+        clean             = true
+        use_adiabat       = true
     elseif host == "gemini"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
         initial_grid_path = "stagger_grid.mgrid"
+        initial_cl_path   = "stagger_grid_avail.mgrid"
+        initial_mod_path  = "stagger_grid_solar.mgrid"
         final_grid_path   = "dispatch_grid.mgrid"
         #initial_grid_path = "random_setup.mgrid"
         #final_grid_path   = "random_grid.mgrid"
@@ -82,6 +87,26 @@ end
         version           = "v0.4"
         Nbins             = 10
         clean             = false
+        use_adiabat       = false
+    elseif host == "cloud"
+        name_extension    = "DIS_MARCS"
+        dispatch_location = "/home/ubuntu/DISPATCH/dispatch2"
+
+        initial_grid_path = "random_grid.mgrid"
+        initial_cl_path   = "random_grid_avail.mgrid"
+        initial_mod_path  = "random_grid_solar.mgrid"
+        final_grid_path   = "random_models.mgrid"
+        #initial_grid_path = "random_setup.mgrid"
+        #final_grid_path   = "random_grid.mgrid"
+        #initial_grid_path = "node_setup.mgrid"
+        #final_grid_path   = "node_grid.mgrid"
+
+        mother_table_path = "/home/ubuntu/DISPATCH/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.7"
+        extension         = "magg_m0_a0"
+        version           = "v0.4"
+        Nbins             = 8
+        clean             = false
+        use_adiabat       = true
     end
 
     MUST.@import_dispatch "../../../dispatch2"
@@ -95,6 +120,12 @@ end
 #=================== Step (A): The Initial Grid ==============================#
 begin
     grid = MUST.StaggerGrid(initial_grid_path)
+    deleteat!(grid.info, .!isfile.(grid["av_path"]))
+    MUST.save(grid, initial_cl_path)
+
+    deleteat!(grid.info, grid["feh"].!=0.0)
+    MUST.save(grid, initial_mod_path)
+
 
     ## Check for opacity table field
     if !("eos_root" in names(grid.info))
@@ -134,10 +165,10 @@ begin
         @info "Opacity Binning: $(name)"
 
         ## formation opacities
-        #prepare4dispatch.formation_opacities(
-        #    eos_root, av_path, name; 
-        #    logg=logg, extension=extension, do_ross=do_ross
-        #)
+        prepare4dispatch.formation_opacities(
+            eos_root, av_path, name; 
+            logg=logg, extension=extension, do_ross=do_ross
+        )
 
         qlim = round(
             prepare4dispatch.quadrantlimit(eos_root, name, extension=extension, λ_lim=5.0), 
@@ -145,8 +176,8 @@ begin
         )
 
         quadrants = [ 
-            TSO.Quadrant((0.0, 4.0), (qlim, 4.0), 4, stripes=:κ),
-            TSO.Quadrant((0.0, 4.0), (4.0, 100), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
         ]
@@ -175,7 +206,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.5, τ_surf=0.0, τ_down=7.0)
+    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.0, τ_surf=0.0, τ_down=6.0, scale_resolution=0.7)
 end
 
 #====================== Step (C): Conversion =================================#
@@ -184,7 +215,18 @@ begin
 
     ## Copy the average model in the same folder so that we can link it all to the right place
     for i in 1:nrow(grid.info)
-        cp(grid.info[i, "av_path"], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), force=true)
+        if !use_adiabat
+            cp(grid.info[i, "av_path"], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), force=true)
+        else
+            prepare4dispatch.adiabat(
+                joinpath(grid.info[i, "binned_E_tables"], "eos.hdf5"),
+                grid.info[i, "av_path"], 
+                grid.info[i, "logg"],
+                saveat=joinpath(grid.info[i, "binned_E_tables"], "inim.dat"),
+                ee_min=grid.info[i, "ee_min"],
+                common_size=grid.info[i, "initial_model_size"]
+            )
+        end
     end
 end
 
@@ -197,6 +239,9 @@ begin
     end
 
     MUST.save(grid, final_grid_path)
+
+    # Stage the grid for execution, possible remove other output
+    MUST.stage_namelists(grid, clean_namelists=false, clean_logs=false)
 end
 
 #=============================================================================#

@@ -20,7 +20,7 @@
                       rt_grace=0.1 trace_teff=f rt_freq=1.0 n_mu=2 rt_llc=-2.3,-2.3,-3.5 
                       verbose=0 cdtd=1.0 n_phi=4 on=t rt_res=-1,-1,30 exact_rk=.true. /
 &restart_params       /
-&io_params            guard_zones=t end_time=360 do_trace=f out_time=2.0 verbose=0 
+&io_params            guard_zones=t end_time=360 do_trace=f out_time=1.0 verbose=0 
                       do_output=t /
 &aux_params           verbose=0 /
 &eos_params           gamma=1.2 

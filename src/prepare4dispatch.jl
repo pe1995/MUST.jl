@@ -169,13 +169,13 @@ Compute the needed resolution based on input parameters from other 3D simulation
 Make everything easier and avoid rounding.
 """
 function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf, τ_bottom, hres,
-                                    patch_size=30; scale_resolution=1.2)
+                                    patch_size=30; scale_resolution=1.0)
     dx = abs(max_x - min_x)
     dz = abs(max_z - min_z)
     dxdz = dx / dz
 
     # This is the rt resolution we need. In HD we use half the points
-    vres = minimum(abs.(diff(av_model.z))) *2.0
+    vres = minimum(abs.(diff(av_model.z))) *2.0 
 
     mask = sortperm(av_model.τ)
     ip_z = MUST.linear_interpolation(
@@ -190,7 +190,7 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
 
     # now we need to add so many patches of the given size that is matches at least
     # the desired resolution
-    desired_resolution = scale_resolution * vres
+    desired_resolution = vres / scale_resolution
     desired_n_points = actual_dz / desired_resolution
     desired_n_patches = ceil(desired_n_points / patch_size)
 
@@ -274,25 +274,28 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     # this is how much the cube needs to be shifted down so that the amount of star above the surface is equal
     dup = (z_size /2 -δz) *1.0
     
-    courant_rt = if (logg >= 4) & (teff<6500)
+    #=courant_rt = if (logg >= 4) & (teff<6500)
         1.0
     elseif ((logg < 4) & (logg >= 3)) | (teff>=6500)
         0.8
     else
         0.7
-    end
+    end=#
+    courant_rt = 0.2
 
-    courant_hd = if logg >= 4
+    #=courant_hd = if logg >= 4
         0.3
     elseif (logg < 4) & (logg >= 3)
         0.25
     else
         0.2
-    end
+    end=#
+    courant_hd = 0.2
+
 
     larger_than_sun = x_size/1e8 / 4.6
-    newton_time = 60 #* larger_than_sun
-    friction_time = 100 #* larger_than_sun
+    newton_time = 50 #* larger_than_sun
+    friction_time = 125 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
     l_cgs_raw = 1e8 * larger_than_sun
@@ -305,7 +308,6 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     velocity_ratio = max(abs(vmax), abs(vmin)) / 1e6
     dynamic_scale_ratio = velocity_ratio / larger_than_sun
 
-    #@show 100.0/dynamic_scale_ratio larger_than_sun velocity_ratio
     tscale = if test_tscale
         # Chose dt, such that with the given scaling c is a given value at the highest 
         # absolute velocity in the given stagger model. There will be higher 
@@ -314,23 +316,18 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         dx = x_size / (patches(x_resolution, patch_size) * patch_size)
         #@show dx/max(abs(vmax), abs(vmin)) larger_than_sun max(abs(vmax), abs(vmin))
 
-        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.4) / 5e-3, sigdigits=3)
+        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.1) / 5e-3, sigdigits=3)
         #max(100.0, round(100.0 / dynamic_scale_ratio, sigdigits=3))
         #max(100.0, round(Δt(dx, max(abs(vmax), abs(vmin)), 1.25), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
-        #round(larger_than_sun*tscale, sigdigits=2)
         tscale
     end
 
     stellar_w = round(0.1 * velocity_ratio / larger_than_sun, sigdigits=3)
-    strength = 0.1 #round(0.1 / velocity_ratio, sigdigits=3)
-
-    #tscale = larger_than_sun * 100
-    #@show stellar_w
-    #@show tscale larger_than_sun velocity_ratio
+    strength = round(0.1 * 100.0 / tscale, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+    tbot = round(0.01 * 100.0 / tscale, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
 
     x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
-    #@show patches(x_resolution, patch_size) patches(z_resolution, patch_size) round(z_size/l_cgs, sigdigits=3) x
     MUST.set!(
         nml, 
         cartesian_params=(:size=>[x, x, round(z_size/l_cgs_raw, sigdigits=3)], 
@@ -340,8 +337,9 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :position=>[0,0,round(-dup/l_cgs_raw, sigdigits=3)]),
         patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.1),
         scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
+        experiment_params=(:t_bot=>tbot,),
         stellar_params=(:g_cgs=>round(exp10(logg), sigdigits=5), 
-                        :ee_min_cgs=>round(log(eemin), sigdigits=5), 
+                        :ee_min_cgs=>round(log(eemin), sigdigits=7), 
                         :nz=>nz-1, 
                         :w_perturb=>stellar_w,
                         :initial_path=>initial_path),
@@ -350,7 +348,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         newton_params=(:ee0_cgs=>round(log(ee0), sigdigits=7), 
                         :position=>round(zee0/l_cgs_raw, sigdigits=3),#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
                         :end_time=>newton_time, 
-                        :decay_scale=>20.0,
+                        :decay_scale=>30.0,
+                        :time=>strength,
                         :scale=>newton_scale),
         sc_rt_params=(  :rt_llc=>[-x/2, -x/2, -round((z_size/2 + dup)/l_cgs_raw, sigdigits=3)], 
                         :rt_urc=>[ x/2,  x/2,  round((z_size/2 - dup)/l_cgs_raw, sigdigits=3)], 
@@ -358,11 +357,11 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :courant=>courant_rt,
                         #:start_time=>newton_time,
                         #:decay_scale=>20.0,
-                        :rt_freq=>1.0,
+                        :rt_freq=>0.0,
                         :rt_grace=>0.05,
                         :rt_res=>[-1,-1,rt_patch_size]),
         an_params=(:courant=>courant_hd,),
-        eos_params=(:table_loc=>eos_table,)
+        eos_params=(:table_loc=>eos_table, :gamma=>1.666667)
     )
     
     # write the namelists
@@ -375,13 +374,38 @@ end
 
 
 
+#= adiabats =#
+
+#================================================================== Adiabats =#
+
+function adiabat(eospath, av_path, logg; common_size=1000, saveat=nothing, kwargs...)
+	eos = reload(
+        SqEoS,
+        joinpath(eospath)
+    )
+
+	data = TSO.flip(Average3D(av_path, logg=logg))
+	start_point = TSO.pick_point(data, 1)
+	end_point = TSO.pick_point(data, length(data.z))
+	
+	a = TSO.upsample(TSO.adiabat(start_point, end_point, eos; kwargs...), common_size)
+	a = TSO.flip(a, depth=false)
+	if !isnothing(saveat)
+		open(saveat, "w") do f
+			MUST.writedlm(f, [a.z exp.(a.lnT) a.lnρ])
+		end
+	end
+
+	a
+end
+
 
 
 
 #= Modification of initial grid (interface) =#
 
 resolution!(grid::MUST.AbstractMUSTGrid; 
-                            patch_size=30, cut_bottom=0.3, 
+                            patch_size=30, scale_resolution=1.0, 
                             τ_up=-4.5, τ_surf=0.0, τ_down=5.5) = begin
     xr, zr = zeros(Int, nrow(grid.info)), zeros(Int, nrow(grid.info))
     xd, zd = zeros(Float64, nrow(grid.info)), zeros(Float64, nrow(grid.info))
@@ -451,28 +475,20 @@ resolution!(grid::MUST.AbstractMUSTGrid;
             extrapolation_bc=MUST.Flat()
         )
 
-        #rho_norm[i] = models[i].lnρ[it0] |> exp |> log10 |> round |> exp10 
-        rho_norm[i] = round(exp.(ip_r(τ_surf)), sigdigits=3) 
+        rho_norm[i] = round(exp.(ip_r(-2.0)), sigdigits=5) 
 
         l_norm[i] = zd[i] |> abs #|> log10 |> floor |> exp10
         
-        #z_up[i] = abs(models[i].z[itup] - models[i].z[it0])
         z_up[i] = abs(ip_z(τ_up) - ip_z(τ_surf))
         z_s[i] = ip_z(τ_surf)
         z_h[i] = ip_z(τ_up)
 
-        #eemin[i] = exp.(models[i].lnEi[itup])
-        eemin[i] = exp.(ip_E(τ_up))
-        ee0[i] = exp.(ip_E(-0.8))
-        zee0[i] = ip_z(-1.0)
+        ee0[i] = exp.(ip_E(-1.5))
+        zee0[i] = ip_z(-2.0)
+        eemin[i] = exp.(ip_E(-1.5)) #exp.(ip_E(τ_surf))
 
-        #z_lo[i] = round(models[i].z[itlo], sigdigits=5)
         z_lo[i] = ip_z(τ_down)
-
-        #d_lo[i] = round(exp.(models[i].lnρ[itlo]), sigdigits=5)
         d_lo[i] = exp.(ip_r(τ_down))
-
-        #T_lo[i] = round(exp.(models[i].lnT[itlo]), sigdigits=5)
         T_lo[i] = exp.(ip_T(τ_down))
 
         xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
@@ -486,7 +502,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
             τ_down,
             grid.info[i, "hres"],
             patch_size, 
-            scale_resolution=1.0
+            scale_resolution=scale_resolution
         )
     end
 
