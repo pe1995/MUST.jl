@@ -295,7 +295,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
 
     larger_than_sun = x_size/1e8 / 4.6
     newton_time = 50 #* larger_than_sun
-    friction_time = 70 #* larger_than_sun
+    friction_time = 125 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
     l_cgs_raw = 1e8 * larger_than_sun
@@ -308,7 +308,6 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     velocity_ratio = max(abs(vmax), abs(vmin)) / 1e6
     dynamic_scale_ratio = velocity_ratio / larger_than_sun
 
-    #@show 100.0/dynamic_scale_ratio larger_than_sun velocity_ratio
     tscale = if test_tscale
         # Chose dt, such that with the given scaling c is a given value at the highest 
         # absolute velocity in the given stagger model. There will be higher 
@@ -317,23 +316,18 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         dx = x_size / (patches(x_resolution, patch_size) * patch_size)
         #@show dx/max(abs(vmax), abs(vmin)) larger_than_sun max(abs(vmax), abs(vmin))
 
-        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.35) / 5e-3, sigdigits=3)
+        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.1) / 5e-3, sigdigits=3)
         #max(100.0, round(100.0 / dynamic_scale_ratio, sigdigits=3))
         #max(100.0, round(Δt(dx, max(abs(vmax), abs(vmin)), 1.25), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
-        #round(larger_than_sun*tscale, sigdigits=2)
         tscale
     end
 
     stellar_w = round(0.1 * velocity_ratio / larger_than_sun, sigdigits=3)
-    strength = 0.1 #round(0.1 / velocity_ratio, sigdigits=3)
-
-    #tscale = larger_than_sun * 100
-    #@show stellar_w
-    #@show tscale larger_than_sun velocity_ratio
+    strength = round(0.1 * 100.0 / tscale, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+    tbot = round(0.01 * 100.0 / tscale, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
 
     x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
-    #@show patches(x_resolution, patch_size) patches(z_resolution, patch_size) round(z_size/l_cgs, sigdigits=3) x
     MUST.set!(
         nml, 
         cartesian_params=(:size=>[x, x, round(z_size/l_cgs_raw, sigdigits=3)], 
@@ -341,19 +335,21 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                                 patches(x_resolution, patch_size), 
                                 patches(z_resolution, patch_size)],
                         :position=>[0,0,round(-dup/l_cgs_raw, sigdigits=3)]),
-        patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.2),
+        patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.1),
         scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
+        experiment_params=(:t_bot=>tbot,),
         stellar_params=(:g_cgs=>round(exp10(logg), sigdigits=5), 
-                        :ee_min_cgs=>round(log(eemin), sigdigits=5), 
+                        :ee_min_cgs=>round(log(eemin), sigdigits=7), 
                         :nz=>nz-1, 
                         :w_perturb=>stellar_w,
                         :initial_path=>initial_path),
         friction_params=(:end_time=>friction_time, :decay_scale=>10.0, :time=>strength,),
         gravity_params=(:constant=>-round(exp10(logg), sigdigits=5),),
-        newton_params=(:ee0_cgs=>round(log(ee0), sigdigits=5), 
+        newton_params=(:ee0_cgs=>round(log(ee0), sigdigits=7), 
                         :position=>round(zee0/l_cgs_raw, sigdigits=3),#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
                         :end_time=>newton_time, 
-                        :decay_scale=>20.0,
+                        :decay_scale=>30.0,
+                        :time=>strength,
                         :scale=>newton_scale),
         sc_rt_params=(  :rt_llc=>[-x/2, -x/2, -round((z_size/2 + dup)/l_cgs_raw, sigdigits=3)], 
                         :rt_urc=>[ x/2,  x/2,  round((z_size/2 - dup)/l_cgs_raw, sigdigits=3)], 
@@ -362,7 +358,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         #:start_time=>newton_time,
                         #:decay_scale=>20.0,
                         :rt_freq=>0.0,
-                        :rt_grace=>0.1,
+                        :rt_grace=>0.05,
                         :rt_res=>[-1,-1,rt_patch_size]),
         an_params=(:courant=>courant_hd,),
         eos_params=(:table_loc=>eos_table, :gamma=>1.666667)
@@ -479,28 +475,20 @@ resolution!(grid::MUST.AbstractMUSTGrid;
             extrapolation_bc=MUST.Flat()
         )
 
-        #rho_norm[i] = models[i].lnρ[it0] |> exp |> log10 |> round |> exp10 
-        rho_norm[i] = round(exp.(ip_r(-1.0)), sigdigits=5) 
+        rho_norm[i] = round(exp.(ip_r(-2.0)), sigdigits=5) 
 
         l_norm[i] = zd[i] |> abs #|> log10 |> floor |> exp10
         
-        #z_up[i] = abs(models[i].z[itup] - models[i].z[it0])
         z_up[i] = abs(ip_z(τ_up) - ip_z(τ_surf))
         z_s[i] = ip_z(τ_surf)
         z_h[i] = ip_z(τ_up)
 
-        #eemin[i] = exp.(models[i].lnEi[itup])
-        eemin[i] = exp.(ip_E(τ_surf))
-        ee0[i] = exp.(ip_E(-1.0))
-        zee0[i] = ip_z(-1.0)
+        ee0[i] = exp.(ip_E(-1.5))
+        zee0[i] = ip_z(-2.0)
+        eemin[i] = exp.(ip_E(-1.5)) #exp.(ip_E(τ_surf))
 
-        #z_lo[i] = round(models[i].z[itlo], sigdigits=5)
         z_lo[i] = ip_z(τ_down)
-
-        #d_lo[i] = round(exp.(models[i].lnρ[itlo]), sigdigits=5)
         d_lo[i] = exp.(ip_r(τ_down))
-
-        #T_lo[i] = round(exp.(models[i].lnT[itlo]), sigdigits=5)
         T_lo[i] = exp.(ip_T(τ_down))
 
         xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
