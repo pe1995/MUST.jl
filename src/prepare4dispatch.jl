@@ -347,7 +347,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :initial_path=>initial_path),
         friction_params=(:end_time=>friction_time, :decay_scale=>10.0, :time=>strength,),
         gravity_params=(:constant=>-round(exp10(logg), sigdigits=5),),
-        newton_params=(:ee0_cgs=>round(log(ee0), sigdigits=5), 
+        newton_params=(:ee0_cgs=>round(log(ee0), sigdigits=7), 
                         :position=>round(zee0/l_cgs_raw, sigdigits=3),#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
                         :end_time=>newton_time, 
                         :decay_scale=>20.0,
@@ -462,8 +462,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         z_h[i] = ip_z(τ_up)
 
         #eemin[i] = exp.(models[i].lnEi[itup])
-        eemin[i] = exp.(ip_E(τ_surf))
-        ee0[i] = exp.(ip_E(-0.5))
+        eemin[i] = exp.(ip_E(τ_up))
+        ee0[i] = exp.(ip_E(-0.8))
         zee0[i] = ip_z(-1.0)
 
         #z_lo[i] = round(models[i].z[itlo], sigdigits=5)

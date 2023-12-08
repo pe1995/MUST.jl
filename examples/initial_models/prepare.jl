@@ -26,7 +26,6 @@ using DelimitedFiles
 using Distributed
 using SlurmClusterManager
 
-MUST.@import_dispatch "../../../dispatch2"
 
 if "SLURM_NTASKS" in keys(ENV)
     addprocs(SlurmManager())
@@ -49,7 +48,7 @@ end
 end
 
 @everywhere begin
-    host = "raven"
+    host = "gemini"
 
     if host == "raven"
         name_extension    = "DIS_MARCS"
@@ -80,12 +79,13 @@ end
         #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.5"
        
         extension         = "magg_m0_a0"
-        version           = "v0.3"
-        Nbins             = 8
+        version           = "v0.4"
+        Nbins             = 10
         clean             = false
     end
 
-    MUST.@import_dispatch dispatch_location
+    MUST.@import_dispatch "../../../dispatch2"
+    #MUST.@import_dispatch dispatch_location
 end
 
 # import the relevant functions
@@ -145,8 +145,8 @@ begin
         )
 
         quadrants = [ 
-            TSO.Quadrant((0.0, 4.0), (qlim, 5.0), 2, stripes=:κ),
-            TSO.Quadrant((0.0, 4.0), (5.0, 100), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (qlim, 4.0), 4, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (4.0, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
         ]
@@ -164,7 +164,7 @@ begin
     end
 
     ## End-to-end binning, with clean-up
-    Distributed.pmap(formation_and_bin, args)
+    #Distributed.pmap(formation_and_bin, args)
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]
