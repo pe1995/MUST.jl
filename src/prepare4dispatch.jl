@@ -321,7 +321,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         dx = x_size / (patches(x_resolution, patch_size) * patch_size)
         #@show dx/max(abs(vmax), abs(vmin)) larger_than_sun max(abs(vmax), abs(vmin))
 
-        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.1) / 5e-3, sigdigits=3)
+        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.3) / 5e-3, sigdigits=3)
         #max(100.0, round(100.0 / dynamic_scale_ratio, sigdigits=3))
         #max(100.0, round(Δt(dx, max(abs(vmax), abs(vmin)), 1.25), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else

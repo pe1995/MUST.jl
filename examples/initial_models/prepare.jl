@@ -48,7 +48,7 @@ end
 end
 
 @everywhere begin
-    host = "gemini"
+    host = "cloud"
 
     if host == "raven"
         name_extension    = "DIS_MARCS"
