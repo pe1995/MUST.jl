@@ -273,6 +273,11 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     # also set the path and size of the initial model (also an info for this needs to be added.)
     # this is how much the cube needs to be shifted down so that the amount of star above the surface is equal
     dup = (z_size /2 -δz) *1.0
+
+    # z_lo should be the bottom z value. The same should be true for the simulation domain
+    # this means that we need to shift it down until that value is reached
+    ddown = abs((z_size/2.0 - abs(z_lo)))
+    @show ddown
     
     #=courant_rt = if (logg >= 4) & (teff<6500)
         1.0
@@ -294,8 +299,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
 
 
     larger_than_sun = x_size/1e8 / 4.6
-    newton_time = 50 #* larger_than_sun
-    friction_time = 125 #* larger_than_sun
+    newton_time = 100 #* larger_than_sun
+    friction_time = 160 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
     l_cgs_raw = 1e8 * larger_than_sun
@@ -334,7 +339,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :dims=>[patches(x_resolution, patch_size), 
                                 patches(x_resolution, patch_size), 
                                 patches(z_resolution, patch_size)],
-                        :position=>[0,0,round(-dup/l_cgs_raw, sigdigits=3)]),
+                        :position=>[0,0,round(-ddown/l_cgs_raw, sigdigits=3)]),
         patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.1),
         scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
         experiment_params=(:t_bot=>tbot,),
@@ -351,8 +356,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :decay_scale=>30.0,
                         :time=>strength,
                         :scale=>newton_scale),
-        sc_rt_params=(  :rt_llc=>[-x/2, -x/2, -round((z_size/2 + dup)/l_cgs_raw, sigdigits=3)], 
-                        :rt_urc=>[ x/2,  x/2,  round((z_size/2 - dup)/l_cgs_raw, sigdigits=3)], 
+        sc_rt_params=(  :rt_llc=>[-x/2, -x/2, -round((z_size/2 + ddown)/l_cgs_raw, sigdigits=3)], 
+                        :rt_urc=>[ x/2,  x/2,  round((z_size/2 - ddown)/l_cgs_raw, sigdigits=3)], 
                         :n_bin=>n_bin,
                         :courant=>courant_rt,
                         #:start_time=>newton_time,
