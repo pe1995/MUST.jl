@@ -26,7 +26,6 @@ using DelimitedFiles
 using Distributed
 using SlurmClusterManager
 
-MUST.@import_dispatch "../../../dispatch2"
 
 if "SLURM_NTASKS" in keys(ENV)
     addprocs(SlurmManager())
@@ -70,7 +69,7 @@ end
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
-        initial_grid_path = "stagger_grid.mgrid"
+        initial_grid_path = "stagger_grid_full.mgrid"
         initial_cl_path   = "stagger_grid_avail.mgrid"
         initial_mod_path  = "stagger_grid_solar.mgrid"
         final_grid_path   = "dispatch_grid.mgrid"
@@ -88,7 +87,7 @@ end
         version           = "v0.3"
         Nbins             = 8
         clean             = false
-        use_adiabat       = false
+        use_adiabat       = true
     elseif host == "cloud"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/ubuntu/DISPATCH/dispatch2"
@@ -104,13 +103,14 @@ end
 
         mother_table_path = "/home/ubuntu/DISPATCH/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.7"
         extension         = "magg_m0_a0"
-        version           = "v0.3"
-        Nbins             = 10
+        version           = "v0.4"
+        Nbins             = 8
         clean             = false
-        use_adiabat       = false
+        use_adiabat       = true
     end
 
-    MUST.@import_dispatch dispatch_location
+    MUST.@import_dispatch "../../../dispatch2"
+    #MUST.@import_dispatch dispatch_location
 end
 
 # import the relevant functions
@@ -176,7 +176,7 @@ begin
         )
 
         quadrants = [ 
-            TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 4, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
@@ -206,7 +206,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.5, τ_surf=0.0, τ_down=7.0, scale_resolution=0.6)
+    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.0, τ_surf=0.0, τ_down=6.0, scale_resolution=0.9)
 end
 
 #====================== Step (C): Conversion =================================#
@@ -241,7 +241,7 @@ begin
     MUST.save(grid, final_grid_path)
 
     # Stage the grid for execution, possible remove other output
-    MUST.stage_namelists(grid, clean_namelists=false, clean_logs=true)
+    MUST.stage_namelists(grid, clean_namelists=false, clean_logs=false)
 end
 
 #=============================================================================#

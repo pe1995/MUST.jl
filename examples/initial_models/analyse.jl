@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.30
+# v0.19.32
 
 using Markdown
 using InteractiveUtils
@@ -275,8 +275,12 @@ md"## Stagger models"
 # ╔═╡ bd41fb98-70c4-4192-8753-6fee82f14576
 function allStaggerModels(folder)
 	allmodels = glob("*.mesh", folder)
-	allmodels = [m for m in allmodels if !occursin("_orig", m)]
-	allnames = first.(split.(basename.(allmodels), ".mesh"))
+	if length(allmodels) == 0
+		[]
+	else
+		allmodels = [m for m in allmodels if !occursin("_orig", m)]
+		allnames = first.(split.(basename.(allmodels), ".mesh"))
+	end
 end
 
 # ╔═╡ b90c53aa-9ca6-421c-9b2f-f650a1f0832f
@@ -286,7 +290,9 @@ end
 md"Load a Stagger model in the Multi format from folder: $(@bind staggermodelpath TextField(default=\"Stagger_grid_multi/\"))"
 
 # ╔═╡ 80f8c89e-5c14-4df6-8a05-f5fe79a7585e
-md"Pick a Stagger model: $(@bind selectedStagger Select(allStaggerModels(staggermodelpath)))"
+if length(allStaggerModels(staggermodelpath)) > 0
+	md"Pick a Stagger model: $(@bind selectedStagger Select(allStaggerModels(staggermodelpath)))"
+end
 
 # ╔═╡ 50bc1f52-0638-427a-8cc0-f8cd49535114
 
@@ -308,7 +314,7 @@ md"# Figure layout"
 md"### Colors"
 
 # ╔═╡ 9ea4e08e-62aa-44c3-bbf0-78b1954a9c4f
-cmap = plt.get_cmap("tab20")
+cmap = plt.get_cmap("rainbow")
 
 # ╔═╡ c4015f47-d670-4c5d-885c-cf32b6f15829
 cmap_initial = plt.get_cmap("tab20_r")
