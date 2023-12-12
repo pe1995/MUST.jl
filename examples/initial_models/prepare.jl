@@ -35,7 +35,7 @@ if "SLURM_NTASKS" in keys(ENV)
     end
 else
     @warn "No Slurm environment detected. Using default addprocs."
-    addprocs(1)
+    #addprocs(1)
 end
 
 @everywhere begin
@@ -48,7 +48,7 @@ end
 end
 
 @everywhere begin
-    host = "gemini"
+    host = "cloud"
 
     if host == "raven"
         name_extension    = "DIS_MARCS"
@@ -92,10 +92,10 @@ end
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/ubuntu/DISPATCH/dispatch2"
 
-        initial_grid_path = "random_grid.mgrid"
-        initial_cl_path   = "random_grid_avail.mgrid"
-        initial_mod_path  = "random_grid_solar.mgrid"
-        final_grid_path   = "random_models.mgrid"
+        initial_grid_path = "stagger_grid_full.mgrid"
+        initial_cl_path   = "stagger_grid_avail.mgrid"
+        initial_mod_path  = "stagger_grid_solar.mgrid"
+        final_grid_path   = "dispatch_grid.mgrid"
         #initial_grid_path = "random_setup.mgrid"
         #final_grid_path   = "random_grid.mgrid"
         #initial_grid_path = "node_setup.mgrid"
@@ -145,7 +145,7 @@ begin
             extension,
             :kmeans, 
             Nbins,
-            false #i==1 ? true : false
+            i==1 ? true : false
         ) for i in 1:nrow(grid.info)
     ]
 
@@ -195,7 +195,7 @@ begin
     end
 
     ## End-to-end binning, with clean-up
-    #Distributed.pmap(formation_and_bin, args)
+    Distributed.pmap(formation_and_bin, args)
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]
