@@ -35,7 +35,7 @@ if "SLURM_NTASKS" in keys(ENV)
     end
 else
     @warn "No Slurm environment detected. Using default addprocs."
-    addprocs(1)
+    #addprocs(1)
 end
 
 @everywhere begin
@@ -69,7 +69,7 @@ end
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
-        initial_grid_path = "stagger_grid.mgrid"
+        initial_grid_path = "stagger_grid_full.mgrid"
         initial_cl_path   = "stagger_grid_avail.mgrid"
         initial_mod_path  = "stagger_grid_solar.mgrid"
         final_grid_path   = "dispatch_grid.mgrid"
@@ -84,18 +84,18 @@ end
         #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.5"
        
         extension         = "magg_m0_a0"
-        version           = "v0.4"
-        Nbins             = 10
+        version           = "v0.3"
+        Nbins             = 8
         clean             = false
-        use_adiabat       = false
+        use_adiabat       = true
     elseif host == "cloud"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/ubuntu/DISPATCH/dispatch2"
 
-        initial_grid_path = "random_grid.mgrid"
-        initial_cl_path   = "random_grid_avail.mgrid"
-        initial_mod_path  = "random_grid_solar.mgrid"
-        final_grid_path   = "random_models.mgrid"
+        initial_grid_path = "stagger_grid_full.mgrid"
+        initial_cl_path   = "stagger_grid_avail.mgrid"
+        initial_mod_path  = "stagger_grid_solar.mgrid"
+        final_grid_path   = "dispatch_grid.mgrid"
         #initial_grid_path = "random_setup.mgrid"
         #final_grid_path   = "random_grid.mgrid"
         #initial_grid_path = "node_setup.mgrid"
@@ -145,7 +145,7 @@ begin
             extension,
             :kmeans, 
             Nbins,
-            false #i==1 ? true : false
+            i==1 ? true : false
         ) for i in 1:nrow(grid.info)
     ]
 
@@ -195,6 +195,7 @@ begin
     end
 
     ## End-to-end binning, with clean-up
+    Distributed.pmap(formation_and_bin, args)
     Distributed.pmap(formation_and_bin, args)
     
     ## Save the eos info
