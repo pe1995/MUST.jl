@@ -321,7 +321,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         dx = x_size / (patches(x_resolution, patch_size) * patch_size)
         #@show dx/max(abs(vmax), abs(vmin)) larger_than_sun max(abs(vmax), abs(vmin))
 
-        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.1) / 5e-3, sigdigits=3)
+        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.25) / 5e-3, sigdigits=3)
         #max(100.0, round(100.0 / dynamic_scale_ratio, sigdigits=3))
         #max(100.0, round(Δt(dx, max(abs(vmax), abs(vmin)), 1.25), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
@@ -340,7 +340,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                                 patches(x_resolution, patch_size), 
                                 patches(z_resolution, patch_size)],
                         :position=>[0,0,round(-ddown/l_cgs_raw, sigdigits=3)]),
-        patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.1),
+        patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.2),
         scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
         experiment_params=(:t_bot=>tbot,),
         stellar_params=(:g_cgs=>round(exp10(logg), sigdigits=5), 
@@ -363,7 +363,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         #:start_time=>newton_time,
                         #:decay_scale=>20.0,
                         :rt_freq=>0.0,
-                        :rt_grace=>0.05,
+                        :rt_grace=>0.1,
                         :rt_res=>[-1,-1,rt_patch_size]),
         an_params=(:courant=>courant_hd,),
         eos_params=(:table_loc=>eos_table, :gamma=>1.666667)
