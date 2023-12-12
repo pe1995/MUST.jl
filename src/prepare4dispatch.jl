@@ -294,8 +294,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
 
 
     larger_than_sun = x_size/1e8 / 4.6
-    newton_time = 50 #* larger_than_sun
-    friction_time = 125 #* larger_than_sun
+    newton_time = 100 #* larger_than_sun
+    friction_time = 160 #* larger_than_sun
     newton_scale = 0.1 #* larger_than_sun
 
     l_cgs_raw = 1e8 * larger_than_sun

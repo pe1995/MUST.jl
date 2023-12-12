@@ -48,7 +48,7 @@ end
 end
 
 @everywhere begin
-    host = "gemini"
+    host = "raven"
 
     if host == "raven"
         name_extension    = "DIS_MARCS"
@@ -63,7 +63,7 @@ end
         extension         = "magg22"
         version           = "v0.1"
         Nbins             = 8
-        clean             = true
+        clean             = false
         use_adiabat       = true
     elseif host == "gemini"
         name_extension    = "DIS_MARCS"
@@ -195,7 +195,7 @@ begin
     end
 
     ## End-to-end binning, with clean-up
-    #Distributed.pmap(formation_and_bin, args)
+    Distributed.pmap(formation_and_bin, args)
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]
@@ -206,7 +206,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.0, τ_surf=0.0, τ_down=6.0, scale_resolution=0.7)
+    prepare4dispatch.resolution!(grid, patch_size=15, τ_up=-4.0, τ_surf=0.0, τ_down=6.0, scale_resolution=0.7)
 end
 
 #====================== Step (C): Conversion =================================#
