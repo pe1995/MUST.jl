@@ -87,34 +87,104 @@ end
 
 #================================================ interpolate average models =#
 
-function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, common_size=1000, kwargs...)
+read_models_from_grid(grid::MUST.AbstractMUSTGrid; adiabats=nothing, eos=nothing, opa=nothing, common_size=1000, τbottom=8, τtop=-6) = begin
+	# read all average models and interpolate them to the same number of points
+	models = Any[initial_model(grid, String(name))
+					for name in grid.info[!, "name"]]
+
+	models = if !isnothing(adiabats)
+		Any[TSO.flip!(Average3D(grid.info[i, "ad_path"], logg=grid.info[i, "logg"]) for i in 1:MUST.nrow(grid.info))]
+	else
+		models
+	end
+
+	eos = if ((!isnothing(eos)) & ("matching_eos" in names(grid.info)))
+		@info "EoS as given in the grid is loaded for grid nodes opacity."
+		[reload(
+			SqEoS, grid.info[i, "matching_eos"]
+		) for i in 1:MUST.nrow(grid.info)]
+	else
+		[eos for _ in 1:MUST.nrow(grid.info)]
+	end
+
+	models_t = if !isnothing(eos)
+		ltscale = range(τbottom, τtop, length=common_size) |> collect
+		for i in eachindex(models)
+			models[i] = if isnothing(models[i])
+				nothing
+			else
+				# check if there is a model that has been averaged on the optical depth scale
+				if "avo_path" in names(grid.info)
+					m = Average3D(grid.info[i, "avo_path"], logg=grid.info[i, "logg"])
+					m.τ .= TSO.rosseland_optical_depth(eos[i], m)
+
+					m
+				else
+					# If this is a non-optical model we need to add the opacity from the given EoS
+					# this is not ideal! Ideally the models already contain an EoS
+					if typeof(models[i]) <: TSO.Model1D
+						if isnothing(opa)
+							@optical(models[i], eos[i])
+						else
+							@optical(models[i], eos[i], opa[i])
+						end
+					end
+				end
+			end
+		end
+		[isnothing(m) ? nothing : TSO.interpolate_to(m; τ=ltscale, in_log=true) for m in models]
+	else
+		for i in eachindex(models)
+			models[i] = if isnothing(models[i])
+				nothing
+			else
+				# check if there is a model that has been averaged on the optical depth scale
+				TSO.upsample(models[i], common_size)
+			end
+		end
+	end
+
+	models, models_t
+end
+
+
+function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, common_size=1000, models=nothing, models_mod=nothing, kwargs...)
+	@info "Interpolating $teff, $logg, $feh point by point."
+
 	logg_gr = grid.info[!, "logg"]
 	teff_gr = grid.info[!, "teff"]
 	feh_gr  = grid.info[!, "feh"]
 	femask = feh_gr .≈ feh_gr[argmin(abs.(feh .- feh_gr))]
 	
 	# read all average models and interpolate them to the same number of points
-	models = [initial_model(grid, String(name))
-					for name in grid.info[!, "name"]]
+	models, models_mod = if isnothing(models)
+		read_models_from_grid(
+			grid; 
+			adiabats=adiabats, eos=eos, opa=opa, 
+			common_size=common_size, 
+			τbottom=τbottom, τtop=τtop
+		) 
+	else
+		models, models_mod
+	end
+
 	r_models = [minimum(abs.(diff(m.z))) for m in models]
-	
-	models = [TSO.upsample(m, common_size) for m in models]
 
 	# now we interpolate all points to one common point, for every point
 	scatter_int(v, x, y) = MUST.pyconvert(typeof(x),
 		first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask]), v, ([x], [y]), method="linear"))
 	)
 	
-	points = zeros(eltype(models[1].z), length(models), 3)
-	z = zeros(eltype(models[1].z), common_size)
-	t = zeros(eltype(models[1].z), common_size)
-	d = zeros(eltype(models[1].z), common_size)
+	points = zeros(eltype(models_mod[1].z), length(models_mod), 3)
+	z = zeros(eltype(models_mod[1].z), common_size)
+	t = zeros(eltype(models_mod[1].z), common_size)
+	d = zeros(eltype(models_mod[1].z), common_size)
 	
 	for i in 1:common_size
 		for j in eachindex(models)
-			points[j, 1] = models[j].z[i]
-			points[j, 2] = models[j].lnT[i]
-			points[j, 3] = models[j].lnρ[i]
+			points[j, 1] = models_mod[j].z[i]
+			points[j, 2] = models_mod[j].lnT[i]
+			points[j, 3] = models_mod[j].lnρ[i]
 		end
 		z[i] = scatter_int(points[femask, 1], teff, logg)
 		t[i] = scatter_int(points[femask, 2], teff, logg)
@@ -127,7 +197,83 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 	TSO.upsample(Model1D(z=z, lnT=t, lnρ=d, logg=logg), npoints)
 end
 
+function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothing; 
+	teff, logg, feh, common_size=1000, τbottom=8, τtop=-6, adiabats=nothing, models=nothing, models_mod=nothing)
+	@info "Interpolating $teff, $logg, $feh on optical depth scale."
+	
+	logg_gr = grid.info[!, "logg"]
+	teff_gr = grid.info[!, "teff"]
+	feh_gr  = grid.info[!, "feh"]
+	femask = trues(length(logg_gr)) #feh_gr .≈ feh_gr[argmin(abs.(feh .- feh_gr))]
+	
+	# read all average models and interpolate them to the same number of points
+	models, models_mod = if isnothing(models)
+		read_models_from_grid(
+			grid; 
+			adiabats=adiabats, eos=eos, opa=opa, 
+			common_size=common_size, 
+			τbottom=τbottom, τtop=τtop
+		) 
+	else
+		models, models_mod
+	end
 
+	r_models = [minimum(abs.(diff(m.z))) for m in models]
+	ltscale = log10.(first(models_mod).τ)
+
+	# now we interpolate all points to one common point, for every point
+	scatter_int(v, x, y, z) = MUST.pyconvert(typeof(x),
+		first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask],  feh_gr[femask]), v, ([x], [y], [z]), method="linear"))
+	)
+	
+	points = zeros(eltype(models_mod[1].z), length(models), 3)
+	z = zeros(eltype(models_mod[1].z), common_size)
+	t = zeros(eltype(models_mod[1].z), common_size)
+	d = zeros(eltype(models_mod[1].z), common_size)
+	
+	for i in 1:common_size
+		for j in eachindex(models_mod)
+			isnothing(models_mod[j]) && continue
+			points[j, 1] = models_mod[j].z[i]
+			points[j, 2] = models_mod[j].lnT[i]
+			points[j, 3] = models_mod[j].lnρ[i]
+		end
+		z[i] = scatter_int(points[femask, 1], teff, logg, feh)
+		t[i] = scatter_int(points[femask, 2], teff, logg, feh)
+		d[i] = scatter_int(points[femask, 3], teff, logg, feh)
+	end
+	
+	# interpolate to equally spaced in z
+	# for this we need to construct a new z scale 
+	mnew = TSO.flip(Model1D(z=z, lnT=t, lnρ=d, logg=logg, τ=exp10.(ltscale)), depth=true)
+
+	# recompute z scale from opacity
+	znew = TSO.rosseland_depth(eos, mnew)
+	mnew.z .= znew
+
+	# find the optical surface
+	TSO.optical_surface!(mnew)
+	TSO.flip!(mnew)
+
+	# upsample to match the desired interpolated resolution
+	r_target = scatter_int(r_models[femask], teff, logg, feh)
+	npoints  = ceil(Int, abs(maximum(mnew.z) - minimum(mnew.z)) / r_target)
+
+	# We now can interpolate everthing to this new z scale
+	TSO.interpolate_to(
+		mnew, 
+		z=collect(range(maximum(mnew.z), minimum(mnew.z), length=npoints))
+	)
+end
+
+adiabat_from_model(model, eos) = begin
+	m = TSO.flip(model)
+	s = TSO.pick_point(m, 1)
+	e = TSO.pick_point(m, length(m.z))
+	TSO.adiabat(
+		s, e, eos
+	)
+end
 
 
 #========================================================= Select Parameters =#
@@ -189,9 +335,18 @@ end
 
 #===========================================================interpolate grid =#
 
-function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F) where {F<:AbstractFloat}
-	# create the iniitial model from interpolating the average snapshots
-	model = interpolate_average(grid, teff=teff, logg=logg, feh=feh)
+function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
+	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing) where {F<:AbstractFloat}
+	# create the initial model from interpolating the average snapshots
+	model = if isnothing(models)
+		isnothing(eos) ? 
+		interpolate_average(grid, teff=teff, logg=logg, feh=feh) : 
+		interpolate_average(grid, eos, opa, teff=teff, logg=logg, feh=feh, adiabats=adiabats)
+	else
+		isnothing(eos) ? 
+		interpolate_average(grid, teff=teff, logg=logg, feh=feh, models=models, models_mod=models_mod) : 
+		interpolate_average(grid, eos, opa, teff=teff, logg=logg, feh=feh, adiabats=adiabats, models=models, models_mod=models_mod)
+	end
 
 	folder = "interpolated"
 	mesh   = "interpolated"
@@ -217,8 +372,9 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	hres = MUST.interpolate_quantity(grid, "hres"; teff=teff, logg=logg, feh=feh)
 
 	av_path = abspath("$(name)_99999_av.dat")
+	TSO.flip!(model)
 	open(av_path, "w") do f
-		MUST.writedlm(f, [-reverse(model.z) reverse(exp.(model.lnT)) reverse(model.lnρ)])
+		MUST.writedlm(f, [model.z exp.(model.lnT) model.lnρ])
 	end
 	
 	MUST.StaggerGrid(
@@ -248,12 +404,20 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
     )
 end
 
-function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F) where {F<:AbstractArray}
+function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
+	eos::F2=[nothing for _ in teff], opa::F3=[nothing for _ in teff], adiabats=nothing) where {F<:AbstractArray, F2<:AbstractArray, F3<:AbstractArray}
 	subgrids = []
+
+	models, models_mod = read_models_from_grid(grid; eos=first(eos), opa=first(opa), adiabats=adiabats)
 
 	for i in eachindex(teff)
 		append!(subgrids, [
-			interpolate_from_grid(grid, teff[i], logg[i], feh[i])
+			interpolate_from_grid(
+				grid, teff[i], logg[i], feh[i], 
+				eos=eos[i], opa=opa[i], 
+				adiabats=adiabats, 
+				models=models, models_mod=models_mod
+			)
 		])
 	end
 
@@ -280,7 +444,7 @@ grid = MUST.StaggerGrid("dispatch_grid.mgrid")
 new_gridpoints = interpolate_from_grid(grid, teff=[4000, 5000], logg=[4.0, 4.5], feh=[0.5, 0.0])
 ```
 """
-interpolate_from_grid(grid::MUST.AbstractMUSTGrid; teff, logg, feh) = interpolate_from_grid(grid, teff, logg, feh)
+interpolate_from_grid(grid::MUST.AbstractMUSTGrid; teff, logg, feh, kwargs...) = interpolate_from_grid(grid, teff, logg, feh; kwargs...)
 
 """
 	interpolate_from_grid!(grid::MUST.AbstractMUSTGrid; teff, logg, feh) = interpolate_from_grid(grid, teff, logg, feh)
@@ -295,8 +459,8 @@ grid = MUST.StaggerGrid("dispatch_grid.mgrid")
 new_and_old_gridpoints = interpolate_from_grid!(grid, teff=[4000, 5000], logg=[4.0, 4.5], feh=[0.5, 0.0])
 ```
 """
-interpolate_from_grid!(grid::MUST.AbstractMUSTGrid; teff, logg, feh) = begin
-	g = interpolate_from_grid(grid, teff, logg, feh)
+interpolate_from_grid!(grid::MUST.AbstractMUSTGrid; teff, logg, feh, kwargs...) = begin
+	g = interpolate_from_grid(grid, teff, logg, feh; kwargs...)
 
 	grid + g
 end

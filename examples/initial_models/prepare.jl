@@ -53,7 +53,9 @@ end
     if host == "raven"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
-        #initial_grid_path = "stagger_grid.mgrid"
+        #initial_grid_path = "stagger_grid_full.mgrid"
+        #initial_cl_path   = "stagger_grid_avail.mgrid"
+        #initial_mod_path  = "stagger_grid_solar.mgrid"
         #final_grid_path   = "dispatch_grid.mgrid"
         initial_grid_path = "random_grid.mgrid"
         initial_cl_path   = "random_grid_avail.mgrid"
@@ -64,7 +66,7 @@ end
         version           = "v0.1"
         Nbins             = 8
         clean             = false
-        use_adiabat       = true
+        use_adiabat       = false
     elseif host == "gemini"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
@@ -145,7 +147,7 @@ begin
             extension,
             :kmeans, 
             Nbins,
-            i==1 ? true : false
+            false
         ) for i in 1:nrow(grid.info)
     ]
 
@@ -195,8 +197,7 @@ begin
     end
 
     ## End-to-end binning, with clean-up
-    Distributed.pmap(formation_and_bin, args)
-    Distributed.pmap(formation_and_bin, args)
+    #Distributed.pmap(formation_and_bin, args)
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]
@@ -207,7 +208,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=15, τ_up=-4.0, τ_surf=0.0, τ_down=6.0, scale_resolution=0.7)
+    prepare4dispatch.resolution!(grid, patch_size=15, τ_up=-3.8, τ_surf=0.0, τ_down=6.0, scale_resolution=0.9)
 end
 
 #====================== Step (C): Conversion =================================#
@@ -242,7 +243,7 @@ begin
     MUST.save(grid, final_grid_path)
 
     # Stage the grid for execution, possible remove other output
-    MUST.stage_namelists(grid, clean_namelists=false, clean_logs=false)
+    MUST.stage_namelists(grid, clean_namelists=true, clean_logs=true)
 end
 
 #=============================================================================#

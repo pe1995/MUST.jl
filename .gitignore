@@ -42,6 +42,7 @@ examples/initial_models/*.mgrid
 !examples/initial_models/*.jl
 !examples/initial_models/*.slurm
 !examples/initial_models/*_000*_av.dat
+!examples/initial_models/av_models
 
 
 examples/from_stagger/.Conda*
