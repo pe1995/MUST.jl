@@ -36,6 +36,7 @@ examples/initial_models/*99999_av.dat
 examples/initial_models/*.mgrid
 !examples/initial_models/stagger_grid.mgrid
 !examples/initial_models/stagger_grid_full.mgrid
+!examples/initial_models/stagger_grid_full_o.mgrid
 !examples/initial_models/stellar_default.nml
 !examples/initial_models/*.ipynb
 !examples/initial_models/Project.toml
