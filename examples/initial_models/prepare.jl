@@ -48,7 +48,7 @@ end
 end
 
 @everywhere begin
-    host = "cloud"
+    host = "gemini"
 
     if host == "raven"
         name_extension    = "DIS_MARCS"
@@ -67,27 +67,41 @@ end
         use_adiabat       = true
     elseif host == "gemini"
         name_extension    = "DIS_MARCS"
+        #name_extension    = "PLATO/M"
         dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
+        # Different desired models
+        ## Stagger grid
         initial_grid_path = "stagger_grid_full.mgrid"
         initial_cl_path   = "stagger_grid_avail.mgrid"
         initial_mod_path  = "stagger_grid_solar.mgrid"
         final_grid_path   = "dispatch_grid.mgrid"
+        
+        ## Random test models
         #initial_grid_path = "random_setup.mgrid"
         #final_grid_path   = "random_grid.mgrid"
         #initial_grid_path = "node_setup.mgrid"
         #final_grid_path   = "node_grid.mgrid"
+
+        ## PLATO models
+        #initial_grid_path = "PLATO/plato_initial_121223.mgrid"
+        #initial_cl_path   = "PLATO/plato_initial_121223_avail.mgrid"
+        #initial_mod_path  = "PLATO/plato_initial_121223_solar.mgrid"
+        #final_grid_path   = "PLATO/plato_121223.mgrid"
 
         #mother_table_path = "/home/eitner/shared/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_v1.6"
         #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_asplund_m0_a0_v1.6"
         mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.6"
         #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.5"
        
+        # v0.3 - 8 Bins
+        # v0.4 - 10 Bins
+        # v0.5 - 4 bins
         extension         = "magg_m0_a0"
-        version           = "v0.3"
-        Nbins             = 8
+        version           = "v0.5"
+        Nbins             = 4
         clean             = false
-        use_adiabat       = true
+        use_adiabat       = false
     elseif host == "cloud"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/home/ubuntu/DISPATCH/dispatch2"
@@ -145,7 +159,7 @@ begin
             extension,
             :kmeans, 
             Nbins,
-            i==1 ? true : false
+            false #i==1 ? true : false
         ) for i in 1:nrow(grid.info)
     ]
 
@@ -165,27 +179,36 @@ begin
         @info "Opacity Binning: $(name)"
 
         ## formation opacities
-        prepare4dispatch.formation_opacities(
-            eos_root, av_path, name; 
-            logg=logg, extension=extension, do_ross=do_ross
-        )
+        #prepare4dispatch.formation_opacities(
+        #    eos_root, av_path, name; 
+        #    logg=logg, extension=extension, do_ross=do_ross
+        #)
 
         qlim = round(
             prepare4dispatch.quadrantlimit(eos_root, name, extension=extension, λ_lim=5.0), 
             sigdigits=3
         )
 
-        quadrants = [ 
+        # 8 bins
+        #=quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
+        ]=#
+        # 4 MURaM bins
+        quadrants = [ 
+            TSO.Quadrant((0.0, 100.0), (-100, 0.0), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 100.0), (0.0, 2.0), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 100.0), (2.0, 4.0), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 100.0), (4.0, 100.0), 1, stripes=:κ)
         ]
            
         ## bin opacities
         prepare4dispatch.bin_opacities(
             eos_root, av_path, name; 
             logg=logg, method=method, Nbins=Nbins, extension=extension,
+            name_extension=name_extension,
             version=version,
             quadrants=quadrants
         )
@@ -195,7 +218,7 @@ begin
     end
 
     ## End-to-end binning, with clean-up
-    Distributed.pmap(formation_and_bin, args)
+    #Distributed.pmap(formation_and_bin, args)
     
     ## Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]
@@ -206,7 +229,7 @@ begin
 
     ## compute the resolution and the rounded size of the box
     ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.0, τ_surf=0.0, τ_down=6.0, scale_resolution=0.9)
+    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-3.8, τ_surf=0.0, τ_down=6.0, scale_resolution=0.9)
 end
 
 #====================== Step (C): Conversion =================================#

@@ -189,7 +189,7 @@ end
 
 #===========================================================interpolate grid =#
 
-function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F) where {F<:AbstractFloat}
+function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F, folder_out=".") where {F<:AbstractFloat}
 	# create the iniitial model from interpolating the average snapshots
 	model = interpolate_average(grid, teff=teff, logg=logg, feh=feh)
 
@@ -216,7 +216,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	
 	hres = MUST.interpolate_quantity(grid, "hres"; teff=teff, logg=logg, feh=feh)
 
-	av_path = abspath("$(name)_99999_av.dat")
+	av_path = abspath(joinpath(folder_out, "$(name)_99999_av.dat"))
 	open(av_path, "w") do f
 		MUST.writedlm(f, [-reverse(model.z) reverse(exp.(model.lnT)) reverse(model.lnρ)])
 	end
@@ -248,12 +248,12 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
     )
 end
 
-function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F) where {F<:AbstractArray}
+function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F, folder=".") where {F<:AbstractArray}
 	subgrids = []
 
 	for i in eachindex(teff)
 		append!(subgrids, [
-			interpolate_from_grid(grid, teff[i], logg[i], feh[i])
+			interpolate_from_grid(grid, teff[i], logg[i], feh[i], folder)
 		])
 	end
 
@@ -280,7 +280,7 @@ grid = MUST.StaggerGrid("dispatch_grid.mgrid")
 new_gridpoints = interpolate_from_grid(grid, teff=[4000, 5000], logg=[4.0, 4.5], feh=[0.5, 0.0])
 ```
 """
-interpolate_from_grid(grid::MUST.AbstractMUSTGrid; teff, logg, feh) = interpolate_from_grid(grid, teff, logg, feh)
+interpolate_from_grid(grid::MUST.AbstractMUSTGrid; teff, logg, feh, folder=".") = interpolate_from_grid(grid, teff, logg, feh, folder)
 
 """
 	interpolate_from_grid!(grid::MUST.AbstractMUSTGrid; teff, logg, feh) = interpolate_from_grid(grid, teff, logg, feh)
@@ -295,8 +295,8 @@ grid = MUST.StaggerGrid("dispatch_grid.mgrid")
 new_and_old_gridpoints = interpolate_from_grid!(grid, teff=[4000, 5000], logg=[4.0, 4.5], feh=[0.5, 0.0])
 ```
 """
-interpolate_from_grid!(grid::MUST.AbstractMUSTGrid; teff, logg, feh) = begin
-	g = interpolate_from_grid(grid, teff, logg, feh)
+interpolate_from_grid!(grid::MUST.AbstractMUSTGrid; teff, logg, feh, folder=".") = begin
+	g = interpolate_from_grid(grid, teff, logg, feh, folder)
 
 	grid + g
 end

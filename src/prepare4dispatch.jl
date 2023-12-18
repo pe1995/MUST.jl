@@ -488,9 +488,9 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         z_s[i] = ip_z(τ_surf)
         z_h[i] = ip_z(τ_up)
 
-        ee0[i] = exp.(ip_E(-1.5))
-        zee0[i] = ip_z(-2.0)
-        eemin[i] = exp.(ip_E(-1.5)) #exp.(ip_E(τ_surf))
+        ee0[i] = exp.(ip_E(-1.0))
+        zee0[i] = ip_z(-1.5)
+        eemin[i] = exp.(ip_E(-1.0)) #exp.(ip_E(τ_surf))
 
         z_lo[i] = ip_z(τ_down)
         d_lo[i] = exp.(ip_r(τ_down))
