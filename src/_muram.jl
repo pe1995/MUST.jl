@@ -30,9 +30,7 @@ function MURaMBox(model_path)
     y = range(-(s[2]-1) * dy/2,   step=dy, length=s[2])
     z = -range(-(s[3]-1) * dz*1/2, step=dz, length=s[3])
 
-
     xx, yy, zz = meshgrid(x, y, z)
-
 
     data = Dict{Symbol, Array{eltype(U), 3}}(   :ux  => U ,
                                                 :uz  => W ,

@@ -53,7 +53,9 @@ end
     if host == "raven"
         name_extension    = "DIS_MARCS"
         dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
-        #initial_grid_path = "stagger_grid.mgrid"
+        #initial_grid_path = "stagger_grid_full.mgrid"
+        #initial_cl_path   = "stagger_grid_avail.mgrid"
+        #initial_mod_path  = "stagger_grid_solar.mgrid"
         #final_grid_path   = "dispatch_grid.mgrid"
         initial_grid_path = "random_grid.mgrid"
         initial_cl_path   = "random_grid_avail.mgrid"
@@ -63,8 +65,8 @@ end
         extension         = "magg22"
         version           = "v0.1"
         Nbins             = 8
-        clean             = true
-        use_adiabat       = true
+        clean             = false
+        use_adiabat       = false
     elseif host == "gemini"
         name_extension    = "DIS_MARCS"
         #name_extension    = "PLATO/M"
@@ -264,7 +266,7 @@ begin
     MUST.save(grid, final_grid_path)
 
     # Stage the grid for execution, possible remove other output
-    MUST.stage_namelists(grid, clean_namelists=false, clean_logs=false)
+    MUST.stage_namelists(grid, clean_namelists=true, clean_logs=true)
 end
 
 #=============================================================================#

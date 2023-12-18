@@ -123,6 +123,15 @@ function model_properties(name, path, snap_name)
     d = MUST.plane_statistic(MUST.mean, b, :d)
     z = MUST.axis(b, :z)
 
+	τ = MUST.optical_depth(b, opacity=:ross, density=:d)
+	MUST.add!(b, τ, :τ_ross)
+	bτ = MUST.height_scale_fast(b, :τ_ross)
+
+	Tτ = MUST.plane_statistic(MUST.mean, bτ, :T)
+    dτ = MUST.plane_statistic(MUST.mean, bτ, :d)
+    zτ = MUST.plane_statistic(MUST.mean, bτ, :z)
+    τ = MUST.axis(bτ, :τ_ross, 3)
+
 	# save the box in the multi format (for Nick)
 	#MUST.multiBox(b, "$(name)_stagger")
 
@@ -139,8 +148,12 @@ function model_properties(name, path, snap_name)
 
     #initial_model = SimpleInitialModel(teff, logg, z, T, log.(d))
     
-    open("$(snap_name)_av.dat", "w") do f
+    open("av_models/$(snap_name)_av.dat", "w") do f
         writedlm(f, [z T log.(d)])
+    end
+
+	open("av_models/$(snap_name)_avo.dat", "w") do f
+        writedlm(f, [zτ Tτ log.(dτ) log.(τ)])
     end
 
     ## save return the additional column values
@@ -152,7 +165,8 @@ function model_properties(name, path, snap_name)
             max(maximum(b[:ux]), maximum(b[:uy]), maximum(b[:uz])),
             s,
             resolution_horizontal(b),
-            "$(snap_name)_av.dat")
+            "av_models/$(snap_name)_av.dat",
+			"av_models/$(snap_name)_avo.dat")
 end
 
 # ╔═╡ 1086a2da-df30-4f07-863d-100590ce42f7
@@ -160,7 +174,7 @@ compute = true
 
 # ╔═╡ f748b6fd-52b4-4367-a81f-5015246ea653
 begin
-	teff, logg, feh, mi_x, ma_x, mi_y, ma_y, mi_z, ma_z, vmin, vmax, tscale, hres, av_path = [], [], [], [], [], [], [], [], [], [], [], [], [], []
+	teff, logg, feh, mi_x, ma_x, mi_y, ma_y, mi_z, ma_z, vmin, vmax, tscale, hres, av_path, avo_path = [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
 		
 	if compute
 		for i in 1:nrow(info)
@@ -180,6 +194,7 @@ begin
 				append!(tscale,  [missing])
 				append!(hres,    [missing])
 				append!(av_path, [missing])
+				append!(avo_path, [missing])
 				continue
 			end
 
@@ -203,6 +218,7 @@ begin
 		    append!(tscale,  [res[12]])
 		    append!(hres,    [res[13]])
 		    append!(av_path, [res[14]])
+		    append!(avo_path, [res[15]])
 		end
 	end
 end
@@ -227,15 +243,16 @@ begin
 		info[!, "tscale"]  = tscale
 		info[!, "hres"]    = hres
 		info[!, "av_path"] = av_path
+		info[!, "avo_path"] = avo_path
 
 		deleteat!(info, ismissing.(teff))
-		CSV.write("stagger_grid_full.mgrid", info)
+		CSV.write("stagger_grid_full_o.mgrid", info)
 		info
 	end
 end
 
 # ╔═╡ 9cdefadb-0714-45e2-a538-b9a301c44035
-grid = MUST.StaggerGrid("stagger_grid_full.mgrid")
+grid = MUST.StaggerGrid("stagger_grid_full_o.mgrid")
 
 # ╔═╡ 32523905-6be4-4d05-82a8-90120ef35d14
 exampleRow = 6
