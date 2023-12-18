@@ -336,7 +336,7 @@ end
 #===========================================================interpolate grid =#
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
-	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing) where {F<:AbstractFloat}
+	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="") where {F<:AbstractFloat}
 	# create the initial model from interpolating the average snapshots
 	model = if isnothing(models)
 		isnothing(eos) ? 
@@ -348,7 +348,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 		interpolate_average(grid, eos, opa, teff=teff, logg=logg, feh=feh, adiabats=adiabats, models=models, models_mod=models_mod)
 	end
 
-	folder = "interpolated"
+	folder_name = "interpolated"
 	mesh   = "interpolated"
 
 	tname = MUST.@sprintf "%.2f" teff/100
@@ -371,7 +371,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	
 	hres = MUST.interpolate_quantity(grid, "hres"; teff=teff, logg=logg, feh=feh)
 
-	av_path = abspath("$(name)_99999_av.dat")
+	av_path = abspath(joinpath(folder, "$(name)_99999_av.dat"))
 	TSO.flip!(model)
 	open(av_path, "w") do f
 		MUST.writedlm(f, [model.z exp.(model.lnT) model.lnρ])
@@ -382,7 +382,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
         MUST.DataFrame(
 		Dict(
 			"name"     => name,
-            "folder"   => folder,
+            "folder"   => folder_name,
             "mesh"     => mesh,
 			"snapshot" => snapshot,
 			"ma_x"     => ma_x,
@@ -405,7 +405,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 end
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
-	eos::F2=[nothing for _ in teff], opa::F3=[nothing for _ in teff], adiabats=nothing) where {F<:AbstractArray, F2<:AbstractArray, F3<:AbstractArray}
+	eos::F2=[nothing for _ in teff], opa::F3=[nothing for _ in teff], adiabats=nothing, folder="") where {F<:AbstractArray, F2<:AbstractArray, F3<:AbstractArray}
 	subgrids = []
 
 	models, models_mod = read_models_from_grid(grid; eos=first(eos), opa=first(opa), adiabats=adiabats)
@@ -416,7 +416,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 				grid, teff[i], logg[i], feh[i], 
 				eos=eos[i], opa=opa[i], 
 				adiabats=adiabats, 
-				models=models, models_mod=models_mod
+				models=models, models_mod=models_mod, folder=folder
 			)
 		])
 	end
@@ -464,4 +464,3 @@ interpolate_from_grid!(grid::MUST.AbstractMUSTGrid; teff, logg, feh, kwargs...) 
 
 	grid + g
 end
-

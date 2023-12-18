@@ -220,29 +220,27 @@ end
 formation_opacities(args...; kwargs...) = TSO.compute_formation_opacities(args...; kwargs...)
 bin_opacities(args...; kwargs...) = TSO.bin_opacity_table(args...; kwargs...)
 fromT_toE(args...; kwargs...) = TSO.convert_fromT_toE(args...; kwargs...)
+compute_rosseland_opacities(args...; kwargs...) = TSO.compute_rosseland_opacities(args...; kwargs...)
 
-quadrantlimit(table_folder, name; extension, λ_lim=5.0) = begin
-    name_ext = TSO.join_full(name, extension)
-    ext = TSO.join_full(extension)
 
+quadrantlimit(name, table_folder, opa_path; λ_lim=5.0) = begin
     opa = reload(
         SqOpacity, 
-		joinpath(table_folder, "combined_opacities$(ext).hdf5"), 
+		joinpath(table_folder, opa_path), 
 		mmap=true
     )
 	
     fopa = reload(
         SqOpacity, 
-		joinpath(table_folder, "combined_formation_opacities$(name_ext).hdf5"), 
+		joinpath(table_folder, "combined_formation_opacities_$(name).hdf5"), 
 		mmap=true
     )
 
     TSO.median(-log10.(fopa.κ_ross)[log10.(opa.λ) .> λ_lim])
 end
 
-clean(table_folder, name; extension) = begin
-    name_ext = TSO.join_full(name, extension)
-	rm(joinpath(table_folder, "combined_formation_opacities$(name_ext).hdf5"))
+clean(table_folder, name) = begin
+	rm(joinpath(table_folder, "combined_formation_opacities_$(name).hdf5"))
 end
 
 

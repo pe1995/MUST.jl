@@ -8,4 +8,4 @@
 #SBATCH --mem=100G
 #SBATCH --time=05:00:00
 
-julia $1
+julia $@

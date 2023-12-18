@@ -140,6 +140,28 @@ let
 	gcf()
 end
 
+# ╔═╡ 8ced1b68-f0a4-43b7-810a-3a121e5ebb3e
+md"# EoS
+We need to add an EoS to each model at this point, because opacities are required in order to create the height scale after interpolating."
+
+# ╔═╡ c6ea5cfe-c64c-4887-8d14-52c253620b2f
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.6"
+
+# ╔═╡ bc3054de-c877-467b-87de-2b31e972f178
+eos = [
+	reload(SqEoS, joinpath(mother_table_path, "combined_ross_eos_magg_m0_a0.hdf5"))
+	for _ in 1:nrow(catalogSelect)
+]
+
+# ╔═╡ 32a0ed24-e9c9-4489-b3b5-1d2d64770085
+md"Also make a note of the given EoS in the grid we interpolate in. NOTE: This is not required if the table already contains information about the matching EoS. This is only needed to recompute the rosseland optical depth scale consistently. You can comment this out if you made sure the column is present, or if this does not concern you. Note that ideally you list the CORRECT EoS for every composition. The following uses the same table for all models! This is not relevant if you attempt to interpolate only one metallicity, but otherwise it is crutial!"
+
+# ╔═╡ d5264ffe-ff35-484e-be53-fb1c1f39c345
+grid.info[!, "matching_eos"] = [
+	joinpath(mother_table_path, "combined_ross_eos_magg_m0_a0.hdf5") 
+	for _ in 1:nrow(grid.info)
+]
+
 # ╔═╡ d961226b-fba6-4641-8deb-d304c38cea18
 md"## Interpolated Initial Condition
 We can guess the initial condition by looking at the corresponding Stagger models and interpolated between them. The initial model will always be an average model, however it can be replaced by an adiabat later, when the binning is done."
@@ -161,9 +183,22 @@ begin
 		teff=teffFinal,
 		logg=loggFinal, 
 		feh=fehFinal,
-		folder="PLATO"
+		folder="PLATO",
+		eos=eos
 	)
 end
+
+# ╔═╡ 45c4f9f6-6216-40fc-9fed-bd0158421a71
+
+
+# ╔═╡ 488b10f3-5ed7-441b-bbd6-ef3c05c1dfa1
+md"Also make a note of the used EoS table for the opacity binning later."
+
+# ╔═╡ c4e647a7-2086-4475-a8e8-9e57e8bf8f57
+ig.info[!, "eos_root"] = [mother_table_path for _ in 1:nrow(ig.info)]
+
+# ╔═╡ 9f6804f0-0248-4fe4-80b4-a272b003d7b5
+md"Save the grid for later."
 
 # ╔═╡ 8670e802-7835-4d5f-96f0-1241ae102af1
 MUST.save(ig, "PLATO/plato_initial_121223.mgrid")
@@ -203,7 +238,16 @@ MUST.save(ig, "PLATO/plato_initial_121223.mgrid")
 # ╟─95ef9861-643d-40e9-a7e6-fe999cb6eba0
 # ╟─6ab4b465-f8f7-4fb5-b510-e905368cdf23
 # ╟─0b5991a3-e7d9-4256-9ebc-4b9550e2f935
+# ╟─8ced1b68-f0a4-43b7-810a-3a121e5ebb3e
+# ╠═c6ea5cfe-c64c-4887-8d14-52c253620b2f
+# ╠═bc3054de-c877-467b-87de-2b31e972f178
+# ╟─32a0ed24-e9c9-4489-b3b5-1d2d64770085
+# ╠═d5264ffe-ff35-484e-be53-fb1c1f39c345
 # ╟─d961226b-fba6-4641-8deb-d304c38cea18
 # ╠═0fe8fc46-0fca-4c38-a068-2e4669c61e1b
 # ╠═369477df-f078-4458-95f9-df0f0597f61e
+# ╟─45c4f9f6-6216-40fc-9fed-bd0158421a71
+# ╟─488b10f3-5ed7-441b-bbd6-ef3c05c1dfa1
+# ╠═c4e647a7-2086-4475-a8e8-9e57e8bf8f57
+# ╟─9f6804f0-0248-4fe4-80b4-a272b003d7b5
 # ╠═8670e802-7835-4d5f-96f0-1241ae102af1
