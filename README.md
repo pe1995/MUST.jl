@@ -481,7 +481,7 @@ The `m3dis.run` object is stored in the `m3drun.run` field and can hence be used
 
 
 ## Running Stellar Atmospheres
-*Relevant examples: `examples/initial_models/prepare.jl, random_models.jl, run.jl`*
+*Relevant examples: `examples/initial_models/prepare.jl, random_models.jl, exoplanets.jl, run.jl`*
 
 Running MUST@DISPATCH is similar to running M3D@DISPATCH. Namelists can either be run via a slurm job submission or by submission to the background. If slurm submissions are executed within a slurm allocation, they will be executed as job steps automatically. `MUST.jl` also offers the possibility to create namelists automatically. 
 
@@ -538,7 +538,7 @@ ig = modelgrids.interpolate_from_grid(
 # or add the models to the existing grid
 ig = modelgrids.interpolate_from_grid!(...)
 ```
-3. Run `prepare.jl` with this grid. You don't need this particular script, but following the steps in the script is encouraged. This will create a `dispatch_grid.mgrid`, input namelists and binned opacities.
+3. Run `prepare.jl` with this grid. You don't need this particular script, but following the steps in the script is encouraged. This will create a `dispatch_grid.mgrid`, input namelists and binned opacities. You can see input files for this script in the `input` folder. Those can be copied and modified to your needs. 
 5. Run the final grid using the `run!()` function.
 ```julia
 @import_dispatch "path/to/dispatch2"
