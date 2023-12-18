@@ -514,17 +514,25 @@ prepare4dispatch = MUST.ingredients("prepare4dispatch.jl")
 In order to run the script `prepare.jl`, which will create everything you need, including opactiy tables, you need to have a `MUST.StaggerGrid` available, which contains information about the Stagger grid which will be used to determine initial conditions. There are other initial conditions one can think of, but at the current time this is the preferred one. The steps are as follows.
 
 1. Create the `MUST.StaggerGrid`. For this you need the Stagger grid, which is at the moment not public. A default `stagger_grid.mgrid` is available, which consists of a couple of models from the grid. But you can enhance this table with whatever model you can think of. Have a look at the file, models don't need to be Stagger at all. You only need the lists quantities (like e.g. size of the box, the average model on the geometrical scale, etc.).
-2. This grid can be used to create random initial conditions. At the moment, this is done by interpolating in the grid in terms of every quantity, **including** the average model. This may be replaced by a adiabatic initial condition. Also the resolution of the models is interpolated in the grid. This means that the more models you have in the initial grid the better the interpolation will be.
+2. This grid can be used to create random initial conditions. At the moment, this is done by interpolating in the grid in terms of every quantity, **including** the average model. This may be replaced by a adiabatic initial condition. Also the resolution of the models is interpolated in the grid. This means that the more models you have in the initial grid the better the interpolation will be. Note that the interpolation between models and the construction of a new z scale has to reply on opacities! This means that it is highly recommended to include the EoS already at this stage, when interpolating and constructing the initial condition. It is not a requirement though, you can also perform a point-by-point interpolation by omitting the EoS. However this is strongly discouraged and may lead to unstable intial conditions that are far from being adiabatic. You can provide an EoS for every new model, in case you want them to have different compositions.
+3. Also: please make sure to include a column with `matching_eos` in the original grid! This should contain the path the a suitable EoS for each model in the grid, because the rosseland opacity needs to be consistent. If there is a column names `avo_path`, then the model averaged on the optical depth scale stored at the given path are used. The rosseland opacity is recomputed regardless.
 ```julia
 grid = MUST.StaggerGrid("stagger_grid.mgrid")
 modelgrids = MUST.ingredients("modelgrids.jl")
+
+# add a column with a suitable EoS for every grid model
+grid.info[!, "matching_eos"] = [
+	joinpath(eos_root, "ross_combined_eos_magg_m0_a0.hdf5") 
+	for _ in 1:nrow(grid.info)
+]
 
 # new grid object with the info about the models + average model
 ig = modelgrids.interpolate_from_grid(
     grid, 
     teff=[5000.0, 6000.0], 
     logg=[4.0, 4.5], 
-    feh=[0.0, 0.0]
+    feh=[0.0, 0.0],
+    eos=[eos1, eos2]
 )
 
 # or add the models to the existing grid
