@@ -36,12 +36,16 @@ examples/initial_models/*99999_av.dat
 examples/initial_models/*.mgrid
 !examples/initial_models/stagger_grid.mgrid
 !examples/initial_models/stagger_grid_full.mgrid
+!examples/initial_models/stagger_grid_full_o.mgrid
 !examples/initial_models/stellar_default.nml
 !examples/initial_models/*.ipynb
 !examples/initial_models/Project.toml
 !examples/initial_models/*.jl
 !examples/initial_models/*.slurm
 !examples/initial_models/*_000*_av.dat
+!examples/initial_models/av_models
+!examples/initial_models/input
+
 
 
 examples/from_stagger/.Conda*

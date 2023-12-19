@@ -26,6 +26,8 @@ using DelimitedFiles
 using Distributed
 using SlurmClusterManager
 
+# Input file with information needed for binning
+input_file = ARGS[1]
 
 if "SLURM_NTASKS" in keys(ENV)
     addprocs(SlurmManager())
@@ -34,8 +36,7 @@ if "SLURM_NTASKS" in keys(ENV)
         @info "Worker $(i) is running on $(host) with ID $(pid)" 
     end
 else
-    @warn "No Slurm environment detected. Using default addprocs."
-    addprocs(1)
+    @warn "No Slurm environment detected."
 end
 
 @everywhere begin
@@ -47,75 +48,9 @@ end
     using Distributed
 end
 
-@everywhere begin
-    host = "cloud"
-
-    if host == "raven"
-        name_extension    = "DIS_MARCS"
-        dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
-        #initial_grid_path = "stagger_grid.mgrid"
-        #final_grid_path   = "dispatch_grid.mgrid"
-        initial_grid_path = "random_grid.mgrid"
-        initial_cl_path   = "random_grid_avail.mgrid"
-        initial_mod_path  = "random_grid_solar.mgrid"
-        final_grid_path   = "random_models.mgrid"
-        mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
-        extension         = "magg22"
-        version           = "v0.1"
-        Nbins             = 8
-        clean             = true
-        use_adiabat       = true
-    elseif host == "gemini"
-        name_extension    = "DIS_MARCS"
-        dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
-
-        initial_grid_path = "stagger_grid_full.mgrid"
-        initial_cl_path   = "stagger_grid_avail.mgrid"
-        initial_mod_path  = "stagger_grid_solar.mgrid"
-        final_grid_path   = "dispatch_grid.mgrid"
-        #initial_grid_path = "random_setup.mgrid"
-        #final_grid_path   = "random_grid.mgrid"
-        #initial_grid_path = "node_setup.mgrid"
-        #final_grid_path   = "node_grid.mgrid"
-
-        #mother_table_path = "/home/eitner/shared/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_v1.6"
-        #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_asplund_m0_a0_v1.6"
-        mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.6"
-        #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.5"
-       
-        extension         = "magg_m0_a0"
-        version           = "v0.3"
-        Nbins             = 8
-        clean             = false
-        use_adiabat       = true
-    elseif host == "cloud"
-        name_extension    = "DIS_MARCS"
-        dispatch_location = "/home/ubuntu/DISPATCH/dispatch2"
-
-        initial_grid_path = "random_grid.mgrid"
-        initial_cl_path   = "random_grid_avail.mgrid"
-        initial_mod_path  = "random_grid_solar.mgrid"
-        final_grid_path   = "random_models.mgrid"
-        #initial_grid_path = "random_setup.mgrid"
-        #final_grid_path   = "random_grid.mgrid"
-        #initial_grid_path = "node_setup.mgrid"
-        #final_grid_path   = "node_grid.mgrid"
-
-        mother_table_path = "/home/ubuntu/DISPATCH/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.7"
-        extension         = "magg_m0_a0"
-        version           = "v0.4"
-        Nbins             = 8
-        clean             = false
-        use_adiabat       = true
-    end
-
-    MUST.@import_dispatch "../../../dispatch2"
-    #MUST.@import_dispatch dispatch_location
-end
-
-# import the relevant functions
+@everywhere include($(input_file))
+@everywhere MUST.@import_dispatch "../../../dispatch2"
 @everywhere prepare4dispatch = MUST.ingredients("prepare4dispatch.jl")
-
 
 #=================== Step (A): The Initial Grid ==============================#
 begin
@@ -127,11 +62,37 @@ begin
     MUST.save(grid, initial_mod_path)
 
 
-    ## Check for opacity table field
+    # Check for opacity table field
     if !("eos_root" in names(grid.info))
-        @warn "The given grid does not contain information about the root EoS and opacity source. Adding the fallback table."
+        @warn """The given grid does not contain information about the root EoS and opacity source. Adding the fallback table.
+        This should not happen if you interpolated the models from a grid! Please make sure to provide the `eos_root` column in the grid!"""
         grid.info[!, "eos_root"] = [mother_table_path for _ in 1:nrow(grid.info)]
     end
+
+    # within the EoS root folder, check if the desired EoS and opacities are available
+    iwarn = true
+    for i in 1:nrow(grid.info)
+        if !isfile(grid.info[i, "eos_root"], eos_path)
+            error("For grid entry $(i) there is no EoS at the given `eos_path` at the given `eos_root`!")
+        end
+        if !isfile(grid.info[i, "eos_root"], opa_path)
+            error("For grid entry $(i) there is no Opacitiy table at the given `opa_path` at the given `eos_root`!")
+        end
+        if !isfile(grid.info[i, "eos_root"], sopa_path)
+            if iwarn
+                @warn "For grid entry $(i) there is no scattering at the given `sopa_path` at the given `eos_root`!"
+                global iwarn = false
+            else
+                continue
+            end
+            global sopa_path = nothing
+        end
+    end
+
+    # save the paths for later
+    grid.info[!, "eos_original"] = [eos_path for _ in 1:nrow(grid.info)]
+    grid.info[!, "opa_original"] = [opa_path for _ in 1:nrow(grid.info)]
+    grid.info[!, "sopa_original"] = [sopa_path for _ in 1:nrow(grid.info)]
 end
 
 #================ Step (B): Fomation opacities (parallel) ====================#
@@ -142,78 +103,79 @@ begin
             grid.info[i, "av_path"], 
             grid.info[i, "name"],
             grid.info[i, "logg"],
-            extension,
+            grid.info[i, "eos_original"],
+            grid.info[i, "opa_original"],
+            grid.info[i, "sopa_original"],
             :kmeans, 
             Nbins,
-            false #i==1 ? true : false
+            false#(i==1) ? true : false
         ) for i in 1:nrow(grid.info)
     ]
 
-    ## To save disk space, the formation opacities can be deleted after binning
-    ## For this it is required to run this sequentially
+    # To save disk space, the formation opacities can be deleted after binning
+    # For this it is required to run this sequentially
     @everywhere formation_and_bin(args) = begin
         eos_root = args[1]
         av_path = args[2]
         name = args[3]
         logg = args[4]
-        extension = args[5]
-        method = args[6]
-        Nbins = args[7]
-        do_ross = args[8]
+        eos_path = args[5]
+        opa_path = args[6]
+        sopa_path = args[7]
+        method = args[8]
+        Nbins = args[9]
+        do_ross = args[10]
 
-
+        ## compute rosseland opacities and save them in opacities and new EoS
+        do_ross && prepare4dispatch.compute_rosseland_opacities(eos_root, eos_path, opa_path)
+        
         @info "Opacity Binning: $(name)"
 
         ## formation opacities
         prepare4dispatch.formation_opacities(
-            eos_root, av_path, name; 
-            logg=logg, extension=extension, do_ross=do_ross
+            name, eos_root, eos_path, opa_path, av_path; 
+            logg=logg
         )
 
-        qlim = round(
-            prepare4dispatch.quadrantlimit(eos_root, name, extension=extension, λ_lim=5.0), 
-            sigdigits=3
-        )
+        quadrants = make_quadrants(name, eos_root, opa_path)
 
-        quadrants = [ 
-            TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
-            TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
-            TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
-            TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
-        ]
-           
+        if Nbins != sum([q.nbins for q in quadrants])
+            @warn "Given number of bins does not match the given binning! ($Nbins <-> $(sum([q.nbins for q in quadrants])))"
+        end
+
         ## bin opacities
         prepare4dispatch.bin_opacities(
-            eos_root, av_path, name; 
-            logg=logg, method=method, Nbins=Nbins, extension=extension,
+            name, eos_root, eos_path, opa_path, av_path; 
+            logg=logg, method=method, Nbins=Nbins, scattering_path=sopa_path,
+            name_extension=name_extension,
             version=version,
             quadrants=quadrants
         )
 
         ## remove the formation opacities
-        clean && prepare4dispatch.clean(eos_root, name, extension=extension)
+        clean && prepare4dispatch.clean(eos_root, name)
     end
 
-    ## End-to-end binning, with clean-up
-    #Distributed.pmap(formation_and_bin, args)
+    # End-to-end binning, with clean-up
+    Distributed.pmap(formation_and_bin, args)
     
-    ## Save the eos info
+    # Save the eos info
     grid.info[!, "name_extension"]   = [name_extension for _ in 1:nrow(grid.info)]
     grid.info[!, "version"]          = [version for _ in 1:nrow(grid.info)]
     grid.info[!, "binned_tables"]    = [TSO.join_full(name_extension, grid.info[i, "name"], version, add_start=false) for i in 1:nrow(grid.info)]
     grid.info[!, "binned_E_tables"]  = [TSO.join_full(name_extension, "E", grid.info[i, "name"], version, add_start=false) for i in 1:nrow(grid.info)]
     grid.info[!, "rad_bins"]         = [Nbins for _ in 1:nrow(grid.info)]
 
-    ## compute the resolution and the rounded size of the box
-    ## use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-4.0, τ_surf=0.0, τ_down=6.0, scale_resolution=0.9)
+    # compute the resolution and the rounded size of the box
+    # use the EoS that was just created for this
+    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-3.8, τ_surf=0.0, τ_down=6.0, scale_resolution=0.9)
 end
 
 #====================== Step (C): Conversion =================================#
 begin
     prepare4dispatch.fromT_toE.(grid.info[!, "binned_tables"], grid.info[!, "binned_E_tables"], upsample=2048)
 
-    ## Copy the average model in the same folder so that we can link it all to the right place
+    # Copy the average model in the same folder so that we can link it all to the right place
     for i in 1:nrow(grid.info)
         if !use_adiabat
             cp(grid.info[i, "av_path"], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), force=true)
@@ -241,7 +203,7 @@ begin
     MUST.save(grid, final_grid_path)
 
     # Stage the grid for execution, possible remove other output
-    MUST.stage_namelists(grid, clean_namelists=false, clean_logs=false)
+    MUST.stage_namelists(grid, clean_namelists=true, clean_logs=true)
 end
 
 #=============================================================================#

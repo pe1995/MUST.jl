@@ -88,13 +88,42 @@ begin
 	paras[:, 3] .= 0.0=#
 end
 
+# ╔═╡ 8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
+md"## EoS
+We can add information about the EoS. This will make the interpolation better because it will use the rosseland optical depth information to interpolate at constant optical depth between models. If not, just position is used for the interpolation. Depending on the chemical composition of the model you need to pick a different EoS here! So it might be best to include the mother table of the respective model in the grid, so that for each metallicity the correct one can be used."
+
+# ╔═╡ e17316a1-a29e-4ce7-b651-65a75881180f
+mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
+
+# ╔═╡ d001bc84-4082-4888-89c1-15f590ec9834
+eos = [
+	reload(SqEoS, joinpath(mother_table_path, "combined_ross_eos_magg22.hdf5"))
+	for _ in 1:size(paras, 1)
+]
+
+# ╔═╡ ee45e7db-2fc3-43f3-83cf-bd2dca6d52e7
+md"## Interpolation"
+
+# ╔═╡ 0364f91e-e768-4126-b347-ec6684b9c033
+md"We can add a matching eos for each of the grid nodes. In the case of non-existing optical depth averaged models, this will be used to determine the optical dept."
+
+# ╔═╡ 2dee306a-531f-4eb2-bac7-e4a5c8a219a7
+grid.info[!, "matching_eos"] = [
+	joinpath(mother_table_path, "combined_ross_eos_magg22.hdf5") 
+	for _ in 1:nrow(grid.info)
+]
+
 # ╔═╡ 27f3dc38-c32c-4e35-b5a6-cce2443e64d3
 ig = modelgrids.interpolate_from_grid(
 	grid, 
 	teff=round.(paras[:, 1], sigdigits=4), 
 	logg=round.(paras[:, 2], sigdigits=4), 
-	feh=paras[:, 3]
+	feh=paras[:, 3],
+	eos=eos
 )
+
+# ╔═╡ a47fa3e9-bd97-45e4-bf55-8de2e0d75c64
+ig.info[!, "eos_root"] = [mother_table_path for _ in 1:size(paras, 1)]
 
 # ╔═╡ 47f9397e-a5fc-4c7a-a2f6-cf2eb45653e0
 md"## Validate interpolation"
@@ -137,7 +166,7 @@ begin
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
-MUST.save(ig, "random_grid.mgrid")
+MUST.save(ig, "random_grid_mod.mgrid")
 
 # ╔═╡ Cell order:
 # ╟─a0516377-218a-4260-ae15-acf6ac36f2c1
@@ -151,7 +180,14 @@ MUST.save(ig, "random_grid.mgrid")
 # ╟─6e0c166b-58a5-4a25-a726-a66cc357731c
 # ╟─6dffcedb-ae0b-4bb4-9490-94c22ec3e953
 # ╠═d1415b10-403e-4736-9930-14c451f4f366
+# ╟─8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
+# ╠═e17316a1-a29e-4ce7-b651-65a75881180f
+# ╠═d001bc84-4082-4888-89c1-15f590ec9834
+# ╟─ee45e7db-2fc3-43f3-83cf-bd2dca6d52e7
+# ╟─0364f91e-e768-4126-b347-ec6684b9c033
+# ╠═2dee306a-531f-4eb2-bac7-e4a5c8a219a7
 # ╠═27f3dc38-c32c-4e35-b5a6-cce2443e64d3
+# ╠═a47fa3e9-bd97-45e4-bf55-8de2e0d75c64
 # ╟─47f9397e-a5fc-4c7a-a2f6-cf2eb45653e0
 # ╠═213cb3c7-7e08-4929-9c7c-fee75f004ded
 # ╟─6618d5a5-3c28-4b73-8fd9-a386c4e422d6

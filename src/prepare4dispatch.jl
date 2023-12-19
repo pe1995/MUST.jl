@@ -220,29 +220,27 @@ end
 formation_opacities(args...; kwargs...) = TSO.compute_formation_opacities(args...; kwargs...)
 bin_opacities(args...; kwargs...) = TSO.bin_opacity_table(args...; kwargs...)
 fromT_toE(args...; kwargs...) = TSO.convert_fromT_toE(args...; kwargs...)
+compute_rosseland_opacities(args...; kwargs...) = TSO.compute_rosseland_opacities(args...; kwargs...)
 
-quadrantlimit(table_folder, name; extension, λ_lim=5.0) = begin
-    name_ext = TSO.join_full(name, extension)
-    ext = TSO.join_full(extension)
 
+quadrantlimit(name, table_folder, opa_path; λ_lim=5.0) = begin
     opa = reload(
         SqOpacity, 
-		joinpath(table_folder, "combined_opacities$(ext).hdf5"), 
+		joinpath(table_folder, opa_path), 
 		mmap=true
     )
 	
     fopa = reload(
         SqOpacity, 
-		joinpath(table_folder, "combined_formation_opacities$(name_ext).hdf5"), 
+		joinpath(table_folder, "combined_formation_opacities_$(name).hdf5"), 
 		mmap=true
     )
 
     TSO.median(-log10.(fopa.κ_ross)[log10.(opa.λ) .> λ_lim])
 end
 
-clean(table_folder, name; extension) = begin
-    name_ext = TSO.join_full(name, extension)
-	rm(joinpath(table_folder, "combined_formation_opacities$(name_ext).hdf5"))
+clean(table_folder, name) = begin
+	rm(joinpath(table_folder, "combined_formation_opacities_$(name).hdf5"))
 end
 
 
@@ -321,7 +319,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         dx = x_size / (patches(x_resolution, patch_size) * patch_size)
         #@show dx/max(abs(vmax), abs(vmin)) larger_than_sun max(abs(vmax), abs(vmin))
 
-        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.3) / 5e-3, sigdigits=3)
+        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.25) / 5e-3, sigdigits=3)
         #max(100.0, round(100.0 / dynamic_scale_ratio, sigdigits=3))
         #max(100.0, round(Δt(dx, max(abs(vmax), abs(vmin)), 1.25), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
@@ -340,7 +338,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                                 patches(x_resolution, patch_size), 
                                 patches(z_resolution, patch_size)],
                         :position=>[0,0,round(-ddown/l_cgs_raw, sigdigits=3)]),
-        patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.1),
+        patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.2),
         scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
         experiment_params=(:t_bot=>tbot,),
         stellar_params=(:g_cgs=>round(exp10(logg), sigdigits=5), 
@@ -363,7 +361,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         #:start_time=>newton_time,
                         #:decay_scale=>20.0,
                         :rt_freq=>0.0,
-                        :rt_grace=>0.05,
+                        :rt_grace=>0.1,
                         :rt_res=>[-1,-1,rt_patch_size]),
         an_params=(:courant=>courant_hd,),
         eos_params=(:table_loc=>eos_table, :gamma=>1.666667)
@@ -488,9 +486,9 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         z_s[i] = ip_z(τ_surf)
         z_h[i] = ip_z(τ_up)
 
-        ee0[i] = exp.(ip_E(-1.5))
-        zee0[i] = ip_z(-2.0)
-        eemin[i] = exp.(ip_E(-1.5)) #exp.(ip_E(τ_surf))
+        ee0[i] = exp.(ip_E(-1.0))
+        zee0[i] = ip_z(-1.5)
+        eemin[i] = exp.(ip_E(-1.0)) #exp.(ip_E(τ_surf))
 
         z_lo[i] = ip_z(τ_down)
         d_lo[i] = exp.(ip_r(τ_down))
