@@ -688,10 +688,10 @@ md"Pick what should be plotted as a function of time"
 
 # ╔═╡ f2f27ccc-358b-4bec-9506-b31c27d6f759
 begin
-	xlim = [-0.5e8, 2e8]
+	xlim = [-0.5e8, 0.5e8]
 	ylim = [2500, 10000]
 
-	xlabel = L"\rm density\ [g\ \times\ cm^{-3}]"
+	xlabel = L"\rm z\ [cm]"
 	ylabel = L"\rm temperature\ [K]"
 
 	# what to plot 
