@@ -150,6 +150,9 @@ if convert_given
 	end
 end
 
+# ╔═╡ 53706541-27d7-4093-b37f-3e384c6c8a7c
+
+
 # ╔═╡ ddcbcf4d-eb85-4cde-b2ac-a4b7e93ed809
 begin
 	convert_given
@@ -242,6 +245,9 @@ opa = NamedTuple(
 	name=>reload(SqOpacity, joinpath(eos_folders[name], "binned_opacities.hdf5"))
 	for name in keys(eos_picks)
 )
+
+# ╔═╡ 66f7d726-b840-484c-937f-b6a328e86b21
+
 
 # ╔═╡ 1b354d9a-82f6-4540-8eaa-69218e37f87b
 md"## Initial models"
@@ -339,6 +345,9 @@ begin
 
 	colors
 end
+
+# ╔═╡ 1be872a8-eef5-422d-b3a6-13d581a999c0
+
 
 # ╔═╡ f3ffa698-bcea-4ab3-9b63-84d518c14068
 md"# Average figures"
@@ -794,6 +803,7 @@ end
 # ╟─2bf867fc-15bd-437c-b989-b1efbf2bf9d4
 # ╟─fa8c564d-195b-424a-8814-0c47cd3e03a8
 # ╟─2d684eb0-aa4b-40a6-9e04-ab0b42ed0516
+# ╟─53706541-27d7-4093-b37f-3e384c6c8a7c
 # ╟─ddcbcf4d-eb85-4cde-b2ac-a4b7e93ed809
 # ╟─40124987-2dc6-452d-87d7-33f935854b55
 # ╟─3778a669-69fc-47e6-9d0b-c514b31c8c79
@@ -807,6 +817,7 @@ end
 # ╟─c5f4fb05-27b6-42e8-b08a-ef60c403d9e7
 # ╟─4d0c7aa4-2a13-429a-88f2-14df415aa5ec
 # ╟─27d0d01a-c8c8-422b-a893-36948b908fb0
+# ╟─66f7d726-b840-484c-937f-b6a328e86b21
 # ╟─1b354d9a-82f6-4540-8eaa-69218e37f87b
 # ╟─f6c017c2-b296-4f82-8d2b-d97a7e36a51e
 # ╟─693c5461-e4d8-45d0-af2d-87b10f9560e3
@@ -826,6 +837,7 @@ end
 # ╟─c4015f47-d670-4c5d-885c-cf32b6f15829
 # ╟─13a647a4-3d71-4afb-ba31-867e108a8154
 # ╟─17ca4c8c-9563-4be4-8ab7-a7446ba28dec
+# ╟─1be872a8-eef5-422d-b3a6-13d581a999c0
 # ╟─f3ffa698-bcea-4ab3-9b63-84d518c14068
 # ╟─ce691c30-5025-4ffc-8185-eced3087ca13
 # ╟─5e882897-d396-470c-ad46-37a39326225c

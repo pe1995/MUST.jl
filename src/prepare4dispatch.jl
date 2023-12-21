@@ -296,7 +296,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     courant_hd = courant_hd
 
 
-    larger_than_sun = x_size/1e8 / 4.6
+    larger_than_sun = x_size /1.0e8 /6.0
     newton_time = newton_time #* larger_than_sun
     friction_time = friction_time #* larger_than_sun
     newton_scale = newton_scale #* larger_than_sun
@@ -316,19 +316,15 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         # absolute velocity in the given stagger model. There will be higher 
         # velocities during the simulation, so there has to be room for larger
         # currants. Round to the next quater
-        dx = x_size / (patches(x_resolution, patch_size) * patch_size)
-        #@show dx/max(abs(vmax), abs(vmin)) larger_than_sun max(abs(vmax), abs(vmin))
-
+        dx = x_size / (patches(x_resolution, patch_size) * patch_size) / 2.0 
         round(Δt(dx, max(abs(vmax), abs(vmin)), courant_target) / 5e-3, sigdigits=3)
-        #max(100.0, round(100.0 / dynamic_scale_ratio, sigdigits=3))
-        #max(100.0, round(Δt(dx, max(abs(vmax), abs(vmin)), 1.25), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
         tscale
     end
 
-    stellar_w = round(0.1 * velocity_ratio / larger_than_sun, sigdigits=3)
-    strength = round(0.1 * 100.0 / tscale, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
-    tbot = round(0.01 * 100.0 / tscale, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+    stellar_w = round(0.1 * velocity_ratio, sigdigits=3)
+    strength = round(0.1 * 100.0 / tscale / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+    tbot = round(0.01 * 100.0 / tscale / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
 
     x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     MUST.set!(
@@ -409,7 +405,8 @@ end
 
 resolution!(grid::MUST.AbstractMUSTGrid; 
                             patch_size=30, scale_resolution=1.0, 
-                            τ_up=-4.5, τ_surf=0.0, τ_down=5.5) = begin
+                            τ_up=-4.5, τ_surf=0.0, τ_down=5.5,
+                            τ_ee0=-1.0, τ_eemin=-1.0, τ_zee0=-1.0, τ_rho0=-2.0) = begin
     xr, zr = zeros(Int, nrow(grid.info)), zeros(Int, nrow(grid.info))
     xd, zd = zeros(Float64, nrow(grid.info)), zeros(Float64, nrow(grid.info))
 
@@ -476,7 +473,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
             extrapolation_bc=MUST.Flat()
         )
 
-        rho_norm[i] = round(exp.(ip_r(-2.0)), sigdigits=5) 
+        rho_norm[i] = round(exp.(ip_r(τ_rho0)), sigdigits=5) 
 
         l_norm[i] = zd[i] |> abs 
         
@@ -484,9 +481,9 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         z_s[i] = ip_z(τ_surf)
         z_h[i] = ip_z(τ_up)
 
-        ee0[i] = exp.(ip_E(-1.5))
-        zee0[i] = ip_z(-1.5)
-        eemin[i] = exp.(ip_E(-1.5)) 
+        ee0[i] = exp.(ip_E(τ_ee0))
+        zee0[i] = ip_z(τ_zee0)
+        eemin[i] = exp.(ip_E(τ_eemin)) 
 
         z_lo[i] = ip_z(τ_down)
         d_lo[i] = exp.(ip_r(τ_down))

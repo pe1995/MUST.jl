@@ -14,7 +14,7 @@ begin
 
     # clean namelists in dispatch folder (other than new ones)
     clean_namelists = false
-    clean_logs = true
+    clean_logs = false
 
     # replace initial model with adiabat
     use_adiabat = false
@@ -22,12 +22,16 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 22 
-    τ_up = -4.0 
-    τ_surf = 0.0 
-    τ_down = 6.0
-    scale_resolution = 0.9
-    namelist_kwargs = Dict(
+    patch_size = 22                 # Points per patch
+    τ_up = -4.0                     # Upper limit of simulation domain
+    τ_surf = 0.0                    # Optical surface of simulation domain
+    τ_down = 6.0                    # Lower limit of simulation domain
+    τ_ee0 = -1.5                    # Newton cooling placement (energy)
+    τ_eemin = -1.5                  # Mininmum energy of initial condition
+    τ_zee0 = -1.5                   # Newton cooling placement (height)
+    τ_rho0 = -2.0                   # Density normaliztion height
+    scale_resolution = 0.7          # Down or upsampling of simulation domain
+    namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>1.0,
         :newton_decay_scale=>30.0
     )

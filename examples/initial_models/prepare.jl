@@ -90,20 +90,40 @@ begin
     end
 
     # save the paths for later
-    grid.info[!, "eos_original"] = [eos_path for _ in 1:nrow(grid.info)]
-    grid.info[!, "opa_original"] = [opa_path for _ in 1:nrow(grid.info)]
-    grid.info[!, "sopa_original"] = [sopa_path for _ in 1:nrow(grid.info)]
+    if !("eos_original" in names(grid.info))
+        grid.info[!, "eos_original"] = [eos_path for _ in 1:nrow(grid.info)]
+    end
+    if !("opa_original" in names(grid.info)) 
+        grid.info[!, "opa_original"] = [opa_path for _ in 1:nrow(grid.info)]
+    end
+    if !("sopa_original" in names(grid.info))
+        grid.info[!, "sopa_original"] = [sopa_path for _ in 1:nrow(grid.info)]
+    end
 end
 
 #================ Step (B): Fomation opacities (parallel) ====================#
 begin
+    # compute the rosseland opacity if wanted
+    do_ross = [(i==1) ? recompute_ross : false for i in 1:nrow(grid.info)]
+    eos_final = [
+        do_ross[i] ? 
+        prepare4dispatch.compute_rosseland_opacities(
+            grid.info[i, "eos_root"], 
+            grid.info[i, "eos_original"], 
+            grid.info[i, "opa_original"]
+        ) : 
+        grid.info[i, "eos_original"] 
+        for i in 1:nrow(grid.info)
+    ]
+    grid.info[!, "eos_final"] = eos_final
+
     args = [
         (
             grid.info[i, "eos_root"], 
             grid.info[i, "av_path"], 
             grid.info[i, "name"],
             grid.info[i, "logg"],
-            grid.info[i, "eos_original"],
+            grid.info[i, "eos_final"],
             grid.info[i, "opa_original"],
             grid.info[i, "sopa_original"],
             :kmeans, 
@@ -124,10 +144,6 @@ begin
         sopa_path = args[7]
         method = args[8]
         Nbins = args[9]
-        do_ross = args[10]
-
-        # compute rosseland opacities and save them in opacities and new EoS
-        do_ross && prepare4dispatch.compute_rosseland_opacities(eos_root, eos_path, opa_path)
         
         # formation opacities
         (!skip_formation) && prepare4dispatch.formation_opacities(
@@ -176,7 +192,11 @@ begin
         τ_up=τ_up, 
         τ_surf=τ_surf, 
         τ_down=τ_down, 
-        scale_resolution=scale_resolution
+        scale_resolution=scale_resolution,
+        τ_ee0=τ_ee0, 
+        τ_eemin=τ_eemin, 
+        τ_zee0=τ_zee0, 
+        τ_rho0=τ_rho0
     )
 end
 

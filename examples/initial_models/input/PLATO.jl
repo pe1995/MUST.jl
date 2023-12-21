@@ -23,12 +23,17 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 22 
-    τ_up = -4.0 
-    τ_surf = 0.0 
-    τ_down = 6.0
-    scale_resolution = 0.9
-    namelist_kwargs = Dict()
+    patch_size = 15                 # Points per patch
+    τ_up = -4.0                     # Upper limit of simulation domain
+    τ_surf = 0.0                    # Optical surface of simulation domain
+    τ_down = 6.0                    # Lower limit of simulation domain
+    τ_ee0 = -1.0                    # Newton cooling placement (energy)
+    τ_eemin = -1.0                  # Mininmum energy of initial condition
+    τ_zee0 = -1.0                   # Newton cooling placement (height)
+    τ_rho0 = -2.0                   # Density normaliztion height
+    scale_resolution = 0.5          # Down or upsampling of simulation domain
+    namelist_kwargs = Dict(         # Additional modifications in namelist
+    )
 end
 
 #= Opacities =#
