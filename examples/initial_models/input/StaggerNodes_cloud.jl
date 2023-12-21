@@ -1,0 +1,86 @@
+#= General information =#
+begin
+    # Output name of the models
+    name_extension    = "DIS_MARCS"
+
+    # Location of the dispatch installation
+    dispatch_location = "/home/ubuntu/DISPATCH/dispatch2"
+
+    # input and output names of the grid
+    initial_grid_path = "stagger_grid_full_o.mgrid"
+    initial_cl_path   = "stagger_grid_avail.mgrid"
+    initial_mod_path  = "stagger_grid_solar.mgrid"
+    final_grid_path   = "dispatch_grid.mgrid"
+
+    # clean namelists in dispatch folder (other than new ones)
+    clean_namelists = false
+    clean_logs = true
+
+    # replace initial model with adiabat
+    use_adiabat = false
+end
+
+#= Dispatch setup =#
+begin
+    patch_size = 22 
+    τ_up = -4.0 
+    τ_surf = 0.0 
+    τ_down = 6.0
+    scale_resolution = 0.9
+    namelist_kwargs = Dict(
+        :newton_time=>1.0,
+        :newton_decay_scale=>30.0
+    )
+end
+
+#= Opacities =#
+begin
+    # recompute the rosseland optical depth for the first model in the grid
+    recompute_ross = false
+
+    # Location of the opacity table
+    mother_table_path = "/home/ubuntu/DISPATCH/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.7"
+    extension = "magg_m0_a0"
+    eos_path = "combined_ross_eos_"*extension*".hdf5"
+    opa_path = "combined_opacities_"*extension*".hdf5"
+    sopa_path = "combined_Sopacities_"*extension*".hdf5"
+
+    # opacity table version (output)
+    version = "v0.4"
+
+    # Number of bins in the opacity table (output)
+    Nbins = 4
+
+    # Skip binning procedure (assumes it has already been done)
+    skip_binning = true
+
+    # Skip formation opacity procedure (assumes it has already been done)
+    skip_formation = true
+
+    # remove formation opacities after binning
+    clean = false
+
+    # The binning quadrants where opacity bins should be placed
+    make_quadrants(name, eos_root, opa_path) = begin
+        qlim = round(
+            prepare4dispatch.quadrantlimit(name, eos_root, opa_path, λ_lim=5.0), 
+            sigdigits=3
+        )
+
+        # 8 bins
+        #=quadrants = [ 
+            TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
+            TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
+        ]=#
+
+        # 4 MURaM bins
+        quadrants = [ 
+            TSO.Quadrant((0.0, 100.0), (-100, 0.0), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 100.0), (0.0, 2.0), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 100.0), (2.0, 4.0), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 100.0), (4.0, 100.0), 1, stripes=:κ)
+        ]
+    end
+end

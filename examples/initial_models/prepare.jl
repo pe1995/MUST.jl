@@ -108,7 +108,7 @@ begin
             grid.info[i, "sopa_original"],
             :kmeans, 
             Nbins,
-            false#(i==1) ? true : false
+            (i==1) ? recompute_ross : false
         ) for i in 1:nrow(grid.info)
     ]
 
@@ -126,33 +126,35 @@ begin
         Nbins = args[9]
         do_ross = args[10]
 
-        ## compute rosseland opacities and save them in opacities and new EoS
+        # compute rosseland opacities and save them in opacities and new EoS
         do_ross && prepare4dispatch.compute_rosseland_opacities(eos_root, eos_path, opa_path)
         
-        @info "Opacity Binning: $(name)"
-
-        ## formation opacities
-        prepare4dispatch.formation_opacities(
+        # formation opacities
+        (!skip_formation) && prepare4dispatch.formation_opacities(
             name, eos_root, eos_path, opa_path, av_path; 
             logg=logg
         )
 
-        quadrants = make_quadrants(name, eos_root, opa_path)
+        if !skip_binning
+            @info "Opacity Binning: $(name)"
 
-        if Nbins != sum([q.nbins for q in quadrants])
-            @warn "Given number of bins does not match the given binning! ($Nbins <-> $(sum([q.nbins for q in quadrants])))"
+            quadrants = make_quadrants(name, eos_root, opa_path)
+
+            if Nbins != sum([q.nbins for q in quadrants])
+                @warn "Given number of bins does not match the given binning! ($Nbins <-> $(sum([q.nbins for q in quadrants])))"
+            end
+
+            # bin opacities
+            prepare4dispatch.bin_opacities(
+                name, eos_root, eos_path, opa_path, av_path; 
+                logg=logg, method=method, Nbins=Nbins, scattering_path=sopa_path,
+                name_extension=name_extension,
+                version=version,
+                quadrants=quadrants
+            )
         end
 
-        ## bin opacities
-        prepare4dispatch.bin_opacities(
-            name, eos_root, eos_path, opa_path, av_path; 
-            logg=logg, method=method, Nbins=Nbins, scattering_path=sopa_path,
-            name_extension=name_extension,
-            version=version,
-            quadrants=quadrants
-        )
-
-        ## remove the formation opacities
+        # remove the formation opacities
         clean && prepare4dispatch.clean(eos_root, name)
     end
 
@@ -168,7 +170,14 @@ begin
 
     # compute the resolution and the rounded size of the box
     # use the EoS that was just created for this
-    prepare4dispatch.resolution!(grid, patch_size=22, τ_up=-3.8, τ_surf=0.0, τ_down=6.0, scale_resolution=0.9)
+    prepare4dispatch.resolution!(
+        grid, 
+        patch_size=patch_size, 
+        τ_up=τ_up, 
+        τ_surf=τ_surf, 
+        τ_down=τ_down, 
+        scale_resolution=scale_resolution
+    )
 end
 
 #====================== Step (C): Conversion =================================#
@@ -194,7 +203,7 @@ end
 
 #=============== Step (D): Input namelists for dispatch ======================#
 begin
-    prepare4dispatch.create_namelist!(grid)
+    prepare4dispatch.create_namelist!(grid; namelist_kwargs...)
 
     for i in 1:nrow(grid.info)
         cp(grid.info[i, "namelist_name"], joinpath(grid.info[i, "binned_E_tables"], "ininml.dat"), force=true)
@@ -203,7 +212,7 @@ begin
     MUST.save(grid, final_grid_path)
 
     # Stage the grid for execution, possible remove other output
-    MUST.stage_namelists(grid, clean_namelists=true, clean_logs=true)
+    MUST.stage_namelists(grid, clean_namelists=clean_namelists, clean_logs=clean_logs)
 end
 
 #=============================================================================#

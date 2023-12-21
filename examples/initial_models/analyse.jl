@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.30
+# v0.19.32
 
 using Markdown
 using InteractiveUtils
@@ -688,7 +688,7 @@ md"Pick what should be plotted as a function of time"
 
 # ╔═╡ f2f27ccc-358b-4bec-9506-b31c27d6f759
 begin
-	xlim = [-0.5e8, 0.5e8]
+	xlim = [-0.5e8, 0.7e8]
 	ylim = [2500, 10000]
 
 	xlabel = L"\rm z\ [cm]"

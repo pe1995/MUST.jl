@@ -204,8 +204,6 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
     actual_x_patches = round(dxdz, sigdigits=1) * desired_n_patches
     actual_dx = actual_x_patches / desired_n_patches * actual_dz
 
-    #@show actual_x_patches actual_dx desired_n_patches desired_n_points actual_dz
-
     actual_dx, actual_x_patches*patch_size, actual_dz, desired_n_patches*patch_size
 end
 
@@ -252,7 +250,10 @@ end
 function create_namelist(name, x_resolution, z_resolution, x_size, z_size, 
                         patch_size, rt_patch_size, δz, zs, zh, z_lo, l_cgs, d_cgs, logg, teff, 
                         eemin, ee0, zee0, nz, initial_path, n_bin, eos_table, 
-                        tscale, vmax, vmin)
+                        tscale, vmax, vmin; 
+                        courant_rt=0.2, courant_hd=0.2, newton_time=100, friction_time=150,
+                        newton_scale=0.1, newton_decay_scale=15.0, friction_decay_scale=10.0,
+                        courant_target=0.25)
     #ngrid = nrow(grid.info)
     #phase = grid.name
 
@@ -275,7 +276,6 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     # z_lo should be the bottom z value. The same should be true for the simulation domain
     # this means that we need to shift it down until that value is reached
     ddown = abs((z_size/2.0 - abs(z_lo)))
-    @show ddown
     
     #=courant_rt = if (logg >= 4) & (teff<6500)
         1.0
@@ -284,7 +284,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     else
         0.7
     end=#
-    courant_rt = 0.2
+    courant_rt = courant_rt
 
     #=courant_hd = if logg >= 4
         0.3
@@ -293,13 +293,13 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     else
         0.2
     end=#
-    courant_hd = 0.2
+    courant_hd = courant_hd
 
 
     larger_than_sun = x_size/1e8 / 4.6
-    newton_time = 100 #* larger_than_sun
-    friction_time = 160 #* larger_than_sun
-    newton_scale = 0.1 #* larger_than_sun
+    newton_time = newton_time #* larger_than_sun
+    friction_time = friction_time #* larger_than_sun
+    newton_scale = newton_scale #* larger_than_sun
 
     l_cgs_raw = 1e8 * larger_than_sun
     l_cgs = round(1e8 * larger_than_sun, sigdigits=3) #MUST.roundto(l_cgs * larger_than_sun, 0.1, magnitude=1e3)
@@ -319,7 +319,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         dx = x_size / (patches(x_resolution, patch_size) * patch_size)
         #@show dx/max(abs(vmax), abs(vmin)) larger_than_sun max(abs(vmax), abs(vmin))
 
-        round(Δt(dx, max(abs(vmax), abs(vmin)), 0.25) / 5e-3, sigdigits=3)
+        round(Δt(dx, max(abs(vmax), abs(vmin)), courant_target) / 5e-3, sigdigits=3)
         #max(100.0, round(100.0 / dynamic_scale_ratio, sigdigits=3))
         #max(100.0, round(Δt(dx, max(abs(vmax), abs(vmin)), 1.25), sigdigits=3))#MUST.roundto(Δt(l_cgs, max(abs(vmax), abs(vmin)), 0.9), 0.25, magnitude=1e2))
     else
@@ -346,12 +346,12 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :nz=>nz-1, 
                         :w_perturb=>stellar_w,
                         :initial_path=>initial_path),
-        friction_params=(:end_time=>friction_time, :decay_scale=>10.0, :time=>strength,),
+        friction_params=(:end_time=>friction_time, :decay_scale=>friction_decay_scale, :time=>strength,),
         gravity_params=(:constant=>-round(exp10(logg), sigdigits=5),),
         newton_params=(:ee0_cgs=>round(log(ee0), sigdigits=7), 
                         :position=>round(zee0/l_cgs_raw, sigdigits=3),#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
                         :end_time=>newton_time, 
-                        :decay_scale=>30.0,
+                        :decay_scale=>newton_decay_scale,
                         :time=>strength,
                         :scale=>newton_scale),
         sc_rt_params=(  :rt_llc=>[-x/2, -x/2, -round((z_size/2 + ddown)/l_cgs_raw, sigdigits=3)], 
@@ -426,8 +426,6 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         append!(models, [@optical(Average3D(eos[i], grid.info[i, "av_path"], logg=grid.info[i, "logg"]), eos[i], opa[i])])
     end
 
-    #models = [@optical(Average3D(eos[i], grid.info[i, "av_path"], logg=grid.info[i, "logg"]), eos[i], opa[i]) for i in 1:nrow(grid.info)]
-
     rho_norm = zeros(nrow(grid.info))
     l_norm = zeros(nrow(grid.info))
     z_up = zeros(nrow(grid.info))
@@ -480,15 +478,15 @@ resolution!(grid::MUST.AbstractMUSTGrid;
 
         rho_norm[i] = round(exp.(ip_r(-2.0)), sigdigits=5) 
 
-        l_norm[i] = zd[i] |> abs #|> log10 |> floor |> exp10
+        l_norm[i] = zd[i] |> abs 
         
         z_up[i] = abs(ip_z(τ_up) - ip_z(τ_surf))
         z_s[i] = ip_z(τ_surf)
         z_h[i] = ip_z(τ_up)
 
-        ee0[i] = exp.(ip_E(-1.0))
+        ee0[i] = exp.(ip_E(-1.5))
         zee0[i] = ip_z(-1.5)
-        eemin[i] = exp.(ip_E(-1.0)) #exp.(ip_E(τ_surf))
+        eemin[i] = exp.(ip_E(-1.5)) 
 
         z_lo[i] = ip_z(τ_down)
         d_lo[i] = exp.(ip_r(τ_down))
@@ -536,7 +534,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     nothing
 end
 
-create_namelist!(grid::MUST.StaggerGrid) = begin
+create_namelist!(grid::MUST.StaggerGrid; kwargs...) = begin
     g(i, v) = grid.info[i, v]
 
     names = []
@@ -568,7 +566,8 @@ create_namelist!(grid::MUST.StaggerGrid) = begin
                                             g(i, "binned_E_tables")),
                                 g(i, "tscale"),
                                 g(i, "vmax"),
-                                g(i, "vmin"))
+                                g(i, "vmin");
+                                kwargs...)
         append!(names, [name])
     end
 
