@@ -26,14 +26,15 @@ begin
     τ_up = -4.0                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 6.0                    # Lower limit of simulation domain
-    τ_ee0 = -1.5                    # Newton cooling placement (energy)
-    τ_eemin = -1.5                  # Mininmum energy of initial condition
-    τ_zee0 = -1.5                   # Newton cooling placement (height)
-    τ_rho0 = -2.0                   # Density normaliztion height
+    τ_ee0 = -4.0                    # Newton cooling placement (energy)
+    τ_eemin = -4.0                  # Mininmum energy of initial condition
+    τ_zee0 = -2.0                   # Newton cooling placement (height)
+    τ_rho0 = -1.0                   # Density normaliztion height
     scale_resolution = 0.7          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
-        :newton_time=>1.0,
-        :newton_decay_scale=>30.0
+        :newton_time=>1.0,          #   Optional: Give namelist field = NamedTuple 
+        :newton_decay_scale=>30.0,  #   for direct namelist replacement
+        :courant_target=>0.1
     )
 end
 
@@ -61,10 +62,11 @@ begin
     # Skip formation opacity procedure (assumes it has already been done)
     skip_formation = true
 
-    # remove formation opacities after binning
+    # remove formation opacities after binning (save disk space)
     clean = false
 
     # The binning quadrants where opacity bins should be placed
+    # For each quadrant in list: 1. log10 λ range, 2. log10 τ range, 3. Nbins
     make_quadrants(name, eos_root, opa_path) = begin
         qlim = round(
             prepare4dispatch.quadrantlimit(name, eos_root, opa_path, λ_lim=5.0), 

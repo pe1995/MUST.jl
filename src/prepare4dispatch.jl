@@ -253,7 +253,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         tscale, vmax, vmin; 
                         courant_rt=0.2, courant_hd=0.2, newton_time=100, friction_time=150,
                         newton_scale=0.1, newton_decay_scale=15.0, friction_decay_scale=10.0,
-                        courant_target=0.25)
+                        courant_target=0.25, kwargs...)
     #ngrid = nrow(grid.info)
     #phase = grid.name
 
@@ -316,7 +316,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         # absolute velocity in the given stagger model. There will be higher 
         # velocities during the simulation, so there has to be room for larger
         # currants. Round to the next quater
-        dx = x_size / (patches(x_resolution, patch_size) * patch_size) / 2.0 
+        dx = x_size / (patches(x_resolution, patch_size) * patch_size)
         round(Δt(dx, max(abs(vmax), abs(vmin)), courant_target) / 5e-3, sigdigits=3)
     else
         tscale
@@ -354,14 +354,15 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :rt_urc=>[ x/2,  x/2,  round((z_size/2 - ddown)/l_cgs_raw, sigdigits=3)], 
                         :n_bin=>n_bin,
                         :courant=>courant_rt,
-                        #:start_time=>newton_time,
-                        #:decay_scale=>20.0,
                         :rt_freq=>0.0,
                         :rt_grace=>0.1,
                         :rt_res=>[-1,-1,rt_patch_size]),
         an_params=(:courant=>courant_hd,),
         eos_params=(:table_loc=>eos_table, :gamma=>1.666667)
     )
+
+    # set additional kwargs if wanted
+    MUST.set!(nml; kwargs...)
     
     # write the namelists
     MUST.write(nml, MUST.@in_dispatch(name))

@@ -188,6 +188,12 @@ labels = NamedTuple(
 	for name in keys(snapshots_picks)
 )
 
+# ╔═╡ ba8bded9-f13b-477e-a9fc-bd88e4f01e35
+loggs = NamedTuple(
+	name=>length(snapshots[name]) > 0 ? first(snapshots[name]).parameter.logg : -99.0
+	for name in keys(snapshots_picks)
+)
+
 # ╔═╡ ac46894f-44b4-477a-81ce-687b1308c38f
 md"## Picking EoS"
 
@@ -264,7 +270,7 @@ md"Pick what initial models to include in the figures"
 # ╔═╡ d55bae1d-1ca1-4537-8af1-c025a966c3b3
 initial_model = NamedTuple(
 	name=>@optical(
-		Average3D(eos[name], joinpath(eos_folders[name], "inim.dat")), eos[name],
+		Average3D(eos[name], joinpath(eos_folders[name], "inim.dat"), logg=loggs[name]), eos[name],
 		opa[name]
 	) for name in pick_initial_models
 )
@@ -273,6 +279,13 @@ initial_model = NamedTuple(
 labels_initial = NamedTuple(
 	name=>"initial: $(name)"
 	for name in pick_initial_models
+)
+
+# ╔═╡ c561e5a2-dfd6-4de9-80b5-9f6ae100b217
+initial_adiabats = NamedTuple(
+	name=>@optical(
+		TSO.adiabat(initial_model[name], eos[name]), eos[name], opa[name]
+	) for name in pick_initial_models
 )
 
 # ╔═╡ e6d33b23-e77c-43d3-b401-c5620721d659
@@ -389,6 +402,15 @@ plot_given && let
 			label=labels_initial[name],
 			alpha=0.7,
 			ls="-"
+		)
+
+		axA.plot(
+			initial_adiabats[name].z, exp.(initial_adiabats[name].lnT), 
+			lw=1., 
+			color=colors_initial[name],
+			label=labels_initial[name],
+			alpha=0.7,
+			ls="--"
 		)
 	end
 	
@@ -809,6 +831,7 @@ end
 # ╟─3778a669-69fc-47e6-9d0b-c514b31c8c79
 # ╟─b9f82f31-f25e-4cad-abb4-aac2d4d0e584
 # ╟─cfa74be4-06c9-4911-ac29-2a17809391e6
+# ╟─ba8bded9-f13b-477e-a9fc-bd88e4f01e35
 # ╟─ac46894f-44b4-477a-81ce-687b1308c38f
 # ╟─574b4a88-c562-44ab-8a8e-6e5b5c5aabf0
 # ╟─926aa121-ba10-4410-a91c-f36fc79a63ed
@@ -824,6 +847,7 @@ end
 # ╟─2bb999c6-ed87-4006-9fba-2f01fcf22f90
 # ╟─d55bae1d-1ca1-4537-8af1-c025a966c3b3
 # ╟─271e4e9c-def2-4b3e-b383-45d95fbb309b
+# ╟─c561e5a2-dfd6-4de9-80b5-9f6ae100b217
 # ╟─e6d33b23-e77c-43d3-b401-c5620721d659
 # ╟─bd41fb98-70c4-4192-8753-6fee82f14576
 # ╟─b90c53aa-9ca6-421c-9b2f-f650a1f0832f
