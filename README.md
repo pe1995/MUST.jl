@@ -74,7 +74,10 @@ A convenient interface for reading, converting and analysing is given in the `ex
 (@v1.9) pkg> add Pluto
 julia> using Pluto; Pluto.run()
 ```
-which will open a Pluto notebook in your default browser. You can then open the `analyze.jl` notebook from here.
+which will open a Pluto notebook in your default browser. You can then open the `analyze.jl` notebook from here. If you already added Pluto, you can also just run it from the command line, e.g. 
+```bash
+$ julia -e 'using Pluto; Pluto.run()'
+```
 
 
 ## Reading Dispatch Models
