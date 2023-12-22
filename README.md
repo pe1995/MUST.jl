@@ -70,7 +70,7 @@ The main functionality of `MUST.jl` is to read different stellar atmospheres in 
 
 A convenient interface for reading, converting and analysing is given in the `examples/initial_models/analyze.jl` notebook. It is a Pluto notebook and can be used by starting a `Pluto.jl` session.
 
-```julia
+```juliarepl
 (@v1.9) pkg> add Pluto
 julia> using Pluto; Pluto.run()
 ```
