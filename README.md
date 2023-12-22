@@ -169,7 +169,7 @@ snapshots = list_of_snapshots(folder)
 # convert the given snapshot to a Box, also on optical depth scale
 b, bτ = snapshotBox(snapshots[end-1], folder=folder)
 ```
-
+Note that `snapshotBox` has the kwarg `is_box=true`, which assumes that the given snapshot already is box-like, meaning that it is gridded. If set to false (e.g. because of possible mesh refinement) the cube will first be converted to a `Space` object, and then be interpolated to a regular grid in a new `Box` object.
 The naming convention of the saved snapshots will make it possible to browse the folder for converted models on different scales later, such that we can pick specific snapshots using e.g.
 
 ```julia
