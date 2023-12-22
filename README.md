@@ -445,7 +445,7 @@ Now from this general setup you can produce a input dict with different run-name
 
 ```julia
 # modify input parameters as you want
-params = Dict("test1", input_parameters1, "test2", input_parameters2)
+params = Dict("test1" => input_parameters1, "test2" => input_parameters2)
 
 # run all of it in parallel using slurm
 MUST.spectrum(
