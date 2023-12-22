@@ -75,7 +75,7 @@ A convenient interface for reading, converting and analysing is given in the `ex
 julia> using Pluto; Pluto.run()
 ```
 which will open a Pluto notebook in your default browser. You can then open the `analyze.jl` notebook from here. If you already added Pluto, you can also just run it from the command line, e.g. 
-```bash
+```console
 $ julia -e 'using Pluto; Pluto.run()'
 ```
 
