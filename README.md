@@ -1,6 +1,6 @@
-# `MUST.jl`
+<a href="url"><img src="must_logo2.png" height=100% width=100%/></a> 
 Julia package for creating 3D stellar atmosphere models using the DISPATCH framework.
-This package is capable of executing simulations via a SLURM distriubution system. It furthermore handles the reading, conversion and post-processing/visualisation of those simulations. It prepares the input for the Multi3D radiative transfer code. This package is complementary to the `TSO.jl` package, which is responsible for opacity realted questions.
+This package is capable of executing simulations via a SLURM distriubution system. It furthermore handles the reading, conversion and post-processing/visualisation of those simulations. It prepares the input for the Multi3D radiative transfer code. This package is complementary to the `TSO.jl` package, which is responsible for opacity related questions.
 In the following the main functionality is presented. Examples for most use-cases can be found in the `examples` folder.
 
 -------------------------
@@ -67,6 +67,18 @@ Which should work in most cases.
 # 3D Model Atmospheres
 
 The main functionality of `MUST.jl` is to read different stellar atmospheres in different formats and convert them to one comman format that can be used for post-processing purposes. For this, there are two different model representations available, the `MUST.Space` and `MUST.Box`. The `MUST.Space` is designed as a loose array of points associated with different coordinates, that can have any shape or orientation. This is important if models with unspecified, ungirdded orientation are present. In most cases, this is not relevant unless there is mesh refinement active in Dispatch. In any case, for any post-processing purposes the model should always be converted in a `MUST.Box` object, which tabulates any data present as 3D arrays.
+
+A convenient interface for reading, converting and analysing is given in the `examples/initial_models/analyze.jl` notebook. It is a Pluto notebook and can be used by starting a `Pluto.jl` session.
+
+```
+(@v1.9) pkg> add Pluto
+julia> using Pluto; Pluto.run()
+```
+which will open a Pluto notebook in your default browser. You can then open the `analyze.jl` notebook from here. If you already added Pluto, you can also just run it from the command line, e.g. 
+```console
+$ julia -e 'using Pluto; Pluto.run()'
+```
+
 
 ## Reading Dispatch Models
 
@@ -169,7 +181,7 @@ snapshots = list_of_snapshots(folder)
 # convert the given snapshot to a Box, also on optical depth scale
 b, bτ = snapshotBox(snapshots[end-1], folder=folder)
 ```
-
+Note that `snapshotBox` has the kwarg `is_box=true`, which assumes that the given snapshot already is box-like, meaning that it is gridded. If set to false (e.g. because of possible mesh refinement) the cube will first be converted to a `Space` object, and then be interpolated to a regular grid in a new `Box` object.
 The naming convention of the saved snapshots will make it possible to browse the folder for converted models on different scales later, such that we can pick specific snapshots using e.g.
 
 ```julia
@@ -445,7 +457,7 @@ Now from this general setup you can produce a input dict with different run-name
 
 ```julia
 # modify input parameters as you want
-params = Dict("test1", input_parameters1, "test2", input_parameters2)
+params = Dict("test1" => input_parameters1, "test2" => input_parameters2)
 
 # run all of it in parallel using slurm
 MUST.spectrum(
