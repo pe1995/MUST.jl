@@ -68,6 +68,15 @@ Which should work in most cases.
 
 The main functionality of `MUST.jl` is to read different stellar atmospheres in different formats and convert them to one comman format that can be used for post-processing purposes. For this, there are two different model representations available, the `MUST.Space` and `MUST.Box`. The `MUST.Space` is designed as a loose array of points associated with different coordinates, that can have any shape or orientation. This is important if models with unspecified, ungirdded orientation are present. In most cases, this is not relevant unless there is mesh refinement active in Dispatch. In any case, for any post-processing purposes the model should always be converted in a `MUST.Box` object, which tabulates any data present as 3D arrays.
 
+A convenient interface for reading, converting and analysing is given in the `examples/initial_models/analyze.jl` notebook. It is a Pluto notebook and can be used by starting a `Pluto.jl` session.
+
+```julia
+(@v1.9) pkg> add Pluto
+julia> using Pluto; Pluto.run()
+```
+which will open a Pluto notebook in your default browser. You can then open the `analyze.jl` notebook from here.
+
+
 ## Reading Dispatch Models
 
 *Relevant examples: `examples/dispatch2space/convert.jl, prepare_restart.jl, snapshot2box.jl`*
