@@ -206,9 +206,9 @@ begin
 
     # Copy the average model in the same folder so that we can link it all to the right place
     for i in 1:nrow(grid.info)
-        if !use_adiabat
-            cp(grid.info[i, "av_path"], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), force=true)
-        else
+        if use_adiabat & use_avnewz
+            error("You can not use the adiabat and the av model with new z scale as initial condition!")
+        elseif use_adiabat
             prepare4dispatch.adiabat(
                 joinpath(grid.info[i, "binned_E_tables"], "eos.hdf5"),
                 grid.info[i, "av_path"], 
@@ -217,6 +217,16 @@ begin
                 ee_min=grid.info[i, "ee_min"],
                 common_size=grid.info[i, "initial_model_size"]
             )
+        elseif use_avnewz
+            prepare4dispatch.new_zscale(
+                joinpath(grid.info[i, "binned_tables"], "eos.hdf5"),
+                grid.info[i, "av_path"], 
+                grid.info[i, "logg"],
+                saveat=joinpath(grid.info[i, "binned_E_tables"], "inim.dat"),
+                common_size=grid.info[i, "initial_model_size"]
+            )
+        else
+            cp(grid.info[i, "av_path"], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), force=true)
         end
     end
 end

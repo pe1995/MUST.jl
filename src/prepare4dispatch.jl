@@ -399,6 +399,48 @@ function adiabat(eospath, av_path, logg; common_size=1000, saveat=nothing, kwarg
 	a
 end
 
+function new_zscale(eospath, av_path, logg; common_size=1000, saveat=nothing, kwargs...)
+    eos = reload(
+        SqEoS,
+        joinpath(eospath)
+    )
+    aos = @axed eos
+
+    # interpolate to equally spaced in z
+	# for this we need to construct a new z scale 
+	mnew = TSO.flip(@optical(Average3D(aos, av_path, logg=logg), aos), depth=true)
+
+    a = if maximum(log10.(mnew.τ)) < 0.0
+        @warn "New Z scale could not be computed for $(basename(av_path))."
+        mnew
+    else
+        # recompute z scale from opacity
+        znew = TSO.rosseland_depth(aos, mnew)
+        mnew.z .= znew
+
+        # find the optical surface
+        TSO.optical_surface!(mnew)
+        TSO.flip!(mnew)
+
+        # We now can interpolate everthing to this new z scale
+        TSO.flip(
+            TSO.interpolate_to(
+                mnew, 
+                z=collect(range(maximum(mnew.z), minimum(mnew.z), length=common_size))
+            ), 
+            depth=false
+        )
+    end
+
+    if !isnothing(saveat)
+		open(saveat, "w") do f
+			MUST.writedlm(f, [a.z exp.(a.lnT) a.lnρ])
+		end
+	end
+
+    a
+end
+
 
 
 
@@ -421,7 +463,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
 
     models = []
     for i in 1:nrow(grid.info)
-        append!(models, [@optical(Average3D(eos[i], grid.info[i, "av_path"], logg=grid.info[i, "logg"]), eos[i], opa[i])])
+        #append!(models, [@optical(Average3D(eos[i], grid.info[i, "av_path"], logg=grid.info[i, "logg"]), eos[i], opa[i])])
+        append!(models, [@optical(Average3D(eos[i], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), logg=grid.info[i, "logg"]), eos[i], opa[i])])
     end
 
     rho_norm = zeros(nrow(grid.info))

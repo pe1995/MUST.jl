@@ -288,6 +288,12 @@ initial_adiabats = NamedTuple(
 	) for name in pick_initial_models
 )
 
+# ╔═╡ 55581a87-2638-4f85-9ad7-7313c37c1971
+labels_adiabat = NamedTuple(
+	name=>"adiabat: $(name)"
+	for name in pick_initial_models
+)
+
 # ╔═╡ e6d33b23-e77c-43d3-b401-c5620721d659
 md"## Stagger models"
 
@@ -408,7 +414,7 @@ plot_given && let
 			initial_adiabats[name].z, exp.(initial_adiabats[name].lnT), 
 			lw=1., 
 			color=colors_initial[name],
-			label=labels_initial[name],
+			label=labels_adiabat[name],
 			alpha=0.7,
 			ls="--"
 		)
@@ -719,8 +725,8 @@ md"Pick what should be plotted as a function of time"
 
 # ╔═╡ f2f27ccc-358b-4bec-9506-b31c27d6f759
 begin
-	xlim = [-0.5e8, 0.7e8]
-	ylim = [2500, 10000]
+	xlim = [-4.5e8, 1.7e8]
+	ylim = [2500, 17000]
 
 	xlabel = L"\rm z\ [cm]"
 	ylabel = L"\rm temperature\ [K]"
@@ -758,13 +764,25 @@ if start_timeevolution
 
 	fF, axF = plt.subplots(1, 1, figsize=(5, 6))
 
-	axF.plot(
-		initial_profile_to_plot(initial_model[models])..., 
-		lw=1., 
-		color=colors_initial[models],
-		alpha=0.7,
-		ls="--"
-	)
+	if models in keys(initial_model)
+		axF.plot(
+			initial_profile_to_plot(initial_model[models])..., 
+			lw=1., 
+			color=colors_initial[models],
+			alpha=0.7,
+			ls="--"
+		)
+	end
+
+	if models in keys(initial_adiabats)
+		axF.plot(
+			initial_profile_to_plot(initial_adiabats[models])..., 
+			lw=1., 
+			color=colors_initial[models],
+			alpha=0.7,
+			ls="-"
+		)
+	end
 
 	color_sequence = [
 		cmap_time(i/length(snaps_converted)) for i in eachindex(snaps_converted)
@@ -848,6 +866,7 @@ end
 # ╟─d55bae1d-1ca1-4537-8af1-c025a966c3b3
 # ╟─271e4e9c-def2-4b3e-b383-45d95fbb309b
 # ╟─c561e5a2-dfd6-4de9-80b5-9f6ae100b217
+# ╟─55581a87-2638-4f85-9ad7-7313c37c1971
 # ╟─e6d33b23-e77c-43d3-b401-c5620721d659
 # ╟─bd41fb98-70c4-4192-8753-6fee82f14576
 # ╟─b90c53aa-9ca6-421c-9b2f-f650a1f0832f
