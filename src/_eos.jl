@@ -154,7 +154,7 @@ Lookup function. Log is done automaticall if requested in EOS
 """
 lookup(eos::PythonEOS, parameter, variables::AbstractVector...) = begin
     in_var = [eos.log_variable[i] ? log.(v) : v for (i,v) in enumerate(variables)]
-    eos.eos.lookup("$(parameter)", in_var...)
+    MUST.pyconvert.(Any, eos.eos.lookup("$(parameter)", in_var...))
 end
 
 lookup(eos::PythonEOS, parameter, variables::T...) where {T<:AbstractFloat} = lookup(eos, parameter, [T[v] for v in variables]...)

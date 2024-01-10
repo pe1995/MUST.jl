@@ -85,6 +85,37 @@ end
 
 
 
+function _var_from_patch(var, fname, shp, off, li, ui, idxd; density=:d)
+    if var==:ux
+        varidx = pyconvert(Any, idxd[String(:px)]) + 1
+        didx = pyconvert(Any, idxd[String(:d)]) + 1
+
+        d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+        mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
+    elseif var==:uy
+        varidx = pyconvert(Any, idxd[String(:py)]) + 1
+        didx = pyconvert(Any, idxd[String(:d)]) + 1
+
+        d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+        mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
+    elseif var==:uz
+        varidx = pyconvert(Any, idxd[String(:pz)]) + 1
+        didx = pyconvert(Any, idxd[String(:d)]) + 1
+
+        d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+        mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
+    elseif var==:ee
+        varidx = pyconvert(Any, idxd[String(:e)]) + 1
+        didx = pyconvert(Any, idxd[String(:d)]) + 1
+
+        d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+        mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
+    else
+        varidx = pyconvert(Any, idxd[String(var)]) + 1
+        mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+    end
+end
+
 """
 Create a Space object from a Dispatch simulation snapshot.
 
@@ -100,7 +131,7 @@ Returns
 MUST.Space type object
 
 """
-function Space(snapshot::Py, quantities::Symbol...) 
+function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false) 
     qs = Dict{Symbol,Vector{Float32}}(q=>Float32[] for q in quantities)
     qs[:x] = Float32[]; qs[:y] = Float32[]; qs[:z] = Float32[]
     qs[:i_patch] = Int[]
@@ -108,19 +139,31 @@ function Space(snapshot::Py, quantities::Symbol...)
     
     for (i,patch) in enumerate(snapshot.patches)
         # grid of this patch relative to the global grid
-        patch_size = (length(patch.xi),length(patch.yi),length(patch.zi))
+        #patch_size = (length(patch.xi),length(patch.yi),length(patch.zi))
         x = pyconvert.(Float32, patch.xi)
         y = pyconvert.(Float32, patch.yi) 
         z = pyconvert.(Float32, patch.zi)
+        patch_size = (length(x), length(y), length(z))
         patch_dimensions[i,1] = length(patch.xi)
         patch_dimensions[i,2] = length(patch.yi)
         patch_dimensions[i,3] = length(patch.zi)
+
+        # New: Dont rely on numpy for mmaps
+        fname = pyconvert(Any, patch.filename)
+		shp = Tuple(pyconvert.(Any, patch.ncell))
+		off = pyconvert(Vector{Int}, patch.offset)
+		li = pyconvert(Vector{Int}, patch.li)
+		ui = pyconvert(Vector{Int}, patch.ui)
+        idxd = patch.idx.__dict__
         
         # extract the quantites for this patch
-        for (iq, q) in enumerate(quantities)
-            q_matrix = pyconvert(Array{Float32, 3}, numpy.array(patch.var(String(q))))
-            q_array  = zeros(Float32, prod(patch_size))
-            coords   = zeros(Float32, (prod(patch_size),3))
+        for (iq, q) in enumerate(quantities)            
+            q_matrix = use_numpy ? 
+                pyconvert(Array{Float32, 3}, numpy.array(patch.var(String(q)))) :
+                _var_from_patch(q, fname, shp, off, li, ui, idxd, density=density) 
+            
+            q_array = zeros(Float32, prod(patch_size))
+            coords = zeros(Float32, (prod(patch_size),3))
             j = 1
             @inbounds for iz in 1:patch_size[3]
                 @inbounds for iy in 1:patch_size[2]
@@ -383,6 +426,139 @@ end
 end   
 
 
+
+#= Boxes from snapshots wihout Spaces =#
+
+_add_if_not_exists!(arr, data) = begin
+	@inbounds for entry in data
+		if !(entry in arr)
+			append!(arr, entry)
+		end
+	end
+end
+
+function _build_cube(patch_data)
+	# (x, y, z), (li, ui), (patches...)
+	patch_range = zeros(Int, 3, 2, length(patch_data))
+
+	global_x = []
+	global_y = []
+	global_z = []
+	@inbounds for i in eachindex(patch_data)
+		_add_if_not_exists!(global_x, patch_data[i][:x])
+		_add_if_not_exists!(global_y, patch_data[i][:y])
+		_add_if_not_exists!(global_z, patch_data[i][:z])
+	end
+
+	global_x .= sort(global_x)
+	global_y .= sort(global_y)
+	global_z .= sort(global_z)
+
+	p = zeros(3)
+	@inbounds for i in eachindex(patch_data)
+		p[1] = first(patch_data[i][:x])
+		p[2] = first(patch_data[i][:y])
+		p[3] = first(patch_data[i][:z])
+		patch_range[:, 1, i] .= _find_in_meshgrid(p, global_x, global_y, global_z)
+
+		p[1] = last(patch_data[i][:x])
+		p[2] = last(patch_data[i][:y])
+		p[3] = last(patch_data[i][:z])
+		patch_range[:, 2, i] .= _find_in_meshgrid(p, global_x, global_y, global_z)
+	end
+	
+	global_x, global_y, global_z, patch_range
+end
+
+"""
+	Box(snap::Py)
+
+Convert a snapshot to a `Box`. Assumes that the patch arangement is cubic, i.e. there is no local mesh refinement. If this is not true, convert to `Space` first, and the interpolate to `Box`.
+"""
+function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
+	# first we loop through and get the sizes of all patches
+	patch_data = []
+	@inbounds for (i, patch) in enumerate(snap.patches)
+		x = pyconvert.(Float32, patch.xi)
+        y = pyconvert.(Float32, patch.yi) 
+        z = pyconvert.(Float32, patch.zi)
+
+        fname = pyconvert(Any, patch.filename)
+		shp = Tuple(pyconvert.(Any, patch.ncell))
+		off = pyconvert(Vector{Int}, patch.offset)
+		li = pyconvert(Vector{Int}, patch.li)
+		ui = pyconvert(Vector{Int}, patch.ui)
+        idxd = patch.idx.__dict__
+
+		meta = Dict(
+			:x=>x,
+			:y=>y,
+			:z=>z,
+			:fname=>fname,
+			:shp=>shp,
+            :off=>off,
+            :li=>li,
+            :ui=>ui,
+            :idxd=>idxd
+		)
+		append!(patch_data, [meta])
+	end
+
+	x, y, z, patch_range = _build_cube(patch_data)
+	
+	# now we create the data arrays
+	data = if use_mmap
+		Dict{Symbol,Array{Float32,3}}(
+			q=>Array{Float32, 3}(undef, length(x), length(y), length(z)) 
+			for q in quantities
+		)
+	else
+		pname = tempname(pwd())
+		io = open(pname, "w+")
+		d = mmap(io, Array{Float32, 4}, (length(x), length(y), length(z), length(quantities)))
+		Dict{Symbol,Array{Float32,3}}(
+			q=>@view d[:, :, :, i] 
+			for (i, q) in enumerate(quantities)
+		)
+	end
+
+	# and we loop through the patches, read the mmaps, and fill them in the data arrays
+	r = zeros(Int, 3, 2)
+	@inbounds for (i, pd) in enumerate(patch_data)
+		r .= patch_range[:, :, i]
+		@inbounds for (j, q) in enumerate(quantities)
+			data[q][r[1,1]:r[1,2], r[2,1]:r[2,2], r[3,1]:r[3,2]] .= _var_from_patch(
+				q, 
+				pd[:fname], 
+				pd[:shp], 
+				pd[:off], 
+				pd[:li], 
+				pd[:ui], 
+				pd[:idxd], 
+				density=density
+			)
+		end
+	end
+
+	time = pyconvert(Any, snap.nml_list["snapshot_nml"]["time"])
+	xx, yy, zz = meshgrid(x, y, z)
+	Box(
+		xx, yy, zz, data,
+		AtmosphericParameters(
+			time, 
+			Base.convert(typeof(time), -99.0), 
+			Base.convert(typeof(time), -99.0), 
+			Dict{Symbol, typeof(time)}()
+		)
+	)
+end
+
+
+
+
+
+
+
 """
 Filter the Space object.
 
@@ -499,13 +675,22 @@ function add_from_EOS(b::MUST.Box, eos::AbstractEOS, quantity::Symbol;
                 EOS_paras=(:d,:ee), 
                 convert_to=Base.identity)
     r = similar(b[EOS_paras[1]]) 
-    for j in axes(b.z, 2)
-        for i in axes(b.z ,1)
+    r .= convert_to.(
+        lookup(
+            eos, 
+            String(quantity), 
+            b[EOS_paras[1]],
+            b[EOS_paras[2]]
+            )
+        )
+
+    #=@inbounds for j in axes(b.z, 2)
+        @inbounds for i in axes(b.z ,1)
             r[i, j, :] = convert_to.(lookup(eos, String(quantity), 
                             view(b[EOS_paras[1]], i, j, :), 
                             view(b[EOS_paras[2]], i, j, :)))
         end
-    end
+    end=#
 
     r
 end
@@ -655,6 +840,29 @@ function save(s::MUST.Box; folder=nothing, name=nothing)
 
     close(fid)
     path
+end
+
+"""
+    save(s::Box, number::Int)
+
+Identify on which scale the box is and save it with the correct name.
+"""
+save(s::Box, number::Int; folder=nothing) = begin
+    name = is_geo_scale(s) ? "box_sn$(number)" : "box_tau_sn$(number)"
+
+    save(s, name=name, folder=folder)
+end
+
+is_geo_scale(s::Box) = begin
+    all_equal = trues(size(s.z, 3))
+    zref = s.z[1, 1, :]
+    for iy in axes(s.y, 2)
+        for ix in axes(s.x, 1)
+            all_equal .= all_equal .& (zref .≈ s.z[ix, iy, :])
+        end
+    end
+
+    all(all_equal)
 end
 
 function save(p::AtmosphericParameters, fid)
@@ -1526,7 +1734,9 @@ function converted_snapshots(folder)
 	snaps
 end
 
-"""Sort converted snapshots."""
+"""
+Sort converted snapshots.
+"""
 list_snapshots(snapshots) = sort([k for k in keys(snapshots) if k != "folder"])
 
 """
@@ -1651,8 +1861,7 @@ Base.axes(b::Box, args...; kwargs...) = axes(b.z, args...; kwargs...)
 Base.size(b::Box, args...; kwargs...) = size(b.z, args...; kwargs...)
 
 closest(a, v) = argmin(abs.(a .- v))
-
-
+    
 
 is_log(x) = begin
 	sx = String(x)
@@ -1754,7 +1963,7 @@ mesh(m::Box) = meshgrid(
 Flip the box object and possibly reverse the sign of the height scale (only geometrical).
 It used the density to determine where the bottom is.
 """
-function flip!(box::Box; density=:d, temperature=:T)
+function flip!(box::Box; density=:d, uz=:uz)
     # Determine if it is oriented from bottom to top
     d = box[density][1, 1, :]
     is_upside_down = first(d) < last(d)
@@ -1769,9 +1978,10 @@ function flip!(box::Box; density=:d, temperature=:T)
         reverse!(box.z, dims=3)
     end
 
-    # Now it is from bottom to top, so the first value in z should be the smalles value
+    # Now it is from bottom to top, so the first value in z should be the smallest value
     if box.z[1, 1, 1] > box.z[1, 1, end]
         box.z .*= -1
+        box.data[uz] .*= -1
     end
 
     box

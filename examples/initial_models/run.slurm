@@ -1,9 +1,11 @@
 #!/bin/sh
 #SBATCH --job-name='TSOGRID'
 #SBATCH --nodes=1
-#SBATCH --ntasks=2
-#SBATCH --cpus-per-task=30
-#SBATCH --mem=200G
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=32
+##SBATCH --mem=200G
+#SBATCH --mem=100G
 #SBATCH --time=05:00:00
 
-julia $1
+julia $@

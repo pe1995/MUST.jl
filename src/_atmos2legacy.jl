@@ -78,28 +78,35 @@ end
 """
 Convert legacy snapshot to Box object.
 """
-function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true)
-    stagger_box = if !gridded
-        @warn "Data is assumed to be unstructured! Interpolation will be very slow for the whole cube."
-        ## First create a space object, because the snapshot is not spaced equally
-        stagger_space = Space(s, :r, :px, :py, :pz, :temp, :pp, :ross, :tau, :ee, :e)
+function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip_interpolation=false, max_resolution=true)
+    stagger_box = if !skip_interpolation
+        if !gridded
+            @warn "Data is assumed to be unstructured! Interpolation will be very slow for the whole cube."
+            ## First create a space object, because the snapshot is not spaced equally
+            stagger_space = Space(s, :r, :px, :py, :pz, :temp, :pp, :ross, :tau, :ee, :e)
 
-        ## Now we interpolate this space to a box object with equal size 
-        new_x = uniform_grid(stagger_space, length(s[:x]), :x)
-        new_y = uniform_grid(stagger_space, length(s[:y]), :y)
-        new_z = uniform_grid(stagger_space, length(s[:z]), :z)
-        Box(stagger_space, new_x, new_y, new_z)
+            ## Now we interpolate this space to a box object with equal size 
+            new_x = uniform_grid(stagger_space, length(s[:x]), :x)
+            new_y = uniform_grid(stagger_space, length(s[:y]), :y)
+            new_z = uniform_grid(stagger_space, length(s[:z]), :z)
+            Box(stagger_space, new_x, new_y, new_z)
+        else
+            uniform!(s, max_resolution=max_resolution)
+            new_x = s[:x]
+            new_y = s[:y]
+            new_z = s[:z]
+            s
+        end
     else
-        uniform!(s)
         new_x = s[:x]
         new_y = s[:y]
         new_z = s[:z]
         s
     end
 
-    @assert all(new_x[2:end] .- new_x[1:end-1] .≈ new_x[2] - new_x[1])
-    @assert all(new_y[2:end] .- new_y[1:end-1] .≈ new_y[2] - new_y[1])
-    @assert all(new_z[2:end] .- new_z[1:end-1] .≈ new_z[2] - new_z[1])
+    #@assert all(new_x[2:end] .- new_x[1:end-1] .≈ new_x[2] - new_x[1])
+    #@assert all(new_y[2:end] .- new_y[1:end-1] .≈ new_y[2] - new_y[1])
+    #@assert all(new_z[2:end] .- new_z[1:end-1] .≈ new_z[2] - new_z[1])
 
     ## The snapshot is already ordered in the normal way
     d  = stagger_box[:r]
@@ -107,7 +114,7 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true)
     uy = stagger_box[:py] ./ d
     uz = -1 .* stagger_box[:pz] ./ d
     
-    data = Dict{Symbol, Array{Float32, 3}}( :d=>d, :pp=>stagger_box[:pp],   :T=>stagger_box[:temp], 
+    data = Dict{Symbol, Array{Float32, 3}}( :d=>d, :pp=>stagger_box[:pp],   :T=>stagger_box[:temp], :ne=>stagger_box[:ne],
                                             :ross=>stagger_box[:ross] ./ d, :τ=>stagger_box[:tau],
                                             :px=>stagger_box[:px],          :py=>stagger_box[:py], :pz=>-1 .*stagger_box[:pz],
                                             :ux=>ux,                        :uy=>uy,               :uz=>uz,
@@ -158,7 +165,7 @@ Interpolate a Stagger snapshot column wise to new equidistant grid. It assumes
 that the data is gridded and already unifrom in x and y.
 It will interpolate the cube column by column in z and keep the dimensions.
 """
-function uniform!(s::StaggerSnap, max_resolution=true)
+function uniform!(s::StaggerSnap; max_resolution=true)
     T     = eltype(valtype(s.data))
     old_z = s[:z]
     

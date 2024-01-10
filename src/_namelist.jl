@@ -268,7 +268,9 @@ function get_restart_snap_nml(nml::StellarNamelist)
     s
 end
 
-"""Set fields of the Namelist. Enter field=(parameter=>value,...)"""
+"""
+Set fields of the Namelist. Enter field=(parameter=>value,...)
+"""
 function set!(nml::AbstractNamelist; kwargs...)
     for (field,paras) in kwargs
         if !(typeof(paras) <: Tuple) 

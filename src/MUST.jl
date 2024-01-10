@@ -17,6 +17,7 @@ using DelimitedFiles
 using TimerOutputs
 using NetCDF
 using Integrals
+using Mmap
 import Base.filter, Base.filter!
 import Base.getindex
 import Base.getproperty
@@ -25,6 +26,7 @@ import Base.keys
 import Base.read!, Base.write
 import Base.size, Base.axes
 import Base.Broadcast.broadcastable
+import Base.:+
 
 
 #= Python modules =#
@@ -66,10 +68,10 @@ end
 
 
 #= MUST interface =#
-export import_dispatch, @in_dispatch, import_m3dis, @in_m3dis
+export @import_dispatch, @in_dispatch, @import_m3dis, @in_m3dis
 export Space, spacebox, Box, add!, profile, time_average_profile, flip!
-export multiBox
-export pick_snapshot
+export multiBox, snapshotBox
+export pick_snapshot, list_of_snapshots, converted_snapshots
 export ginterpolate, gevaluate, gevaluate!, gresample, Grid
 export plane_statistic 
 
@@ -104,6 +106,6 @@ include("_multi.jl")
 include("_atmos2legacy.jl")
 include("_atmos2multi.jl")
 include("_read_marcs.jl")
-
+include("_convert.jl")
 
 end

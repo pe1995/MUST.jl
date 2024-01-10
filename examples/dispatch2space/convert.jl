@@ -12,7 +12,7 @@ if "SLURM_NTASKS" in keys(ENV)
     end
 else
     @warn "No Slurm environment detected. Using default addprocs."
-    addprocs(3)
+    addprocs(5)
 end
 
 @everywhere begin
@@ -26,8 +26,10 @@ end
 end
 
 @everywhere begin
-    MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
-    MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2" EOS select
+    MUST.@import_dispatch "../../../dispatch2"
+    #MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2" EOS select
+    #MUST.@import_dispatch "/home/eitner/shared/model_grid/dispatch2"
+    #MUST.@import_dispatch "/home/eitner/shared/model_grid/dispatch2" EOS select
 
     add_selection = false
 end
@@ -40,13 +42,13 @@ else
     snapshots         = sort(MUST.list_of_snapshots(content_of_folder))
     
     if !("SLURM_NTASKS" in keys(ENV))
-        istart = max(1, length(snapshots)-4)
+        istart = 1#max(1, length(snapshots)-30)
         snapshots = snapshots[istart:end-2]
     else
         #istart = max(1, length(snapshots)-10)
         #snapshots = snapshots[istart:end-2]
 
-        istart = max(1, length(snapshots)-11)
+        istart = 1#max(1, length(snapshots)-11)
         snapshots = snapshots[istart:end-2]
     end
 end
