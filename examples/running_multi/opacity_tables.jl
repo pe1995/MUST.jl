@@ -45,7 +45,11 @@ md"We split up the desired density-temperature grid in 1D atmospheres consisting
 modelatmosfolder = "input_multi3d/test_opac_table/"
 
 # ╔═╡ acd24cd4-3676-4a54-af7b-690564f97425
-models = TSO.opacityTableInput(MUST.@in_m3dis(modelatmosfolder))
+models = TSO.opacityTableInput(
+	MUST.@in_m3dis(modelatmosfolder),
+	lnT = range(log(1.1e3), log(5.5e5); length=159) |> collect, 
+    lnρ = range(log(1e-13), log(1e-3); length=159) |> collect
+)
 
 # ╔═╡ d32c241f-97c8-46db-9512-1c7111e03e99
 md"# Running M3D"
@@ -81,6 +85,10 @@ opacityTable(models; folder, linelist, λs, λe, δλ,
 				:long_scheme=>"disk_center",
 				:make_opac_table=>true
 			),
+			:composition_params=>(
+				:absdat_file=>"./input_multi3d/TS_absdat.dat",
+                :abund_file=>"./input_multi3d/abund_magg"
+			),
             kwargs...
 		),
 		slurm=slurm
@@ -93,7 +101,7 @@ if compute
 		models; 
 		folder=modelatmosfolder, 
 		linelist=linelists,
-		λs=log(1000), λe=log(100000), δλ=0.0003, in_log=true,
+		λs=log(1000), λe=log(100000), δλ=0.00003, in_log=true,
 		slurm=true
 	)
 end
@@ -136,7 +144,13 @@ m3dis_models = [MUST.M3DISRun("data/$(m)") for m in models]
 end=#
 
 # ╔═╡ 2c3eef18-c8fb-42a0-ba56-607cc99d1b36
-eos, opa = TSO.collect_opacity(m3dis_models)
+begin
+	eos, opa = TSO.collect_opacity(m3dis_models)
+	dirname = "m3dis_a0_m0_magg22"
+	!isdir(dirname) && mkdir(dirname)
+	save(eos, joinpath(dirname, "combined_eos.hdf5"))
+	save(opa, joinpath(dirname, "combined_opacities.hdf5"))
+end
 
 # ╔═╡ 056c6791-ed98-4c49-a424-e1ac72e6b22a
 aos = @axed eos
@@ -151,6 +165,7 @@ begin
 	)
 
 	plt.colorbar()
+	plt.savefig(joinpath(dirname,"opacity.png"))
 	
 	gcf()
 end
@@ -164,6 +179,7 @@ begin
 	)
 
 	plt.colorbar()
+	plt.savefig(joinpath(dirname,"lnEi.png"))
 	
 	gcf()
 end
@@ -177,6 +193,8 @@ begin
 	)
 
 	@show length(opa.λ)
+
+	plt.savefig(joinpath(dirname,"lambda_opacity.png"))
 	
 	gcf()
 end
@@ -188,6 +206,8 @@ begin
 	plt.scatter(
 		log10.(opa.λ), log10.(opa.src[10, 10, :]), s=2
 	)
+
+	plt.savefig(joinpath(dirname,"lambda_sourcefunction.png"))
 	
 	gcf()
 end
