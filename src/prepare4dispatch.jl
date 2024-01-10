@@ -449,7 +449,7 @@ end
 resolution!(grid::MUST.AbstractMUSTGrid; 
                             patch_size=30, scale_resolution=1.0, 
                             τ_up=-4.5, τ_surf=0.0, τ_down=5.5,
-                            τ_ee0=-1.0, τ_eemin=-1.0, τ_zee0=-1.0, τ_rho0=-2.0) = begin
+                            τ_ee0=-1.0, τ_eemin=-1.0, τ_zee0=-1.0, τ_rho0=-2.0, use_inim=false) = begin
     xr, zr = zeros(Int, nrow(grid.info)), zeros(Int, nrow(grid.info))
     xd, zd = zeros(Float64, nrow(grid.info)), zeros(Float64, nrow(grid.info))
 
@@ -463,8 +463,11 @@ resolution!(grid::MUST.AbstractMUSTGrid;
 
     models = []
     for i in 1:nrow(grid.info)
-        #append!(models, [@optical(Average3D(eos[i], grid.info[i, "av_path"], logg=grid.info[i, "logg"]), eos[i], opa[i])])
-        append!(models, [@optical(Average3D(eos[i], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), logg=grid.info[i, "logg"]), eos[i], opa[i])])
+        if !use_inim
+            append!(models, [@optical(Average3D(eos[i], grid.info[i, "av_path"], logg=grid.info[i, "logg"]), eos[i], opa[i])])
+        else
+            append!(models, [@optical(Average3D(eos[i], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), logg=grid.info[i, "logg"]), eos[i], opa[i])])
+        end
     end
 
     rho_norm = zeros(nrow(grid.info))
