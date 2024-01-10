@@ -26,17 +26,17 @@ end
 #= Dispatch setup =#
 begin
     patch_size = 22                 # Points per patch
-    τ_up = -4.5                     # Upper limit of simulation domain
+    τ_up = -4.2                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 6.0                    # Lower limit of simulation domain
+    τ_down = 6.5                    # Lower limit of simulation domain
     τ_ee0 = -0.35                   # Newton cooling placement (energy)
     τ_eemin = -0.35                 # Mininmum energy of initial condition
-    τ_zee0 = -1.5                   # Newton cooling placement (height)
-    τ_rho0 = -0.0                   # Density normaliztion height
+    τ_zee0 = -1.0                   # Newton cooling placement (height)
+    τ_rho0 = 0.5                   # Density normaliztion height
     scale_resolution = 0.9          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
-        :newton_time=>50.0,         #   Optional: Give namelist field = NamedTuple 
-        :newton_decay_scale=>5.0,   #   for direct namelist replacement
+        :newton_time=>100.0,         #   Optional: Give namelist field = NamedTuple 
+        :newton_decay_scale=>10.0,   #   for direct namelist replacement
         :courant_target=>0.2,
         :courant_rt=>0.2,
         :newton_params=>(
@@ -44,7 +44,7 @@ begin
             :delay_rt=>true
         ),
         :io_params=>(
-            :out_time=>0.25,
+            :out_time=>0.5,
         )            
     )
 end
