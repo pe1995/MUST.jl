@@ -168,7 +168,7 @@ First we need to run M3D in the unbinned case, compute the heating, and the run 
 compute = true 
 
 # ╔═╡ cbe117c0-f6c7-44bb-a86e-3d57362666d7
-m3d_binned = if compute 
+m3d_binned = if compute
 	MUST.heating(
 		modelatmos, 
 		joinpath(folder_eos_rel, "eos_opa"),
@@ -177,7 +177,8 @@ m3d_binned = if compute
 				:linelist=>nothing,
 				:absmet=>nothing,
 				:atom_params=>(:atom_file=>"", ),
-				:spectrum_params=>(:daa=>1., :aa_blue=>1500, :aa_red=>4000),
+				:spectrum_params=>(
+				),
 				:atmos_params=>(
 					:dims=>1, 
 					:atmos_format=>model_type,
@@ -198,10 +199,15 @@ m3d_unbinned = if compute
 		modelatmos, 
 		namelist_kwargs=(
 			:model_folder=>modelatmosfolder,
-			:linelist=>nothing,
-			:absmet=>absmet,
+			:linelist=>linelist,
+			:absmet=>nothing,
 			:atom_params=>(:atom_file=>"", ),
-			:spectrum_params=>(:daa=>1., :aa_blue=>1500, :aa_red=>9000),
+			:spectrum_params=>(
+				:daa=>0.1, 
+				:aa_blue=>1000, 
+				:aa_red=>10000,
+				:in_log=>false,
+			),
 			:atmos_params=>(
 				:dims=>1, 
 				:atmos_format=>model_type,
@@ -230,10 +236,10 @@ function get_heating(run)
 end
 
 # ╔═╡ 4fe50a65-7729-4a13-ab39-d81c62fae60d
-tau_unbinned, qrad_unbinned = get_heating(m3d_unbinned)
+tau_unbinned, qrad_unbinned = get_heating(m3d_unbinned)  
 
 # ╔═╡ 12e97194-909a-493a-a242-9bf21e736713
-tau_binned, qrad_binned = get_heating(m3d_binned)
+tau_binned, qrad_binned = get_heating(m3d_binned) 
 
 # ╔═╡ 858b7fc4-9d95-4a18-aabb-7621ccf90b91
 md"## API Integration
@@ -298,6 +304,12 @@ modelunbinned = attach_heating(modelBox, m3d_unbinned)
 # ╔═╡ 638dd690-d2f0-4381-b371-8fb444c18e5f
 profile(MUST.std, modelbinned, :log10tau, :qrad)
 
+# ╔═╡ 3b77d0f8-009e-4076-b84b-2f48deafed68
+rellim(arr) = begin
+	(minimum(arr) - 0.1*(maximum(arr)-minimum(arr)),
+	 maximum(arr) + 0.1*(maximum(arr)-minimum(arr)))
+end
+
 # ╔═╡ 134144b6-6f21-42d5-a816-fd5bb57b9e55
 begin
 	plt.close()
@@ -306,18 +318,33 @@ begin
 
 	rms(x) = sqrt(MUST.mean(x .^2))
 	stat = MUST.mean
-	
+
+	xH1, yH1 = profile(stat, modelbinned, :log10tau, :qrad)
 	axH[0].plot(
-		profile(stat, modelbinned, :log10tau, :qrad)..., 
+		xH1, yH1, 
 		label="binned",
 		color="r"
 	)
-	
+
+	xH2, yH2 = profile(stat, modelunbinned, :log10tau, :qrad)
 	axH[1].plot(
-		profile(stat, modelunbinned, :log10tau, :qrad)..., 
+		xH2, yH2,
 		label="unbinned",
 		color="k"
 	)
+
+	axH[0].set_xlim(-6, 5)
+	axH[1].set_xlim(-6, 5)
+	
+
+	xlim = pc.(axH[0].get_xlim())
+	ylim = rellim(yH1[xlim[1] .<= xH1 .<= xlim[2]])
+	axH[0].set_ylim(ylim...)
+
+	xlim = pc.(axH[1].get_xlim())
+	ylim = rellim(yH2[xlim[1] .<= xH2 .<= xlim[2]])
+	axH[1].set_ylim(ylim...)
+	
 
 	axH[0].legend(framealpha=0)
 	axH[1].legend(framealpha=0)
@@ -391,12 +418,13 @@ end
 # ╠═4fe50a65-7729-4a13-ab39-d81c62fae60d
 # ╠═12e97194-909a-493a-a242-9bf21e736713
 # ╟─858b7fc4-9d95-4a18-aabb-7621ccf90b91
-# ╠═0d6bc811-6e93-4f79-bbb2-1081c9314e7b
+# ╟─0d6bc811-6e93-4f79-bbb2-1081c9314e7b
 # ╠═2295240c-cca2-441a-b901-437e1d7f8924
 # ╟─5d155f12-b42c-43da-918e-6714bfbb0eac
 # ╠═ae25d7f5-afad-4e41-8125-336c67047d33
 # ╠═e85054fc-fa63-48cc-959a-1fa4c4df6965
 # ╠═06168a77-8a58-41a6-8305-dcc32a71ab7f
 # ╠═638dd690-d2f0-4381-b371-8fb444c18e5f
+# ╟─3b77d0f8-009e-4076-b84b-2f48deafed68
 # ╟─134144b6-6f21-42d5-a816-fd5bb57b9e55
 # ╟─6618b520-84f2-4fc6-a18a-dcec79cfff79

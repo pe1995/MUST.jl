@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.26
+# v0.19.30
 
 using Markdown
 using InteractiveUtils
@@ -556,6 +556,23 @@ begin
 	axA[1].set_ylim(-8.75, -6.25)
 	
 	
+	gcf()
+end
+
+# ╔═╡ e73c5a0e-ae3b-4bbd-b098-d8e6ff215c2e
+begin
+	ftest, axtest = plt.subplots(1, 1)
+	m3disAtest = pick_snapshot(out_folder[models["t45g40m00"]], :recent) |> first
+
+	axtest.plot(profile(mean, m3disAtest, :z, :T)...)
+
+	axtest.plot(
+		-marcs_models[4].structure["Depth"], marcs_models[4].structure["T"],
+		color="k",
+		ls=":",
+		label=L"\rm MARCS"
+	)
+
 	gcf()
 end
 
@@ -1623,12 +1640,15 @@ begin
 	vmin = minimum([minimum(u) for u in uzG])
 	vmax = maximum([maximum(u) for u in uzG])
 
+	vmax = min(abs.([vmin, vmax])...)
+	vmin = -vmax
+
 	# plot the surface in uz
 	imG = axG.imshow(
 		uzG,
 		origin="lower",
 		vmin=vmin, vmax=vmax,
-		cmap="hot",
+		cmap="coolwarm",
 		extent=extent(m3disG)
 	)
 
@@ -1786,7 +1806,7 @@ begin
 		models["t55g45m00"], 
 		models["t60g45m00"], 
 		models["t65g45m00"],
-		models["t45g40m00"]
+		#models["t45g40m00"]
 	]
 	lsJ     = ["-", "--", "-", ":"]
 	lwJ     = [1.5, 1.5, 3, 2.0]
@@ -1794,7 +1814,7 @@ begin
 		L"\rm 5500\ K, 4.5\ dex", 
 		L"\rm 6000\ K, 4.5\ dex", 
 		L"\rm 6500\ K, 4.5\ dex",
-		L"\rm 4500\ K, 4.0\ dex"
+		#L"\rm 4500\ K, 4.0\ dex"
 	]
 	
 	
@@ -1855,6 +1875,10 @@ begin
 		
 	end
 
+	#axJ[0].plot(
+	#	marcs_models[4].structure["lgTauR"], marcs_models[4].structure["T"]
+	#)
+
 	axJ[0].legend(framealpha=0, labelspacing=0.01, handlelength=hl)
 	
 	axJ[0].set_ylabel(L"\rm T\ [K]")
@@ -1896,19 +1920,22 @@ begin
 		fK, axK = plt.subplots(1, 1, figsize=(5, 6))
 		#visual.basic_plot!(axK)
 		
-		m3disK = pick_snapshot(out_folder[model], -1) |> last
+		m3disK = pick_snapshot(out_folder[model], -2) |> last
 
 		# limits for color bar
 		uzK  = uz_surface_optical(m3disK) ./1e5
-		vmin = minimum([minimum(u) for u in uzK])
-		vmax = maximum([maximum(u) for u in uzK])
+		vmin = minimum(uzK)
+		vmax = maximum(uzK)
+
+		vmax = min(abs.([vmin, vmax])...)
+		vmin = -vmax
 	
 		# plot the surface in uz
 		imK = axK.imshow(
 			uzK,
 			origin="lower",
 			vmin=vmin, vmax=vmax,
-			cmap="hot",
+			cmap="coolwarm",
 			extent=extent(m3disK)
 		)
 		
@@ -2096,16 +2123,22 @@ end
 # ╔═╡ 0f3f07fa-660e-4117-a46e-792150a707b9
 function vertical_velocity_slice_with_contours(
 	mN, y0i, label, marcsT, marcsZ, levels; 
-	pickevery=2, quantity=:T, scale=identity,
+	pickevery=1, quantity=:T, scale=identity,
 	cbar_label="")
 
 	ipN = MUST.linear_interpolation(marcsT, marcsZ)
 	
 	plt.close()
-	fN, axN = plt.subplots(1, 1, figsize=(5, 6))		
+	fN, axN = plt.subplots(1, 1, figsize=(10, 6))		
 	
 	m3disNi = pick_snapshot(out_folder[mN], -1) |> first
-
+	#m3disNi = gresample(
+	#	m3disNi, 
+	#	nz=ceil(Int, size(m3disNi, 1)+1), 
+	#	nx=ceil(Int, size(m3disNi, 1)+1), 
+		#ny=ceil(Int, size(m3disNi, 1) /2)
+	#)
+	
 	y_y0N = MUST.axis(m3disNi, :y)[y0i] ./1e8
 	uxN = m3disNi[:ux][1:pickevery:end, y0i, 1:pickevery:end] ./1e5
 	uzN = m3disNi[:uz][1:pickevery:end, y0i, 1:pickevery:end] ./1e5
@@ -2118,11 +2151,11 @@ function vertical_velocity_slice_with_contours(
 
 	csN = axN.contourf(
 		xxN, zzN, TN, 
-		cmap="terrain", levels=levels, alpha=0.95, #linewidths=3,
+		cmap="coolwarm", levels=levels, alpha=0.99, #linewidths=3,
 	)
 	axN.contour(
 		xxN, zzN, TN, colors="k", #cmap="terrain",
-		levels=levels, alpha=0.15, linewidths=1.5, linestyles="solid",
+		levels=levels, alpha=0.3, linewidths=1.5, linestyles="solid",
 	)
 	#plt.clabel(csN, inline=1)
 
@@ -2134,9 +2167,48 @@ function vertical_velocity_slice_with_contours(
 	#fraction=visual.cbar_fraction, pad=visual.cbar_pad)
 
 	
-	axN.quiver(
-		xxN, zzN, uxN, uzN, color="k", scale=220, zorder=100, headwidth=3.2
+	#axN.quiver(
+	#	xxN, zzN, uxN, uzN, color="k", scale=220, zorder=100, headwidth=3.2
+	#)
+
+	
+	xxN = np.linspace(first(xxN), last(xxN), size(xxN, 1))
+	zzN = np.linspace(first(zzN), last(zzN), size(zzN, 2))	
+
+	lw = sqrt.(uxN.^2 .+ uzN .^2)
+	a = 0.05
+	b = 4.5
+	min_val = minimum(lw)
+    max_val = maximum(lw)
+    lw = a .+ (lw .- min_val) .* ((b - a) / (max_val - min_val))
+
+	color_binary = similar(uzN)
+	a = -1.0
+	b = 1.0
+	min_val = minimum(uzN)
+    max_val = maximum(uzN)
+    color_binary = a .+ (uzN .- min_val) .* ((b - a) / (max_val - min_val))
+
+	
+	uxNs = MUST.pyconvert(Array, (ndimage.gaussian_filter(uxN, sigma=2.8)))
+	uzNs = MUST.pyconvert(Array, (ndimage.gaussian_filter(uzN, sigma=2.8)))
+	
+	axN.streamplot(
+		xxN, 
+		zzN,
+		MUST.Py(uxNs).to_numpy().T, 
+		MUST.Py(uzNs).to_numpy().T, 
+		color="k",#MUST.Py(TN).to_numpy().T, #MUST.Py(color_binary).to_numpy().T,
+		zorder=100,
+		cmap="terrain",
+		density=0.5, 
+		arrowstyle="fancy",
+		#integration_direction="forward",
+		broken_streamlines=false,
+		linewidth=MUST.Py(lw).to_numpy().T, 
+		arrowsize=1.3
 	)
+	
 	axN.axhline(0.0, color="k", ls="-", lw=2)
 
 	axN.set_xlim(rellim(xxN)...)
@@ -2222,6 +2294,7 @@ function vertical_velocity_slice_with_contours(
 	axN.set_xlabel(L"\rm X\ [Mm]")
 	axN.set_xlabel(L"\rm X\ [Mm]")
 
+	quantity = quantity==:τ_ross ? "tross" : quantity
 	fN.savefig(
 		"vertical_slice_velocity-$(labels[mN])_$(quantity).png", dpi=600#, bbox_inches="tight"
 	)
@@ -2299,7 +2372,7 @@ begin
 		for _ in eachindex(modelsN)
 	]=#
 	
-	pickeveryN = 2
+	pickeveryN = 1
 	
 	for (i, mN) in enumerate(modelsN)
 		vertical_velocity_slice_with_contours(
@@ -2339,29 +2412,33 @@ begin
 		models["t55g45m00"], 
 		models["best"], 
 		models["t65g45m00"],
+		models["t45g40m00"]
 	]
 
 	marcs_TO = [
 		marcs_models[1].structure["T"],
 		marcs_model[:, 5],
-		marcs_models[3].structure["T"]
+		marcs_models[3].structure["T"],
+		marcs_models[4].structure["T"]
 	]
 
 	marcs_trO = [
 		marcs_models[1].structure["lgTauR"],
 		marcs_model[:, 2],
-		marcs_models[3].structure["lgTauR"]
+		marcs_models[3].structure["lgTauR"],
+		marcs_models[4].structure["lgTauR"]
 	]
 	
-	lwO = [1.5, 1.5, 1.5] .*2
+	lwO = [1.5, 1.5, 1.5, 1.5] .*2
 	
 	labelsO = [
 		L"\rm 5500\ K, 4.5\ dex", 
 		L"\rm 5777\ K, 4.44\ dex", 
-		L"\rm 6500\ K, 4.5\ dex"
+		L"\rm 6500\ K, 4.5\ dex",
+		L"\rm 4500\ K, 4.0\ dex"
 	]
 
-	colorsO = ["k", "k", "k"]
+	colorsO = ["k", "k", "k", "k"]
 end
 
 # ╔═╡ ff449d80-1610-45ef-9b0b-907d6de848f8
@@ -2508,10 +2585,11 @@ end
 # ╟─01f1b55d-ba4b-4d74-8eba-12ede107cfbf
 # ╟─3fb509e5-c611-45e2-b475-f43bd28ac53a
 # ╠═84fc6b08-0825-41ab-b214-5fef7e2a2dc0
-# ╟─35d2d2c5-6b70-4bb9-acdc-216557859282
+# ╠═35d2d2c5-6b70-4bb9-acdc-216557859282
 # ╠═40afa313-fd60-45ed-9b19-9123b9fc0579
 # ╟─381be17e-b257-4e51-aa79-941db153f398
 # ╟─e1517fd6-523f-4083-bb74-ebf666813002
+# ╠═e73c5a0e-ae3b-4bbd-b098-d8e6ff215c2e
 # ╟─f6f45939-55f8-42c3-b0d2-79c1cefb645c
 # ╟─d77216a7-038d-491f-b7c2-ba74d627e2a2
 # ╟─518657e8-1865-4ecf-bb57-73cb502b5b19
@@ -2559,10 +2637,10 @@ end
 # ╠═5003a0ce-7aa0-4a5e-9765-6129d7660e1b
 # ╠═6ce71e68-3e46-4ee7-9777-7a04342b5e2e
 # ╠═09c3002d-1839-4adf-9d47-1811f1c81bcd
-# ╟─e8da9c4e-3474-41ea-a441-a22b089d20d6
-# ╟─0f3f07fa-660e-4117-a46e-792150a707b9
+# ╠═e8da9c4e-3474-41ea-a441-a22b089d20d6
+# ╠═0f3f07fa-660e-4117-a46e-792150a707b9
 # ╟─22bc6765-400a-470b-9f9d-ff1365d97e33
 # ╟─4874c7a5-6dd4-457a-876d-431e31b5875d
 # ╟─64a75b01-b653-45d5-9c87-0f61391ca7a6
-# ╟─8db25fe1-0e7d-4004-98f1-8cae9c057ac9
-# ╟─ff449d80-1610-45ef-9b0b-907d6de848f8
+# ╠═8db25fe1-0e7d-4004-98f1-8cae9c057ac9
+# ╠═ff449d80-1610-45ef-9b0b-907d6de848f8

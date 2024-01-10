@@ -23,7 +23,7 @@ Submit a job corresponding to the given namelist and slurm setup. Optinally wait
 The slurm job will be run inside the loaded Multi environment, so make sure you have a.) created the namelist, and b) loaded multi correctly using the `@import_m3dis` macro.
 """
 function srun_m3dis(nml_name; 
-					threads=70, memMB=200000, timeout="05:00:00", wait=false)
+					threads=70, memMB=100000, timeout="15:00:00", wait=false)
 	ddir = @in_m3dis("")
 	
 	exec_name = "$(nml_name).export.sh"
