@@ -547,8 +547,8 @@ begin
 	axA[0].legend(framealpha=0, labelspacing=0.01, handlelength=hl)
 	
 	axA[0].set_ylabel(L"\rm T\ [K]")
-	axA[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]")
-	axA[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]")
+	axA[1].set_ylabel(L"\rm \log \rho\ [g \ cm^{-3}]")
+	axA[2].set_ylabel(L"\rm v_{z}\ [km \ s^{-1}]")
 	
 	axA[2].set_xlabel(L"\rm \log \tau_{ross}")
 	axA[2].set_xlim(-4, 2)
@@ -1089,7 +1089,7 @@ begin
 			L"\rm \Delta\ \left( <\log \rho>\right)"
 		)
 		axB[2].set_ylabel(
-			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]"
+			L"\rm \Delta\ \left( rms\ v_{z}\right)\ [km\ s^{-1}]"
 		)
 	end
 
@@ -1506,7 +1506,7 @@ begin
 			L"\rm \Delta\ \left( <\log \rho>\right)"
 		)
 		axC[2].set_ylabel(
-			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]"
+			L"\rm \Delta\ \left( rms\ v_{z}\right)\ [km\ s^{-1}]"
 		)
 	end
 
@@ -1882,8 +1882,8 @@ begin
 	axJ[0].legend(framealpha=0, labelspacing=0.01, handlelength=hl)
 	
 	axJ[0].set_ylabel(L"\rm T\ [K]")
-	axJ[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]")
-	axJ[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]")
+	axJ[1].set_ylabel(L"\rm \log \rho\ [g \ cm^{-3}]")
+	axJ[2].set_ylabel(L"\rm v_{z}\ [km \ s^{-1}]")
 	
 	axJ[2].set_xlabel(L"\rm \log \tau_{ross}")
 	axJ[2].set_xlim(-3.75, 3)
@@ -2638,9 +2638,9 @@ end
 # ╠═6ce71e68-3e46-4ee7-9777-7a04342b5e2e
 # ╠═09c3002d-1839-4adf-9d47-1811f1c81bcd
 # ╠═e8da9c4e-3474-41ea-a441-a22b089d20d6
-# ╠═0f3f07fa-660e-4117-a46e-792150a707b9
+# ╟─0f3f07fa-660e-4117-a46e-792150a707b9
 # ╟─22bc6765-400a-470b-9f9d-ff1365d97e33
 # ╟─4874c7a5-6dd4-457a-876d-431e31b5875d
 # ╟─64a75b01-b653-45d5-9c87-0f61391ca7a6
 # ╠═8db25fe1-0e7d-4004-98f1-8cae9c057ac9
-# ╠═ff449d80-1610-45ef-9b0b-907d6de848f8
+# ╟─ff449d80-1610-45ef-9b0b-907d6de848f8

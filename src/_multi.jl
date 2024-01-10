@@ -510,14 +510,16 @@ wien(T) = 2898e-4 /aa_to_cm / T
 
 
 
-Teff(λ, F) = begin
+Teff(λ::AbstractVector{T}, F::AbstractVector{T}) where {T<:AbstractFloat} = begin
     ν = reverse(CLight ./ (λ*aa_to_cm))
     Fl = reverse(F)
 
     (integrate(ν, Fl) /σ_S)^(1/4)
 end
 
-Teff(run) = Teff(run.lam, run.flux)
+Teff(F::AbstractVector{T}) where {T<:AbstractFloat} = (sum(F) /σ_S)^(1/4)
+
+Teff(run::M3DISRun) = Teff(run.lam, run.flux)
 
 """
     Teff(run)
@@ -525,5 +527,8 @@ Effective temperature from the M3D run.
 
     Teff(λ, F)
 Effective temperature from the flux itself.
+
+    Teff(F)
+Effective temperature from the binned flux itself.
 """
 Teff
