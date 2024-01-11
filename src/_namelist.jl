@@ -375,7 +375,7 @@ _spectrum_namelist_lte!(nml::M3DNamelist;
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
 				:lvlcheck=>1, :quad_scheme=>"set_a2", :long_scheme=>"lobatto",
-                :n_nu=>32, :maxiter=>0)) = begin
+                :n_nu=>32, :maxiter=>0, :ilambd=>0)) = begin
     # :decouple_continuum=>true
 	set!(
 		nml; 
@@ -465,7 +465,7 @@ heating_namelist(model_name::String, opacity_table=nothing, args...; kwargs...) 
     #set!(nml, spectrum_params=(:daa=>1., :aa_blue=>1500, :aa_red=>9000))    
     #set!(nml; kwargs...)
 
-    set!(nml, m3d_params=(:save_patch_kind=>"mean_rad", :save_Qrad=>true, :ilambd=>1, :n_nu=>1))
+    set!(nml, m3d_params=(:save_patch_kind=>"mean_rad", :save_Qrad=>true, :n_nu=>1))
     set!(nml, atmos_params=(:dims=>1,))
 
     nml

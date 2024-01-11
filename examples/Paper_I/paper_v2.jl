@@ -233,6 +233,7 @@ names = [
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t55g45m00_v0.1",
 	"DIS_MARCS_E_t60g45m00_v0.1",
 	"DIS_MARCS_E_t65g45m00_v0.1",
@@ -244,6 +245,7 @@ out_folder = [
 	"models/sun_magg_150x300",
 	"models/sun_magg_90x90",
 	"models/sun_magg_90x180",
+	"models/sun_magg_195x390",
 	"models/t55g45m00_magg_150x300",
 	"models/t60g45m00_magg_150x300",
 	"models/t65g45m00_magg_150x300",
@@ -260,10 +262,23 @@ eos_folder = [
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t55g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t60g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t65g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t45g40m00_v0.1")
+]
+
+# ╔═╡ 8b046999-9214-468b-8b6f-90df998ecebd
+eos_folder_T = [
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t55g45m00_v0.1"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t60g45m00_v0.1"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t65g45m00_v0.1"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t45g40m00_v0.1")
 ]
 
 # ╔═╡ f6c1c537-9a8d-4746-abcd-17fd0a712353
@@ -271,6 +286,7 @@ colors = [
 	"tomato",
 	"cyan",
 	"magenta",
+	"lime",
 	"black",
 	"black",
 	"black",
@@ -279,6 +295,7 @@ colors = [
 
 # ╔═╡ cff24989-efe0-4c50-8163-7260869895d2
 ls = [
+	"-",
 	"-",
 	"-",
 	"-",
@@ -293,6 +310,7 @@ labels = [
 	"M3DIS",
 	"M3DIS - lres",
 	"M3DIS - ires",
+	"M3DIS - hres",
 	"M3DIS - t55g45m00",
 	"M3DIS - t60g45m00",
 	"M3DIS - t65g45m00",
@@ -304,6 +322,7 @@ rt_resolution = [
 	300,
 	90,
 	180,
+	390,
 	300,
 	300,
 	300, 
@@ -334,10 +353,11 @@ models = Dict(
 	"best"      => 1,
 	"lres"      => 2,
 	"ires"      => 3,
-	"t55g45m00" => 4,
-	"t60g45m00" => 5,
-	"t65g45m00" => 6,
-	"t45g40m00" => 7
+	"hres"      => 4,
+	"t55g45m00" => 5,
+	"t60g45m00" => 6,
+	"t65g45m00" => 7,
+	"t45g40m00" => 8
 )
 
 # ╔═╡ 418c34ff-1c08-4ae6-82bf-7ac2fced7244
@@ -346,6 +366,14 @@ begin
 				for i in eachindex(eos_folder)]
 	opa = [reload(SqOpacity, joinpath(eos_folder[i], "binned_opacities.hdf5"))
 				for i in eachindex(eos_folder)]
+end
+
+# ╔═╡ fd9d2f80-3b17-4c3a-b8e8-37de365c0b2a
+begin
+	eos_T = [reload(SqEoS, joinpath(eos_folder_T[i], "eos.hdf5")) 
+				for i in eachindex(eos_folder_T)]
+	opa_T = [reload(SqOpacity, joinpath(eos_folder_T[i], "binned_opacities.hdf5"))
+				for i in eachindex(eos_folder_T)]
 end
 
 # ╔═╡ 23728e99-134a-445f-802b-f01467a03e10
@@ -399,35 +427,45 @@ md"## Conversions"
 must2multi = MUST.ingredients("convert2multi.jl")
 
 # ╔═╡ 84fc6b08-0825-41ab-b214-5fef7e2a2dc0
-res = [] #reshape(collect(Iterators.product((10, 20, 80, 120), (299))), :)
+res = reshape(collect(Iterators.product((10, 20, 80, 120), (299))), :)
 
 # ╔═╡ 35d2d2c5-6b70-4bb9-acdc-216557859282
 # ╠═╡ show_logs = false
 begin
 	modelsConversion = [
 		models["best"],
+		models["lres"],
+		models["ires"],
+		models["hres"],
 		models["t55g45m00"], 
 		models["t60g45m00"], 
 		models["t65g45m00"]
 	]
 	for (x, z) in res
 		for i in modelsConversion
+			zres = rt_resolution[i]-1 # z
 			must2multi.snaps2multi(
 				out_folder[i], 
 				[range(-8, -1)..., :recent]...,
 				eos=eos[i], 
-				label="magg22_$(x)x$(x)x$(z)",
+				label="magg22_$(x)x$(x)x$(zres)",
 				n_horizontal=x,
-				n_vertical=z,
-				outfolder=labels_new = replace(labels[i], " "=>"")
-
+				n_vertical=zres, 
+				outfolder= replace(labels[i], " "=>"")
 			)
 		end
 	end
 end
 
-# ╔═╡ 40afa313-fd60-45ed-9b19-9123b9fc0579
-60*8
+# ╔═╡ ae765c38-1c13-4914-85a1-41c41bff4f3f
+md"For computing the effective temperature with Multi3D, we furhtermore save the corresponding opacities in Multi-readable format in the same folder."
+
+# ╔═╡ 0ef33323-1d6a-484c-9292-3485b4871b38
+for i in modelsConversion
+	if isdir(replace(labels[i], " "=>""))
+		save(eos_T[i], opa_T[i], joinpath(replace(labels[i], " "=>""), "eos_opa"))
+	end
+end
 
 # ╔═╡ 381be17e-b257-4e51-aa79-941db153f398
 md"## Figures
@@ -1947,7 +1985,8 @@ begin
 		axK.set_ylabel("y [Mm]")	
 		axK.set_xlabel("x [Mm]")
 		axK.text(
-			0.97, 0.97, "$(teffK[i]) K, $(loggK[i]) dex", 
+			0.97, 0.97, 
+			L"\rm T_{eff}"*" $(teffK[i]) K, "*"log(g)"*" $(loggK[i]) dex", 
 			ha="right", va="top", 
 			transform=axK.transAxes,
 			color="white", fontsize="large", backgroundcolor="k"
@@ -2328,11 +2367,11 @@ begin
 	z_limitN = []
 
 	labelsN = [
-		L"\rm 5777\ K, 4.44\ dex",
-		L"\rm 5500\ K, 4.5\ dex",
+		L"\rm T_{eff}\ 5777\ K, log(g)\ 4.44\ dex",
+		L"\rm T_{eff}\ 5500\ K, log(g)\ 4.5\ dex",
 		#L"\rm 6000\ K, 4.5\ dex", 
-		L"\rm 6500\ K, 4.5\ dex",
-		L"\rm 4500\ K, 4.0\ dex"
+		L"\rm T_{eff}\ 6500\ K, log(g)\ 4.5\ dex",
+		L"\rm T_{eff}\ 4500\ K, log(g)\ 4.0\ dex"
 	]
 
 	marcs_TN = [
@@ -2432,10 +2471,10 @@ begin
 	lwO = [1.5, 1.5, 1.5, 1.5] .*2
 	
 	labelsO = [
-		L"\rm 5500\ K, 4.5\ dex", 
-		L"\rm 5777\ K, 4.44\ dex", 
-		L"\rm 6500\ K, 4.5\ dex",
-		L"\rm 4500\ K, 4.0\ dex"
+		L"\rm T_{eff}\ 5500\ K, log(g)\ 4.5\ dex", 
+		L"\rm T_{eff}\ 5777\ K, log(g)\ 4.44\ dex", 
+		L"\rm T_{eff}\ 6500\ K, log(g)\ 4.5\ dex",
+		L"\rm T_{eff}\ 4500\ K, log(g)\ 4.0\ dex"
 	]
 
 	colorsO = ["k", "k", "k", "k"]
@@ -2567,6 +2606,7 @@ end
 # ╠═6c3227a7-993b-45bc-809e-be6a0907f384
 # ╠═239ce3e3-5522-4d03-96d7-607c69418781
 # ╠═f78e1d7f-6756-47d9-bb6c-5b6c623dc899
+# ╠═8b046999-9214-468b-8b6f-90df998ecebd
 # ╠═f6c1c537-9a8d-4746-abcd-17fd0a712353
 # ╠═cff24989-efe0-4c50-8163-7260869895d2
 # ╠═4fb7c54f-7f7a-48b7-a6a6-f80cb9c31360
@@ -2576,6 +2616,7 @@ end
 # ╟─089e4d19-22ad-4da4-8886-6980d70b5f31
 # ╠═d9272f17-8f18-457e-80d3-aa7dd61831a9
 # ╟─418c34ff-1c08-4ae6-82bf-7ac2fced7244
+# ╟─fd9d2f80-3b17-4c3a-b8e8-37de365c0b2a
 # ╟─23728e99-134a-445f-802b-f01467a03e10
 # ╠═114947c5-43c4-4d82-9031-8f27903d0415
 # ╟─26ad98c3-8c6a-42f9-944b-035691fa9ad0
@@ -2586,7 +2627,8 @@ end
 # ╟─3fb509e5-c611-45e2-b475-f43bd28ac53a
 # ╠═84fc6b08-0825-41ab-b214-5fef7e2a2dc0
 # ╠═35d2d2c5-6b70-4bb9-acdc-216557859282
-# ╠═40afa313-fd60-45ed-9b19-9123b9fc0579
+# ╟─ae765c38-1c13-4914-85a1-41c41bff4f3f
+# ╠═0ef33323-1d6a-484c-9292-3485b4871b38
 # ╟─381be17e-b257-4e51-aa79-941db153f398
 # ╟─e1517fd6-523f-4083-bb74-ebf666813002
 # ╠═e73c5a0e-ae3b-4bbd-b098-d8e6ff215c2e
