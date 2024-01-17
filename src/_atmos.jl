@@ -742,6 +742,19 @@ function add!(s::MUST.Space, b::MUST.Box, name::Symbol)
 end 
 
 """
+    add!(s; kwargs...)
+
+Add given arrays to given space.
+"""
+add!(s; kwargs...) = begin
+    for (k, v) in kwargs
+        add!(s, v, k)
+    end
+
+    nothing
+end
+
+"""
 Compute the horizonal average of a Box object.
 
 Parameters
@@ -1351,7 +1364,14 @@ function reduce_by_value(f::F, b::MUST.Box; remove_nan=true, kwargs...) where {F
     reduce_by_plane(f_mod, b; index=false)
 end
 
-function interpolate_to(box, v; logspace=true, kwargs...)
+
+"""
+    interpolate_to(box, v; logspace=true, kwargs...)
+
+Interpolate the `Box` of values v to the plane given in kwargs. Specify `logspace=true`
+if the given quantity is in log.
+"""
+function interpolate_to(box, v::Symbol; logspace=true, kwargs...)
     z     = first(keys(kwargs))
     z_val = first(values(kwargs))
 
@@ -1374,6 +1394,42 @@ function interpolate_to(box, v; logspace=true, kwargs...)
 
     Box(col_x, col_y, col_z, Dict{Symbol,Array{eltype(box.x),3}}(v=>col_new), deepcopy(box.parameter))
 end
+
+"""
+    interpolate_to(box, v; logspace=true, kwargs...)
+
+Interpolate the `Box` of values v to the plane given in kwargs. Specify `logspace=true`
+if the given quantity is in log.
+"""
+function interpolate_to(box; logspace=true, kwargs...)
+    z     = first(keys(kwargs))
+    z_val = first(values(kwargs))
+
+    ips = interpolate_by_column(box, z, logspace=logspace)
+
+    cols_new = Dict(p=>zeros(eltype(box.x), size(box.x)[1:2]..., 1) for p in keys(b.data))
+    col_z   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
+    col_x   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
+    col_y   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
+
+    @inbounds for j in axes(box.x, 2)
+        @inbounds for i in axes(box.x, 1)
+            for p in keys(b.data)
+                cols_new[p][i, j, 1] = ips[p][i, j](z_val)
+            end
+            col_z[  i, j, 1] = ips[:z][i, j](z_val)
+            col_x[  i, j, 1] = ips[:x][i, j](z_val)
+            col_y[  i, j, 1] = ips[:y][i, j](z_val)
+        end
+    end
+
+    Box(col_x, col_y, col_z, Dict{Symbol,Array{eltype(box.x),3}}(v=>cols_new[v] for v in keys(b.data)), deepcopy(box.parameter))
+end
+
+
+
+
+
 
 """
 Switch the height scale of a box. Creates a new box by reducing the old box by column for every new height value.
