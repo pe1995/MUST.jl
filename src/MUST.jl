@@ -111,4 +111,7 @@ include("_convert.jl")
 # physical utilities
 include("_physical_quantities.jl")
 
+# watchdog
+include("_watchdog.jl")
+
 end

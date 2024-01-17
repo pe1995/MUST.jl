@@ -507,7 +507,7 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 	x, y, z, patch_range = _build_cube(patch_data)
 	
 	# now we create the data arrays
-	data = if use_mmap
+	data = if !use_mmap
 		Dict{Symbol,Array{Float32,3}}(
 			q=>Array{Float32, 3}(undef, length(x), length(y), length(z)) 
 			for q in quantities
@@ -1082,10 +1082,10 @@ function interpolate_by_column(b::MUST.Box)
 
             szv = sortperm(zv)
             for q in keys(b.data)
-                data_new[q][i,j] = LinearInterpolation(zv[szv], qv[q][szv], extrapolation_bc=Flat())
+                data_new[q][i,j] = LinearInterpolation(Interpolations.deduplicate_knots!(zv[szv]), qv[q][szv], extrapolation_bc=Flat())
             end
-            data_new[:x][i,j] = LinearInterpolation(zv[szv], xv[szv], extrapolation_bc=Flat())
-            data_new[:y][i,j] = LinearInterpolation(zv[szv], yv[szv], extrapolation_bc=Flat())
+            data_new[:x][i,j] = LinearInterpolation(Interpolations.deduplicate_knots!(zv[szv]), xv[szv], extrapolation_bc=Flat())
+            data_new[:y][i,j] = LinearInterpolation(Interpolations.deduplicate_knots!(zv[szv]), yv[szv], extrapolation_bc=Flat())
         end
     end
 
@@ -1126,20 +1126,28 @@ function interpolate_by_column(b::MUST.Box, val; logspace=true)
                     continue
                 end
                 data_new[q][i,j] = logspace ? 
-                    LinearInterpolation(log.(10, qv[val][szv]), qv[q][szv], extrapolation_bc=Flat()) : 
-                    LinearInterpolation(qv[val][szv], qv[q][szv], extrapolation_bc=Flat()) 
+                    LinearInterpolation(
+                        Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), 
+                        qv[q][szv], 
+                        extrapolation_bc=Flat()
+                    ) : 
+                    LinearInterpolation(
+                        Interpolations.deduplicate_knots!(qv[val][szv]), 
+                        qv[q][szv], 
+                        extrapolation_bc=Flat()
+                    ) 
             end
 
             data_new[:z][i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), zv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], zv[szv], extrapolation_bc=Flat()) 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), zv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], zv[szv]), extrapolation_bc=Flat()) 
 
             data_new[:x][i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), xv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], xv[szv], extrapolation_bc=Flat()) 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), xv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], xv[szv]), extrapolation_bc=Flat()) 
             data_new[:y][i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), yv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], yv[szv], extrapolation_bc=Flat()) 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), yv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], yv[szv]), extrapolation_bc=Flat()) 
         end
     end
 
@@ -1181,20 +1189,28 @@ function interpolate_by_column(b::MUST.Box, val, qin; logspace=true)
                     continue
                 end
                 data_new[i,j] = logspace ? 
-                    LinearInterpolation(log.(10, qv[val][szv]), qv[q][szv], extrapolation_bc=Flat()) : 
-                    LinearInterpolation(qv[val][szv], qv[q][szv], extrapolation_bc=Flat()) 
+                    LinearInterpolation(
+                        Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), 
+                        qv[q][szv], 
+                        extrapolation_bc=Flat()
+                    ) : 
+                    LinearInterpolation(
+                        Interpolations.deduplicate_knots!(qv[val][szv]), 
+                        qv[q][szv], 
+                        extrapolation_bc=Flat()
+                    ) 
             end
 
             data_z[i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), zv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], zv[szv], extrapolation_bc=Flat())
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), zv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv]), zv[szv], extrapolation_bc=Flat())
                             
             data_x[i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), xv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], xv[szv], extrapolation_bc=Flat()) 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), xv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv]), xv[szv], extrapolation_bc=Flat()) 
             data_y[i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), yv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], yv[szv], extrapolation_bc=Flat()) 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), yv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv]), yv[szv], extrapolation_bc=Flat()) 
         end
     end
 

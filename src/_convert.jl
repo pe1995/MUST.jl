@@ -93,6 +93,7 @@ function snapshotBox(
         # Add additional columns already in CGS after converting
         add_from_EOS!(s, eos_sq, :T)
         add_from_EOS!(s, eos_sq, :kr)
+        add_from_EOS!(s, eos_sq, :Pg)
         add_from_EOS!(s, eos_sq, :Ne)
 
         # Check if Teff should be added
