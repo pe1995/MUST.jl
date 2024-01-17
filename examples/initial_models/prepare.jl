@@ -37,6 +37,7 @@ if "SLURM_NTASKS" in keys(ENV)
     end
 else
     @warn "No Slurm environment detected."
+    #addprocs(2)
 end
 
 @everywhere begin
@@ -58,7 +59,10 @@ begin
     deleteat!(grid.info, .!isfile.(grid["av_path"]))
     MUST.save(grid, initial_cl_path)
 
+    # To save time, remove models now that are not interesting at the moment
     deleteat!(grid.info, grid["feh"].!=0.0)
+    deleteat!(grid.info, grid["teff"].!=5000.0)
+    deleteat!(grid.info, grid["logg"].!=4.0)
     MUST.save(grid, initial_mod_path)
 
 

@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.26
+# v0.19.30
 
 using Markdown
 using InteractiveUtils
@@ -105,19 +105,45 @@ linelist = "./input_multi3d/vald_2490-25540.list"
 # ╔═╡ fc1859d9-4a45-4372-95ad-403134ce7370
 absmet = "./input_multi3d/absmet"
 
+# ╔═╡ 578888b0-f067-4016-8eea-4894a4c76075
+md"## Opacity tables
+It is furthermore possible to load a binned opacity table and compute the heating."
+
+# ╔═╡ 1b4e11a9-24ac-4ec4-874e-d025cb6545e5
+eos = reload(SqEoS, "../../../binned_tables/DIS_MARCS_v1.6.3/eos.hdf5")
+
+# ╔═╡ 796fe2f4-107a-42b6-abc7-db53907c7827
+opa = reload(
+	SqOpacity, 
+	"../../../binned_tables/DIS_MARCS_v1.6.3/binned_opacities.hdf5"
+)
+
+# ╔═╡ fe4448d7-4213-4dc2-993f-4f9af1837dcc
+folder_eos_rel = "input_multi3d/M3D_MARCS_red_v1.6.3/"
+
+# ╔═╡ a32e7599-b78d-4f61-8b44-6aadbc8d8990
+folder_eos = MUST.@in_m3dis folder_eos_rel
+
+# ╔═╡ 76f394df-4406-4166-a268-a1e809420dcf
+!isdir(folder_eos) && mkdir(folder_eos)
+
+# ╔═╡ 86d4315c-4874-454a-9b88-8c2cf6b8bd66
+m3d_table = save(eos, opa, joinpath(folder_eos, "eos_opa"))
+
 # ╔═╡ 908e3e3c-cd57-4221-967a-256e46246055
 md"## Running M3D
 Running M3D is then straight forward. One can either run this within an slurm allocation as a job step, directly run it as a new slurm job, or turn off slurm entirely. In the latter M3D will be run interactively. Please make sure you have enough resources available in this case. If you are using a line list this might easily not be the case. So be aware of that.\
 If you have compiled ```M3D``` for a MPI system, it might be possible that you need to recompile without MPI for your interactive runs!"
 
 # ╔═╡ ecc8099e-ead7-4826-b17a-bb5b1787bfd2
-compute = false
+compute = true
 
 # ╔═╡ ac2ba741-52f9-4192-837e-79d760548805
-begin
+#=begin
 	 if compute
-		m3load = MUST.whole_spectrum(
-			snapshots_m3dis, 
+		m3load = MUST.heating(
+			snapshots_m3dis[1], 
+			m3d_table,
 			namelist_kwargs=(
 				:model_folder=>modelatmosfolder,
 				:linelist=>nothing,
@@ -135,26 +161,48 @@ begin
 					:use_ne=>false
 				),
 			),
-			slurm=false
+			slurm=true
 		)
+	end
+end=#
+
+# ╔═╡ 5807b07c-d43b-4cc6-9b99-63b26b9f3f4c
+begin
+	 if compute
+		m3load = [MUST.heating(
+			snapshots_m3dis[i], 
+			m3d_table,
+			namelist_kwargs=(
+				:model_folder=>modelatmosfolder,
+				:linelist=>nothing,
+				:absmet=>absmet,
+				:atom_params=>(:atom_file=>"", ),
+				:atmos_params=>(
+					:atmos_format=>"MUST", 
+					:use_density=>true, 
+					:use_ne=>false
+				),
+			),
+			slurm=false
+		) for i in eachindex(snapshots_m3dis)]
 	end
 end
 
 # ╔═╡ 0320767c-8bb4-4aa1-bf19-d44e0aa52ec5
-m3druns = MUST.M3DISRun.(joinpath.("data", snapshots_m3dis))
+m3druns = MUST.M3DISRun.(joinpath.("data", snapshots_m3dis.*"_binned"))
 
 # ╔═╡ 87b0d3a3-1b62-49d6-bc1c-36ae26ef314f
 md"## Computing Teff
 The effective temperature is computed from integrating the Flux."
 
 # ╔═╡ bc423ddb-8027-4b97-a88f-a87188cbcb5f
-stagger = MUST.M3DISRun(joinpath.("data", "m3dis_sun_stagger_20x20x230_1"))
+#stagger = MUST.M3DISRun(joinpath.("data", "m3dis_sun_stagger_20x20x230_1"))
 
 # ╔═╡ 6df8b739-f894-43d1-a4c6-4907b54e96a4
 marcs = MUST.M3DISRun(joinpath.("data", "atmos.sun_MARCS"))
 
 # ╔═╡ 1bfef52c-7c67-4029-8dde-9149583b28a6
-teff_nan(run) = MUST.Teff(run.lam[.!isnan.(run.flux)], run.flux[.!isnan.(run.flux)])
+teff_nan(run) = MUST.Teff(run.flux[.!isnan.(run.flux)])
 
 # ╔═╡ 3f6a9327-35fc-4e82-bf5d-f9c1e0d658e8
 for (i, m) in enumerate(m3druns)
@@ -176,7 +224,7 @@ begin
 		lw=1
 	)
 
-	axS.axhline(teff_nan(stagger), color="red", label=L"\rm Stagger")
+	#axS.axhline(teff_nan(stagger), color="red", label=L"\rm Stagger")
 	axS.axhline(teff_nan(marcs), color="blue", label=L"\rm MARCS")
 	
 
@@ -234,9 +282,17 @@ end
 # ╟─573b2070-18e5-4e53-8393-76549f2efce5
 # ╠═1bd3e93c-0f57-4cf6-ace5-1f2f4fe9d57f
 # ╠═fc1859d9-4a45-4372-95ad-403134ce7370
+# ╟─578888b0-f067-4016-8eea-4894a4c76075
+# ╠═1b4e11a9-24ac-4ec4-874e-d025cb6545e5
+# ╠═796fe2f4-107a-42b6-abc7-db53907c7827
+# ╠═fe4448d7-4213-4dc2-993f-4f9af1837dcc
+# ╠═a32e7599-b78d-4f61-8b44-6aadbc8d8990
+# ╠═76f394df-4406-4166-a268-a1e809420dcf
+# ╠═86d4315c-4874-454a-9b88-8c2cf6b8bd66
 # ╟─908e3e3c-cd57-4221-967a-256e46246055
 # ╠═ecc8099e-ead7-4826-b17a-bb5b1787bfd2
 # ╠═ac2ba741-52f9-4192-837e-79d760548805
+# ╠═5807b07c-d43b-4cc6-9b99-63b26b9f3f4c
 # ╠═0320767c-8bb4-4aa1-bf19-d44e0aa52ec5
 # ╟─87b0d3a3-1b62-49d6-bc1c-36ae26ef314f
 # ╠═bc423ddb-8027-4b97-a88f-a87188cbcb5f

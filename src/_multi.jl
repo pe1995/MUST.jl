@@ -449,6 +449,44 @@ function heating(model_name::String, opacity_table=nothing; slurm=true, namelist
     M3DISRun(joinpath(nml.io_params["datadir"], "$(model_name)$(binned_ext)"))
 end
 
+"""
+    heating(model_name, args...; kwargs...)
+
+Compute the radiative heating within the given models in parallel.
+"""
+function heating(model_names::AbstractVector{String}, opacity_table=nothing; namelist_kwargs=Dict(), m3dis_kwargs=Dict(), slurm=true, name="")
+    isnothing(multi_location) && error("No Multi module has been loaded.")
+
+    binned_ext = isnothing(opacity_table) ? "_unbinned" : "_binned"
+    data_dir = heating_namelist(model_names |> first, opacity_table; namelist_kwargs...).io_params["datadir"]
+
+    if (!slurm) & (length(model_names) > 1)
+        @warn "You are submitting $(length(model_names)) jobs without resource management (slurm=false)!"
+    end
+
+    # Create the default namelist (with adjustments)
+    results = []
+    for model_name in model_names
+        nml = heating_namelist(model_name, opacity_table; namelist_kwargs...)
+        write(nml, @in_m3dis("$(model_name)$(name)$(binned_ext).nml"))
+
+        # run multi (with waiting)
+        if slurm
+            append!(results, [srun_m3dis("$(model_name)$(name)$(binned_ext).nml"; wait=false, m3dis_kwargs...)])
+        else
+            append!(results, [run_m3dis("$(model_name)$(name)$(binned_ext).nml"; wait=false, m3dis_kwargs...)])
+        end
+    end
+
+    # wait for success
+    for (i, r) in enumerate(results)
+        s = success(r)
+        @info "$(model_names[i])$(name)$(binned_ext) finished with success status $(s)."
+    end
+
+    # read the output
+    [M3DISRun(joinpath(data_dir, "$(model_name)$(name)$(binned_ext)")) for model_name in model_names]
+end
 
 
 
@@ -510,14 +548,16 @@ wien(T) = 2898e-4 /aa_to_cm / T
 
 
 
-Teff(λ, F) = begin
+Teff(λ::AbstractVector{T}, F::AbstractVector{T}) where {T<:AbstractFloat} = begin
     ν = reverse(CLight ./ (λ*aa_to_cm))
     Fl = reverse(F)
 
     (integrate(ν, Fl) /σ_S)^(1/4)
 end
 
-Teff(run) = Teff(run.lam, run.flux)
+Teff(F::AbstractVector{T}) where {T<:AbstractFloat} = (sum(F) /σ_S)^(1/4)
+
+Teff(run::M3DISRun) = Teff(run.lam, run.flux)
 
 """
     Teff(run)
@@ -525,5 +565,8 @@ Effective temperature from the M3D run.
 
     Teff(λ, F)
 Effective temperature from the flux itself.
+
+    Teff(F)
+Effective temperature from the binned flux itself.
 """
 Teff

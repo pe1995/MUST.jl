@@ -65,7 +65,7 @@ begin
     version = "v0.4"
 
     # Number of bins in the opacity table (output)
-    Nbins = 4
+    Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
     skip_binning = true
@@ -85,19 +85,19 @@ begin
         )
 
         # 8 bins
-        #=quadrants = [ 
+        quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
-        ]=#
+        ]
 
         # 4 MURaM bins
-        quadrants = [ 
+        #=quadrants = [ 
             TSO.Quadrant((0.0, 100.0), (-100, 0.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (0.0, 2.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (2.0, 4.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (4.0, 100.0), 1, stripes=:κ)
-        ]
+        ]=#
     end
 end

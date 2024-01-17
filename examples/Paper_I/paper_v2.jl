@@ -16,12 +16,16 @@ begin
 	using Printf
 	using KernelDensity
 	using DelimitedFiles
+	using PlutoUI
 
 	plt = matplotlib.pyplot
 end;
 
 # ╔═╡ 485a693d-4872-47d4-975d-e91a7bbc0be7
 md"# Paper I: Validation & The Sun (v2)"
+
+# ╔═╡ a61a48b3-cfe9-4d0b-a0f7-7008add4e1d9
+TableOfContents()
 
 # ╔═╡ feefb5e4-c4aa-428f-87ea-82b32072fb26
 include_helper(name) = joinpath(dirname(pathof(MUST)), name)
@@ -233,6 +237,7 @@ names = [
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t5777g44m00_v0.1",
+	"DIS_MARCS_E_t5777g44m00_v0.1",
 	"DIS_MARCS_E_t55g45m00_v0.1",
 	"DIS_MARCS_E_t60g45m00_v0.1",
 	"DIS_MARCS_E_t65g45m00_v0.1",
@@ -244,6 +249,7 @@ out_folder = [
 	"models/sun_magg_150x300",
 	"models/sun_magg_90x90",
 	"models/sun_magg_90x180",
+	"models/sun_magg_195x390",
 	"models/t55g45m00_magg_150x300",
 	"models/t60g45m00_magg_150x300",
 	"models/t65g45m00_magg_150x300",
@@ -260,10 +266,23 @@ eos_folder = [
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t55g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t60g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t65g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t45g40m00_v0.1")
+]
+
+# ╔═╡ 8b046999-9214-468b-8b6f-90df998ecebd
+eos_folder_T = [
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t55g45m00_v0.1"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t60g45m00_v0.1"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t65g45m00_v0.1"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t45g40m00_v0.1")
 ]
 
 # ╔═╡ f6c1c537-9a8d-4746-abcd-17fd0a712353
@@ -271,6 +290,7 @@ colors = [
 	"tomato",
 	"cyan",
 	"magenta",
+	"lime",
 	"black",
 	"black",
 	"black",
@@ -279,6 +299,7 @@ colors = [
 
 # ╔═╡ cff24989-efe0-4c50-8163-7260869895d2
 ls = [
+	"-",
 	"-",
 	"-",
 	"-",
@@ -293,6 +314,7 @@ labels = [
 	"M3DIS",
 	"M3DIS - lres",
 	"M3DIS - ires",
+	"M3DIS - hres",
 	"M3DIS - t55g45m00",
 	"M3DIS - t60g45m00",
 	"M3DIS - t65g45m00",
@@ -304,6 +326,7 @@ rt_resolution = [
 	300,
 	90,
 	180,
+	390,
 	300,
 	300,
 	300, 
@@ -334,10 +357,11 @@ models = Dict(
 	"best"      => 1,
 	"lres"      => 2,
 	"ires"      => 3,
-	"t55g45m00" => 4,
-	"t60g45m00" => 5,
-	"t65g45m00" => 6,
-	"t45g40m00" => 7
+	"hres"      => 4,
+	"t55g45m00" => 5,
+	"t60g45m00" => 6,
+	"t65g45m00" => 7,
+	"t45g40m00" => 8
 )
 
 # ╔═╡ 418c34ff-1c08-4ae6-82bf-7ac2fced7244
@@ -346,6 +370,14 @@ begin
 				for i in eachindex(eos_folder)]
 	opa = [reload(SqOpacity, joinpath(eos_folder[i], "binned_opacities.hdf5"))
 				for i in eachindex(eos_folder)]
+end
+
+# ╔═╡ fd9d2f80-3b17-4c3a-b8e8-37de365c0b2a
+begin
+	eos_T = [reload(SqEoS, joinpath(eos_folder_T[i], "eos.hdf5")) 
+				for i in eachindex(eos_folder_T)]
+	opa_T = [reload(SqOpacity, joinpath(eos_folder_T[i], "binned_opacities.hdf5"))
+				for i in eachindex(eos_folder_T)]
 end
 
 # ╔═╡ 23728e99-134a-445f-802b-f01467a03e10
@@ -406,28 +438,38 @@ res = [] #reshape(collect(Iterators.product((10, 20, 80, 120), (299))), :)
 begin
 	modelsConversion = [
 		models["best"],
+		models["lres"],
+		models["ires"],
+		models["hres"],
 		models["t55g45m00"], 
 		models["t60g45m00"], 
 		models["t65g45m00"]
 	]
 	for (x, z) in res
 		for i in modelsConversion
+			zres = rt_resolution[i]-1 # z
 			must2multi.snaps2multi(
 				out_folder[i], 
 				[range(-8, -1)..., :recent]...,
 				eos=eos[i], 
-				label="magg22_$(x)x$(x)x$(z)",
+				label="magg22_$(x)x$(x)x$(zres)",
 				n_horizontal=x,
-				n_vertical=z,
-				outfolder=labels_new = replace(labels[i], " "=>"")
-
+				n_vertical=zres, 
+				outfolder= replace(labels[i], " "=>"")
 			)
 		end
 	end
 end
 
-# ╔═╡ 40afa313-fd60-45ed-9b19-9123b9fc0579
-60*8
+# ╔═╡ ae765c38-1c13-4914-85a1-41c41bff4f3f
+md"For computing the effective temperature with Multi3D, we furhtermore save the corresponding opacities in Multi-readable format in the same folder."
+
+# ╔═╡ 0ef33323-1d6a-484c-9292-3485b4871b38
+for i in modelsConversion
+	if isdir(replace(labels[i], " "=>""))
+		save(eos_T[i], opa_T[i], joinpath(replace(labels[i], " "=>""), "eos_opa"))
+	end
+end
 
 # ╔═╡ 381be17e-b257-4e51-aa79-941db153f398
 md"## Figures
@@ -547,8 +589,8 @@ begin
 	axA[0].legend(framealpha=0, labelspacing=0.01, handlelength=hl)
 	
 	axA[0].set_ylabel(L"\rm T\ [K]")
-	axA[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]")
-	axA[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]")
+	axA[1].set_ylabel(L"\rm \log \rho\ [g \ cm^{-3}]")
+	axA[2].set_ylabel(L"\rm v_{z}\ [km \ s^{-1}]")
 	
 	axA[2].set_xlabel(L"\rm \log \tau_{ross}")
 	axA[2].set_xlim(-4, 2)
@@ -745,7 +787,9 @@ begin
 	
 	axA3.set_ylim(3600, 14500)
 	axA3.set_xlim(3.2, 6.1)
-	
+
+	fA3.savefig("T-Pg_3D_MARCS.pdf", bbox_inches="tight")
+	fA3.savefig("T-Pg_3D_MARCS.png", bbox_inches="tight", dpi=300)
 	
 	gcf()
 end
@@ -1089,7 +1133,7 @@ begin
 			L"\rm \Delta\ \left( <\log \rho>\right)"
 		)
 		axB[2].set_ylabel(
-			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]"
+			L"\rm \Delta\ \left( rms\ v_{z}\right)\ [km\ s^{-1}]"
 		)
 	end
 
@@ -1506,7 +1550,7 @@ begin
 			L"\rm \Delta\ \left( <\log \rho>\right)"
 		)
 		axC[2].set_ylabel(
-			L"\rm \Delta\ \left( rms\ U_{z}\right)\ [km\ \times s^{-1}]"
+			L"\rm \Delta\ \left( rms\ v_{z}\right)\ [km\ s^{-1}]"
 		)
 	end
 
@@ -1882,8 +1926,8 @@ begin
 	axJ[0].legend(framealpha=0, labelspacing=0.01, handlelength=hl)
 	
 	axJ[0].set_ylabel(L"\rm T\ [K]")
-	axJ[1].set_ylabel(L"\rm \log \rho\ [g \times cm^{-3}]")
-	axJ[2].set_ylabel(L"\rm U_{z}\ [km \times s^{-1}]")
+	axJ[1].set_ylabel(L"\rm \log \rho\ [g \ cm^{-3}]")
+	axJ[2].set_ylabel(L"\rm rms\ v_{z}\ [km \ s^{-1}]")
 	
 	axJ[2].set_xlabel(L"\rm \log \tau_{ross}")
 	axJ[2].set_xlim(-3.75, 3)
@@ -1947,7 +1991,8 @@ begin
 		axK.set_ylabel("y [Mm]")	
 		axK.set_xlabel("x [Mm]")
 		axK.text(
-			0.97, 0.97, "$(teffK[i]) K, $(loggK[i]) dex", 
+			0.97, 0.97, 
+			L"\rm T_{eff}"*" $(teffK[i]) K, "*"log(g)"*" $(loggK[i]) dex", 
 			ha="right", va="top", 
 			transform=axK.transAxes,
 			color="white", fontsize="large", backgroundcolor="k"
@@ -2102,6 +2147,45 @@ end
 # ╔═╡ f6736f9c-f76e-40ae-bb85-63c1aef6605c
 granularstatistics(modelM)
 
+# ╔═╡ 9cbc4ead-5f1d-41b9-a7ac-dea24f4b91cb
+
+
+# ╔═╡ f33f10e7-506d-4d55-a7c2-1b573ee6e13e
+md"We can also use the optical surface for this statistics. 
+For this we add the pressure to the model and compute the scale height and turn over time at the optical surface using the pre-defined functions."
+
+# ╔═╡ c11b167f-ba1f-4ae6-8e38-e3c011f6f036
+function optical_turnover(model; logg)
+	m3disM = pick_snapshot(out_folder[model], -1) |> first
+	pgM = exp.(lookup(eos[model], :lnPg, log.(m3disM[:d]), log.(m3disM[:ee])))
+	
+	add!(m3disM, Pg=pgM)
+
+	hpM = MUST.pressurescaleheight(m3disM, τ_ross=0.0, logspace=true, logg=logg)
+	ctM = MUST.convectiveturnovertime(m3disM, τ_ross=0.0, logspace=true, logg=logg)
+
+	@info "Pressure scale height [km]: $(hpM/100000.0)"
+	@info "Convective turnover time [s]: $(ctM)"
+	@info "Convective turnover time [min]: $(ctM ./60)"
+
+	hpM, ctM
+end
+
+# ╔═╡ 3f194d77-08cf-4d51-81ee-f811ed587967
+optical_turnover(models["best"], logg=4.44)
+
+# ╔═╡ 95849fd6-e8bf-48e4-a0d9-2dd86cee58bb
+optical_turnover(models["t55g45m00"], logg=4.5)
+
+# ╔═╡ a15e914f-13f6-456f-a74f-b9edd63a7ab9
+optical_turnover(models["t60g45m00"], logg=4.5)
+
+# ╔═╡ 059978b8-a8b0-4f1c-a681-ea41d865a488
+optical_turnover(models["t65g45m00"], logg=4.5)
+
+# ╔═╡ f3a0a1b6-af99-46ec-8355-ab9fe7e5881d
+
+
 # ╔═╡ 2587d8e9-7612-42f6-8a0c-01c72b1d32d3
 md"### (N) Multiple vertical slices"
 
@@ -2159,6 +2243,8 @@ function vertical_velocity_slice_with_contours(
 	)
 	#plt.clabel(csN, inline=1)
 
+	#axN.set_aspect("equal")
+	
 	normN = matplotlib.colors.Normalize(
 		vmin=csN.cvalues.min(), vmax=csN.cvalues.max()
 	)
@@ -2293,7 +2379,7 @@ function vertical_velocity_slice_with_contours(
 	
 	axN.set_xlabel(L"\rm X\ [Mm]")
 	axN.set_xlabel(L"\rm X\ [Mm]")
-
+	
 	quantity = quantity==:τ_ross ? "tross" : quantity
 	fN.savefig(
 		"vertical_slice_velocity-$(labels[mN])_$(quantity).png", dpi=600#, bbox_inches="tight"
@@ -2317,7 +2403,7 @@ begin
 	
 	y0N = [
 		200,
-		200,
+		20,
 		#140,
 		210,
 		200
@@ -2328,11 +2414,11 @@ begin
 	z_limitN = []
 
 	labelsN = [
-		L"\rm 5777\ K, 4.44\ dex",
-		L"\rm 5500\ K, 4.5\ dex",
+		L"\rm T_{eff}\ 5777\ K, log(g)\ 4.44\ dex",
+		L"\rm T_{eff}\ 5500\ K, log(g)\ 4.5\ dex",
 		#L"\rm 6000\ K, 4.5\ dex", 
-		L"\rm 6500\ K, 4.5\ dex",
-		L"\rm 4500\ K, 4.0\ dex"
+		L"\rm T_{eff}\ 6500\ K, log(g)\ 4.5\ dex",
+		L"\rm T_{eff}\ 4500\ K, log(g)\ 4.0\ dex"
 	]
 
 	marcs_TN = [
@@ -2432,10 +2518,10 @@ begin
 	lwO = [1.5, 1.5, 1.5, 1.5] .*2
 	
 	labelsO = [
-		L"\rm 5500\ K, 4.5\ dex", 
-		L"\rm 5777\ K, 4.44\ dex", 
-		L"\rm 6500\ K, 4.5\ dex",
-		L"\rm 4500\ K, 4.0\ dex"
+		L"\rm T_{eff}\ 5500\ K, log(g)\ 4.5\ dex", 
+		L"\rm T_{eff}\ 5777\ K, log(g)\ 4.44\ dex", 
+		L"\rm T_{eff}\ 6500\ K, log(g)\ 4.5\ dex",
+		L"\rm T_{eff}\ 4500\ K, log(g)\ 4.0\ dex"
 	]
 
 	colorsO = ["k", "k", "k", "k"]
@@ -2534,6 +2620,7 @@ end
 # ╔═╡ Cell order:
 # ╟─485a693d-4872-47d4-975d-e91a7bbc0be7
 # ╠═7be90c6e-260a-11ee-12d4-93fd873d1015
+# ╟─a61a48b3-cfe9-4d0b-a0f7-7008add4e1d9
 # ╟─feefb5e4-c4aa-428f-87ea-82b32072fb26
 # ╟─b20211ed-1d69-49f0-9af3-002affd58ff2
 # ╠═c4846fea-8b7a-4338-bfa9-df9b9c0aff6f
@@ -2567,6 +2654,7 @@ end
 # ╠═6c3227a7-993b-45bc-809e-be6a0907f384
 # ╠═239ce3e3-5522-4d03-96d7-607c69418781
 # ╠═f78e1d7f-6756-47d9-bb6c-5b6c623dc899
+# ╠═8b046999-9214-468b-8b6f-90df998ecebd
 # ╠═f6c1c537-9a8d-4746-abcd-17fd0a712353
 # ╠═cff24989-efe0-4c50-8163-7260869895d2
 # ╠═4fb7c54f-7f7a-48b7-a6a6-f80cb9c31360
@@ -2576,6 +2664,7 @@ end
 # ╟─089e4d19-22ad-4da4-8886-6980d70b5f31
 # ╠═d9272f17-8f18-457e-80d3-aa7dd61831a9
 # ╟─418c34ff-1c08-4ae6-82bf-7ac2fced7244
+# ╟─fd9d2f80-3b17-4c3a-b8e8-37de365c0b2a
 # ╟─23728e99-134a-445f-802b-f01467a03e10
 # ╠═114947c5-43c4-4d82-9031-8f27903d0415
 # ╟─26ad98c3-8c6a-42f9-944b-035691fa9ad0
@@ -2586,7 +2675,8 @@ end
 # ╟─3fb509e5-c611-45e2-b475-f43bd28ac53a
 # ╠═84fc6b08-0825-41ab-b214-5fef7e2a2dc0
 # ╠═35d2d2c5-6b70-4bb9-acdc-216557859282
-# ╠═40afa313-fd60-45ed-9b19-9123b9fc0579
+# ╟─ae765c38-1c13-4914-85a1-41c41bff4f3f
+# ╠═0ef33323-1d6a-484c-9292-3485b4871b38
 # ╟─381be17e-b257-4e51-aa79-941db153f398
 # ╟─e1517fd6-523f-4083-bb74-ebf666813002
 # ╠═e73c5a0e-ae3b-4bbd-b098-d8e6ff215c2e
@@ -2631,16 +2721,24 @@ end
 # ╠═78ce2d34-9898-4140-a7fd-8fe2e807d972
 # ╠═94c55529-523a-4a44-9ed8-1caaf34e4da5
 # ╟─3466e7cb-17ab-4a1a-ac4f-7b3f1264584d
-# ╟─cb14997c-ed1f-4be0-80ce-bba1d94765d4
+# ╠═cb14997c-ed1f-4be0-80ce-bba1d94765d4
 # ╠═f6736f9c-f76e-40ae-bb85-63c1aef6605c
+# ╟─9cbc4ead-5f1d-41b9-a7ac-dea24f4b91cb
+# ╟─f33f10e7-506d-4d55-a7c2-1b573ee6e13e
+# ╟─c11b167f-ba1f-4ae6-8e38-e3c011f6f036
+# ╠═3f194d77-08cf-4d51-81ee-f811ed587967
+# ╠═95849fd6-e8bf-48e4-a0d9-2dd86cee58bb
+# ╠═a15e914f-13f6-456f-a74f-b9edd63a7ab9
+# ╠═059978b8-a8b0-4f1c-a681-ea41d865a488
+# ╟─f3a0a1b6-af99-46ec-8355-ab9fe7e5881d
 # ╟─2587d8e9-7612-42f6-8a0c-01c72b1d32d3
 # ╠═5003a0ce-7aa0-4a5e-9765-6129d7660e1b
 # ╠═6ce71e68-3e46-4ee7-9777-7a04342b5e2e
 # ╠═09c3002d-1839-4adf-9d47-1811f1c81bcd
 # ╠═e8da9c4e-3474-41ea-a441-a22b089d20d6
-# ╠═0f3f07fa-660e-4117-a46e-792150a707b9
+# ╟─0f3f07fa-660e-4117-a46e-792150a707b9
 # ╟─22bc6765-400a-470b-9f9d-ff1365d97e33
 # ╟─4874c7a5-6dd4-457a-876d-431e31b5875d
 # ╟─64a75b01-b653-45d5-9c87-0f61391ca7a6
 # ╠═8db25fe1-0e7d-4004-98f1-8cae9c057ac9
-# ╠═ff449d80-1610-45ef-9b0b-907d6de848f8
+# ╟─ff449d80-1610-45ef-9b0b-907d6de848f8
