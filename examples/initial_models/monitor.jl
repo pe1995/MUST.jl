@@ -6,4 +6,4 @@ using MUST
 w = MUST.defaultWatchDog(ARGS[1])
 
 # run the watchdog until it timeouts
-MUST.monitor(w, timeout=20, check_every=5)
+MUST.monitor(w)
