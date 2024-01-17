@@ -13,7 +13,7 @@ mutable struct WatchDog
     functions
 end
 
-WatchDog(name; folder=@in_dispatch("data/$(name)"), functions...) = WatchDog(name, folder, [], [], functions)
+WatchDog(name; folder=@in_dispatch("data/"), functions...) = WatchDog(name, joinpath(folder, name), [], [], functions)
 
 
 """
@@ -89,7 +89,7 @@ function analyse(w::WatchDog, snapshot; save_box=false)
         snapshot; 
         w.folder, 
         optical_depth_scale=true, 
-        save_snapshot=false, 
+        save_snapshot=save_box, 
         add_selection=false, 
         to_multi=false,
         is_box=true, 
@@ -214,7 +214,7 @@ end
 Create a WatchDog with all default monitoring functions. Additional functions
 can be passed if wanted.
 """
-defaultWatchDog(name; folder=@in_dispatch("data/$(name)"), additional_functions...) = WatchDog(
+defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = WatchDog(
     name;
     folder=folder,
     atmosphericParameters = atmosphericParameters,
@@ -283,10 +283,10 @@ save(w::WatchDog, monitoring) = begin
     close(fid)
 end
 
-reload(s::Type{S}, name::String, snap; folder=@in_dispatch("data/$(name)"), mmap=false) where {S<:WatchDog} = begin
-    w = s(name)
+reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {S<:WatchDog} = begin
+    w = s(name; folder=folder)
 
-    fid = HDF5.h5open(monitoringPath(w, snap), "w")
+    fid = HDF5.h5open(monitoringPath(w, snap), "r")
     fvals = Dict()
 
     for gname in keys(fid)
@@ -301,8 +301,8 @@ reload(s::Type{S}, name::String, snap; folder=@in_dispatch("data/$(name)"), mmap
     fvals
 end
 
-reload(s::Type{S}, name::String; folder=@in_dispatch("data/$(name)"), mmap=false, asDict=false) where {S<:WatchDog} = begin
-    w = s(name)
+reload(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false) where {S<:WatchDog} = begin
+    w = s(name; folder=folder)
     listOfSnaps = availableSnaps(w)
     
     if !asDict
