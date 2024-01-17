@@ -499,6 +499,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         ## interpolator
         m = TSO.flip(models[i])
         mask = sortperm(m.τ)
+        τ_down = min(τ_down, maximum(log10.(m.τ)))
+
         ip_r = MUST.linear_interpolation(
             MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
             m.lnρ[mask], 

@@ -88,25 +88,25 @@ end
 function _var_from_patch(var, fname, shp, off, li, ui, idxd; density=:d)
     if var==:ux
         varidx = pyconvert(Any, idxd[String(:px)]) + 1
-        didx = pyconvert(Any, idxd[String(:d)]) + 1
+        didx = pyconvert(Any, idxd[String(density)]) + 1
 
         d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
         mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
     elseif var==:uy
         varidx = pyconvert(Any, idxd[String(:py)]) + 1
-        didx = pyconvert(Any, idxd[String(:d)]) + 1
+        didx = pyconvert(Any, idxd[String(density)]) + 1
 
         d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
         mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
     elseif var==:uz
         varidx = pyconvert(Any, idxd[String(:pz)]) + 1
-        didx = pyconvert(Any, idxd[String(:d)]) + 1
+        didx = pyconvert(Any, idxd[String(density)]) + 1
 
         d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
         mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
     elseif var==:ee
         varidx = pyconvert(Any, idxd[String(:e)]) + 1
-        didx = pyconvert(Any, idxd[String(:d)]) + 1
+        didx = pyconvert(Any, idxd[String(density)]) + 1
 
         d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
         mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
