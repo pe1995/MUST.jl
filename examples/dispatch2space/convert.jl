@@ -42,7 +42,7 @@ else
     snapshots         = sort(MUST.list_of_snapshots(content_of_folder))
     
     if !("SLURM_NTASKS" in keys(ENV))
-        istart = 1#max(1, length(snapshots)-30)
+        istart = max(1, length(snapshots)-30)
         snapshots = snapshots[istart:end-2]
     else
         #istart = max(1, length(snapshots)-10)
