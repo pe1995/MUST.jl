@@ -37,7 +37,7 @@ function snapshotBox(
     # read logg from the namelist
     logg = log10.(abs.(nml.stellar_params["g_cgs"]))
 
-    # Use the new Squaregas EOS 
+    # Use the Squaregas EOS 
     eos_path = replace(nml.eos_params["table_loc"], "'"=>"")
     eos_sq = SquareGasEOS(@in_dispatch(eos_path))
 
