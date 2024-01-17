@@ -42,15 +42,13 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=30)
                     analyse(w, snapf)
                     true
                 catch
-                    @info "... snapshot $(snapf) failed."
+                    @info "...snapshot $(snapf) failed."
                     false
                 end
 
                 if success
-                    @info "... snapshot $(snapf) done."
+                    @info "...snapshot $(snapf) done."
                     time_current = time()
-                    @show time_passed_since(time_current)
-                    @show time_passed_since(time_start)
                 end
             end
         end
