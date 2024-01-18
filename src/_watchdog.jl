@@ -143,6 +143,8 @@ _geostatistic(f, b) = begin
 end
 
 geometricalAverages(w::WatchDog, b, bτ) = _geostatistic(mean, b)
+geometricalMinimum(w::WatchDog, b, bτ) = _geostatistic(minimum, b)
+geometricalMaximum(w::WatchDog, b, bτ) = _geostatistic(maximum, b)
 geometricalRMS(w::WatchDog, b, bτ) = _geostatistic(x->sqrt(mean(x .^2)), b)
 geometricalStd(w::WatchDog, b, bτ) = _geostatistic(std, b)
 
@@ -174,6 +176,8 @@ _optstatistic(f, bτ) = begin
 end
 
 opticalAverages(w::WatchDog, b, bτ) = _optstatistic(mean, bτ)
+opticalMaximum(w::WatchDog, b, bτ) = _optstatistic(maximum, bτ)
+opticalMinimum(w::WatchDog, b, bτ) = _optstatistic(minimum, bτ)
 opticalRMS(w::WatchDog, b, bτ) = _optstatistic(x->sqrt(mean(x .^2)), bτ) 
 opticalStd(w::WatchDog, b, bτ) = _optstatistic(std, bτ)
 
@@ -227,6 +231,10 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     optMassFlux = optMassFlux,
     geoMassFlux = geoMassFlux,
     opticalSurfaces = opticalSurfaces,
+    opticalMaximum => opticalMaximum,
+    opticalMinimum => opticalMinimum,
+    geometricalMinimum => geometricalMinimum,
+    geometricalMaximum => geometricalMaximum,
     additional_functions...
 )
 
