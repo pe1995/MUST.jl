@@ -108,8 +108,15 @@ md"## Individual Snapshots"
 md"Pick the time for which you want to see the status: $(@bind timeSurface Slider(time, show_value=true))
 "
 
+# ╔═╡ 725f7500-c31b-4efa-9df9-00c51640914a
+md"Pick a second time for comparison: $(@bind timeSurface2 Slider(time, show_value=true))
+"
+
 # ╔═╡ a34793ae-db12-4dac-b2f8-348a88092815
 itimeSurface = findfirst(time .== timeSurface);
+
+# ╔═╡ 63f58f6c-954c-44e9-84b1-1aa799323586
+itimeSurface2 = findfirst(time .== timeSurface2);
 
 # ╔═╡ f5ccc550-6bf3-4f0f-baf3-d8de3d216737
 md"### Optical Surface"
@@ -195,11 +202,178 @@ let
 	gcf()
 end
 
+# ╔═╡ 3403a014-2441-4ad2-95f6-2e686ae99ba8
+
+
 # ╔═╡ b0c40c50-3361-4b01-ae87-45ae30387526
 md"### Geometrical Profiles"
 
+# ╔═╡ 96a3ddc0-3d70-4b65-a7c2-7482c8817186
+tGeoAv = timeevolution(monitoring, "geometricalAverages")
+
+# ╔═╡ 68477423-a6f7-424f-8fd4-849d63648b57
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	x, y = tGeoAv["z"][itimeSurface] ./1e8, tGeoAv["T"][itimeSurface]
+	ax.plot(
+		x, y,
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+	) 
+
+	x, y = tGeoAv["z"][itimeSurface2] ./1e8, tGeoAv["T"][itimeSurface2]
+	ax.plot(
+		x, y,
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+	) 
+
+	ax.set_xlabel("z [Mm]")
+	ax.set_ylabel(L"\rm T\ [K]")
+	ax.legend()
+
+	gcf()
+end
+
+# ╔═╡ 8ef763ae-d1bd-40de-a26a-f91f529c03bf
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	x, y = tGeoAv["z"][itimeSurface] ./1e8, tGeoAv["d"][itimeSurface]
+	ax.plot(
+		x, log10.(y),
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+	) 
+
+	x, y = tGeoAv["z"][itimeSurface2] ./1e8, tGeoAv["d"][itimeSurface2]
+	ax.plot(
+		x, log10.(y),
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+	) 
+
+	ax.set_xlabel("z [Mm]")
+	ax.set_ylabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
+	ax.legend()
+
+	gcf()
+end
+
+# ╔═╡ d9546636-2dbb-4b14-9954-76872b95fd06
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	x, y = tGeoAv["d"][itimeSurface], tGeoAv["T"][itimeSurface]
+	ax.plot(
+		log10.(x), y,
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+	) 
+
+	x, y = tGeoAv["d"][itimeSurface2], tGeoAv["T"][itimeSurface2]
+	ax.plot(
+		log10.(x), y,
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+	) 
+
+	ax.set_xlabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
+	ax.set_ylabel(L"\rm T\ [K]")
+	
+	ax.legend()
+
+	gcf()
+end
+
+# ╔═╡ b09b0c9e-3d76-4ff0-ae82-205cbc3b83b5
+
+
 # ╔═╡ db1a9405-e93c-476d-a43b-f11f3138b57a
 md"### Optical Profiles"
+
+# ╔═╡ 3da231de-ff58-4161-a6a4-58162483825a
+tOptAv = timeevolution(monitoring, "opticalAverages")
+
+# ╔═╡ 0fdf3055-4d11-4dea-8a50-e595ef1c112d
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	x, y = tOptAv["log10τ_ross"][itimeSurface], tOptAv["T"][itimeSurface]
+	ax.plot(
+		x, y,
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+	) 
+
+	x, y = tOptAv["log10τ_ross"][itimeSurface2], tOptAv["T"][itimeSurface2]
+	ax.plot(
+		x, y,
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+	) 
+
+	ax.set_xlabel(L"\rm \log\ \tau_{ross}")
+	ax.set_ylabel(L"\rm T\ [K]")
+	ax.legend()
+
+	gcf()
+end
+
+# ╔═╡ eddc02bf-d7ca-41e1-878e-ef1103bf1b0f
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	x, y = tOptAv["log10τ_ross"][itimeSurface], tOptAv["d"][itimeSurface]
+	ax.plot(
+		x, log10.(y),
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+	) 
+
+	x, y = tOptAv["log10τ_ross"][itimeSurface2], tOptAv["d"][itimeSurface2]
+	ax.plot(
+		x, log10.(y),
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+	) 
+
+	ax.set_xlabel(L"\rm \log\ \tau_{ross}")
+	ax.set_ylabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
+	ax.legend()
+
+	gcf()
+end
+
+# ╔═╡ 25c3d608-9440-4ac9-8277-3855ba3b6a7b
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	x, y = tOptAv["d"][itimeSurface], tOptAv["T"][itimeSurface]
+	ax.plot(
+		log10.(x), y,
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+	) 
+	
+	x, y = tOptAv["d"][itimeSurface2], tOptAv["T"][itimeSurface2]
+	ax.plot(
+		log10.(x), y,
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+	) 
+
+	ax.set_xlabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
+	ax.set_ylabel(L"\rm T\ [K]")
+	
+	ax.legend()
+
+	gcf()
+end
+
+# ╔═╡ d55d7d42-c78c-447c-9959-3689f5341655
+
 
 # ╔═╡ 321e3dda-cd15-4787-95e6-f928125535d5
 md"## Time evolution"
@@ -275,7 +449,7 @@ let
 	) 	
 
 	ax.set_xlabel("time [s]")
-	ax.set_ylabel(L"\rm  <\log\ \rho_{\tau=1}>\ [g\ cm^{-3}]")
+	ax.set_ylabel(L"\rm \log < \rho_{\tau=1}>\ [g\ cm^{-3}]")
 
 	gcf()
 end
@@ -305,6 +479,76 @@ let
 	gcf()
 end
 
+# ╔═╡ c8492ca5-893f-4939-a256-f0872f351c5d
+
+
+# ╔═╡ df9b58cf-fe4f-4858-a296-879bb0385ba7
+md"### Upper Boundary"
+
+# ╔═╡ ccf5f4e6-adc6-419d-a717-4b3b597c2233
+ttopgeo = timeevolution(monitoring, "geometricalAverages")
+
+# ╔═╡ 913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	surfaceT = (ttopgeo["T"] .|> last)
+	
+	ax.plot(
+		time, surfaceT, 
+		color="k", marker="s", markerfacecolor="None", ls="-"
+	) 
+
+	ax.set_title("Upper Boundary")
+	ax.set_xlabel("time [s]")
+	ax.set_ylabel(L"\rm <T_{top}>\ [K]")
+
+	gcf()
+end
+
+# ╔═╡ 2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	surfaceT = (ttopgeo["d"] .|> last)
+	
+	ax.plot(
+		time, log10.(surfaceT), 
+		color="k", marker="s", markerfacecolor="None", ls="-"
+	) 
+
+	ax.set_title("Upper Boundary")
+	ax.set_xlabel("time [s]")
+	ax.set_ylabel(L"\rm  <\rho_{top}>\ [g\ cm^{-3}]")
+	gcf()
+end
+
+# ╔═╡ aa0376dc-5982-4274-9b4d-4aef1d1de896
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	surfaceT = (ttopgeo["uz"] .|> last) ./1e5
+	
+	ax.plot(
+		time, surfaceT, 
+		color="k", marker="s", markerfacecolor="None", ls="-"
+	) 
+
+	ax.set_title("Upper Boundary")
+	ax.set_xlabel("time [s]")
+	ax.set_ylabel(L"\rm  <v_z^{top}>\ [g\ cm^{-3}]")
+	gcf()
+end
+
+# ╔═╡ d50b1713-c0a9-4da7-8397-95b1cd3059a7
+
+
 # ╔═╡ Cell order:
 # ╟─c7dc3b15-6555-4824-872a-d487fe5145ea
 # ╠═2f1edd2a-b56e-11ee-29e7-c353938e7088
@@ -330,14 +574,27 @@ end
 # ╟─ef5ee4f6-96be-4669-ba68-3c1117605a4c
 # ╟─8d6d674b-153b-4357-9f2d-c4e3cb05d059
 # ╟─b9a721cf-46ef-4e3c-a37c-8b35653e31cb
+# ╟─725f7500-c31b-4efa-9df9-00c51640914a
 # ╟─a34793ae-db12-4dac-b2f8-348a88092815
+# ╟─63f58f6c-954c-44e9-84b1-1aa799323586
 # ╟─f5ccc550-6bf3-4f0f-baf3-d8de3d216737
 # ╟─b757013d-aee5-41a4-ab0a-7715ba47bd97
 # ╟─0639ce7d-955d-448f-84a0-353dfd4e93a3
 # ╟─c24a3b12-c7c0-449b-9a76-6e9c5d475344
 # ╟─3d371088-2322-462b-ab93-7cb49fcdf75f
+# ╟─3403a014-2441-4ad2-95f6-2e686ae99ba8
 # ╟─b0c40c50-3361-4b01-ae87-45ae30387526
+# ╟─96a3ddc0-3d70-4b65-a7c2-7482c8817186
+# ╟─68477423-a6f7-424f-8fd4-849d63648b57
+# ╟─8ef763ae-d1bd-40de-a26a-f91f529c03bf
+# ╟─d9546636-2dbb-4b14-9954-76872b95fd06
+# ╟─b09b0c9e-3d76-4ff0-ae82-205cbc3b83b5
 # ╟─db1a9405-e93c-476d-a43b-f11f3138b57a
+# ╟─3da231de-ff58-4161-a6a4-58162483825a
+# ╟─0fdf3055-4d11-4dea-8a50-e595ef1c112d
+# ╟─eddc02bf-d7ca-41e1-878e-ef1103bf1b0f
+# ╟─25c3d608-9440-4ac9-8277-3855ba3b6a7b
+# ╟─d55d7d42-c78c-447c-9959-3689f5341655
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─51858291-e78b-4d05-8441-64f33694d133
 # ╟─145f084a-a24b-4bcd-b5a2-42b114fa8df6
@@ -351,3 +608,10 @@ end
 # ╟─3b3e1234-8efc-4bd1-9807-1b63548c08c2
 # ╟─1521d2b2-56a7-41eb-ad52-b661af7f30c6
 # ╟─87d43815-9733-40ac-b4e7-81a2c5dbd0d1
+# ╟─c8492ca5-893f-4939-a256-f0872f351c5d
+# ╟─df9b58cf-fe4f-4858-a296-879bb0385ba7
+# ╠═ccf5f4e6-adc6-419d-a717-4b3b597c2233
+# ╟─913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
+# ╟─2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
+# ╟─aa0376dc-5982-4274-9b4d-4aef1d1de896
+# ╟─d50b1713-c0a9-4da7-8397-95b1cd3059a7
