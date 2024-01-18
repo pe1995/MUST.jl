@@ -231,10 +231,10 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     optMassFlux = optMassFlux,
     geoMassFlux = geoMassFlux,
     opticalSurfaces = opticalSurfaces,
-    opticalMaximum => opticalMaximum,
-    opticalMinimum => opticalMinimum,
-    geometricalMinimum => geometricalMinimum,
-    geometricalMaximum => geometricalMaximum,
+    opticalMaximum = opticalMaximum,
+    opticalMinimum = opticalMinimum,
+    geometricalMinimum = geometricalMinimum,
+    geometricalMaximum = geometricalMaximum,
     additional_functions...
 )
 
