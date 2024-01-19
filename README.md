@@ -395,7 +395,8 @@ w = MUST.defaultWatchDog("grid_t5777g44m00", folder=@in_dispatch("data/"))
 # you can also add functions with the following call structure e.g.
 mystatistic(watchdog, box, box_t) = begin
     # e.g. average profile, can be aything
-    x, y = MUST.profile(MUST.mean, b, :z, :T)
+    # 'box' is the geometrical, 'box_t' the optical depth 3D cube.
+    x, y = MUST.profile(MUST.mean, box, :z, :T)
 
     # return your result as Dict, so that it will have proper names when loaded
     Dict(
@@ -415,7 +416,7 @@ The default watchdog can also be started by e.g.
 ```
 $ julia --project monitor.jl grid_t5777g44m00
 ```
-or send to the background with `nohup`.
+or send to the background with `nohup`. You can look at the results by calling `monitoring = MUST.reload(MUST.WatchDog, "grid_t5777g44m00", folder=datafolder)`, or by simply using the `examples/initial_models/progress.jl` notebook, which provides a nice interface.
 
 --------------
 
