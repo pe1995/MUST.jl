@@ -88,25 +88,25 @@ end
 function _var_from_patch(var, fname, shp, off, li, ui, idxd; density=:d)
     if var==:ux
         varidx = pyconvert(Any, idxd[String(:px)]) + 1
-        didx = pyconvert(Any, idxd[String(:d)]) + 1
+        didx = pyconvert(Any, idxd[String(density)]) + 1
 
         d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
         mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
     elseif var==:uy
         varidx = pyconvert(Any, idxd[String(:py)]) + 1
-        didx = pyconvert(Any, idxd[String(:d)]) + 1
+        didx = pyconvert(Any, idxd[String(density)]) + 1
 
         d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
         mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
     elseif var==:uz
         varidx = pyconvert(Any, idxd[String(:pz)]) + 1
-        didx = pyconvert(Any, idxd[String(:d)]) + 1
+        didx = pyconvert(Any, idxd[String(density)]) + 1
 
         d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
         mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
     elseif var==:ee
         varidx = pyconvert(Any, idxd[String(:e)]) + 1
-        didx = pyconvert(Any, idxd[String(:d)]) + 1
+        didx = pyconvert(Any, idxd[String(density)]) + 1
 
         d = mmap(fname, Array{Float32, length(shp)}, shp, off[didx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
         mmap(fname, Array{Float32, length(shp)}, shp, off[varidx])[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] ./ d
@@ -507,7 +507,7 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 	x, y, z, patch_range = _build_cube(patch_data)
 	
 	# now we create the data arrays
-	data = if use_mmap
+	data = if !use_mmap
 		Dict{Symbol,Array{Float32,3}}(
 			q=>Array{Float32, 3}(undef, length(x), length(y), length(z)) 
 			for q in quantities
@@ -740,6 +740,19 @@ function add!(s::MUST.Space, b::MUST.Box, name::Symbol)
     add!(s, res, name)
     nothing
 end 
+
+"""
+    add!(s; kwargs...)
+
+Add given arrays to given space.
+"""
+add!(s; kwargs...) = begin
+    for (k, v) in kwargs
+        add!(s, v, k)
+    end
+
+    nothing
+end
 
 """
 Compute the horizonal average of a Box object.
@@ -1069,10 +1082,10 @@ function interpolate_by_column(b::MUST.Box)
 
             szv = sortperm(zv)
             for q in keys(b.data)
-                data_new[q][i,j] = LinearInterpolation(zv[szv], qv[q][szv], extrapolation_bc=Flat())
+                data_new[q][i,j] = LinearInterpolation(Interpolations.deduplicate_knots!(zv[szv]), qv[q][szv], extrapolation_bc=Flat())
             end
-            data_new[:x][i,j] = LinearInterpolation(zv[szv], xv[szv], extrapolation_bc=Flat())
-            data_new[:y][i,j] = LinearInterpolation(zv[szv], yv[szv], extrapolation_bc=Flat())
+            data_new[:x][i,j] = LinearInterpolation(Interpolations.deduplicate_knots!(zv[szv]), xv[szv], extrapolation_bc=Flat())
+            data_new[:y][i,j] = LinearInterpolation(Interpolations.deduplicate_knots!(zv[szv]), yv[szv], extrapolation_bc=Flat())
         end
     end
 
@@ -1113,20 +1126,28 @@ function interpolate_by_column(b::MUST.Box, val; logspace=true)
                     continue
                 end
                 data_new[q][i,j] = logspace ? 
-                    LinearInterpolation(log.(10, qv[val][szv]), qv[q][szv], extrapolation_bc=Flat()) : 
-                    LinearInterpolation(qv[val][szv], qv[q][szv], extrapolation_bc=Flat()) 
+                    LinearInterpolation(
+                        Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), 
+                        qv[q][szv], 
+                        extrapolation_bc=Flat()
+                    ) : 
+                    LinearInterpolation(
+                        Interpolations.deduplicate_knots!(qv[val][szv]), 
+                        qv[q][szv], 
+                        extrapolation_bc=Flat()
+                    ) 
             end
 
             data_new[:z][i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), zv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], zv[szv], extrapolation_bc=Flat()) 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), zv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], zv[szv]), extrapolation_bc=Flat()) 
 
             data_new[:x][i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), xv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], xv[szv], extrapolation_bc=Flat()) 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), xv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], xv[szv]), extrapolation_bc=Flat()) 
             data_new[:y][i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), yv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], yv[szv], extrapolation_bc=Flat()) 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), yv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], yv[szv]), extrapolation_bc=Flat()) 
         end
     end
 
@@ -1168,20 +1189,28 @@ function interpolate_by_column(b::MUST.Box, val, qin; logspace=true)
                     continue
                 end
                 data_new[i,j] = logspace ? 
-                    LinearInterpolation(log.(10, qv[val][szv]), qv[q][szv], extrapolation_bc=Flat()) : 
-                    LinearInterpolation(qv[val][szv], qv[q][szv], extrapolation_bc=Flat()) 
+                    LinearInterpolation(
+                        Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), 
+                        qv[q][szv], 
+                        extrapolation_bc=Flat()
+                    ) : 
+                    LinearInterpolation(
+                        Interpolations.deduplicate_knots!(qv[val][szv]), 
+                        qv[q][szv], 
+                        extrapolation_bc=Flat()
+                    ) 
             end
 
             data_z[i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), zv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], zv[szv], extrapolation_bc=Flat())
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), zv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv]), zv[szv], extrapolation_bc=Flat())
                             
             data_x[i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), xv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], xv[szv], extrapolation_bc=Flat()) 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), xv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv]), xv[szv], extrapolation_bc=Flat()) 
             data_y[i,j] = logspace ? 
-                            LinearInterpolation(log.(10, qv[val][szv]), yv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(qv[val][szv], yv[szv], extrapolation_bc=Flat()) 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), yv[szv], extrapolation_bc=Flat()) : 
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv]), yv[szv], extrapolation_bc=Flat()) 
         end
     end
 
@@ -1351,7 +1380,14 @@ function reduce_by_value(f::F, b::MUST.Box; remove_nan=true, kwargs...) where {F
     reduce_by_plane(f_mod, b; index=false)
 end
 
-function interpolate_to(box, v; logspace=true, kwargs...)
+
+"""
+    interpolate_to(box, v; logspace=true, kwargs...)
+
+Interpolate the `Box` of values v to the plane given in kwargs. Specify `logspace=true`
+if the given quantity is in log.
+"""
+function interpolate_to(box, v::Symbol; logspace=true, kwargs...)
     z     = first(keys(kwargs))
     z_val = first(values(kwargs))
 
@@ -1374,6 +1410,42 @@ function interpolate_to(box, v; logspace=true, kwargs...)
 
     Box(col_x, col_y, col_z, Dict{Symbol,Array{eltype(box.x),3}}(v=>col_new), deepcopy(box.parameter))
 end
+
+"""
+    interpolate_to(box, v; logspace=true, kwargs...)
+
+Interpolate the `Box` of values v to the plane given in kwargs. Specify `logspace=true`
+if the given quantity is in log.
+"""
+function interpolate_to(box; logspace=true, kwargs...)
+    z     = first(keys(kwargs))
+    z_val = first(values(kwargs))
+
+    ips = interpolate_by_column(box, z, logspace=logspace)
+
+    cols_new = Dict(p=>zeros(eltype(box.x), size(box.x)[1:2]..., 1) for p in keys(b.data))
+    col_z   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
+    col_x   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
+    col_y   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
+
+    @inbounds for j in axes(box.x, 2)
+        @inbounds for i in axes(box.x, 1)
+            for p in keys(b.data)
+                cols_new[p][i, j, 1] = ips[p][i, j](z_val)
+            end
+            col_z[  i, j, 1] = ips[:z][i, j](z_val)
+            col_x[  i, j, 1] = ips[:x][i, j](z_val)
+            col_y[  i, j, 1] = ips[:y][i, j](z_val)
+        end
+    end
+
+    Box(col_x, col_y, col_z, Dict{Symbol,Array{eltype(box.x),3}}(v=>cols_new[v] for v in keys(b.data)), deepcopy(box.parameter))
+end
+
+
+
+
+
 
 """
 Switch the height scale of a box. Creates a new box by reducing the old box by column for every new height value.

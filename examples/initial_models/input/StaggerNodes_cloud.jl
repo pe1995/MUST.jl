@@ -26,19 +26,19 @@ end
 #= Dispatch setup =#
 begin
     patch_size = 22                 # Points per patch
-    τ_up = -4.2                     # Upper limit of simulation domain
+    τ_up = -3.8                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 6.5                    # Lower limit of simulation domain
-    τ_ee0 = -0.35                   # Newton cooling placement (energy)
-    τ_eemin = -0.35                 # Mininmum energy of initial condition
-    τ_zee0 = -1.0                   # Newton cooling placement (height)
-    τ_rho0 = 0.5                   # Density normaliztion height
+    τ_down = 7.0                    # Lower limit of simulation domain
+    τ_ee0 = -0.5                    # Newton cooling placement (energy)
+    τ_eemin = τ_up                  # Mininmum energy of initial condition
+    τ_zee0 = -2.0                   # Newton cooling placement (height)
+    τ_rho0 = 0.5                    # Density normaliztion height
     scale_resolution = 0.9          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,         #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>10.0,   #   for direct namelist replacement
         :courant_target=>0.2,
-        :courant_rt=>0.2,
+        :courant_rt=>0.1,
         :newton_params=>(
             :on=>true,
             :delay_rt=>true
@@ -65,7 +65,7 @@ begin
     version = "v0.4"
 
     # Number of bins in the opacity table (output)
-    Nbins = 4
+    Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
     skip_binning = true
@@ -85,19 +85,19 @@ begin
         )
 
         # 8 bins
-        #=quadrants = [ 
+        quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
-        ]=#
+        ]
 
         # 4 MURaM bins
-        quadrants = [ 
+        #=quadrants = [ 
             TSO.Quadrant((0.0, 100.0), (-100, 0.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (0.0, 2.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (2.0, 4.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (4.0, 100.0), 1, stripes=:κ)
-        ]
+        ]=#
     end
 end

@@ -410,14 +410,14 @@ plot_given && let
 			ls="-"
 		)
 
-		axA.plot(
+		#=axA.plot(
 			initial_adiabats[name].z, exp.(initial_adiabats[name].lnT), 
 			lw=1., 
 			color=colors_initial[name],
 			label=labels_adiabat[name],
 			alpha=0.7,
 			ls="--"
-		)
+		)=#
 	end
 	
 	axA.legend()
@@ -914,6 +914,6 @@ end
 # ╟─873c07cd-7f02-4144-99fd-842a0aacc6d9
 # ╠═f2f27ccc-358b-4bec-9506-b31c27d6f759
 # ╟─7d10a077-75c1-4aee-b732-35a7ff71d109
-# ╟─5b856c06-da72-41be-adc7-6d4e4570ad45
+# ╠═5b856c06-da72-41be-adc7-6d4e4570ad45
 # ╟─34fecdab-ed33-4685-92f2-70c0e763e893
-# ╟─139e7d21-e102-48de-bcbd-ee1a1e78bb5d
+# ╠═139e7d21-e102-48de-bcbd-ee1a1e78bb5d

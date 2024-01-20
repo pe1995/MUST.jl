@@ -16,12 +16,16 @@ begin
 	using Printf
 	using KernelDensity
 	using DelimitedFiles
+	using PlutoUI
 
 	plt = matplotlib.pyplot
 end;
 
 # ╔═╡ 485a693d-4872-47d4-975d-e91a7bbc0be7
 md"# Paper I: Validation & The Sun (v2)"
+
+# ╔═╡ a61a48b3-cfe9-4d0b-a0f7-7008add4e1d9
+TableOfContents()
 
 # ╔═╡ feefb5e4-c4aa-428f-87ea-82b32072fb26
 include_helper(name) = joinpath(dirname(pathof(MUST)), name)
@@ -427,7 +431,7 @@ md"## Conversions"
 must2multi = MUST.ingredients("convert2multi.jl")
 
 # ╔═╡ 84fc6b08-0825-41ab-b214-5fef7e2a2dc0
-res = reshape(collect(Iterators.product((10, 20, 80, 120), (299))), :)
+res = [] #reshape(collect(Iterators.product((10, 20, 80, 120), (299))), :)
 
 # ╔═╡ 35d2d2c5-6b70-4bb9-acdc-216557859282
 # ╠═╡ show_logs = false
@@ -783,7 +787,9 @@ begin
 	
 	axA3.set_ylim(3600, 14500)
 	axA3.set_xlim(3.2, 6.1)
-	
+
+	fA3.savefig("T-Pg_3D_MARCS.pdf", bbox_inches="tight")
+	fA3.savefig("T-Pg_3D_MARCS.png", bbox_inches="tight", dpi=300)
 	
 	gcf()
 end
@@ -1921,7 +1927,7 @@ begin
 	
 	axJ[0].set_ylabel(L"\rm T\ [K]")
 	axJ[1].set_ylabel(L"\rm \log \rho\ [g \ cm^{-3}]")
-	axJ[2].set_ylabel(L"\rm v_{z}\ [km \ s^{-1}]")
+	axJ[2].set_ylabel(L"\rm rms\ v_{z}\ [km \ s^{-1}]")
 	
 	axJ[2].set_xlabel(L"\rm \log \tau_{ross}")
 	axJ[2].set_xlim(-3.75, 3)
@@ -2141,6 +2147,45 @@ end
 # ╔═╡ f6736f9c-f76e-40ae-bb85-63c1aef6605c
 granularstatistics(modelM)
 
+# ╔═╡ 9cbc4ead-5f1d-41b9-a7ac-dea24f4b91cb
+
+
+# ╔═╡ f33f10e7-506d-4d55-a7c2-1b573ee6e13e
+md"We can also use the optical surface for this statistics. 
+For this we add the pressure to the model and compute the scale height and turn over time at the optical surface using the pre-defined functions."
+
+# ╔═╡ c11b167f-ba1f-4ae6-8e38-e3c011f6f036
+function optical_turnover(model; logg)
+	m3disM = pick_snapshot(out_folder[model], -1) |> first
+	pgM = exp.(lookup(eos[model], :lnPg, log.(m3disM[:d]), log.(m3disM[:ee])))
+	
+	add!(m3disM, Pg=pgM)
+
+	hpM = MUST.pressurescaleheight(m3disM, τ_ross=0.0, logspace=true, logg=logg)
+	ctM = MUST.convectiveturnovertime(m3disM, τ_ross=0.0, logspace=true, logg=logg)
+
+	@info "Pressure scale height [km]: $(hpM/100000.0)"
+	@info "Convective turnover time [s]: $(ctM)"
+	@info "Convective turnover time [min]: $(ctM ./60)"
+
+	hpM, ctM
+end
+
+# ╔═╡ 3f194d77-08cf-4d51-81ee-f811ed587967
+optical_turnover(models["best"], logg=4.44)
+
+# ╔═╡ 95849fd6-e8bf-48e4-a0d9-2dd86cee58bb
+optical_turnover(models["t55g45m00"], logg=4.5)
+
+# ╔═╡ a15e914f-13f6-456f-a74f-b9edd63a7ab9
+optical_turnover(models["t60g45m00"], logg=4.5)
+
+# ╔═╡ 059978b8-a8b0-4f1c-a681-ea41d865a488
+optical_turnover(models["t65g45m00"], logg=4.5)
+
+# ╔═╡ f3a0a1b6-af99-46ec-8355-ab9fe7e5881d
+
+
 # ╔═╡ 2587d8e9-7612-42f6-8a0c-01c72b1d32d3
 md"### (N) Multiple vertical slices"
 
@@ -2198,6 +2243,8 @@ function vertical_velocity_slice_with_contours(
 	)
 	#plt.clabel(csN, inline=1)
 
+	#axN.set_aspect("equal")
+	
 	normN = matplotlib.colors.Normalize(
 		vmin=csN.cvalues.min(), vmax=csN.cvalues.max()
 	)
@@ -2332,7 +2379,7 @@ function vertical_velocity_slice_with_contours(
 	
 	axN.set_xlabel(L"\rm X\ [Mm]")
 	axN.set_xlabel(L"\rm X\ [Mm]")
-
+	
 	quantity = quantity==:τ_ross ? "tross" : quantity
 	fN.savefig(
 		"vertical_slice_velocity-$(labels[mN])_$(quantity).png", dpi=600#, bbox_inches="tight"
@@ -2356,7 +2403,7 @@ begin
 	
 	y0N = [
 		200,
-		200,
+		20,
 		#140,
 		210,
 		200
@@ -2573,6 +2620,7 @@ end
 # ╔═╡ Cell order:
 # ╟─485a693d-4872-47d4-975d-e91a7bbc0be7
 # ╠═7be90c6e-260a-11ee-12d4-93fd873d1015
+# ╟─a61a48b3-cfe9-4d0b-a0f7-7008add4e1d9
 # ╟─feefb5e4-c4aa-428f-87ea-82b32072fb26
 # ╟─b20211ed-1d69-49f0-9af3-002affd58ff2
 # ╠═c4846fea-8b7a-4338-bfa9-df9b9c0aff6f
@@ -2673,8 +2721,16 @@ end
 # ╠═78ce2d34-9898-4140-a7fd-8fe2e807d972
 # ╠═94c55529-523a-4a44-9ed8-1caaf34e4da5
 # ╟─3466e7cb-17ab-4a1a-ac4f-7b3f1264584d
-# ╟─cb14997c-ed1f-4be0-80ce-bba1d94765d4
+# ╠═cb14997c-ed1f-4be0-80ce-bba1d94765d4
 # ╠═f6736f9c-f76e-40ae-bb85-63c1aef6605c
+# ╟─9cbc4ead-5f1d-41b9-a7ac-dea24f4b91cb
+# ╟─f33f10e7-506d-4d55-a7c2-1b573ee6e13e
+# ╟─c11b167f-ba1f-4ae6-8e38-e3c011f6f036
+# ╠═3f194d77-08cf-4d51-81ee-f811ed587967
+# ╠═95849fd6-e8bf-48e4-a0d9-2dd86cee58bb
+# ╠═a15e914f-13f6-456f-a74f-b9edd63a7ab9
+# ╠═059978b8-a8b0-4f1c-a681-ea41d865a488
+# ╟─f3a0a1b6-af99-46ec-8355-ab9fe7e5881d
 # ╟─2587d8e9-7612-42f6-8a0c-01c72b1d32d3
 # ╠═5003a0ce-7aa0-4a5e-9765-6129d7660e1b
 # ╠═6ce71e68-3e46-4ee7-9777-7a04342b5e2e
