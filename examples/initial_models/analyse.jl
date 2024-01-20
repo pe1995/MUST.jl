@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.32
+# v0.19.36
 
 using Markdown
 using InteractiveUtils
@@ -774,7 +774,7 @@ if start_timeevolution
 		)
 	end
 
-	if models in keys(initial_adiabats)
+	#=if models in keys(initial_adiabats)
 		axF.plot(
 			initial_profile_to_plot(initial_adiabats[models])..., 
 			lw=1., 
@@ -782,7 +782,7 @@ if start_timeevolution
 			alpha=0.7,
 			ls="-"
 		)
-	end
+	end=#
 
 	color_sequence = [
 		cmap_time(i/length(snaps_converted)) for i in eachindex(snaps_converted)
@@ -791,21 +791,25 @@ if start_timeevolution
 	#axF.axvline(0.57e8)
 	
 	for (c, i) in enumerate(snaps_converted)
-		s, st = pick_snapshot(sc, i)
-		if c == 1
-			axF.plot(
-				profile_to_plot(mean, s, st)..., 
-				lw=1., 
-				color=color_sequence[c], 
-				label="$(models)"
-			)
-		else
-			axF.plot(
-				profile_to_plot(mean, s, st)..., 
-				lw=1., 
-				color=color_sequence[c],
-				alpha=0.5
-			)
+		try
+			s, st = pick_snapshot(sc, i)
+			if c == 1
+				axF.plot(
+					profile_to_plot(mean, s, st)..., 
+					lw=1., 
+					color=color_sequence[c], 
+					label="$(models)"
+				)
+			else
+				axF.plot(
+					profile_to_plot(mean, s, st)..., 
+					lw=1., 
+					color=color_sequence[c],
+					alpha=0.5
+				)
+			end
+		catch
+			@warn "snapshot $i could not be loaded."
 		end
 	end
 
