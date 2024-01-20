@@ -26,6 +26,9 @@ end
 # ╔═╡ c7dc3b15-6555-4824-872a-d487fe5145ea
 md"# Dispatch Monitoring Board"
 
+# ╔═╡ c1ad6c59-fae6-49e7-bfc0-8426c553aa2d
+md"## Setup"
+
 # ╔═╡ 7cd7d6f0-8498-44ff-b59c-d298365d6416
 TableOfContents()
 
@@ -105,7 +108,7 @@ time = timeevolution(monitoring, "atmosphericParameters", "time")
 md"## Individual Snapshots"
 
 # ╔═╡ b9a721cf-46ef-4e3c-a37c-8b35653e31cb
-md"Pick the time for which you want to see the status: $(@bind timeSurface Slider(time, show_value=true))
+md"Pick the time for which you want to see the status: $(@bind timeSurface Slider(time, show_value=true, default=last(time)))
 "
 
 # ╔═╡ 725f7500-c31b-4efa-9df9-00c51640914a
@@ -127,25 +130,40 @@ topticalsurfaces = timeevolution(monitoring, "opticalSurfaces")
 # ╔═╡ 0639ce7d-955d-448f-84a0-353dfd4e93a3
 let 
 	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
 
 	x = topticalsurfaces["x"][itimeSurface] ./1e8
 	y = topticalsurfaces["y"][itimeSurface] ./1e8
 
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
-	
-	i = ax.imshow(
+
+	i = ax[0].imshow(
 		topticalsurfaces["uzplane"][itimeSurface] ./1e5,
 		origin="lower",
 		extent=extent,
 		cmap="coolwarm"
 	)
-	
-	cb = f.colorbar(i, ax=ax, fraction=0.046, pad=0.04)
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+
+	x = topticalsurfaces["x"][itimeSurface2] ./1e8
+	y = topticalsurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+
+	i = ax[1].imshow(
+		topticalsurfaces["uzplane"][itimeSurface2] ./1e5,
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm"
+	)
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm v_z\ [km\ s^{-1}]")
 
-	ax.set_xlabel("x [cm]")
-	ax.set_ylabel("y [cm]")
+
+	ax[0].set_xlabel("x [cm]")
+	ax[1].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
 	
 	gcf()
 end
@@ -153,25 +171,43 @@ end
 # ╔═╡ c24a3b12-c7c0-449b-9a76-6e9c5d475344
 let 
 	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
 
 	x = topticalsurfaces["x"][itimeSurface] ./1e8
 	y = topticalsurfaces["y"][itimeSurface] ./1e8
 
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
-	i = ax.imshow(
+	i = ax[0].imshow(
 		exp.(topticalsurfaces["lnDplane"][itimeSurface]),
 		origin="lower",
 		extent=extent,
 		cmap="coolwarm"
 	)
 	
-	cb = f.colorbar(i, ax=ax, fraction=0.046, pad=0.04)
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
+
+
+
+	x = topticalsurfaces["x"][itimeSurface2] ./1e8
+	y = topticalsurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		exp.(topticalsurfaces["lnDplane"][itimeSurface2]),
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm \rho\ [g\ cm^{-3}]")
 
-	ax.set_xlabel("x [cm]")
-	ax.set_ylabel("y [cm]")
+	ax[1].set_xlabel("x [cm]")
 	
 	gcf()
 end
@@ -179,25 +215,181 @@ end
 # ╔═╡ 3d371088-2322-462b-ab93-7cb49fcdf75f
 let 
 	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
 
 	x = topticalsurfaces["x"][itimeSurface] ./1e8
 	y = topticalsurfaces["y"][itimeSurface] ./1e8
 
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
-	i = ax.imshow(
+	i = ax[0].imshow(
 		topticalsurfaces["Tplane"][itimeSurface],
 		origin="lower",
 		extent=extent,
 		cmap="coolwarm"
 	)
 	
-	cb = f.colorbar(i, ax=ax, fraction=0.046, pad=0.04)
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
+
+
+
+	x = topticalsurfaces["x"][itimeSurface2] ./1e8
+	y = topticalsurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		topticalsurfaces["Tplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm T\ [K]")
 
-	ax.set_xlabel("x [cm]")
-	ax.set_ylabel("y [cm]")
+	ax[1].set_xlabel("x [cm]")
+	
+	gcf()
+end
+
+# ╔═╡ 5817821d-67f5-4e41-a0d3-7ca12961b0c7
+
+
+# ╔═╡ 7f77f259-505d-4344-8ee4-8628387f2401
+md"### Upper Boundary Surface"
+
+# ╔═╡ cc5fbd5a-c8a0-471a-a56b-0512e4c3989b
+tuppersurfaces = timeevolution(monitoring, "upperBoundarySurface")
+
+# ╔═╡ 495e3733-d290-40ab-af63-0eb10a033b53
+let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+
+	i = ax[0].imshow(
+		tuppersurfaces["uzplane"][itimeSurface] ./1e5,
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm"
+	)
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+
+	i = ax[1].imshow(
+		tuppersurfaces["uzplane"][itimeSurface2] ./1e5,
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm"
+	)
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm v_z\ [km\ s^{-1}]")
+
+
+	ax[0].set_xlabel("x [cm]")
+	ax[1].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
+	
+	gcf()
+end
+
+# ╔═╡ ed29d53f-00bc-4295-93f6-864a44f92ccb
+let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		tuppersurfaces["lnDplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		tuppersurfaces["lnDplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \rho\ [g\ cm^{-3}]")
+
+	ax[1].set_xlabel("x [cm]")
+	
+	gcf()
+end
+
+# ╔═╡ fa8161aa-0e1c-404f-8c7e-0e3914917df4
+let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		tuppersurfaces["Tplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		tuppersurfaces["Tplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm T\ [K]")
+
+	ax[1].set_xlabel("x [cm]")
 	
 	gcf()
 end
@@ -211,22 +403,51 @@ md"### Geometrical Profiles"
 # ╔═╡ 96a3ddc0-3d70-4b65-a7c2-7482c8817186
 tGeoAv = timeevolution(monitoring, "geometricalAverages")
 
+# ╔═╡ 8c03ccae-6a25-4f2b-a99d-bf537221d007
+tGeoMin = timeevolution(monitoring, "geometricalMinimum")
+
+# ╔═╡ 2f86b88f-b53a-489b-8a1e-7d5116492e34
+tGeoMax = timeevolution(monitoring, "geometricalMaximum")
+
 # ╔═╡ 68477423-a6f7-424f-8fd4-849d63648b57
 let
 	plt.close()
 
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
+	x, y = tGeoMax["z"][itimeSurface] ./1e8, tGeoMax["T"][itimeSurface]
+	ax.plot(
+		x, y,
+		color="cyan", marker="", ls="-"
+	) 
+	x, y = tGeoMin["z"][itimeSurface] ./1e8, tGeoMin["T"][itimeSurface]
+	ax.plot(
+		x, y,
+		color="magenta", marker="", ls="-"
+	) 
 	x, y = tGeoAv["z"][itimeSurface] ./1e8, tGeoAv["T"][itimeSurface]
 	ax.plot(
 		x, y,
-		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
 	) 
 
+
+
+	
+	x, y = tGeoMax["z"][itimeSurface2] ./1e8, tGeoMax["T"][itimeSurface2]
+	ax.plot(
+		x, y,
+		color="cyan", marker="", ls="--"
+	) 
+	x, y = tGeoMin["z"][itimeSurface2] ./1e8, tGeoMin["T"][itimeSurface2]
+	ax.plot(
+		x, y,
+		color="magenta", marker="", ls="--"
+	) 
 	x, y = tGeoAv["z"][itimeSurface2] ./1e8, tGeoAv["T"][itimeSurface2]
 	ax.plot(
 		x, y,
-		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
 	) 
 
 	ax.set_xlabel("z [Mm]")
@@ -242,16 +463,38 @@ let
 
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
+	x, y = tGeoMax["z"][itimeSurface] ./1e8, tGeoMax["d"][itimeSurface]
+	ax.plot(
+		x, log10.(y),
+		color="cyan", marker="", ls="-"
+	)
+	x, y = tGeoMin["z"][itimeSurface] ./1e8, tGeoMin["d"][itimeSurface]
+	ax.plot(
+		x, log10.(y),
+		color="magenta", marker="", ls="-"
+	)
 	x, y = tGeoAv["z"][itimeSurface] ./1e8, tGeoAv["d"][itimeSurface]
 	ax.plot(
 		x, log10.(y),
-		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
 	) 
 
+
+
+	x, y = tGeoMax["z"][itimeSurface2] ./1e8, tGeoMax["d"][itimeSurface2]
+	ax.plot(
+		x, log10.(y),
+		color="cyan", marker="", ls="--",
+	) 
+	x, y = tGeoMin["z"][itimeSurface2] ./1e8, tGeoMin["d"][itimeSurface2]
+	ax.plot(
+		x, log10.(y),
+		color="magenta", marker="", ls="--",
+	) 
 	x, y = tGeoAv["z"][itimeSurface2] ./1e8, tGeoAv["d"][itimeSurface2]
 	ax.plot(
 		x, log10.(y),
-		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
 	) 
 
 	ax.set_xlabel("z [Mm]")
@@ -267,16 +510,38 @@ let
 
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
+	x, y = tGeoMax["d"][itimeSurface], tGeoMax["T"][itimeSurface]
+	ax.plot(
+		log10.(x), y,
+		color="cyan", marker="", ls="-"
+	) 
+	x, y = tGeoMin["d"][itimeSurface], tGeoMin["T"][itimeSurface]
+	ax.plot(
+		log10.(x), y,
+		color="magenta", marker="", ls="-"
+	) 
 	x, y = tGeoAv["d"][itimeSurface], tGeoAv["T"][itimeSurface]
 	ax.plot(
 		log10.(x), y,
-		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
 	) 
 
+	
+
+	x, y = tGeoMax["d"][itimeSurface2], tGeoMax["T"][itimeSurface2]
+	ax.plot(
+		log10.(x), y,
+		color="cyan", marker="", ls="--"
+	) 
+	x, y = tGeoMin["d"][itimeSurface2], tGeoMin["T"][itimeSurface2]
+	ax.plot(
+		log10.(x), y,
+		color="magenta", marker="", ls="--"
+	) 
 	x, y = tGeoAv["d"][itimeSurface2], tGeoAv["T"][itimeSurface2]
 	ax.plot(
 		log10.(x), y,
-		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2
 	) 
 
 	ax.set_xlabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
@@ -296,22 +561,50 @@ md"### Optical Profiles"
 # ╔═╡ 3da231de-ff58-4161-a6a4-58162483825a
 tOptAv = timeevolution(monitoring, "opticalAverages")
 
+# ╔═╡ efc11ddf-99b9-4344-ab4f-1e5d7b7e2805
+tOptMin = timeevolution(monitoring, "opticalMinimum")
+
+# ╔═╡ e0d8aa2e-85cb-43fe-a5f4-65a7a757f19c
+tOptMax = timeevolution(monitoring, "opticalMaximum")
+
 # ╔═╡ 0fdf3055-4d11-4dea-8a50-e595ef1c112d
 let
 	plt.close()
 
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
+	# First one
+	x, y = tOptMin["log10τ_ross"][itimeSurface], tOptMin["T"][itimeSurface]
+	ax.plot(
+		x, y,
+		color="magenta", marker="", ls="-"
+	) 
+	x, y = tOptMax["log10τ_ross"][itimeSurface], tOptMax["T"][itimeSurface]
+	ax.plot(
+		x, y,
+		color="cyan", marker="", ls="-"
+	) 
 	x, y = tOptAv["log10τ_ross"][itimeSurface], tOptAv["T"][itimeSurface]
 	ax.plot(
 		x, y,
-		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
 	) 
 
+	# Second one
+	x, y = tOptMin["log10τ_ross"][itimeSurface2], tOptMin["T"][itimeSurface2]
+	ax.plot(
+		x, y,
+		color="magenta", marker="", ls="--"
+	) 
+	x, y = tOptMax["log10τ_ross"][itimeSurface2], tOptMax["T"][itimeSurface2]
+	ax.plot(
+		x, y,
+		color="cyan", marker="", ls="--"
+	)
 	x, y = tOptAv["log10τ_ross"][itimeSurface2], tOptAv["T"][itimeSurface2]
 	ax.plot(
 		x, y,
-		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
 	) 
 
 	ax.set_xlabel(L"\rm \log\ \tau_{ross}")
@@ -327,16 +620,38 @@ let
 
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
+	# first one
+	x, y = tOptMin["log10τ_ross"][itimeSurface], tOptMin["d"][itimeSurface]
+	ax.plot(
+		x, log10.(y),
+		color="magenta", marker="", ls="-"
+	) 
+	x, y = tOptMax["log10τ_ross"][itimeSurface], tOptMax["d"][itimeSurface]
+	ax.plot(
+		x, log10.(y),
+		color="cyan", marker="", ls="-"
+	) 
 	x, y = tOptAv["log10τ_ross"][itimeSurface], tOptAv["d"][itimeSurface]
 	ax.plot(
 		x, log10.(y),
-		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
 	) 
 
+	# second one
+	x, y = tOptMin["log10τ_ross"][itimeSurface2], tOptMin["d"][itimeSurface2]
+	ax.plot(
+		x, log10.(y),
+		color="magenta", marker="", ls="--"
+	) 
+	x, y = tOptMax["log10τ_ross"][itimeSurface2], tOptMax["d"][itimeSurface2]
+	ax.plot(
+		x, log10.(y),
+		color="cyan", marker="", ls="--"
+	) 
 	x, y = tOptAv["log10τ_ross"][itimeSurface2], tOptAv["d"][itimeSurface2]
 	ax.plot(
 		x, log10.(y),
-		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.5
 	) 
 
 	ax.set_xlabel(L"\rm \log\ \tau_{ross}")
@@ -352,16 +667,38 @@ let
 
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
+	x, y = tOptMax["d"][itimeSurface], tOptMax["T"][itimeSurface]
+	ax.plot(
+		log10.(x), y,
+		color="cyan", marker="", ls="-"
+	) 
+	x, y = tOptMin["d"][itimeSurface], tOptMin["T"][itimeSurface]
+	ax.plot(
+		log10.(x), y,
+		color="magenta", marker="", ls="-"
+	) 
 	x, y = tOptAv["d"][itimeSurface], tOptAv["T"][itimeSurface]
 	ax.plot(
 		log10.(x), y,
-		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s"
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
 	) 
+
+
 	
+	x, y = tOptMax["d"][itimeSurface2], tOptMax["T"][itimeSurface2]
+	ax.plot(
+		log10.(x), y,
+		color="cyan", marker="", ls="--"
+	) 
+	x, y = tOptMin["d"][itimeSurface2], tOptMin["T"][itimeSurface2]
+	ax.plot(
+		log10.(x), y,
+		color="magenta", marker="", ls="--"
+	) 
 	x, y = tOptAv["d"][itimeSurface2], tOptAv["T"][itimeSurface2]
 	ax.plot(
 		log10.(x), y,
-		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s"
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.5
 	) 
 
 	ax.set_xlabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
@@ -378,8 +715,8 @@ end
 # ╔═╡ 321e3dda-cd15-4787-95e6-f928125535d5
 md"## Time evolution"
 
-# ╔═╡ 51858291-e78b-4d05-8441-64f33694d133
-md"### Mass Flux"
+# ╔═╡ 35f64e1d-2273-4178-879e-187b86b24043
+md"### Optical Surace"
 
 # ╔═╡ 145f084a-a24b-4bcd-b5a2-42b114fa8df6
 tmassfluxgeo = timeevolution(monitoring, "geoMassFlux")
@@ -394,7 +731,7 @@ let
 	
 	ax.plot(
 		time, surfaceMF, 
-		color="k", marker="s", markerfacecolor="None", ls="-"
+		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
 	ax.set_xlabel("time [s]")
@@ -403,9 +740,6 @@ let
 
 	gcf()
 end
-
-# ╔═╡ dc0cd97f-f4e9-4a91-8c4a-ed27571a7f48
-md"### Temperature Optical Surface"
 
 # ╔═╡ c2b64d82-09a7-4d67-97d0-b51d96d30d25
 ttempsurface = timeevolution(monitoring, "opticalSurfaces", "Tplane")
@@ -417,10 +751,20 @@ let
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
 	surfaceTemp = [mean(t) for t in ttempsurface]
+	surfaceMax = [maximum(t) for t in ttempsurface]
+	surfaceMin = [minimum(t) for t in ttempsurface]
 	
 	ax.plot(
+		time, surfaceMax, 
+		color="cyan", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
+		time, surfaceMin, 
+		color="magenta", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
 		time, surfaceTemp, 
-		color="k", marker="s", markerfacecolor="None", ls="-"
+		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
 	ax.set_xlabel("time [s]")
@@ -428,9 +772,6 @@ let
 
 	gcf()
 end
-
-# ╔═╡ f328cd09-36f4-4910-a2e5-bc839df18e1e
-md"### Density Optical Surface"
 
 # ╔═╡ 71c4c81a-5567-45f0-925a-1dcad0f97082
 tdsurface = timeevolution(monitoring, "opticalSurfaces", "lnDplane")
@@ -442,10 +783,20 @@ let
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
 	surfaceRho = [log10.(mean(exp.(t))) for t in tdsurface]
-	
+	surfaceMax = [log10.(maximum(exp.(t))) for t in tdsurface]
+	surfaceMin = [log10.(minimum(exp.(t))) for t in tdsurface]
+
+	ax.plot(
+		time, surfaceMax, 
+		color="cyan", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
+		time, surfaceMin, 
+		color="magenta", marker="s", markerfacecolor="w", ls="-"
+	) 
 	ax.plot(
 		time, surfaceRho, 
-		color="k", marker="s", markerfacecolor="None", ls="-"
+		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 	
 
 	ax.set_xlabel("time [s]")
@@ -453,9 +804,6 @@ let
 
 	gcf()
 end
-
-# ╔═╡ 3b3e1234-8efc-4bd1-9807-1b63548c08c2
-md"### RMS Velocity Optical Surface"
 
 # ╔═╡ 1521d2b2-56a7-41eb-ad52-b661af7f30c6
 tuzsurface = timeevolution(monitoring, "opticalSurfaces", "uzplane")
@@ -466,11 +814,21 @@ let
 
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
-	surfaceUz = [sqrt.(mean(t .^2)) for t in tuzsurface]
-
+	surfaceUz  = [sqrt.(mean(t .^2)) for t in tuzsurface]
+	surfaceMax = [maximum(t) for t in tuzsurface]
+	surfaceMin = [minimum(t)  for t in tuzsurface]
+	
+	ax.plot(
+		time, surfaceMax ./1e5, 
+		color="cyan", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
+		time, surfaceMin ./1e5, 
+		color="magenta", marker="s", markerfacecolor="w", ls="-"
+	) 
 	ax.plot(
 		time, surfaceUz ./1e5, 
-		color="k", marker="s", markerfacecolor="None", ls="-"
+		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
 	ax.set_xlabel("time [s]")
@@ -495,10 +853,20 @@ let
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
 	surfaceT = (ttopgeo["T"] .|> last)
+	surfaceMa = (tGeoMax["T"] .|> last)
+	surfaceMi = (tGeoMin["T"] .|> last)
 	
 	ax.plot(
+		time, surfaceMi, 
+		color="magenta", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
+		time, surfaceMa, 
+		color="cyan", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
 		time, surfaceT, 
-		color="k", marker="s", markerfacecolor="None", ls="-"
+		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
 	ax.set_title("Upper Boundary")
@@ -515,10 +883,20 @@ let
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
 	surfaceT = (ttopgeo["d"] .|> last)
-	
+	surfaceMa = (tGeoMax["d"] .|> last)
+	surfaceMi = (tGeoMin["d"] .|> last)
+
+	ax.plot(
+		time, log10.(surfaceMi), 
+		color="magenta", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
+		time, log10.(surfaceMa), 
+		color="cyan", marker="s", markerfacecolor="w", ls="-"
+	) 
 	ax.plot(
 		time, log10.(surfaceT), 
-		color="k", marker="s", markerfacecolor="None", ls="-"
+		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
 	ax.set_title("Upper Boundary")
@@ -534,15 +912,29 @@ let
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
 	surfaceT = (ttopgeo["uz"] .|> last) ./1e5
-	
+	surfaceMa = (tGeoMax["uz"] .|> last) ./1e5
+	surfaceMi = (tGeoMin["uz"] .|> last) ./1e5
+
+	ax.plot(
+		time, surfaceMi, 
+		color="magenta", marker="s", markerfacecolor="w", ls="-", markersize=5.5
+	) 
+	ax.plot(
+		time, surfaceMa, 
+		color="cyan", marker="s", markerfacecolor="w", ls="-", markersize=5.5
+	) 
 	ax.plot(
 		time, surfaceT, 
-		color="k", marker="s", markerfacecolor="None", ls="-"
+		color="k", marker="s", markerfacecolor="w", ls="-", markersize=5.5
 	) 
+
+	ax.axhline(0.0, color="k", alpha=0.2, ls="--")
+
+	
 
 	ax.set_title("Upper Boundary")
 	ax.set_xlabel("time [s]")
-	ax.set_ylabel(L"\rm  <v_z^{top}>\ [g\ cm^{-3}]")
+	ax.set_ylabel(L"\rm  <v_z^{top}>\ [km\ s^{-1}]")
 	gcf()
 end
 
@@ -551,6 +943,7 @@ end
 
 # ╔═╡ Cell order:
 # ╟─c7dc3b15-6555-4824-872a-d487fe5145ea
+# ╟─c1ad6c59-fae6-49e7-bfc0-8426c553aa2d
 # ╠═2f1edd2a-b56e-11ee-29e7-c353938e7088
 # ╟─7cd7d6f0-8498-44ff-b59c-d298365d6416
 # ╟─78c88a26-1e84-4ba2-a8f2-d4c7f6468dd3
@@ -582,35 +975,42 @@ end
 # ╟─0639ce7d-955d-448f-84a0-353dfd4e93a3
 # ╟─c24a3b12-c7c0-449b-9a76-6e9c5d475344
 # ╟─3d371088-2322-462b-ab93-7cb49fcdf75f
+# ╟─5817821d-67f5-4e41-a0d3-7ca12961b0c7
+# ╟─7f77f259-505d-4344-8ee4-8628387f2401
+# ╟─cc5fbd5a-c8a0-471a-a56b-0512e4c3989b
+# ╟─495e3733-d290-40ab-af63-0eb10a033b53
+# ╟─ed29d53f-00bc-4295-93f6-864a44f92ccb
+# ╟─fa8161aa-0e1c-404f-8c7e-0e3914917df4
 # ╟─3403a014-2441-4ad2-95f6-2e686ae99ba8
 # ╟─b0c40c50-3361-4b01-ae87-45ae30387526
 # ╟─96a3ddc0-3d70-4b65-a7c2-7482c8817186
+# ╟─8c03ccae-6a25-4f2b-a99d-bf537221d007
+# ╟─2f86b88f-b53a-489b-8a1e-7d5116492e34
 # ╟─68477423-a6f7-424f-8fd4-849d63648b57
 # ╟─8ef763ae-d1bd-40de-a26a-f91f529c03bf
 # ╟─d9546636-2dbb-4b14-9954-76872b95fd06
 # ╟─b09b0c9e-3d76-4ff0-ae82-205cbc3b83b5
 # ╟─db1a9405-e93c-476d-a43b-f11f3138b57a
 # ╟─3da231de-ff58-4161-a6a4-58162483825a
+# ╟─efc11ddf-99b9-4344-ab4f-1e5d7b7e2805
+# ╟─e0d8aa2e-85cb-43fe-a5f4-65a7a757f19c
 # ╟─0fdf3055-4d11-4dea-8a50-e595ef1c112d
 # ╟─eddc02bf-d7ca-41e1-878e-ef1103bf1b0f
 # ╟─25c3d608-9440-4ac9-8277-3855ba3b6a7b
 # ╟─d55d7d42-c78c-447c-9959-3689f5341655
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
-# ╟─51858291-e78b-4d05-8441-64f33694d133
+# ╟─35f64e1d-2273-4178-879e-187b86b24043
 # ╟─145f084a-a24b-4bcd-b5a2-42b114fa8df6
 # ╟─fb9216dd-c811-46fe-96f6-316369a00a1e
-# ╟─dc0cd97f-f4e9-4a91-8c4a-ed27571a7f48
 # ╟─c2b64d82-09a7-4d67-97d0-b51d96d30d25
 # ╟─eb335a4d-e662-499c-bb80-8bf38c84329f
-# ╟─f328cd09-36f4-4910-a2e5-bc839df18e1e
 # ╟─71c4c81a-5567-45f0-925a-1dcad0f97082
 # ╟─35b4aa7e-e41b-4444-af3b-74684c723d5c
-# ╟─3b3e1234-8efc-4bd1-9807-1b63548c08c2
 # ╟─1521d2b2-56a7-41eb-ad52-b661af7f30c6
 # ╟─87d43815-9733-40ac-b4e7-81a2c5dbd0d1
 # ╟─c8492ca5-893f-4939-a256-f0872f351c5d
 # ╟─df9b58cf-fe4f-4858-a296-879bb0385ba7
-# ╠═ccf5f4e6-adc6-419d-a717-4b3b597c2233
+# ╟─ccf5f4e6-adc6-419d-a717-4b3b597c2233
 # ╟─913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
 # ╟─2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
 # ╟─aa0376dc-5982-4274-9b4d-4aef1d1de896

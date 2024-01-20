@@ -7,7 +7,10 @@ begin
     dispatch_location = "/home/ubuntu/DISPATCH/dispatch2"
 
     # input and output names of the grid
-    initial_grid_path = "stagger_grid_full_o.mgrid"
+    #initial_grid_path = "stagger_grid_full_o.mgrid"
+    #initial_grid_path = "stagger_grid_sun.mgrid"
+    initial_grid_path = "stagger_grid_full_subgiant.mgrid"
+
     initial_cl_path   = "stagger_grid_avail.mgrid"
     initial_mod_path  = "stagger_grid_solar.mgrid"
     final_grid_path   = "dispatch_grid.mgrid"
@@ -26,13 +29,13 @@ end
 #= Dispatch setup =#
 begin
     patch_size = 22                 # Points per patch
-    τ_up = -3.8                     # Upper limit of simulation domain
+    τ_up = -4.0                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 7.0                    # Lower limit of simulation domain
     τ_ee0 = -0.5                    # Newton cooling placement (energy)
-    τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -2.0                   # Newton cooling placement (height)
-    τ_rho0 = 0.5                    # Density normaliztion height
+    τ_eemin = -5.0                  # Mininmum energy of initial condition
+    τ_zee0 = -0.5                   # Newton cooling placement (height)
+    τ_rho0 = 0.0                    # Density normaliztion height
     scale_resolution = 0.9          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,         #   Optional: Give namelist field = NamedTuple 
@@ -55,9 +58,9 @@ begin
     recompute_ross = false
 
     # Location of the opacity table
-    mother_table_path = "/home/ubuntu/DISPATCH/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.7"
+    mother_table_path = "/home/ubuntu/DISPATCH/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.8"
     extension = "magg_m0_a0"
-    eos_path = "combined_ross_eos_"*extension*".hdf5"
+    eos_path = "ross_combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
     sopa_path = "combined_Sopacities_"*extension*".hdf5"
 
@@ -65,7 +68,7 @@ begin
     version = "v0.4"
 
     # Number of bins in the opacity table (output)
-    Nbins = 8
+    Nbins = 4
 
     # Skip binning procedure (assumes it has already been done)
     skip_binning = true
@@ -85,19 +88,19 @@ begin
         )
 
         # 8 bins
-        quadrants = [ 
+        #=quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
-        ]
+        ]=#
 
         # 4 MURaM bins
-        #=quadrants = [ 
+        quadrants = [ 
             TSO.Quadrant((0.0, 100.0), (-100, 0.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (0.0, 2.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (2.0, 4.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (4.0, 100.0), 1, stripes=:κ)
-        ]=#
+        ]
     end
 end

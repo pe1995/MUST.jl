@@ -101,6 +101,10 @@ function analyse(w::WatchDog, snapshot; save_box=false)
         monitoring[fname] = f(w, b, bτ)
     end
 
+    b = nothing
+    bτ = nothing
+    Base.GC.gc()
+
     monitoring["general"] = Dict(
         "name" => w.name,
         "folder" => w.folder,
@@ -160,6 +164,20 @@ geoMassFlux(w::WatchDog, b, bτ) = begin
     )
 end
 
+upperBoundarySurface(w::WatchDog, b, bτ) = begin
+    uzplane = b[:uz][:, :, end]
+    Tplane = b[:T][:, :, end]
+    Dplane = log.(b[:d][:, :, end])
+
+    Dict(
+        "uzplane" => uzplane[:, :],
+        "Tplane" => Tplane[:, :],
+        "lnDplane" => Dplane[:, :],
+        "x" => b.x[:, :, end],
+        "y" => b.y[:, :, end]
+    )
+end
+
 
 
 _optstatistic(f, bτ) = begin
@@ -203,7 +221,7 @@ opticalSurfaces(w::WatchDog, b, bτ) = begin
         "Tplane" => Tplane[:, :, 1],
         "lnDplane" => Dplane[:, :, 1],
         "x" => b.x[:, :, 1],
-        "y" => b.x[:, :, 1]
+        "y" => b.y[:, :, 1]
     )
 end
 
@@ -235,6 +253,7 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     opticalMinimum = opticalMinimum,
     geometricalMinimum = geometricalMinimum,
     geometricalMaximum = geometricalMaximum,
+    upperBoundarySurface=upperBoundarySurface,
     additional_functions...
 )
 
