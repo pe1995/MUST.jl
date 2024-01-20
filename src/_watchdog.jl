@@ -314,12 +314,28 @@ reload(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false)
     listOfSnaps = availableSnaps(w)
     
     if !asDict
-        [reload(s, name, snapshotnumber(snap); folder=folder, mmap=mmap) for snap in listOfSnaps]
+        l  = []
+        for snap in listOfSnaps
+            try
+                si = reload(s, name, snapshotnumber(snap); folder=folder, mmap=mmap)
+                append!(l, [si])
+            catch
+                nothing
+            end
+        end
+
+        l
     else
-        Dict(
-            snap => reload(s, name, snap; folder=folder, mmap=mmap) 
-            for snap in listOfSnaps
-        )
+        l = Dict()
+        for snap in listOfSnaps
+            try
+                l[snap] = reload(s, name, snap; folder=folder, mmap=mmap)
+            catch
+                nothing
+            end
+        end
+
+        l
     end
 end
 
