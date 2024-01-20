@@ -60,9 +60,9 @@ begin
     MUST.save(grid, initial_cl_path)
 
     # To save time, remove models now that are not interesting at the moment
-    deleteat!(grid.info, grid["feh"].!=0.0)
-    deleteat!(grid.info, grid["teff"].!=5000.0)
-    deleteat!(grid.info, grid["logg"].!=4.0)
+    #deleteat!(grid.info, grid["feh"].!=0.0)
+    #deleteat!(grid.info, (grid["teff"].==5000.0) .| ((grid["teff"].!=5777.0)))
+    #deleteat!(grid.info, (grid["logg"].==4.0) .| ((grid["logg"].!=4.0)))
     MUST.save(grid, initial_mod_path)
 
 
