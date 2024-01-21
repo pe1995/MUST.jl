@@ -58,7 +58,7 @@ function snapshotBox(
 
     @assert number in snapshots
 
-    if true
+    try
         # remove cached data just in case
         rm.(glob("*.sr", snapshots_dir[findfirst(number .== snapshots)]))
 
@@ -144,8 +144,11 @@ function snapshotBox(
             multiBox(b_s, joinpath(folder, "m3dis_$(number)"))
         end
 
+        # remove the sr again
+        rm.(glob("*.sr", snapshots_dir[findfirst(number .== snapshots)]))
+
         b_s, b_τ
-    else
+    catch
         @warn "snapshot $(number) could not be loaded."
         nothing, nothing
     end
