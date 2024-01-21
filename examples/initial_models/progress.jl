@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.36
+# v0.19.35
 
 using Markdown
 using InteractiveUtils
@@ -72,7 +72,10 @@ md"## Load monitoring"
 monitoring = MUST.reload(MUST.WatchDog, selectedRun, folder=datafolder)
 
 # ╔═╡ 1fcefd1e-1c50-43b5-b203-62920944344a
-timeevolution(m, group, field) = [moni[group][field] for moni in m]
+timeevolution(m, group, field) = [
+	moni[group][field] 
+	for moni in m
+]
 
 # ╔═╡ e752753c-b982-40c6-b45d-ad9bfcd3bbfe
 timeevolution(m, group) = begin
@@ -94,6 +97,22 @@ keys(monitoring[1]) |> collect
 
 # ╔═╡ 60199001-8f0e-44a6-ae50-e829687c045c
 
+
+# ╔═╡ 3aadeb1c-3585-46af-8b9d-daf33bfcb7f3
+snapshotnames(moni) = [nothing, timeevolution(moni, "general", "snapshot")...];
+
+# ╔═╡ 2d580186-96a6-41b8-91aa-da527691ea1d
+md"""You can delete a snapshot by picking its number:\
+$(@bind selectDeleted confirm(Select(snapshotnames(monitoring))))"""
+
+# ╔═╡ 73df16bf-b033-494d-b321-608ffff33467
+if !isnothing(selectDeleted)
+	f = joinpath(datafolder, selectedRun, "monitoring", "snap_$(selectDeleted).hdf5")
+	if isfile(f)
+		rm(f)
+	@info "snap $(selectDeleted) removed from monitoring." 
+	end
+end
 
 # ╔═╡ bd936d7d-e79f-4f9b-ba54-e0694c6a83f0
 md"## General Properties"
@@ -120,6 +139,15 @@ itimeSurface = findfirst(time .== timeSurface);
 
 # ╔═╡ 63f58f6c-954c-44e9-84b1-1aa799323586
 itimeSurface2 = findfirst(time .== timeSurface2);
+
+# ╔═╡ a54433ec-14b4-4e5e-a0a7-2e6e50a5fa49
+
+
+# ╔═╡ 695e28be-31c8-4f44-85e3-72ce387d9da5
+@info "You are looking at snapshots (A) $(timeevolution(monitoring, "general", "snapshot")[itimeSurface]) and (B) $(timeevolution(monitoring, "general", "snapshot")[itimeSurface2])"
+
+# ╔═╡ 76a1714e-a5bb-488f-ad93-b8552e4531fd
+
 
 # ╔═╡ f5ccc550-6bf3-4f0f-baf3-d8de3d216737
 md"### Optical Surface"
@@ -962,14 +990,20 @@ end
 # ╟─e5b373f5-f565-4910-88b0-f5580880fac4
 # ╟─53f4fdc7-5509-44dd-bf71-ceacb78e3e54
 # ╟─60199001-8f0e-44a6-ae50-e829687c045c
+# ╟─3aadeb1c-3585-46af-8b9d-daf33bfcb7f3
+# ╟─2d580186-96a6-41b8-91aa-da527691ea1d
+# ╟─73df16bf-b033-494d-b321-608ffff33467
 # ╟─bd936d7d-e79f-4f9b-ba54-e0694c6a83f0
 # ╟─2c64fcf2-1a0b-49cf-a3f1-890f152d0650
 # ╟─ef5ee4f6-96be-4669-ba68-3c1117605a4c
 # ╟─8d6d674b-153b-4357-9f2d-c4e3cb05d059
 # ╟─b9a721cf-46ef-4e3c-a37c-8b35653e31cb
 # ╟─725f7500-c31b-4efa-9df9-00c51640914a
-# ╟─a34793ae-db12-4dac-b2f8-348a88092815
-# ╟─63f58f6c-954c-44e9-84b1-1aa799323586
+# ╠═a34793ae-db12-4dac-b2f8-348a88092815
+# ╠═63f58f6c-954c-44e9-84b1-1aa799323586
+# ╟─a54433ec-14b4-4e5e-a0a7-2e6e50a5fa49
+# ╟─695e28be-31c8-4f44-85e3-72ce387d9da5
+# ╟─76a1714e-a5bb-488f-ad93-b8552e4531fd
 # ╟─f5ccc550-6bf3-4f0f-baf3-d8de3d216737
 # ╟─b757013d-aee5-41a4-ab0a-7715ba47bd97
 # ╟─0639ce7d-955d-448f-84a0-353dfd4e93a3

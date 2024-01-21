@@ -50,11 +50,18 @@ function snapshotBox(
     end
 
     content_of_folder = glob("*/", folder)
-    snapshots = sort(list_of_snapshots(content_of_folder))
+    snapshots = list_of_snapshots(content_of_folder)
+    snapshot_order = sortperm(snapshots)
+
+    snapshots = snapshots[snapshot_order]
+    snapshots_dir = content_of_folder[snapshot_order]
 
     @assert number in snapshots
 
-    try
+    if true
+        # remove cached data just in case
+        rm.(glob("*.sr", snapshots_dir[findfirst(number .== snapshots)]))
+
         # The dispatch snapshot object (Python)
         snap = dispatch.snapshot(number, data=folder)
 
@@ -138,7 +145,7 @@ function snapshotBox(
         end
 
         b_s, b_τ
-    catch
+    else
         @warn "snapshot $(number) could not be loaded."
         nothing, nothing
     end
