@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.35
+# v0.19.36
 
 using Markdown
 using InteractiveUtils
@@ -98,12 +98,18 @@ keys(monitoring[1]) |> collect
 # ╔═╡ 60199001-8f0e-44a6-ae50-e829687c045c
 
 
+# ╔═╡ 0e4df1b3-52ef-4fce-8f32-bddc966b0516
+md"## Deleting Snapshots"
+
 # ╔═╡ 3aadeb1c-3585-46af-8b9d-daf33bfcb7f3
 snapshotnames(moni) = [nothing, timeevolution(moni, "general", "snapshot")...];
 
 # ╔═╡ 2d580186-96a6-41b8-91aa-da527691ea1d
 md"""You can delete a snapshot by picking its number:\
 $(@bind selectDeleted confirm(Select(snapshotnames(monitoring))))"""
+
+# ╔═╡ e3f00981-eb96-49ba-8451-9af7560d3556
+md"A deleted snapshot will be removed from the monitoring only. If the watchdog is still running in the background it will be added again at a later time automatically."
 
 # ╔═╡ 73df16bf-b033-494d-b321-608ffff33467
 if !isnothing(selectDeleted)
@@ -188,6 +194,10 @@ let
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm v_z\ [km\ s^{-1}]")
 
+	
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
 
 	ax[0].set_xlabel("x [cm]")
 	ax[1].set_xlabel("x [cm]")
@@ -235,6 +245,9 @@ let
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm \rho\ [g\ cm^{-3}]")
 
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
 	ax[1].set_xlabel("x [cm]")
 	
 	gcf()
@@ -278,6 +291,9 @@ let
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm T\ [K]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
 	ax[1].set_xlabel("x [cm]")
 	
@@ -326,6 +342,9 @@ let
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm v_z\ [km\ s^{-1}]")
 
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
 
 	ax[0].set_xlabel("x [cm]")
 	ax[1].set_xlabel("x [cm]")
@@ -373,6 +392,9 @@ let
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm \rho\ [g\ cm^{-3}]")
 
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
 	ax[1].set_xlabel("x [cm]")
 	
 	gcf()
@@ -416,6 +438,9 @@ let
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm T\ [K]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
 	ax[1].set_xlabel("x [cm]")
 	
@@ -746,29 +771,6 @@ md"## Time evolution"
 # ╔═╡ 35f64e1d-2273-4178-879e-187b86b24043
 md"### Optical Surace"
 
-# ╔═╡ 145f084a-a24b-4bcd-b5a2-42b114fa8df6
-tmassfluxgeo = timeevolution(monitoring, "geoMassFlux")
-
-# ╔═╡ fb9216dd-c811-46fe-96f6-316369a00a1e
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(5, 6))
-
-	surfaceMF = (tmassfluxgeo["massFlux"] .|> last) ./1e5
-	
-	ax.plot(
-		time, surfaceMF, 
-		color="k", marker="s", markerfacecolor="w", ls="-"
-	) 
-
-	ax.set_xlabel("time [s]")
-	ax.set_ylabel(L"\rm <\rho\ v_z>\ /\ <\rho>\ [km\ s^{-1}]")
-
-
-	gcf()
-end
-
 # ╔═╡ c2b64d82-09a7-4d67-97d0-b51d96d30d25
 ttempsurface = timeevolution(monitoring, "opticalSurfaces", "Tplane")
 
@@ -966,8 +968,28 @@ let
 	gcf()
 end
 
-# ╔═╡ d50b1713-c0a9-4da7-8397-95b1cd3059a7
+# ╔═╡ 3bfef187-d899-473d-9a92-acf5c65fa50d
+tmassfluxgeo = timeevolution(monitoring, "geoMassFlux")
 
+# ╔═╡ 01026bad-d93a-4246-a940-e9eb894ccf67
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	surfaceMF = (tmassfluxgeo["massFlux"] .|> last) ./1e5
+	
+	ax.plot(
+		time, surfaceMF, 
+		color="k", marker="s", markerfacecolor="w", ls="-"
+	) 
+
+	ax.set_xlabel("time [s]")
+	ax.set_ylabel(L"\rm <\rho\ v_z>\ /\ <\rho>\ [km\ s^{-1}]")
+
+
+	gcf()
+end
 
 # ╔═╡ Cell order:
 # ╟─c7dc3b15-6555-4824-872a-d487fe5145ea
@@ -990,8 +1012,10 @@ end
 # ╟─e5b373f5-f565-4910-88b0-f5580880fac4
 # ╟─53f4fdc7-5509-44dd-bf71-ceacb78e3e54
 # ╟─60199001-8f0e-44a6-ae50-e829687c045c
+# ╟─0e4df1b3-52ef-4fce-8f32-bddc966b0516
 # ╟─3aadeb1c-3585-46af-8b9d-daf33bfcb7f3
 # ╟─2d580186-96a6-41b8-91aa-da527691ea1d
+# ╟─e3f00981-eb96-49ba-8451-9af7560d3556
 # ╟─73df16bf-b033-494d-b321-608ffff33467
 # ╟─bd936d7d-e79f-4f9b-ba54-e0694c6a83f0
 # ╟─2c64fcf2-1a0b-49cf-a3f1-890f152d0650
@@ -1034,8 +1058,6 @@ end
 # ╟─d55d7d42-c78c-447c-9959-3689f5341655
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─35f64e1d-2273-4178-879e-187b86b24043
-# ╟─145f084a-a24b-4bcd-b5a2-42b114fa8df6
-# ╟─fb9216dd-c811-46fe-96f6-316369a00a1e
 # ╟─c2b64d82-09a7-4d67-97d0-b51d96d30d25
 # ╟─eb335a4d-e662-499c-bb80-8bf38c84329f
 # ╟─71c4c81a-5567-45f0-925a-1dcad0f97082
@@ -1048,4 +1070,5 @@ end
 # ╟─913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
 # ╟─2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
 # ╟─aa0376dc-5982-4274-9b4d-4aef1d1de896
-# ╟─d50b1713-c0a9-4da7-8397-95b1cd3059a7
+# ╟─3bfef187-d899-473d-9a92-acf5c65fa50d
+# ╟─01026bad-d93a-4246-a940-e9eb894ccf67
