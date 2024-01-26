@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.30
+# v0.19.36
 
 using Markdown
 using InteractiveUtils
@@ -86,13 +86,13 @@ snapshots = ["atmos.sun_MARCS"]
 snapshots_m3dis = [
 	"m3dis_sun_magg22_20x20x299_1",
 	"m3dis_sun_magg22_20x20x299_2",
-	#="m3dis_sun_magg22_20x20x299_3",
+	"m3dis_sun_magg22_20x20x299_3",
 	"m3dis_sun_magg22_20x20x299_4",
 	"m3dis_sun_magg22_20x20x299_5",
 	"m3dis_sun_magg22_20x20x299_6",
 	"m3dis_sun_magg22_20x20x299_7",
 	"m3dis_sun_magg22_20x20x299_8",
-	"m3dis_sun_magg22_20x20x299_9"=#
+	"m3dis_sun_magg22_20x20x299_9"
 ]
 
 # ╔═╡ 573b2070-18e5-4e53-8393-76549f2efce5
