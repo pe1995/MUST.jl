@@ -49,7 +49,7 @@ end;
 md"## Select Run"
 
 # ╔═╡ 41f0864e-26ee-46a6-b4ab-c401a4712941
-md"Press the button to check for new monitored runs: $(@bind reload_data Button(\"refresh\"))"
+md"Press the button to check for new monitored runs: $(@bind reload_data Button(\"Refresh\"))"
 
 # ╔═╡ c596d1b3-32c5-4651-a8c1-3100fcd6cd59
 availableRuns(folder) = begin
@@ -64,6 +64,9 @@ begin
 	md"""Select one of the available monitored runs:\
 $(@bind selectedRun confirm(Select(availableRuns(datafolder))))"""
 end
+
+# ╔═╡ 498f998c-9996-43dc-a647-3b08abf9786d
+md"Click 'Submit' again to look for new snapshots."
 
 # ╔═╡ 3c05fe1e-1c19-4c30-b34e-a874f63b91bc
 
@@ -1061,6 +1064,7 @@ end
 # ╟─41f0864e-26ee-46a6-b4ab-c401a4712941
 # ╟─c596d1b3-32c5-4651-a8c1-3100fcd6cd59
 # ╟─8af0c339-237c-42ca-bda5-0b0e44f11c30
+# ╟─498f998c-9996-43dc-a647-3b08abf9786d
 # ╟─3c05fe1e-1c19-4c30-b34e-a874f63b91bc
 # ╟─ed9cc79f-0161-4178-b6f0-81a2bccbf188
 # ╟─6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
