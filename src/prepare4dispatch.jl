@@ -323,8 +323,11 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     end
 
     stellar_w = round(0.1 * velocity_ratio, sigdigits=3)
-    strength = round(0.1 * 100.0 / tscale / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
-    tbot = round(0.01 * 100.0 / tscale / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+    strength = round(0.1 / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+    tbot = round(0.01 / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+
+    # htop_scale can be estimated via logg linearly (set it limits for now at 3 and 0.5)
+    htop_scale = min(max(-2 * logg + 10.3, 0.5), 3.0)
 
     x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     MUST.set!(
@@ -357,8 +360,9 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :rt_freq=>0.0,
                         :rt_grace=>0.1,
                         :rt_res=>[-1,-1,rt_patch_size]),
+        boundary_paramd=(:upper_bc=>2, :htop_scale=>htop_scale),
         an_params=(:courant=>courant_hd,),
-        eos_params=(:table_loc=>eos_table, :gamma=>1.666667)
+        eos_params=(:table_loc=>eos_table, :gamma=>1.2)
     )
 
     # set additional kwargs if wanted

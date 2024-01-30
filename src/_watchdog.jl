@@ -24,7 +24,7 @@ depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::WatchDog; timeout=2*60*60, check_every=30, delay=0, snapshotbuffer=2)
+function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=2)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -327,8 +327,9 @@ reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {
 
     for gname in keys(fid)
         fvals[gname] = Dict()
-        for dname in keys(fid[gname])
-            fvals[gname][dname] = mmap ? HDF5.readmmap(fid[gname][dname]) : HDF5.read(fid[gname][dname])
+        group = fid[gname]
+        for dname in keys(group)
+            fvals[gname][dname] = mmap ? HDF5.readmmap(group[dname]) : HDF5.read(group[dname])
         end
     end
 
