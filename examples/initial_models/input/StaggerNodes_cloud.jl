@@ -7,9 +7,9 @@ begin
     dispatch_location = "/home/ubuntu/DISPATCH/dispatch2"
 
     # input and output names of the grid
-    #initial_grid_path = "stagger_grid_full_o.mgrid"
+    initial_grid_path = "stagger_grid_full_o.mgrid"
     #initial_grid_path = "stagger_grid_sun.mgrid"
-    initial_grid_path = "stagger_grid_full_subgiant.mgrid"
+    #initial_grid_path = "stagger_grid_full_subgiant.mgrid"
 
     initial_cl_path   = "stagger_grid_avail.mgrid"
     initial_mod_path  = "stagger_grid_solar.mgrid"
@@ -71,10 +71,10 @@ begin
     Nbins = 4
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = true
+    skip_binning = false
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = true
+    skip_formation = false
 
     # remove formation opacities after binning (save disk space)
     clean = false

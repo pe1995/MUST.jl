@@ -360,7 +360,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :rt_freq=>0.0,
                         :rt_grace=>0.1,
                         :rt_res=>[-1,-1,rt_patch_size]),
-        boundary_paramd=(:upper_bc=>2, :htop_scale=>htop_scale),
+        boundary_params=(:upper_bc=>2, :htop_scale=>htop_scale),
         an_params=(:courant=>courant_hd,),
         eos_params=(:table_loc=>eos_table, :gamma=>1.2)
     )
@@ -440,6 +440,8 @@ function new_zscale(eospath, av_path, logg; common_size=1000, saveat=nothing, kw
 		open(saveat, "w") do f
 			MUST.writedlm(f, [a.z exp.(a.lnT) a.lnρ])
 		end
+    else
+        @warn "Model from $(av_path) not saved!"
 	end
 
     a

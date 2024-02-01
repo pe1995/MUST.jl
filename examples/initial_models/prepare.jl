@@ -229,24 +229,26 @@ begin
                 saveat=joinpath(grid.info[i, "binned_E_tables"], "inim.dat"),
                 common_size=grid.info[i, "initial_model_size"]
             )
-
-            @info "Recomputing model $(grid.info[i, "name"]) dimensions based on new z scale."
-            prepare4dispatch.resolution!(
-                grid, 
-                patch_size=patch_size, 
-                τ_up=τ_up, 
-                τ_surf=τ_surf, 
-                τ_down=τ_down, 
-                scale_resolution=scale_resolution,
-                τ_ee0=τ_ee0, 
-                τ_eemin=τ_eemin, 
-                τ_zee0=τ_zee0, 
-                τ_rho0=τ_rho0,
-                use_inim=true
-            )
         else
             cp(grid.info[i, "av_path"], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), force=true)
         end
+    end
+
+    if use_avnewz
+        @info "Recomputing model dimensions based on new z scale."
+        prepare4dispatch.resolution!(
+            grid, 
+            patch_size=patch_size, 
+            τ_up=τ_up, 
+            τ_surf=τ_surf, 
+            τ_down=τ_down, 
+            scale_resolution=scale_resolution,
+            τ_ee0=τ_ee0, 
+            τ_eemin=τ_eemin, 
+            τ_zee0=τ_zee0, 
+            τ_rho0=τ_rho0,
+            use_inim=true
+        )
     end
 end
 
