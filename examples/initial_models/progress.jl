@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.36
+# v0.19.37
 
 using Markdown
 using InteractiveUtils
@@ -48,19 +48,25 @@ end;
 # ╔═╡ 6754b2c3-d205-4a12-88b3-53fe62c5637f
 md"## Select Run"
 
+# ╔═╡ 41f0864e-26ee-46a6-b4ab-c401a4712941
+md"Press the button to check for new monitored runs: $(@bind reload_data Button(\"Refresh\"))"
+
 # ╔═╡ c596d1b3-32c5-4651-a8c1-3100fcd6cd59
 availableRuns(folder) = begin
 	allruns = MUST.glob("*/", folder)
 	mask = isdir.(joinpath.(allruns, "monitoring"))
 	split.(allruns[mask], "/", keepempty=false) .|> last
-end
-
-# ╔═╡ f15835aa-8e63-441f-a951-3b606850346f
-
+end;
 
 # ╔═╡ 8af0c339-237c-42ca-bda5-0b0e44f11c30
-md"""Select one of the available monitored runs:\
+begin
+	reload_data
+	md"""Select one of the available monitored runs:\
 $(@bind selectedRun confirm(Select(availableRuns(datafolder))))"""
+end
+
+# ╔═╡ 498f998c-9996-43dc-a647-3b08abf9786d
+md"Click 'Submit' again to look for new snapshots."
 
 # ╔═╡ 3c05fe1e-1c19-4c30-b34e-a874f63b91bc
 
@@ -968,8 +974,17 @@ let
 	gcf()
 end
 
+# ╔═╡ b4fd0320-74b2-4ed4-b7b0-beca4eccd553
+
+
+# ╔═╡ 9e883b44-f225-4566-9d76-ecd3e34d3b5b
+md"### Mass flux"
+
 # ╔═╡ 3bfef187-d899-473d-9a92-acf5c65fa50d
 tmassfluxgeo = timeevolution(monitoring, "geoMassFlux")
+
+# ╔═╡ 786e489d-42fb-4ef0-83b6-0e6a7fce2d93
+tmassfluxopt = timeevolution(monitoring, "optMassFlux")
 
 # ╔═╡ 01026bad-d93a-4246-a940-e9eb894ccf67
 let
@@ -977,12 +992,58 @@ let
 
 	f, ax = plt.subplots(1, 1, figsize=(5, 6))
 
-	surfaceMF = (tmassfluxgeo["massFlux"] .|> last) ./1e5
+	surfaceMF =[
+		tmassfluxopt["massFlux"][i][end] ./1e5
+		for i in eachindex(tmassfluxopt["massFlux"])
+	]
 	
 	ax.plot(
 		time, surfaceMF, 
 		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
+
+	ax.axhline(0.0, color="k", alpha=0.2, ls="--")
+
+	ax.set_xlabel("time [s]")
+	ax.set_ylabel(L"\rm <\rho\ v_z>\ /\ <\rho>\ [km\ s^{-1}]")
+
+
+	gcf()
+end
+
+# ╔═╡ dd1297cd-62d0-4b39-b0a3-e41fab79bc8b
+
+
+# ╔═╡ 43590370-0a2e-4d6e-9531-f93eb1630acd
+md"You can also pick a optical depth: $(@bind opplotmass confirm(TextField(default=\"-3.0\")))"
+
+# ╔═╡ cd9ff780-66d2-4bcb-8b89-145d9d857306
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	masks = [
+		sortperm(tmassfluxopt["log10τ_ross"][i]) 
+		for i in eachindex(tmassfluxopt["log10τ_ross"])
+	]
+	
+	ip = [
+		MUST.linear_interpolation(
+			tmassfluxopt["log10τ_ross"][i][masks[i]],
+			tmassfluxopt["massFlux"][i][masks[i]]./1e5,
+			extrapolation_bc=NaN
+		) 
+		for i in eachindex(tmassfluxopt["log10τ_ross"])]
+	
+	surfaceMF = [ip[i].(parse(Float64, opplotmass)) for i in eachindex(ip)]
+	
+	ax.plot(
+		time, surfaceMF, 
+		color="k", marker="s", markerfacecolor="w", ls="-"
+	) 
+
+	ax.axhline(0.0, color="k", alpha=0.2, ls="--")
 
 	ax.set_xlabel("time [s]")
 	ax.set_ylabel(L"\rm <\rho\ v_z>\ /\ <\rho>\ [km\ s^{-1}]")
@@ -1000,9 +1061,10 @@ end
 # ╠═e2e0b39b-9c60-4630-817b-f180c2631a08
 # ╟─409ff57f-8d9d-419b-b448-fdf40c0843b4
 # ╟─6754b2c3-d205-4a12-88b3-53fe62c5637f
+# ╟─41f0864e-26ee-46a6-b4ab-c401a4712941
 # ╟─c596d1b3-32c5-4651-a8c1-3100fcd6cd59
-# ╟─f15835aa-8e63-441f-a951-3b606850346f
 # ╟─8af0c339-237c-42ca-bda5-0b0e44f11c30
+# ╟─498f998c-9996-43dc-a647-3b08abf9786d
 # ╟─3c05fe1e-1c19-4c30-b34e-a874f63b91bc
 # ╟─ed9cc79f-0161-4178-b6f0-81a2bccbf188
 # ╟─6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
@@ -1023,8 +1085,8 @@ end
 # ╟─8d6d674b-153b-4357-9f2d-c4e3cb05d059
 # ╟─b9a721cf-46ef-4e3c-a37c-8b35653e31cb
 # ╟─725f7500-c31b-4efa-9df9-00c51640914a
-# ╠═a34793ae-db12-4dac-b2f8-348a88092815
-# ╠═63f58f6c-954c-44e9-84b1-1aa799323586
+# ╟─a34793ae-db12-4dac-b2f8-348a88092815
+# ╟─63f58f6c-954c-44e9-84b1-1aa799323586
 # ╟─a54433ec-14b4-4e5e-a0a7-2e6e50a5fa49
 # ╟─695e28be-31c8-4f44-85e3-72ce387d9da5
 # ╟─76a1714e-a5bb-488f-ad93-b8552e4531fd
@@ -1070,5 +1132,11 @@ end
 # ╟─913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
 # ╟─2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
 # ╟─aa0376dc-5982-4274-9b4d-4aef1d1de896
+# ╟─b4fd0320-74b2-4ed4-b7b0-beca4eccd553
+# ╟─9e883b44-f225-4566-9d76-ecd3e34d3b5b
 # ╟─3bfef187-d899-473d-9a92-acf5c65fa50d
+# ╟─786e489d-42fb-4ef0-83b6-0e6a7fce2d93
 # ╟─01026bad-d93a-4246-a940-e9eb894ccf67
+# ╟─dd1297cd-62d0-4b39-b0a3-e41fab79bc8b
+# ╟─43590370-0a2e-4d6e-9531-f93eb1630acd
+# ╟─cd9ff780-66d2-4bcb-8b89-145d9d857306

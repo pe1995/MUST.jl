@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.35
+# v0.19.37
 
 using Markdown
 using InteractiveUtils
@@ -42,8 +42,13 @@ begin
 	mean = MUST.mean
 	plt = matplotlib.pyplot
 	matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
-	MUST.@import_dispatch "../../../dispatch2"
 end;
+
+# ╔═╡ 25234aa1-7c1c-4f2e-ae55-17c82428c4c3
+MUST.@import_dispatch "../../../dispatch2"
+
+# ╔═╡ 9edfd60d-05a3-4141-8cb0-ae202716aa27
+
 
 # ╔═╡ 9ac91858-17d8-4934-8d47-fed1519efe42
 availableRuns(path) = begin
@@ -138,6 +143,9 @@ end
 # ╔═╡ 2bf867fc-15bd-437c-b989-b1efbf2bf9d4
 @bind snapshots_convert snapshots_all_input(available_runs)
 
+# ╔═╡ 8a5327d2-748c-43f4-ac21-f0245653e16f
+md"Click here to additionally convert them to the MULTI3D format: $(@bind alsom3d CheckBox(default=false))"
+
 # ╔═╡ fa8c564d-195b-424a-8814-0c47cd3e03a8
 md"Tick box to start converting snapshots: $(@bind convert_given CheckBox(default=false))"
 
@@ -146,7 +154,7 @@ if convert_given
 	for name in keys(snapshots_convert)
 		@info "Converting snapshot $(name), Number: $(snapshots_convert[name])"
 		p = @in_dispatch(joinpath(datafolder, "$(name)"))
-		snapshotBox(snapshots_convert[name], folder=p)
+		snapshotBox(snapshots_convert[name], folder=p, to_multi=alsom3d)
 	end
 end
 
@@ -834,6 +842,8 @@ end
 # ╠═4a837d4c-724c-11ee-0b6b-21a88a56df5b
 # ╟─d9b5bbbd-6229-47c3-9738-dbe9087016d8
 # ╟─9e9c5903-762d-43d7-adf2-0eccee134974
+# ╠═25234aa1-7c1c-4f2e-ae55-17c82428c4c3
+# ╟─9edfd60d-05a3-4141-8cb0-ae202716aa27
 # ╟─9ac91858-17d8-4934-8d47-fed1519efe42
 # ╟─73d9fd32-0dae-478a-80ff-a8e314adbd6e
 # ╟─16786647-4021-4068-9af1-2a548240758e
@@ -845,6 +855,7 @@ end
 # ╟─73e9bde0-c72e-4a01-aa68-486237e0c475
 # ╟─68510276-b102-4a70-bd2f-a63195a4bb08
 # ╟─2bf867fc-15bd-437c-b989-b1efbf2bf9d4
+# ╟─8a5327d2-748c-43f4-ac21-f0245653e16f
 # ╟─fa8c564d-195b-424a-8814-0c47cd3e03a8
 # ╟─2d684eb0-aa4b-40a6-9e04-ab0b42ed0516
 # ╟─53706541-27d7-4093-b37f-3e384c6c8a7c

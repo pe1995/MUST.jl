@@ -111,7 +111,12 @@ function snapshotBox(
 
         # Also save the snapshot as Box (a regular gridded 3D-cube) to save time later
         b_s = if !is_box 
-            b = Box(s) 
+            b = Box(
+                s, 
+                MUST.uniform_grid(s, Int(ceil(length(s.data[:x].^(1/3)))), :x), 
+                MUST.uniform_grid(s, Int(ceil(length(s.data[:x].^(1/3)))), :y), 
+                MUST.uniform_grid(s, Int(ceil(length(s.data[:x].^(1/3)))), :z)
+            ) 
             s = nothing
             b
         else
