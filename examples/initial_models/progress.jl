@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.19.36
 
 using Markdown
 using InteractiveUtils
@@ -468,6 +468,9 @@ tGeoMin = timeevolution(monitoring, "geometricalMinimum")
 # ╔═╡ 2f86b88f-b53a-489b-8a1e-7d5116492e34
 tGeoMax = timeevolution(monitoring, "geometricalMaximum")
 
+# ╔═╡ f3002fa3-b796-4479-8008-fc8149e797bf
+tGeoRms = timeevolution(monitoring, "geometricalRMS")
+
 # ╔═╡ 68477423-a6f7-424f-8fd4-849d63648b57
 let
 	plt.close()
@@ -611,6 +614,53 @@ let
 	gcf()
 end
 
+# ╔═╡ 7fd50fcd-8a9d-417d-a28a-febd9f0f68f3
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	x, y = tGeoMax["z"][itimeSurface] ./1e8, tGeoMax["uz"][itimeSurface]./1e5
+	ax.plot(
+		x, y,
+		color="cyan", marker="", ls="-"
+	)
+	x, y = tGeoMin["z"][itimeSurface] ./1e8, tGeoMin["uz"][itimeSurface]./1e5
+	ax.plot(
+		x, y,
+		color="magenta", marker="", ls="-"
+	)
+	x, y = tGeoRms["z"][itimeSurface] ./1e8, tGeoRms["uz"][itimeSurface] ./1e5
+	ax.plot(
+		x, y,
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
+	) 
+
+
+
+	x, y = tGeoMax["z"][itimeSurface2] ./1e8, tGeoMax["uz"][itimeSurface2]./1e5
+	ax.plot(
+		x, y,
+		color="cyan", marker="", ls="--",
+	) 
+	x, y = tGeoMin["z"][itimeSurface2] ./1e8, tGeoMin["uz"][itimeSurface2]./1e5
+	ax.plot(
+		x, y,
+		color="magenta", marker="", ls="--",
+	) 
+	x, y = tGeoRms["z"][itimeSurface2] ./1e8, tGeoRms["uz"][itimeSurface2] ./1e5
+	ax.plot(
+		x, y,
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
+	) 
+
+	ax.set_xlabel("z [Mm]")
+	ax.set_ylabel(L"\rm rms\ v_z\ [km\ s^{-1}]")
+	ax.legend()
+
+	gcf()
+end
+
 # ╔═╡ b09b0c9e-3d76-4ff0-ae82-205cbc3b83b5
 
 
@@ -625,6 +675,9 @@ tOptMin = timeevolution(monitoring, "opticalMinimum")
 
 # ╔═╡ e0d8aa2e-85cb-43fe-a5f4-65a7a757f19c
 tOptMax = timeevolution(monitoring, "opticalMaximum")
+
+# ╔═╡ 699ef294-a1b0-4ea5-8618-5cfd0b143c9a
+tOptRms = timeevolution(monitoring, "opticalRMS")
 
 # ╔═╡ 0fdf3055-4d11-4dea-8a50-e595ef1c112d
 let
@@ -763,6 +816,53 @@ let
 	ax.set_xlabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
 	ax.set_ylabel(L"\rm T\ [K]")
 	
+	ax.legend()
+
+	gcf()
+end
+
+# ╔═╡ e59ab649-3b30-4af1-ab28-6f6d6aacee1c
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	# First one
+	x, y = tOptMin["log10τ_ross"][itimeSurface], tOptMin["uz"][itimeSurface]./1e5
+	ax.plot(
+		x, y,
+		color="magenta", marker="", ls="-"
+	) 
+	x, y = tOptMax["log10τ_ross"][itimeSurface], tOptMax["uz"][itimeSurface]./1e5
+	ax.plot(
+		x, y,
+		color="cyan", marker="", ls="-"
+	) 
+	x, y = tOptRms["log10τ_ross"][itimeSurface], tOptRms["uz"][itimeSurface]./1e5
+	ax.plot(
+		x, y,
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
+	) 
+
+	# Second one
+	x, y = tOptMin["log10τ_ross"][itimeSurface2], tOptMin["uz"][itimeSurface2]./1e5
+	ax.plot(
+		x, y,
+		color="magenta", marker="", ls="--"
+	) 
+	x, y = tOptMax["log10τ_ross"][itimeSurface2], tOptMax["uz"][itimeSurface2]./1e5
+	ax.plot(
+		x, y,
+		color="cyan", marker="", ls="--"
+	)
+	x, y = tOptRms["log10τ_ross"][itimeSurface2], tOptRms["uz"][itimeSurface2]./1e5
+	ax.plot(
+		x, y,
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
+	) 
+
+	ax.set_xlabel(L"\rm \log\ \tau_{ross}")
+	ax.set_ylabel(L"\rm rms\ v_z\ [km\ s^{-1}]")
 	ax.legend()
 
 	gcf()
@@ -1106,17 +1206,21 @@ end
 # ╟─96a3ddc0-3d70-4b65-a7c2-7482c8817186
 # ╟─8c03ccae-6a25-4f2b-a99d-bf537221d007
 # ╟─2f86b88f-b53a-489b-8a1e-7d5116492e34
+# ╟─f3002fa3-b796-4479-8008-fc8149e797bf
 # ╟─68477423-a6f7-424f-8fd4-849d63648b57
 # ╟─8ef763ae-d1bd-40de-a26a-f91f529c03bf
 # ╟─d9546636-2dbb-4b14-9954-76872b95fd06
+# ╟─7fd50fcd-8a9d-417d-a28a-febd9f0f68f3
 # ╟─b09b0c9e-3d76-4ff0-ae82-205cbc3b83b5
 # ╟─db1a9405-e93c-476d-a43b-f11f3138b57a
 # ╟─3da231de-ff58-4161-a6a4-58162483825a
 # ╟─efc11ddf-99b9-4344-ab4f-1e5d7b7e2805
 # ╟─e0d8aa2e-85cb-43fe-a5f4-65a7a757f19c
+# ╟─699ef294-a1b0-4ea5-8618-5cfd0b143c9a
 # ╟─0fdf3055-4d11-4dea-8a50-e595ef1c112d
 # ╟─eddc02bf-d7ca-41e1-878e-ef1103bf1b0f
 # ╟─25c3d608-9440-4ac9-8277-3855ba3b6a7b
+# ╟─e59ab649-3b30-4af1-ab28-6f6d6aacee1c
 # ╟─d55d7d42-c78c-447c-9959-3689f5341655
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─35f64e1d-2273-4178-879e-187b86b24043
