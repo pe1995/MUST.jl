@@ -560,7 +560,7 @@ let
 	) 
 
 	ax.set_xlabel("z [Mm]")
-	ax.set_ylabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
+	ax.set_ylabel(L"\rm \log \rho\ [g\ cm^{-3}]")
 	ax.legend()
 
 	gcf()
@@ -767,7 +767,7 @@ let
 	) 
 
 	ax.set_xlabel(L"\rm \log\ \tau_{ross}")
-	ax.set_ylabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
+	ax.set_ylabel(L"\rm \log \rho\ [g\ cm^{-3}]")
 	ax.legend()
 
 	gcf()
@@ -1158,7 +1158,7 @@ end
 # ╠═2f1edd2a-b56e-11ee-29e7-c353938e7088
 # ╟─7cd7d6f0-8498-44ff-b59c-d298365d6416
 # ╟─78c88a26-1e84-4ba2-a8f2-d4c7f6468dd3
-# ╠═e2e0b39b-9c60-4630-817b-f180c2631a08
+# ╟─e2e0b39b-9c60-4630-817b-f180c2631a08
 # ╟─409ff57f-8d9d-419b-b448-fdf40c0843b4
 # ╟─6754b2c3-d205-4a12-88b3-53fe62c5637f
 # ╟─41f0864e-26ee-46a6-b4ab-c401a4712941

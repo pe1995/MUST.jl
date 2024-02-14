@@ -9,7 +9,7 @@ begin
     # input and output names of the grid
     #initial_grid_path = "stagger_grid_full_o.mgrid"
     #initial_grid_path = "stagger_grid_sun.mgrid"
-    initial_grid_path = "stagger_grid_full_subgiant.mgrid"
+    #initial_grid_path = "stagger_grid_full_subgiant.mgrid"
     initial_grid_path = "stagger_grid_full_solar.mgrid"
 
     initial_cl_path   = "stagger_grid_avail.mgrid"
@@ -33,11 +33,11 @@ begin
     τ_up = -5.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 7.0                    # Lower limit of simulation domain
-    τ_ee0 = -2.0                    # Newton cooling placement (energy)
-    τ_eemin = -5.5                  # Mininmum energy of initial condition
-    τ_zee0 = -1.5                   # Newton cooling placement (height)
-    τ_rho0 = -0.5                    # Density normaliztion height
-    scale_resolution = 0.7          # Down or upsampling of simulation domain
+    τ_ee0 = -3.0                    # Newton cooling placement (energy)
+    τ_eemin = τ_up                  # Mininmum energy of initial condition
+    τ_zee0 = -2.0                   # Newton cooling placement (height)
+    τ_rho0 = -2.0                    # Density normaliztion height
+    scale_resolution = 0.9          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,         #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement

@@ -18,32 +18,44 @@ begin
 
     # replace the initial condition with the corresponding adiabat
     use_adiabat  = false
+
+    # add new z scale to initial model based on rosseland opacity (for dispatch only)
+    use_avnewz = true
 end
 
 
 #= Dispatch setup =#
 begin
-    patch_size = 15                 # Points per patch
-    τ_up = -4.0                     # Upper limit of simulation domain
+    patch_size = 17                 # Points per patch
+    τ_up = -5.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 6.0                    # Lower limit of simulation domain
-    τ_ee0 = -1.0                    # Newton cooling placement (energy)
-    τ_eemin = -1.0                  # Mininmum energy of initial condition
-    τ_zee0 = -1.0                   # Newton cooling placement (height)
+    τ_down = 7.0                    # Lower limit of simulation domain
+    τ_ee0 = -3.0                    # Newton cooling placement (energy)
+    τ_eemin = τ_up                  # Mininmum energy of initial condition
+    τ_zee0 = -2.0                   # Newton cooling placement (height)
     τ_rho0 = -2.0                   # Density normaliztion height
-    scale_resolution = 0.5          # Down or upsampling of simulation domain
+    scale_resolution = 0.9          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
+        :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
+        :newton_decay_scale=>20.0,  #   for direct namelist replacement
+        :courant_target=>0.2,
+        :courant_rt=>0.4,
+        :newton_params=>(
+            :on=>true,
+            :delay_rt=>true
+        ),
+        :io_params=>(
+            :out_time=>1.0,
+        ) 
     )
 end
 
 #= Opacities =#
 begin
-    # This is only used in case no EoS is given in grid. BUT THERE SHOULD ALWAYS BE ONE FROM THE INTERPOLATION
-    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.6"
-        
-    # Opacity tables that should be used for the binning (unbinned tables)
+    # Location of the opacity table
+    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
     extension = "magg_m0_a0"
-    eos_path = "combined_ross_eos_"*extension*".hdf5"
+    eos_path = "ross_combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
     sopa_path = "combined_Sopacities_"*extension*".hdf5"
 
@@ -63,7 +75,7 @@ begin
     skip_formation = false
 
     # recompute the rosseland optical depth for the first model in the grid
-    recompute_ross = true
+    recompute_ross = false
 
     # The binning quadrants where opacity bins should be placed
     make_quadrants(name, eos_root, opa_path) = begin
