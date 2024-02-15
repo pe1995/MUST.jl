@@ -83,7 +83,7 @@ snapsSelected = allsnaps[findfirst(x->x==firstSnap, allsnaps):findfirst(x->x==la
 
 # ╔═╡ 9a08c5ec-bdab-4323-895c-7fec358b5af8
 md"## Convert Snapshots
-Convert the snapshots (if not already done so). If you do this here it will take a bit longer because they will be converted sequentially. Please use the convert.jl script if you want to do this in parallel."
+Convert the snapshots (if not already done so). If you do this here it will take a bit longer because they will be converted sequentially. Please use the convert.jl script if you want to do this in parallel! For a large number of snapshots please consider running (in the same directory as this notebook) `julia convert.jl data/yourrunhere/ 10` to convert e.g. your last 10 snapshots in parallel. You can then continue with this notebook, and the pre-converted snapshots will be detected automatically. You can also execute the convert script on a compute node using SLURM naturally."
 
 # ╔═╡ 4b782275-ce60-4ca0-ac17-be52d3573925
 """
