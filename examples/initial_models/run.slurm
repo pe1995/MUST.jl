@@ -1,11 +1,11 @@
 #!/bin/sh
-#SBATCH --job-name='TSOGRID'
+#SBATCH --job-name='MUST'
 #SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=32
+#SBATCH --ntasks=4
+#SBATCH --ntasks-per-node=4
+#SBATCH --cpus-per-task=8
 ##SBATCH --mem=200G
-#SBATCH --mem=100G
+#SBATCH --mem=90G
 #SBATCH --time=05:00:00
 
 julia $@

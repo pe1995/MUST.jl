@@ -24,7 +24,7 @@ depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=2)
+function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=2, save_box=false)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -48,7 +48,7 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
 
                 success = try
                     @info "Analysing snapshot $(snapf)..."
-                    analyse(w, snapf)
+                    analyse(w, snapf, save_box=save_box)
                     true
                 catch
                     @info "...snapshot $(snapf) failed."

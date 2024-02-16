@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.36
+# v0.19.38
 
 using Markdown
 using InteractiveUtils
@@ -26,6 +26,8 @@ begin
 	using DelimitedFiles
 	using PlutoUI
 	using PlutoUI: combine
+	using ProgressLogging
+	PythonCall = MUST.PythonCall
 end;
 
 # ╔═╡ bd7cdaf2-c05e-4bc9-afbb-cfb61260d62c
@@ -716,8 +718,8 @@ md"## Pick models"
 md"Pick models for time evolution:"
 
 # ╔═╡ 146e68f1-d03f-42b5-bd43-76ce21edcfae
-if nmodels>0
-	@bind models confirm(Select([keys(snapshots_picks)...]))
+if length(available_runs)>0
+	@bind models confirm(Select(available_runs))
 else
 	models = []
 end
@@ -836,6 +838,85 @@ if start_timeevolution
 	gcf()
 end
 
+# ╔═╡ 3a93fc3c-f3f4-447b-a061-006eb3bcc984
+
+
+# ╔═╡ 4eca4f1c-c2e2-41ba-9e2e-10b3591f0f6a
+md"## 3D velocity cube animation"
+
+# ╔═╡ bfe41f19-ab35-43e4-b497-335cbc1071eb
+visual = MUST.ingredients("visual.jl")
+
+# ╔═╡ 40339dd0-acc2-4df0-92fc-bdec12c9a80a
+begin
+	velCube_var = :T
+	velCube_vmin_3d = 3500
+	velCube_vmax_3d = 15500
+	velCube_s_3d = 12
+	velCube_arrow_length_ratio = 0.2
+	velCube_skipv = 3
+	velCube_xoff = 5
+	velCube_yoff = 5
+	velCube_zoff = 5
+	velCube_len_vec = 0.65
+	velCube_cmap = "RdYlBu"
+	velCube_show_time = true
+	gif_duration=0.8
+	velCube_name = "$(models)_vel3D.gif"
+end;
+
+# ╔═╡ 67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
+
+
+# ╔═╡ 456bee2f-8e00-4705-9b58-00ee5c896b65
+md"Tick box to start animation: $(@bind start_vel_cube CheckBox(default=false))"
+
+# ╔═╡ ad37b578-4d3a-480b-a59b-20ca953c0584
+let
+	if start_vel_cube
+		@info "[$(models)] Building Animation..."
+		
+		matplotlib.style.use("dark_background")
+		!isdir("gifs") && mkdir("gifs")
+		
+		model_path = joinpath(MUST.@in_dispatch(datafolder), "$(models)")
+		snaps = MUST.converted_snapshots(model_path)
+		snaplist = MUST.list_snapshots(snaps)
+
+		fls = []
+		
+		@progress for (i, snap) in enumerate(snaplist)
+			if true
+				s, _ = pick_snapshot(snaps, snap)
+			else
+				continue
+			end
+			plt.close()
+			f, ax = visual.cube_with_velocities(s, 
+				velCube_var,
+				vmin_3d=velCube_vmin_3d,
+				vmax_3d=velCube_vmax_3d,
+				s_3d=velCube_s_3d,
+				arrow_length_ratio=velCube_arrow_length_ratio,
+				skipv=velCube_skipv,
+				xoff=velCube_xoff,
+				yoff=velCube_yoff,
+				zoff=velCube_zoff,
+				len_vec=velCube_len_vec,
+				cmap=velCube_cmap,
+				show_time=velCube_show_time
+			)
+			f.savefig("gifs/cube_$(i).png", bbox_inches="tight")
+			append!(fls, ["gifs/cube_$(i).png"])
+		end
+
+		visual.gifs.gifs_from_png(fls, "gifs/$(velCube_name)", gif_duration);
+		matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
+
+		@info "[$(models)] GIF saved at gifs/$(velCube_name)."
+	end
+end
+
 # ╔═╡ Cell order:
 # ╟─bd7cdaf2-c05e-4bc9-afbb-cfb61260d62c
 # ╟─827e54c7-d0a3-455a-8837-52255eeff202
@@ -928,3 +1009,10 @@ end
 # ╠═5b856c06-da72-41be-adc7-6d4e4570ad45
 # ╟─34fecdab-ed33-4685-92f2-70c0e763e893
 # ╟─139e7d21-e102-48de-bcbd-ee1a1e78bb5d
+# ╟─3a93fc3c-f3f4-447b-a061-006eb3bcc984
+# ╟─4eca4f1c-c2e2-41ba-9e2e-10b3591f0f6a
+# ╟─bfe41f19-ab35-43e4-b497-335cbc1071eb
+# ╠═40339dd0-acc2-4df0-92fc-bdec12c9a80a
+# ╟─67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
+# ╟─456bee2f-8e00-4705-9b58-00ee5c896b65
+# ╟─ad37b578-4d3a-480b-a59b-20ca953c0584

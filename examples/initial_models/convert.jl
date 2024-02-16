@@ -36,11 +36,24 @@ folder = MUST.@in_dispatch ARGS[1]
 content_of_folder = glob("*/", folder)
 snapshots = sort(MUST.list_of_snapshots(content_of_folder))
 
-istart = length(snapshots) - 1 - parse(Int, ARGS[2])
-snapshots = snapshots[istart:end-2]
+snapshots = if length(ARGS) > 1
+    istart = length(snapshots) - 1 - parse(Int, ARGS[2])
+     snapshots[istart:end-2]
+else
+    snapshots[1:end-2]
+end
 
 # make this available to all workers
 MUST.sendsync(workers(), dir=folder)
+
+# skip already converted snapshots
+csnaps = MUST.list_snapshots(MUST.converted_snapshots(folder))
+mask = [!(s in cnaps) for s in snapshots]
+snapshots = snapshots[mask]
+
+if count(.!mask) > 0
+    @info "$(count(.!mask)) snapshots skipped because they are already converted."
+end
 
 # convert the snapshots
 @showprogress pmap(snapshots) do snap

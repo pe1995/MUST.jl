@@ -2,8 +2,8 @@ using Glob
 using MUST
 using PythonPlot
 using Printf
-using PythonCall
 
+PythonCall = MUST.PythonCall
 plt = matplotlib.pyplot
 
 #using Plots
@@ -256,7 +256,7 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
 
     if show_time
         ts = @sprintf("%i", m_3d.parameter.time)
-        ax_3d.set_title("solar time: $(ts) min", fontsize=fontsize)
+        ax_3d.set_title("stellar time: $(ts) s", fontsize=fontsize)
     end
 
     fig_3d, ax_3d
