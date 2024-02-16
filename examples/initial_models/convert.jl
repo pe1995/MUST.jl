@@ -14,7 +14,7 @@ if "SLURM_NTASKS" in keys(ENV)
     end
 else
     @warn "No Slurm environment detected. Using default addprocs."
-    addprocs(2)
+    addprocs(3)
 end
 
 @everywhere begin
@@ -48,12 +48,15 @@ MUST.sendsync(workers(), dir=folder)
 
 # skip already converted snapshots
 csnaps = MUST.list_snapshots(MUST.converted_snapshots(folder))
-mask = [!(s in cnaps) for s in snapshots]
+mask = [!(s in csnaps) for s in snapshots]
 snapshots = snapshots[mask]
 
+println("")
+println("====================================================================")
 if count(.!mask) > 0
     @info "$(count(.!mask)) snapshots skipped because they are already converted."
 end
+@info "conversion started..."
 
 # convert the snapshots
 @showprogress pmap(snapshots) do snap
@@ -70,3 +73,5 @@ end
 
     nothing
 end
+@info "...conversion finished."
+println("====================================================================")
