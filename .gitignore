@@ -46,6 +46,7 @@ examples/initial_models/*.mgrid
 !examples/initial_models/av_models
 !examples/initial_models/input
 !examples/initial_models/show_monitor
+!examples/initial_models/monitor_dir.sh
 
 
 
