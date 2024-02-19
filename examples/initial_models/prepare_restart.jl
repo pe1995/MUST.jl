@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.36
+# v0.19.38
 
 using Markdown
 using InteractiveUtils
@@ -153,7 +153,7 @@ function prepare_restart(name, snapshot; decay_timescales=false, datadir=@in_dis
     # Init namelist
     nml = MUST.StellarNamelist(nml_name*".nml")
 
-	# data without StAt
+	# data folder without StAt
 	datawithoutstat = last(split(datadir, "stellar_atmospheres/", keepempty=false))
 
     # change the relevant fields
@@ -180,15 +180,39 @@ function prepare_restart(name, snapshot; decay_timescales=false, datadir=@in_dis
 		)
 	end
 
-	MUST.set!(nml, kwargs...)
+	MUST.set!(nml; kwargs...)
 	MUST.write(nml, saveat)
 
 	@info "[$(name)] Preparing restart complete."
+	@info "[$(name)] Saved at $(saveat)."
 	
 	nothing
 end
 
 # ╔═╡ 27f1e1ac-77cf-459b-820e-b167ee11f391
+
+
+# ╔═╡ 0f2b46ac-9317-4d23-be32-e7d0265f6258
+md"You can modify parameters of the new namelist by giving them specifically here"
+
+# ╔═╡ 3efea52b-cafa-4440-90fe-d6b226847a2d
+begin
+	# For example: 
+	# Set some new htop_scale at the upper boundary with some initial
+	# damping of the velocity field
+	new_namelist_params = Dict(
+		:friction_params=>(
+			:on=>true,
+			:end_time=>20,
+			:decay_scale=>5
+		),
+		:boundary_params=>(
+			:htop_scale=>0.4,
+		),
+	)
+end
+
+# ╔═╡ 28d04061-0040-45b5-9490-54c4cdb943f4
 
 
 # ╔═╡ 1e1e380f-9684-496c-8bf4-158f281a679b
@@ -202,9 +226,10 @@ begin
 	if convert_given
 		prepare_restart(
 			selectedRun, 
-			firstSnap, 
+			firstSnap; 
 			datadir=datafolder, 
-			decay_timescales=decay
+			decay_timescales=decay,
+			new_namelist_params...
 		)
 	end
 end
@@ -230,6 +255,9 @@ end
 # ╟─f27c5eb0-6a6e-42bc-bf2e-f0aab0be2368
 # ╟─4b782275-ce60-4ca0-ac17-be52d3573925
 # ╟─27f1e1ac-77cf-459b-820e-b167ee11f391
+# ╟─0f2b46ac-9317-4d23-be32-e7d0265f6258
+# ╠═3efea52b-cafa-4440-90fe-d6b226847a2d
+# ╟─28d04061-0040-45b5-9490-54c4cdb943f4
 # ╟─1e1e380f-9684-496c-8bf4-158f281a679b
 # ╟─946b586e-5c04-44c8-9300-0f2b7a8babf8
 # ╟─4c7c7f16-cfa4-4547-8355-72744211219a

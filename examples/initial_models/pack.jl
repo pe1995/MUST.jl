@@ -20,6 +20,7 @@ begin
 	using Pkg; Pkg.activate(".")
 	using MUST
 	using PlutoUI
+	using ProgressLogging
 end
 
 # ╔═╡ 2189049a-20e6-43fb-96cb-20ae7994f96b
@@ -87,11 +88,15 @@ Convert the snapshots (if not already done so). If you do this here it will take
 
 # ╔═╡ 4b782275-ce60-4ca0-ac17-be52d3573925
 """
-	shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="pack_\$(name)", datadir=@in_dispatch("data"), kwargs...)
+	shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="pack_\$(name)", datadir=@in_dispatch("data"), packed_folder="packed_models", kwargs...)
 
 Convert (if needed) the given snapshots to `MUST.Box` objects, collect the EoS + possible monitoring in a common folder `saveat`.
 """
-function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="pack_$(name)", datadir=@in_dispatch("data"), kwargs...)
+function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="pack_$(name)", datadir=@in_dispatch("data"), packed_folder="packed_models", kwargs...)
+	!isdir(packed_folder) && mkdir(packed_folder)
+
+	saveat = joinpath(packed_folder, saveat)
+	
 	# make sure output folder exists
 	!isdir(saveat) && mkdir(saveat)
 
@@ -122,10 +127,11 @@ function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="p
 
 	# check for converted snapshots
 	csnaps = MUST.list_snapshots(MUST.converted_snapshots(joinpath(datadir, name)))
-	
-	for (i, snap) in enumerate(snapshots)
+
+	@info "[$(name)] Packing snapshots..."
+	@progress for (i, snap) in enumerate(snapshots)
 		if !(snap in csnaps)
-			@info "[$(name)] Converting snapshot $(snap) ($(i)/$(length(snapshots)))"
+			#@info "[$(name)] Converting snapshot $(snap) ($(i)/$(length(snapshots)))"
 			snapshotBox(
 				snap; 
 				folder=joinpath(datadir, name), 
@@ -136,7 +142,8 @@ function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="p
 				kwargs...
 			)
 		else
-			@info "[$(name)] snapshot $(snap) already converted ($(i)/$(length(snapshots)))"
+			#@info "[$(name)] snapshot $(snap) already converted ($(i)/$(length(snapshots)))"
+			nothing
 		end
 
 		# after conversion, move (or copy) the snapshot
@@ -165,7 +172,7 @@ function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="p
 		end
 	end
 
-	@info "[$(name)] packing complete."
+	@info "[$(name)] Packing completed at $(saveat)."
 	nothing
 end
 
