@@ -92,7 +92,7 @@ Convert the snapshots (if not already done so). If you do this here it will take
 
 Convert (if needed) the given snapshots to `MUST.Box` objects, collect the EoS + possible monitoring in a common folder `saveat`.
 """
-function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="pack_$(name)", datadir=@in_dispatch("data"), packed_folder="packed_models", kwargs...)
+function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="pack_$(name)", datadir=@in_dispatch("data"), packed_folder="packed_models", to_multi=true, kwargs...)
 	!isdir(packed_folder) && mkdir(packed_folder)
 
 	saveat = joinpath(packed_folder, saveat)
@@ -139,10 +139,16 @@ function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="p
 				save_snapshot=true, 
 				add_selection=false, 
 				is_box=true, 
+				to_multi=to_multi,
 				kwargs...
 			)
 		else
 			#@info "[$(name)] snapshot $(snap) already converted ($(i)/$(length(snapshots)))"
+			if to_multi
+				b_s, _ = pick_snapshot(joinpath(datadir, name), snap)
+            	b_s.data[:ne] = b_s.data[:Ne]
+            	multiBox(b_s, joinpath(joinpath(datadir, name), "m3dis_$(snap)"))
+			end
 			nothing
 		end
 
@@ -223,7 +229,7 @@ end
 # ╟─503f5ffb-d19f-4e10-b6d3-80a09d6f20ab
 # ╟─b8d80646-8f91-4f39-ae0e-3a22aa3a1e29
 # ╟─9a08c5ec-bdab-4323-895c-7fec358b5af8
-# ╟─4b782275-ce60-4ca0-ac17-be52d3573925
+# ╠═4b782275-ce60-4ca0-ac17-be52d3573925
 # ╟─27f1e1ac-77cf-459b-820e-b167ee11f391
 # ╟─169240b9-90c2-4a5c-9f37-0ad566993278
 # ╟─5c02c516-3a8e-48a7-8ac5-ebd7380fde43
