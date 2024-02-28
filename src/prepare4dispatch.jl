@@ -328,6 +328,9 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
 
     # htop_scale can be estimated via logg linearly (set it limits for now at 3 and 0.1)
     htop_scale = min(max(-2 * logg + 10.1, 0.1), 4.0)
+    
+    # or exponentially
+    htop_scale = max(exp(-1.15*(logg-5.0))-0.6, 0.1)
 
     x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     MUST.set!(

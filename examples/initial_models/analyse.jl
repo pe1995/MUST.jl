@@ -43,8 +43,10 @@ TableOfContents()
 begin
 	mean = MUST.mean
 	plt = matplotlib.pyplot
-	matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
 end;
+
+# ╔═╡ 123d3deb-a412-4408-a0cf-92271b7e4ab3
+matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
 
 # ╔═╡ 25234aa1-7c1c-4f2e-ae55-17c82428c4c3
 MUST.@import_dispatch "../../../dispatch2"
@@ -850,7 +852,7 @@ visual = MUST.ingredients("visual.jl")
 # ╔═╡ 40339dd0-acc2-4df0-92fc-bdec12c9a80a
 begin
 	velCube_var = :T
-	velCube_vmin_3d = 3500
+	velCube_vmin_3d = 2000
 	velCube_vmax_3d = 15500
 	velCube_s_3d = 12
 	velCube_arrow_length_ratio = 0.2
@@ -886,9 +888,9 @@ let
 		fls = []
 		
 		@progress for (i, snap) in enumerate(snaplist)
-			if true
-				s, _ = pick_snapshot(snaps, snap)
-			else
+			s, _ = try
+				pick_snapshot(snaps, snap)
+			catch
 				continue
 			end
 			plt.close()
@@ -911,8 +913,6 @@ let
 		end
 
 		visual.gifs.gifs_from_png(fls, "gifs/$(velCube_name)", gif_duration);
-		matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
-
 		@info "[$(models)] GIF saved at gifs/$(velCube_name)."
 	end
 end
@@ -923,6 +923,7 @@ end
 # ╠═4a837d4c-724c-11ee-0b6b-21a88a56df5b
 # ╟─d9b5bbbd-6229-47c3-9738-dbe9087016d8
 # ╟─9e9c5903-762d-43d7-adf2-0eccee134974
+# ╠═123d3deb-a412-4408-a0cf-92271b7e4ab3
 # ╠═25234aa1-7c1c-4f2e-ae55-17c82428c4c3
 # ╟─9edfd60d-05a3-4141-8cb0-ae202716aa27
 # ╟─9ac91858-17d8-4934-8d47-fed1519efe42
@@ -1015,4 +1016,4 @@ end
 # ╠═40339dd0-acc2-4df0-92fc-bdec12c9a80a
 # ╟─67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
 # ╟─456bee2f-8e00-4705-9b58-00ee5c896b65
-# ╟─ad37b578-4d3a-480b-a59b-20ca953c0584
+# ╠═ad37b578-4d3a-480b-a59b-20ca953c0584

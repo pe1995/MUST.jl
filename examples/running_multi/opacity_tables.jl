@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.26
+# v0.19.38
 
 using Markdown
 using InteractiveUtils
@@ -24,15 +24,18 @@ plt = matplotlib.pyplot
 md"# M3D Setup"
 
 # ╔═╡ e6c0702b-240a-4da8-a791-e360471bb990
-MUST.@import_m3dis "/u/peitner/DISPATCH/Multi3D"
+# ╠═╡ show_logs = false
+MUST.@import_m3dis "../../../Multi3D"
 
 # ╔═╡ 473f9d7c-f0b6-4d44-bef2-207dfb42f2d4
-MUST.@import_dispatch "/u/peitner/DISPATCH/dispatch2"
+MUST.@import_dispatch "../../../dispatch2"
 
 # ╔═╡ c4a8a402-f700-48c4-b13f-61f6a84b4dd5
 linelists = String[
 	#"./input_multi3d/nlte_ges_linelist_jmg25jan2023_I_II",
-	"./input_multi3d/vald_2490-25540.list"
+	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/vald_2490-25540.list",
+	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/1000-2490-vald.list",
+	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata"
 ]
 
 # ╔═╡ e5f3464e-fe56-45c0-8e47-ca4f1321b1b5
@@ -47,8 +50,8 @@ modelatmosfolder = "input_multi3d/test_opac_table/"
 # ╔═╡ acd24cd4-3676-4a54-af7b-690564f97425
 models = TSO.opacityTableInput(
 	MUST.@in_m3dis(modelatmosfolder),
-	lnT = range(log(1.1e3), log(5.5e5); length=159) |> collect, 
-    lnρ = range(log(1e-13), log(1e-3); length=159) |> collect
+	lnT = range(log(1.1e3), log(5.5e5); length=50) |> collect, 
+    lnρ = range(log(1e-30), log(1e-3); length=50) |> collect
 )
 
 # ╔═╡ d32c241f-97c8-46db-9512-1c7111e03e99
@@ -58,11 +61,11 @@ md"# Running M3D"
 md"Execute M3D in the given wavelength range"
 
 # ╔═╡ 4c9becb2-07d4-4126-ab76-a741e97abb85
-compute = true 
+compute = false 
 
 # ╔═╡ 078700b7-0b47-43a1-85d2-4567392e3479
 opacityTable(models; folder, linelist, λs, λe, δλ, 
-				in_log=true, slurm=false, kwargs...) = begin
+				in_log=true, slurm=false, m3dis_kwargs=Dict(), kwargs...) = begin
     MUST.whole_spectrum(
 		models, 
 		namelist_kwargs=(
@@ -70,7 +73,7 @@ opacityTable(models; folder, linelist, λs, λe, δλ,
 			:linelist=>nothing,
 			:absmet=>nothing,
 			:linelist_params=>(:line_lists=>linelist,),
-			:atom_params=>(:atom_file=>"input_multi3d/atoms/atom.h20", ),
+			:atom_params=>(:atom_file=>"", ),
 			:spectrum_params=>(:daa=>δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>in_log),
 			:atmos_params=>(
 				:dims=>1, 
@@ -91,6 +94,7 @@ opacityTable(models; folder, linelist, λs, λe, δλ,
 			),
             kwargs...
 		),
+		m3dis_kwargs=m3dis_kwargs,
 		slurm=slurm
 	)
 end
@@ -102,14 +106,21 @@ if compute
 		folder=modelatmosfolder, 
 		linelist=linelists,
 		λs=log(1000), λe=log(100000), δλ=0.00003, in_log=true,
-		slurm=true
+		slurm=true,
+		m3dis_kwargs=Dict(
+			:threads=>64,
+			:memMB=>90000
+		)
 	)
 end
+
+# ╔═╡ 9e2be75a-7d0b-4c65-b750-845798e9223d
+pyconvert
 
 # ╔═╡ 711972c6-dfb3-4143-b619-0cba4e96a2e4
 md"# Collecting the output"
 
-# ╔═╡ b82fd557-e3ea-4272-be7c-942df1a70009
+# ╔═╡ bcff1c95-3d8e-40a1-87e0-3c7a36cd4206
 m3dis_models = [MUST.M3DISRun("data/$(m)") for m in models]
 
 # ╔═╡ 170c9ca0-bd1c-41d8-908e-4b02e58a081d
@@ -229,8 +240,9 @@ end
 # ╠═4c9becb2-07d4-4126-ab76-a741e97abb85
 # ╠═078700b7-0b47-43a1-85d2-4567392e3479
 # ╠═9b48e5c5-ef7a-4bd2-9b8c-213d706d44c8
+# ╠═9e2be75a-7d0b-4c65-b750-845798e9223d
 # ╟─711972c6-dfb3-4143-b619-0cba4e96a2e4
-# ╠═b82fd557-e3ea-4272-be7c-942df1a70009
+# ╠═bcff1c95-3d8e-40a1-87e0-3c7a36cd4206
 # ╟─170c9ca0-bd1c-41d8-908e-4b02e58a081d
 # ╠═2c3eef18-c8fb-42a0-ba56-607cc99d1b36
 # ╠═056c6791-ed98-4c49-a424-e1ac72e6b22a
