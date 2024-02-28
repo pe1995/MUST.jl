@@ -20,6 +20,9 @@ begin
 	using Pkg; Pkg.activate(".")
 	using MUST
 	using PlutoUI
+	using PythonPlot
+
+	plt = matplotlib.pyplot
 end
 
 # ╔═╡ 2189049a-20e6-43fb-96cb-20ae7994f96b
@@ -114,7 +117,7 @@ end
 
 Prepare the restart of a DISPATCH simulation by creating the new namelist and converting the chosen snapshot to the M3D format (if not already done). Kwargs can be used to modify the namelist. If `decay_timescales` is set, the newton and friction timescales are decaying even after the restart.
 """
-function prepare_restart(name, snapshot; decay_timescales=false, datadir=@in_dispatch("data"), kwargs...)
+function prepare_restart(name, snapshot; decay_timescales=false, datadir=@in_dispatch("data"), extend=0.0, kwargs...)
 	# already converted snapshots
 	snappath = joinpath(datadir, name, "m3dis_$(snapshot).mesh")
 	snaptpath = joinpath(datadir, name, "m3dis_$(snapshot).atmos")
@@ -165,6 +168,29 @@ function prepare_restart(name, snapshot; decay_timescales=false, datadir=@in_dis
 		)
 	)
 
+	# Adjust the cube size if one wants to extend the cube
+	if extend>0
+		l_old = nml.scaling_params["l_cgs"]
+		size_old = nml.cartesian_params["size"]
+		shift_old = nml.cartesian_params["position"]
+
+		l_new = l_old*(1. +extend)
+		
+		# we make the cube in general bigger
+		MUST.set!(nml, scaling_params=("l_cgs"=>l_new,))
+
+		# now it is bigger, however we need to also shift it down by a bit 
+		# more to retain the optical surface location
+		# we only want to extend above the surface
+		zbottom = (size_old[3]/2.0 + shift_old[3])  * l_old / l_new
+		shift_new = abs(size_old[3]/2.0 - abs(zbottom))
+
+		# add a 1% tolerance
+		shift_new = round(shift_new - 0.01*shift_new, sigdigits=3)
+		
+		MUST.set!(nml, cartesian_params=("position"=>[0.0,0.0,-shift_new],))		
+	end
+
 	if decay_timescales
 		decay_newton_friction!(b.parameter.time, nml)
 	else
@@ -186,7 +212,7 @@ function prepare_restart(name, snapshot; decay_timescales=false, datadir=@in_dis
 	@info "[$(name)] Preparing restart complete."
 	@info "[$(name)] Saved at $(saveat)."
 	
-	nothing
+	b
 end
 
 # ╔═╡ 27f1e1ac-77cf-459b-820e-b167ee11f391
@@ -206,14 +232,14 @@ begin
 			:end_time=>20,
 			:decay_scale=>5
 		),
-		:boundary_params=>(
-			:htop_scale=>0.4,
-		),
 	)
 end
 
-# ╔═╡ 28d04061-0040-45b5-9490-54c4cdb943f4
+# ╔═╡ ac0f2184-e817-432a-860b-36cd2a03af3e
 
+
+# ╔═╡ 28d04061-0040-45b5-9490-54c4cdb943f4
+md"Enter factor to extend atmosphere (%): $(@bind exAt TextField(default=\"0.0\"))"
 
 # ╔═╡ 1e1e380f-9684-496c-8bf4-158f281a679b
 md"Click to continue decaying timescales: $(@bind decay CheckBox(default=false))"
@@ -224,11 +250,12 @@ md"Click to start preparations: $(@bind convert_given CheckBox(default=false))"
 # ╔═╡ 4c7c7f16-cfa4-4547-8355-72744211219a
 begin
 	if convert_given
-		prepare_restart(
+		b = prepare_restart(
 			selectedRun, 
 			firstSnap; 
 			datadir=datafolder, 
 			decay_timescales=decay,
+			extend=parse(Float64, exAt)/100.0,
 			new_namelist_params...
 		)
 	end
@@ -257,6 +284,7 @@ end
 # ╟─27f1e1ac-77cf-459b-820e-b167ee11f391
 # ╟─0f2b46ac-9317-4d23-be32-e7d0265f6258
 # ╠═3efea52b-cafa-4440-90fe-d6b226847a2d
+# ╟─ac0f2184-e817-432a-860b-36cd2a03af3e
 # ╟─28d04061-0040-45b5-9490-54c4cdb943f4
 # ╟─1e1e380f-9684-496c-8bf4-158f281a679b
 # ╟─946b586e-5c04-44c8-9300-0f2b7a8babf8

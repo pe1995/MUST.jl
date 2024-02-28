@@ -41,6 +41,11 @@ end
 =#
 Axis(values) = RegularBoxAxis(sort(values), issorted(values), sortperm(values))
 
+"""
+    Grid(ax::AbstractVector...) 
+
+Construct a N dimensional interpolation grid for N given arrays.
+"""
 Grid(ax::AbstractVector...) = RegularBoxGrid(Axis.(ax)...)
 
 

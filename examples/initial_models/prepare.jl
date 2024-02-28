@@ -82,14 +82,12 @@ begin
         if !isfile(grid.info[i, "eos_root"], opa_path)
             error("For grid entry $(i) there is no Opacitiy table at the given `opa_path` at the given `eos_root`!")
         end
-        if !isfile(grid.info[i, "eos_root"], sopa_path)
-            if iwarn
+        if iwarn
+            if !isfile(grid.info[i, "eos_root"], sopa_path)
                 @warn "For grid entry $(i) there is no scattering at the given `sopa_path` at the given `eos_root`!"
                 global iwarn = false
-            else
-                continue
+                global sopa_path = nothing
             end
-            global sopa_path = nothing
         end
     end
 
