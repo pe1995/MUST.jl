@@ -182,7 +182,7 @@ function prepare_restart(name, snapshot; decay_timescales=false, datadir=@in_dis
 		# now it is bigger, however we need to also shift it down by a bit 
 		# more to retain the optical surface location
 		# we only want to extend above the surface
-		zbottom = (size_old[3]/2.0 + shift_old[3])  * l_old / l_new
+		zbottom = (-size_old[3]/2.0 + shift_old[3])  * l_old / l_new
 		shift_new = abs(size_old[3]/2.0 - abs(zbottom))
 
 		# add a 1% tolerance
