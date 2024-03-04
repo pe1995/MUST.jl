@@ -70,11 +70,12 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
         yoff=15, 
         zoff=10, 
         show_time=false,
+        norm=1e8,
         fontsize="medium")
 
     # Define dimensions
     Nx, Ny, Nz = size(m_3d)
-    X, Y, Z    = MUST.mesh(m_3d)
+    X, Y, Z    = m_3d.x ./ norm, m_3d.y ./norm, m_3d.z ./norm
 
     xmin, xmax = minimum(X), maximum(X)
     ymin, ymax = minimum(Y), maximum(Y)

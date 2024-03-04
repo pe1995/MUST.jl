@@ -50,7 +50,7 @@ end
 end
 
 @everywhere include($(input_file))
-@everywhere MUST.@import_dispatch "../../../dispatch2"
+@everywhere MUST.@import_dispatch dispatch_location
 @everywhere prepare4dispatch = MUST.ingredients("prepare4dispatch.jl")
 
 #=================== Step (A): The Initial Grid ==============================#
@@ -86,7 +86,7 @@ begin
             if !isfile(grid.info[i, "eos_root"], sopa_path)
                 @warn "For grid entry $(i) there is no scattering at the given `sopa_path` at the given `eos_root`!"
                 global iwarn = false
-                global sopa_path = nothing
+                #global sopa_path = nothing
             end
         end
     end
@@ -100,6 +100,9 @@ begin
     end
     if !("sopa_original" in names(grid.info))
         grid.info[!, "sopa_original"] = [sopa_path for _ in 1:nrow(grid.info)]
+    end
+    if (iwarn)
+        grid.info[!, "sopa_original"] = ["" for _ in 1:nrow(grid.info)]
     end
 end
 
@@ -146,6 +149,12 @@ begin
         sopa_path = args[7]
         method = args[8]
         Nbins = args[9]
+
+        sopa_path = if (sopa_path=="")
+            nothing
+        else
+            sopa_path
+        end
         
         # formation opacities
         (!skip_formation) && prepare4dispatch.formation_opacities(

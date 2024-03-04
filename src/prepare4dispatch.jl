@@ -508,7 +508,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         ## interpolator
         m = TSO.flip(models[i])
         mask = sortperm(m.τ)
-        τ_down = min(τ_down, maximum(log10.(m.τ)))
+        td = min(τ_down, maximum(log10.(m.τ)))
+        tu = max(τ_up, minimum(log10.(m.τ)))
 
         ip_r = MUST.linear_interpolation(
             MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
@@ -535,17 +536,17 @@ resolution!(grid::MUST.AbstractMUSTGrid;
 
         l_norm[i] = zd[i] |> abs 
         
-        z_up[i] = abs(ip_z(τ_up) - ip_z(τ_surf))
+        z_up[i] = abs(ip_z(tu) - ip_z(τ_surf))
         z_s[i] = ip_z(τ_surf)
-        z_h[i] = ip_z(τ_up)
+        z_h[i] = ip_z(tu)
 
         ee0[i] = exp.(ip_E(τ_ee0))
         zee0[i] = ip_z(τ_zee0)
         eemin[i] = exp.(ip_E(τ_eemin)) 
 
-        z_lo[i] = ip_z(τ_down)
-        d_lo[i] = exp.(ip_r(τ_down))
-        T_lo[i] = exp.(ip_T(τ_down))
+        z_lo[i] = ip_z(td)
+        d_lo[i] = exp.(ip_r(td))
+        T_lo[i] = exp.(ip_T(td))
 
         xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
             m, 
@@ -553,9 +554,9 @@ resolution!(grid::MUST.AbstractMUSTGrid;
             grid.info[i, "ma_x"], 
             grid.info[i, "mi_z"], 
             grid.info[i, "ma_z"], 
-            τ_up,
+            tu,
             τ_surf,
-            τ_down,
+            td,
             grid.info[i, "hres"],
             patch_size, 
             scale_resolution=scale_resolution

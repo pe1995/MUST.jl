@@ -4,7 +4,7 @@ begin
     name_extension    = "DIS_MARCS"
 
     # Location of the dispatch installation
-    dispatch_location = "/u/peitner/DISPATCH/dispatch2/"
+    dispatch_location = "../../../dispatch2/"
 
     # input and output names of the grid
     #initial_grid_path = "stagger_grid_full_o.mgrid"
@@ -61,34 +61,27 @@ begin
     # Location of the opacity table
 
     # for MARCS EoS
-    #=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
     extension = "magg_m0_a0"
     eos_path = "ross_combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
-    sopa_path = "combined_Sopacities_"*extension*".hdf5"=#
-
-    # for M3D EoS
-    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v1.0"
-    extension = "magg_m0_a0"
-    eos_path = "combined_eos_"*extension*".hdf5"
-    opa_path = "combined_opacities_"*extension*".hdf5"
-    sopa_path = "" # There are no scattering opacities in M3D LTE yet
+    sopa_path = "combined_Sopacities_"*extension*".hdf5"
 
     # opacity table version (output)
     # v0.5   -> 8 bins (MARCS)
     # v0.5.1 -> Grey (MARCS)
     # v1.5   -> 8 bins (M3D)
     # v1.5.1 -> Grey (M3D)
-    version = "v1.5"
+    version = "v0.5.1"
 
     # Number of bins in the opacity table (output)
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = false
+    skip_binning = true
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = false
+    skip_formation = true
 
     # remove formation opacities after binning (save disk space)
     clean = false

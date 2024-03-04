@@ -45,10 +45,10 @@ modelatmosfolder = "input_multi3d/test_opac_table/"
 begin
 	minT = 1000.
 	maxT = 5.5e5
-	minρ = 1e-30
-	maxρ = 1e-3
+	minρ = 1e-20
+	maxρ = 1e-2
 	nT   = 200
-	nρ   = 200
+	nρ   = 300
 
 	λs = 1000
 	λe = 200000
@@ -87,7 +87,7 @@ model = eosTableInput(
 md"# Run M3D"
 
 # ╔═╡ 18f2d770-4803-4ee7-860b-aa87db9245f7
-compute = true
+compute = false
 
 # ╔═╡ 15a2ab2c-71e1-4778-8d22-759ad16a0bbe
 eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10,
@@ -141,6 +141,7 @@ if compute
 		δlnT=(log(maxT)-log(minT))/nT, 
 		δlnρ=(log(maxρ)-log(minρ))/nρ,
 		slurm=false,
+		nν=20
 		#m3dis_kwargs=Dict(
 		#	:threads=>32,
 		#	:memMB=>90000
@@ -157,8 +158,21 @@ md"Decide where to save the table"
 # ╔═╡ 270b37a1-d0c9-48b1-bd05-891a8c83cf72
 extension = "magg_m0_a0"
 
+# ╔═╡ 97df8e54-bb39-46b9-811c-f61e6a7287b3
+
+
+# ╔═╡ e3f7e4bf-17c2-4c7d-b086-8ef846fdff32
+md"EoS Versions:
+- v1.0: First test, no H lines, no Molecules
+- v1.1: + H lines (possibly issues with Lalpha)
+- v1.2: same as v1.1, but after Richard fixed H lines
+- v1.3: same as v1.0, but with smaller range
+- v1.4: small range without molecules in EoS
+- v1.5: small range without molecules in EoS + Hslines
+"
+
 # ╔═╡ 934be5d3-a7c5-46f2-870d-8ba7d8c134dc
-eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v1.0"
+eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v1.5"
 
 # ╔═╡ d84c4140-1702-4fa4-8fc5-955a1e9c0d78
 !isdir(eos_folder) && mkdir(eos_folder)
@@ -181,17 +195,51 @@ begin
 	save(opa, joinpath(eos_folder, "combined_opacities_$(extension).hdf5"))
 end
 
+# ╔═╡ 8c4c378c-0d0a-4d01-bcff-0b8201fdd402
+size(eos)
+
 # ╔═╡ f06e07d1-7989-4e45-bbe2-e4b25f77c36b
 aos = @axed eos
 
 # ╔═╡ 1f320b5e-30d5-4275-a99a-e2ac07eaa910
-begin
+let
 	tt, dd = TSO.meshgrid(aos)
 	
 	plt.close()
 	
-	im = plt.scatter(tt, dd, s=1.0, c=eos.lnRoss)
+	im = plt.scatter(tt, dd, s=1.0, c=eos.lnEi)
 	plt.colorbar(im)
+
+	gcf()
+end
+
+# ╔═╡ 0e818674-be73-4e6e-9de8-2ad7951c8ed0
+let
+	plt.close()
+
+	plt.title("ρ=$(exp(eos.lnRho[10]))")
+	im = plt.plot(eos.lnT, eos.lnEi[:, 10])
+
+	plt.ylim(28, 35)
+
+	gcf()
+end
+
+# ╔═╡ d03b0d8b-aa2d-49dc-a8bb-6064564c11ca
+let
+	tt, dd = TSO.meshgrid(aos)
+	
+	plt.close()
+
+	i = 130
+	j = 130
+
+	plt.title("T=$(exp.(eos.lnT[i])), ρ=$(exp.(eos.lnRho[j]))")
+	
+	im = plt.plot(opa.λ, opa.κ[i, j, :])
+	#plt.xlim(1000, 10000)
+	#plt.ylim(-1, 100)
+	
 
 	gcf()
 end
@@ -216,11 +264,16 @@ end
 # ╟─cf6b3809-a161-4093-8285-2cb303c380f4
 # ╟─fe9f9763-0b3e-4a47-9a2c-e5a24d2bfd67
 # ╠═270b37a1-d0c9-48b1-bd05-891a8c83cf72
+# ╟─97df8e54-bb39-46b9-811c-f61e6a7287b3
+# ╟─e3f7e4bf-17c2-4c7d-b086-8ef846fdff32
 # ╠═934be5d3-a7c5-46f2-870d-8ba7d8c134dc
 # ╠═d84c4140-1702-4fa4-8fc5-955a1e9c0d78
 # ╟─0d78efc6-77de-4810-b98a-82c7bdc69c6c
 # ╠═4611660d-f561-457a-80d4-fd37630e5c3b
 # ╠═e44b4fab-f33f-4d93-afea-c80b4a1849e1
 # ╠═da9cbcec-5e3d-47e6-8b52-e9aad755de20
+# ╠═8c4c378c-0d0a-4d01-bcff-0b8201fdd402
 # ╠═f06e07d1-7989-4e45-bbe2-e4b25f77c36b
 # ╠═1f320b5e-30d5-4275-a99a-e2ac07eaa910
+# ╠═0e818674-be73-4e6e-9de8-2ad7951c8ed0
+# ╠═d03b0d8b-aa2d-49dc-a8bb-6064564c11ca

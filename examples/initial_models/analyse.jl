@@ -60,6 +60,31 @@ availableRuns(path) = begin
 	last.(split.(runs, "/", keepempty=false))
 end
 
+# ╔═╡ 91ddaf2d-abd6-4e2d-92eb-cfa7d0ba79bc
+function eos_input(simulation_names::Vector)
+	all_eos = glob("*/", @in_dispatch(eosfolder))
+	all_eos = convert.(String, last.(split.(all_eos, "/", keepempty=false)))
+	simulation_names = convert.(String, simulation_names)
+
+	return combine() do Child
+		namesChild = [
+			Child(simulation_names[i], Select(all_eos))
+			for i in eachindex(simulation_names)
+		]
+		inputs = [
+			md""" $(name): $(
+				namesChild[i]
+			)"""
+			for (i, name) in enumerate(simulation_names)
+		]
+		
+		md"""
+		### Available EoS
+		$(inputs)
+		"""
+	end
+end
+
 # ╔═╡ 80fefa1e-de68-4448-a371-d4ae0ec70868
 md"## Picking Models
 You can pick a model from the output folder, that was already converted using 'convert.jl' or 'snapshot2box.jl'"
@@ -214,31 +239,6 @@ md"Enter the folder where EoS tables can be found:"
 
 # ╔═╡ 926aa121-ba10-4410-a91c-f36fc79a63ed
 @bind eosfolder TextField(default="input_data/grd/")
-
-# ╔═╡ 91ddaf2d-abd6-4e2d-92eb-cfa7d0ba79bc
-function eos_input(simulation_names::Vector)
-	all_eos = glob("*/", @in_dispatch(eosfolder))
-	all_eos = convert.(String, last.(split.(all_eos, "/", keepempty=false)))
-	simulation_names = convert.(String, simulation_names)
-
-	return combine() do Child
-		namesChild = [
-			Child(simulation_names[i], Select(all_eos))
-			for i in eachindex(simulation_names)
-		]
-		inputs = [
-			md""" $(name): $(
-				namesChild[i]
-			)"""
-			for (i, name) in enumerate(simulation_names)
-		]
-		
-		md"""
-		### Available EoS
-		$(inputs)
-		"""
-	end
-end
 
 # ╔═╡ 3a94ff68-ea2f-4478-902f-4975074e8ec4
 @bind eos_picks eos_input(available_runs)

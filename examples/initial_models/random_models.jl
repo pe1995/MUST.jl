@@ -83,7 +83,7 @@ end
 begin
 	paras = random_paramters(
 		grid, 
-		10, 
+		20, 
 		teff=[5500, 6500], 
 		logg=[4.0, 4.5], 
 		feh=[0.0, 0.0]
