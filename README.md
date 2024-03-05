@@ -353,7 +353,7 @@ or simply use the shortcut
 where log10 or log can be added in front of any variable to apply the corresponding log directly. This is convenient when you want to past this in the plotting function directly, for example
 
 ```julia
-plot(profile(mean, box, :log10τ_ross, T)...)
+plot(profile(mean, box, :log10τ_ross, :T)...)
 ```
 
 will plot the average temperature as a function of optical depth. Note that this will only be correct, if the given `Box` is indeed on the $\rm \tau$ scale. Computing the average quantites on the geometrical scale and plot against average optical depth is **not** equal to average planes in a cube interpolated to a uniform optical depth scale. One should always compute averages on planes of constant optical depth if one intents to compare on that scale.
