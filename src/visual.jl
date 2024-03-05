@@ -118,22 +118,22 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
     i_startz = findfirst(Z[1, 1, :] .> limz) 
 
     im_3d = ax_3d.scatter(  X[i_startx,   1:i_starty, i_startz:end],   
-    Y[i_startx,   1:i_starty, i_startz:end],   
-    Z[i_startx,   1:i_starty, i_startz:end],   
-    c=m_3d[var][i_startx,   1:i_starty, i_startz:end],   
-    s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=0)
+                            Y[i_startx,   1:i_starty, i_startz:end],   
+                            Z[i_startx,   1:i_starty, i_startz:end],   
+                            c=m_3d[var][i_startx,   1:i_starty, i_startz:end],   
+                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=0)
 
     im_3d = ax_3d.scatter(  X[i_startx:end,   1:i_starty, i_startz],   
-    Y[i_startx:end,   1:i_starty, i_startz],   
-    Z[i_startx:end,   1:i_starty, i_startz],   
-    c=m_3d[var][i_startx:end,   1:i_starty, i_startz],   
-    s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=0)
+                            Y[i_startx:end,   1:i_starty, i_startz],   
+                            Z[i_startx:end,   1:i_starty, i_startz],   
+                            c=m_3d[var][i_startx:end,   1:i_starty, i_startz],   
+                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=0)
 
     im_3d = ax_3d.scatter(  X[i_startx:end,   i_starty, i_startz:end],   
-    Y[i_startx:end,   i_starty, i_startz:end],   
-    Z[i_startx:end,   i_starty, i_startz:end],   
-    c=m_3d[var][i_startx:end,   i_starty, i_startz:end],   
-    s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=0)
+                            Y[i_startx:end,   i_starty, i_startz:end],   
+                            Z[i_startx:end,   i_starty, i_startz:end],   
+                            c=m_3d[var][i_startx:end,   i_starty, i_startz:end],   
+                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=0)
 
 
 
@@ -151,34 +151,34 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
 
 
     im_3d_vec = ax_3d.quiver(   X[i_startx+xoff,1:skipv:i_starty, i_startz:skipv:end],
-    Y[i_startx+xoff,1:skipv:i_starty, i_startz:skipv:end],
-    Z[i_startx+xoff,1:skipv:i_starty, i_startz:skipv:end],
-    zp[i_startx, 1:skipv:i_starty, i_startz:skipv:end],
-    uy[i_startx, 1:skipv:i_starty, i_startz:skipv:end],
-    uz[i_startx, 1:skipv:i_starty, i_startz:skipv:end],
-    length=len_vec, normalize=false, lw=lw_vec, 
-    pivot="tail", arrow_length_ratio=arrow_length_ratio,
-    color=cvec, zorder=100)
+                                Y[i_startx+xoff,1:skipv:i_starty, i_startz:skipv:end],
+                                Z[i_startx+xoff,1:skipv:i_starty, i_startz:skipv:end],
+                                zp[i_startx, 1:skipv:i_starty, i_startz:skipv:end],
+                                uy[i_startx, 1:skipv:i_starty, i_startz:skipv:end],
+                                uz[i_startx, 1:skipv:i_starty, i_startz:skipv:end],
+                                length=len_vec, normalize=false, lw=lw_vec, 
+                                pivot="tail", arrow_length_ratio=arrow_length_ratio,
+                                color=cvec, zorder=100)
 
-    im_3d_vec = ax_3d.quiver( X[i_startx:skipv:end,  1:skipv:i_starty, i_startz+zoff],
-    Y[i_startx:skipv:end,  1:skipv:i_starty, i_startz+zoff],
-    Z[i_startx:skipv:end,  1:skipv:i_starty, i_startz+zoff],
-    ux[i_startx:skipv:end, 1:skipv:i_starty, i_startz],
-    uy[i_startx:skipv:end, 1:skipv:i_starty, i_startz],
-    zp[i_startx:skipv:end, 1:skipv:i_starty, i_startz],
-    length=len_vec, normalize=false, lw=lw_vec, 
-    pivot="tail", arrow_length_ratio=arrow_length_ratio,
-    color=cvec, zorder=100)
+    im_3d_vec = ax_3d.quiver(   X[i_startx:skipv:end,  1:skipv:i_starty, i_startz+zoff],
+                                Y[i_startx:skipv:end,  1:skipv:i_starty, i_startz+zoff],
+                                Z[i_startx:skipv:end,  1:skipv:i_starty, i_startz+zoff],
+                                ux[i_startx:skipv:end, 1:skipv:i_starty, i_startz],
+                                uy[i_startx:skipv:end, 1:skipv:i_starty, i_startz],
+                                zp[i_startx:skipv:end, 1:skipv:i_starty, i_startz],
+                                length=len_vec, normalize=false, lw=lw_vec, 
+                                pivot="tail", arrow_length_ratio=arrow_length_ratio,
+                                color=cvec, zorder=100)
 
-    im_3d_vec = ax_3d.quiver(X[i_startx:skipv:end, i_starty-yoff, i_startz:skipv:end],
-    Y[i_startx:skipv:end,  i_starty-yoff, i_startz:skipv:end],
-    Z[i_startx:skipv:end,  i_starty-yoff, i_startz:skipv:end],
-    ux[i_startx:skipv:end, i_starty, i_startz:skipv:end],
-    zp[i_startx:skipv:end, i_starty, i_startz:skipv:end],
-    uz[i_startx:skipv:end, i_starty, i_startz:skipv:end],
-    length=len_vec, normalize=false, lw=lw_vec, color=cvec,
-    pivot="tail", arrow_length_ratio=arrow_length_ratio, 
-    zorder=100)
+    im_3d_vec = ax_3d.quiver(   X[i_startx:skipv:end, i_starty-yoff, i_startz:skipv:end],
+                                Y[i_startx:skipv:end,  i_starty-yoff, i_startz:skipv:end],
+                                Z[i_startx:skipv:end,  i_starty-yoff, i_startz:skipv:end],
+                                ux[i_startx:skipv:end, i_starty, i_startz:skipv:end],
+                                zp[i_startx:skipv:end, i_starty, i_startz:skipv:end],
+                                uz[i_startx:skipv:end, i_starty, i_startz:skipv:end],
+                                length=len_vec, normalize=false, lw=lw_vec, color=cvec,
+                                pivot="tail", arrow_length_ratio=arrow_length_ratio, 
+                                zorder=100)
 
 
     # Set limits of the plot from coord limits
@@ -317,21 +317,21 @@ function cube_with_velocities(data, X, Y, Z, ux, uy, uz; vmin_3d=minimum(data),
     data[mask_x1] .= NaN
 
     # The cube faces
-    im_3d = ax_3d.scatter(X[:,   1,  :],   
-    Y[:,   1, :],   
-    Z[:,   1, :],   
-    c=data[:,   1, :],   
-    s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap)
-    im_3d = ax_3d.scatter(X[end, :,  :],   
-    Y[end, :, :],   
-    Z[end, :, :],   
-    c=data[end, :, :],   
-    s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap)
-    im_3d = ax_3d.scatter(X[:,   :,  end], 
-    Y[:,   :, end], 
-    Z[:,   :, end], 
-    c=data[:,   :, end], 
-    s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap)
+    im_3d = ax_3d.scatter(  X[:,   1,  :],   
+                            Y[:,   1, :],   
+                            Z[:,   1, :],   
+                            c=data[:,   1, :],   
+                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap)
+    im_3d = ax_3d.scatter(  X[end, :,  :],   
+                            Y[end, :, :],   
+                            Z[end, :, :],   
+                            c=data[end, :, :],   
+                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap)
+    im_3d = ax_3d.scatter(  X[:,   :,  end], 
+                            Y[:,   :, end], 
+                            Z[:,   :, end], 
+                            c=data[:,   :, end], 
+                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap)
 
 
     # Draw the cut out part
