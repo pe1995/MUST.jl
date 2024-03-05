@@ -16,10 +16,10 @@ begin
 end
 
 # ╔═╡ 789f821a-be1c-4fa3-8b75-b888f9eeed1f
-eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v1.4/combined_eos_magg_m0_a0.hdf5")
+eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v1.5/combined_eos_magg_m0_a0.hdf5")
 
 # ╔═╡ 54cd6e9e-c4e7-4512-bd5e-59c05840dfbf
-opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v1.4/combined_opacities_magg_m0_a0.hdf5", mmap=true)
+opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v1.5/combined_opacities_magg_m0_a0.hdf5", mmap=true)
 
 # ╔═╡ bdf0a7ba-d30d-40f2-92f4-b9dd791a9ba9
 eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.9/combined_eos_magg_m0_a0.hdf5")
