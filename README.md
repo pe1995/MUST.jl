@@ -347,7 +347,7 @@ axis(box, :τ_ross, 3)
 or simply use the shortcut
 
 ```julia
-τ, T = profile(mean, box, :log10τ_ross, T)
+τ, T = profile(mean, box, :log10τ_ross, :T)
 ```
 
 where log10 or log can be added in front of any variable to apply the corresponding log directly. This is convenient when you want to past this in the plotting function directly, for example
