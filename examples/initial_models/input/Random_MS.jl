@@ -27,13 +27,13 @@ end
 #= Dispatch setup =#
 begin
     patch_size = 17                 # Points per patch
-    τ_up = -5.0                     # Upper limit of simulation domain
+    τ_up = -4.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 7.0                    # Lower limit of simulation domain
-    τ_ee0 = -3.0                    # Newton cooling placement (energy)
+    τ_down = 6.5                    # Lower limit of simulation domain
+    τ_ee0 = -1.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -2.0                   # Newton cooling placement (height)
-    τ_rho0 = -2.0                   # Density normaliztion height
+    τ_rho0 = -1.0                   # Density normaliztion height
     scale_resolution = 0.9          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
@@ -101,5 +101,5 @@ begin
     end
 
     # remove formation opacities after usage to save disk space
-    clean = false
+    clean = true
 end

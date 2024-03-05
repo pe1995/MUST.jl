@@ -1,7 +1,7 @@
 #= General information =#
 begin
     # Output name of the models
-    name_extension    = "DIS_MARCS"
+    name_extension    = "StaggerNodes_M3D/DIS_M3D"
 
     # Location of the dispatch installation
     dispatch_location = "../../../dispatch2/"
@@ -61,27 +61,25 @@ begin
     # Location of the opacity table
 
     # for MARCS EoS
-    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v1.4"
     extension = "magg_m0_a0"
-    eos_path = "ross_combined_eos_"*extension*".hdf5"
+    eos_path = "combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
-    sopa_path = "combined_Sopacities_"*extension*".hdf5"
+    sopa_path = "" # There are no scattering opacities in M3D LTE yet
 
     # opacity table version (output)
-    # v0.5   -> 8 bins (MARCS)
-    # v0.5.1 -> Grey (MARCS)
     # v1.5   -> 8 bins (M3D)
     # v1.5.1 -> Grey (M3D)
-    version = "v0.5.1"
+    version = "v1.5"
 
     # Number of bins in the opacity table (output)
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = true
+    skip_binning = false
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = true
+    skip_formation = false
 
     # remove formation opacities after binning (save disk space)
     clean = false
