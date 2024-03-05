@@ -55,32 +55,55 @@ availableMonitor(folder) = begin
 	split.(allruns[mask], "/", keepempty=false) .|> last
 end
 
+# ╔═╡ 840732ce-1a89-4a44-8673-106589d37ef0
+requestedModels(folder) = begin
+	allNml = MUST.glob("*.nml", folder)
+	allNml = last.(split.(allNml, '/', keepempty=false))
+	allNml = [m[1:end-4] for m in allNml]
+end
+
 # ╔═╡ e595f80f-5ab4-421e-a47e-8b80d1612b29
+requestedAndAvailable(reqModels, availModels) = [m for m in availModels if m in reqModels]
+
+# ╔═╡ 6c53860f-c977-47fb-8c66-e240b1ec2efc
 
 
 # ╔═╡ d45457a4-9e33-4492-9a06-930f41f10fdc
-md"""Select one of the available monitored runs:\
-$(@bind selectedRun confirm(Select(availableRuns(datafolder))))"""
+md"""Select a folder with models (namelists) you want to convert:\
+$(@bind selectedFolder confirm(TextField(default=\"../../../stellar_atmospheres/run_MS\")))"""
+
+# ╔═╡ 25d78e43-3f49-4593-851a-1072843e43bb
+
+
+# ╔═╡ 67814fa0-e558-4188-90cd-ca7246124912
+modelsToPack = requestedAndAvailable(requestedModels(selectedFolder), availableRuns(datafolder));
 
 # ╔═╡ cbbe908e-01f2-485c-a6f1-a915c841838b
-runfolder = joinpath(datafolder, selectedRun);
+runfolders = [joinpath(datafolder, r) for r in requestedAndAvailable(requestedModels(selectedFolder), availableRuns(datafolder))];
 
 # ╔═╡ b8a9a5ce-be8c-4ded-8914-96a9670b7f0e
 md"## Select Snapshots"
 
 # ╔═╡ 14aa40eb-cfa3-4d8e-b21e-ed9cb4e85b20
-allsnaps = sort(MUST.list_of_snapshots(runfolder));
-
-# ╔═╡ 288fb1ad-529e-40e1-ae8e-5994d438157d
-md"Pick the first snapshot: $(@bind firstSnap Slider(allsnaps, show_value=true, default=allsnaps[end-11]))
-"
+allsnaps = [sort(MUST.list_of_snapshots(runfolder)) for runfolder in runfolders];
 
 # ╔═╡ 503f5ffb-d19f-4e10-b6d3-80a09d6f20ab
-md"Pick the last snapshot: $(@bind lastSnap Slider(allsnaps, show_value=true, default=allsnaps[end-2]))
-"
+md"How many snapshots should be packed (from the end): $(@bind howmanysnaps confirm(TextField(default=\"10\")))"
+
+# ╔═╡ 0e904bbd-959b-40f7-87f2-392fef209702
+maskSnaps = [length(s) > parse(Int, howmanysnaps) + 1 for s in allsnaps];
 
 # ╔═╡ b8d80646-8f91-4f39-ae0e-3a22aa3a1e29
-snapsSelected = allsnaps[findfirst(x->x==firstSnap, allsnaps):findfirst(x->x==lastSnap, allsnaps)];
+snapsSelected = [
+	allsnaps[i][end-1-parse(Int, howmanysnaps):end-2] 
+	for i in eachindex(allsnaps) if maskSnaps[i]
+];
+
+# ╔═╡ 547b3e4a-0589-4af3-bd23-bd937600590f
+modelsToPackSelected = modelsToPack[maskSnaps]
+
+# ╔═╡ 56b402c0-6a44-442d-875d-eebb047ef441
+runfoldersSelected = runfolders[maskSnaps];
 
 # ╔═╡ 9a08c5ec-bdab-4323-895c-7fec358b5af8
 md"## Convert Snapshots
@@ -200,18 +223,20 @@ md"Tick box to start packing: $(@bind convert_given CheckBox(default=false))"
 # ╔═╡ 4c7c7f16-cfa4-4547-8355-72744211219a
 begin
 	if convert_given
-		shipBox(
-			selectedRun, 
-			snapsSelected, 
-			datadir=datafolder, 
-			to_multi=convert_m3d,
-			copysnaps=!moveSnaps
-		)
+		for (i, selectedRun) in enumerate(modelsToPackSelected)
+			shipBox(
+				selectedRun, 
+				snapsSelected[i], 
+				datadir=datafolder, 
+				to_multi=convert_m3d,
+				copysnaps=!moveSnaps
+			)
+		end
 	end
 end
 
 # ╔═╡ Cell order:
-# ╠═d69a0642-cb28-11ee-2eb3-d33c850d3799
+# ╟─d69a0642-cb28-11ee-2eb3-d33c850d3799
 # ╟─2189049a-20e6-43fb-96cb-20ae7994f96b
 # ╟─ac0a2cde-9228-47e8-b6cf-b866d5fd39d7
 # ╠═a7983431-7ccc-4b06-bb00-92052b31065e
@@ -220,14 +245,20 @@ end
 # ╟─3c70fb6d-ff6d-4359-af7e-d7a91a7cef75
 # ╟─0a0c5350-2b15-46e6-b907-e580e6f2c3a1
 # ╟─44fa2200-f245-4e60-928c-69b7c7a1dd23
+# ╟─840732ce-1a89-4a44-8673-106589d37ef0
 # ╟─e595f80f-5ab4-421e-a47e-8b80d1612b29
+# ╟─6c53860f-c977-47fb-8c66-e240b1ec2efc
 # ╟─d45457a4-9e33-4492-9a06-930f41f10fdc
+# ╟─25d78e43-3f49-4593-851a-1072843e43bb
+# ╟─67814fa0-e558-4188-90cd-ca7246124912
 # ╟─cbbe908e-01f2-485c-a6f1-a915c841838b
 # ╟─b8a9a5ce-be8c-4ded-8914-96a9670b7f0e
 # ╟─14aa40eb-cfa3-4d8e-b21e-ed9cb4e85b20
-# ╟─288fb1ad-529e-40e1-ae8e-5994d438157d
 # ╟─503f5ffb-d19f-4e10-b6d3-80a09d6f20ab
+# ╟─0e904bbd-959b-40f7-87f2-392fef209702
 # ╟─b8d80646-8f91-4f39-ae0e-3a22aa3a1e29
+# ╟─547b3e4a-0589-4af3-bd23-bd937600590f
+# ╟─56b402c0-6a44-442d-875d-eebb047ef441
 # ╟─9a08c5ec-bdab-4323-895c-7fec358b5af8
 # ╟─4b782275-ce60-4ca0-ac17-be52d3573925
 # ╟─27f1e1ac-77cf-459b-820e-b167ee11f391
