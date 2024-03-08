@@ -45,10 +45,10 @@ modelatmosfolder = "input_multi3d/test_opac_table/"
 begin
 	minT = 1000.
 	maxT = 5.5e5
-	minρ = 1e-20
+	minρ = 1e-15
 	maxρ = 1e-2
-	nT   = 200
-	nρ   = 300
+	nT   = 150
+	nρ   = 150
 
 	λs = 1000
 	λe = 200000
@@ -87,7 +87,7 @@ model = eosTableInput(
 md"# Run M3D"
 
 # ╔═╡ 18f2d770-4803-4ee7-860b-aa87db9245f7
-compute = false
+compute = true
 
 # ╔═╡ 15a2ab2c-71e1-4778-8d22-759ad16a0bbe
 eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10,
@@ -141,12 +141,12 @@ if compute
 		in_log=true,
 		δlnT=(log(maxT)-log(minT))/nT, 
 		δlnρ=(log(maxρ)-log(minρ))/nρ,
-		slurm=true,
-		nν=20,
-		m3dis_kwargs=Dict(
-			:threads=>32,
-			:memMB=>90000
-		)
+		slurm=false,
+		nν=20
+		#m3dis_kwargs=Dict(
+		#	:threads=>32,
+		#	:memMB=>90000
+		#)
 	)
 end
 
@@ -173,7 +173,7 @@ md"EoS Versions:
 "
 
 # ╔═╡ 934be5d3-a7c5-46f2-870d-8ba7d8c134dc
-eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v1.6"
+eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v1.4"
 
 # ╔═╡ d84c4140-1702-4fa4-8fc5-955a1e9c0d78
 !isdir(eos_folder) && mkdir(eos_folder)

@@ -29,10 +29,10 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 20                 # Points per patch
+    patch_size = 17                 # Points per patch
     τ_up = -5.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 7.0                    # Lower limit of simulation domain
+    τ_down = 6.5                    # Lower limit of simulation domain
     τ_ee0 = -1.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -1.0                   # Newton cooling placement (height)
@@ -59,7 +59,6 @@ begin
     recompute_ross = false
 
     # Location of the opacity table
-
     # for MARCS EoS
     mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
     extension = "magg_m0_a0"
@@ -70,12 +69,11 @@ begin
     # opacity table version (output)
     # v0.5   -> 8 bins (MARCS)
     # v0.5.1 -> Grey (MARCS)
-    # v1.5   -> 8 bins (M3D)
-    # v1.5.1 -> Grey (M3D)
-    version = "v0.5.1"
+    # v0.5.2 -> 4 MURaM bins (MARCS)
+    version = "v0.5"
 
     # Number of bins in the opacity table (output)
-    Nbins = 1
+    Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
     skip_binning = true
@@ -95,12 +93,12 @@ begin
         )
 
         # 8 bins
-        #=quadrants = [ 
+        quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
-        ]=#
+        ]
 
         # 4 MURaM bins
         #=quadrants = [ 
@@ -111,8 +109,8 @@ begin
         ]=#
 
         # grey
-        quadrants = [ 
+        #=quadrants = [ 
             TSO.Quadrant((0.0, 100.0), (-100, 100), 1)
-        ]
+        ]=#
     end
 end

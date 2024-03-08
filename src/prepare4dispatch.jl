@@ -238,7 +238,8 @@ quadrantlimit(name, table_folder, opa_path; λ_lim=5.0) = begin
 end
 
 clean(table_folder, name) = begin
-	rm(joinpath(table_folder, "combined_formation_opacities_$(name).hdf5"))
+    f = joinpath(table_folder, "combined_formation_opacities_$(name).hdf5")
+	isfile(f) && rm(f)
 end
 
 
@@ -498,7 +499,21 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         m = TSO.flip(models[i])
         mask = sortperm(m.τ)
         td = min(τ_down, maximum(log10.(m.τ)))
-        tu = max(τ_up, minimum(log10.(m.τ)))
+        tu = τ_up #max(τ_up, minimum(log10.(m.τ)))
+
+        xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
+            m, 
+            grid.info[i, "mi_x"], 
+            grid.info[i, "ma_x"], 
+            grid.info[i, "mi_z"], 
+            grid.info[i, "ma_z"], 
+            tu,
+            τ_surf,
+            td,
+            grid.info[i, "hres"],
+            patch_size, 
+            scale_resolution=scale_resolution
+        )
 
         ip_r = MUST.linear_interpolation(
             MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
@@ -536,20 +551,6 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         z_lo[i] = ip_z(td)
         d_lo[i] = exp.(ip_r(td))
         T_lo[i] = exp.(ip_T(td))
-
-        xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
-            m, 
-            grid.info[i, "mi_x"], 
-            grid.info[i, "ma_x"], 
-            grid.info[i, "mi_z"], 
-            grid.info[i, "ma_z"], 
-            tu,
-            τ_surf,
-            td,
-            grid.info[i, "hres"],
-            patch_size, 
-            scale_resolution=scale_resolution
-        )
     end
 
     xd, xr, zd, zr

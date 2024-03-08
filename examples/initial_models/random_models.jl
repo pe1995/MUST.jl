@@ -83,9 +83,9 @@ end
 begin
 	paras = random_paramters(
 		grid, 
-		20, 
-		teff=[5500, 6500], 
-		logg=[4.0, 4.5], 
+		40, 
+		teff=[5000, 6500], 
+		logg=[4.0, 4.7], 
 		feh=[0.0, 0.0]
 	)
 end
@@ -176,7 +176,7 @@ begin
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
-MUST.save(ig, "random_MS.mgrid")
+MUST.save(ig, "random_MS_2.mgrid")
 
 # ╔═╡ Cell order:
 # ╟─a0516377-218a-4260-ae15-acf6ac36f2c1
