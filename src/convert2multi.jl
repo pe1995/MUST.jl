@@ -2,11 +2,11 @@ using MUST
 using TSO
 
 function snaps2multi(folder, snaps...; 
-						label, eos=nothing,
+						label="", eos=nothing,
 						n_horizontal=nothing, n_vertical=nothing, outfolder="", method=:linear, name="m3dis")
     i = 0
     for snap in snaps
-        snapshot, snapshot_τ = try
+        snapshot, _ = try
             pick_snapshot(folder, snap)
         catch
             continue
@@ -38,7 +38,7 @@ function snaps2multi(folder, snaps...;
         end
 
         i += 1
-        output_name = joinpath(outfolder, join([name, "$(label)_$(i)"], "_"))
+        output_name = joinpath(outfolder, join([name, "$(label)_$(snap)"], "_"))
     
         MUST.multiBox(
             snapshotsresample, 
@@ -48,7 +48,7 @@ function snaps2multi(folder, snaps...;
 end
 
 function snaps2multi(snaps::MUST.Box...; 
-                    label, eos=nothing, n_horizontal=nothing, n_vertical=nothing, outfolder="", name="m3dis")
+                    label="", eos=nothing, n_horizontal=nothing, n_vertical=nothing, outfolder="", name="m3dis")
     labels = if typeof(label) <: AbstractVector
         label
     else
