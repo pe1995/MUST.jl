@@ -494,17 +494,6 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     T_lo = zeros(nrow(grid.info))
 
     for i in 1:nrow(grid.info)
-        ## What should the resolution be
-        #xd[i], xr[i], zd[i], zr[i] = resolutionHD(models[i], 
-        #                                        grid.info[i, "mi_x"], grid.info[i, "ma_x"], grid.info[i, "mi_z"], grid.info[i, "ma_z"], grid.info[i, "hres"],
-        #                                        patch_size; cut_bottom=cut_bottom)
-        ## Where is the optical surface
-        #it0 = argmin(abs.(log10.(models[i].τ) .- τ_surf))
-        ### where is the upper edge (roughly)
-        #itup = argmin(abs.(log10.(models[i].τ) .- τ_up))
-        ### Where can we start with the adiabat
-        #itlo = argmin(abs.(log10.(models[i].τ) .- τ_down))
-
         ## interpolator
         m = TSO.flip(models[i])
         mask = sortperm(m.τ)
@@ -512,22 +501,22 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         tu = max(τ_up, minimum(log10.(m.τ)))
 
         ip_r = MUST.linear_interpolation(
-            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.lnρ[mask], 
             extrapolation_bc=MUST.Flat()
         )
         ip_z = MUST.linear_interpolation(
-            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.z[mask], 
             extrapolation_bc=MUST.Flat()
         )
         ip_E = MUST.linear_interpolation(
-            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.lnEi[mask], 
             extrapolation_bc=MUST.Flat()
         )
         ip_T = MUST.linear_interpolation(
-            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.lnT[mask], 
             extrapolation_bc=MUST.Flat()
         )

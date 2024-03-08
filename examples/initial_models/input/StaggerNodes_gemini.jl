@@ -29,7 +29,7 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 17                 # Points per patch
+    patch_size = 20                 # Points per patch
     τ_up = -5.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 7.0                    # Lower limit of simulation domain
@@ -37,7 +37,7 @@ begin
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -1.0                   # Newton cooling placement (height)
     τ_rho0 = -1.0                   # Density normaliztion height
-    scale_resolution = 0.99         # Down or upsampling of simulation domain
+    scale_resolution = 0.90         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
@@ -75,7 +75,7 @@ begin
     version = "v0.5.1"
 
     # Number of bins in the opacity table (output)
-    Nbins = 8
+    Nbins = 1
 
     # Skip binning procedure (assumes it has already been done)
     skip_binning = true
@@ -95,12 +95,12 @@ begin
         )
 
         # 8 bins
-        quadrants = [ 
+        #=quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
-        ]
+        ]=#
 
         # 4 MURaM bins
         #=quadrants = [ 
@@ -111,8 +111,8 @@ begin
         ]=#
 
         # grey
-        #quadrants = [ 
-        #    TSO.Quadrant((0.0, 100.0), (-100, 100), 1)
-        #]
+        quadrants = [ 
+            TSO.Quadrant((0.0, 100.0), (-100, 100), 1)
+        ]
     end
 end

@@ -52,7 +52,7 @@ begin
 
 	λs = 1000
 	λe = 200000
-	nλ = 150000
+	nλ = 100000
 end
 
 # ╔═╡ b87b7824-bd8d-43f2-ae88-b454d293acaa
@@ -119,7 +119,8 @@ eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10
 				:absdat_file=>"./input_multi3d/TS_absdat.dat",
                 :abund_file=>"./input_multi3d/abund_magg",
 				:ldtemp=>δlnT,
-				:ldrho=>δlnρ
+				:ldrho=>δlnρ,
+				:tmolim=>0
 			),
             kwargs...
 		),
@@ -140,12 +141,12 @@ if compute
 		in_log=true,
 		δlnT=(log(maxT)-log(minT))/nT, 
 		δlnρ=(log(maxρ)-log(minρ))/nρ,
-		slurm=false,
-		nν=20
-		#m3dis_kwargs=Dict(
-		#	:threads=>32,
-		#	:memMB=>90000
-		#)
+		slurm=true,
+		nν=20,
+		m3dis_kwargs=Dict(
+			:threads=>32,
+			:memMB=>90000
+		)
 	)
 end
 
@@ -172,7 +173,7 @@ md"EoS Versions:
 "
 
 # ╔═╡ 934be5d3-a7c5-46f2-870d-8ba7d8c134dc
-eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v1.5"
+eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v1.6"
 
 # ╔═╡ d84c4140-1702-4fa4-8fc5-955a1e9c0d78
 !isdir(eos_folder) && mkdir(eos_folder)
@@ -207,7 +208,9 @@ let
 	
 	plt.close()
 	
-	im = plt.scatter(tt, dd, s=1.0, c=eos.lnEi)
+	im = plt.scatter(tt, dd, s=1.0, c=eos.lnRoss)
+
+	@show minimum(eos.lnNe)
 	plt.colorbar(im)
 
 	gcf()

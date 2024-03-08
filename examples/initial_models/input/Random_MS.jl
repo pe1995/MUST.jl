@@ -26,7 +26,7 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 17                 # Points per patch
+    patch_size = 15                 # Points per patch
     τ_up = -4.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 6.5                    # Lower limit of simulation domain
@@ -67,10 +67,10 @@ begin
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = false
+    skip_binning = true
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = false
+    skip_formation = true
 
     # recompute the rosseland optical depth for the first model in the grid
     recompute_ross = false
