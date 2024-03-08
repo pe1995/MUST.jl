@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.38
+# v0.19.37
 
 using Markdown
 using InteractiveUtils
@@ -219,18 +219,19 @@ end
 
 
 # ╔═╡ 0f2b46ac-9317-4d23-be32-e7d0265f6258
-md"You can modify parameters of the new namelist by giving them specifically here"
+md"You can modify parameters of the new namelist by giving them specifically here.
+For example: Set some new htop_scale at the upper boundary with some initial damping of the velocity field."
 
 # ╔═╡ 3efea52b-cafa-4440-90fe-d6b226847a2d
 begin
-	# For example: 
-	# Set some new htop_scale at the upper boundary with some initial
-	# damping of the velocity field
 	new_namelist_params = Dict(
 		:friction_params=>(
 			:on=>true,
-			:end_time=>20,
+			:end_time=>40,
 			:decay_scale=>5
+		),
+		:boundary_params=>(
+			:htop_scale=>1.0,
 		),
 	)
 end
