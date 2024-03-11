@@ -32,7 +32,7 @@ begin
     patch_size = 17                 # Points per patch
     τ_up = -5.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 7.0                    # Lower limit of simulation domain
+    τ_down = 6.5                    # Lower limit of simulation domain
     τ_ee0 = -1.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -1.0                   # Newton cooling placement (height)
@@ -61,16 +61,17 @@ begin
     # Location of the opacity table
 
     # for MARCS EoS
-    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v1.5"
+    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v1.4"
     extension = "magg_m0_a0"
     eos_path = "combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
     sopa_path = "" # There are no scattering opacities in M3D LTE yet
 
     # opacity table version (output)
-    # v1.5   -> 8 bins (M3D)
-    # v1.5.1 -> Grey (M3D)
-    version = "v1.5"
+    # v1.4.x ===> no molecules (lines + cont, also not in EoS) + no H lines!
+    # v1.4   -> 8 bins (M3D)
+    # v1.4.1 -> Grey (M3D)
+    version = "v1.4"
 
     # Number of bins in the opacity table (output)
     Nbins = 8

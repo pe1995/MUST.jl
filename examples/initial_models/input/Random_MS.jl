@@ -4,13 +4,13 @@ begin
     dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
     # Under what name should the binned opacities be saved
-    name_extension    = "MainSequence/R"
+    name_extension    = "MainSequence/R2"
 
     # PLATO models
-    initial_grid_path = "MainSequence/random_MS.mgrid"
-    initial_cl_path   = "MainSequence/random_MS_avail.mgrid"
-    initial_mod_path  = "MainSequence/random_MS_solar.mgrid"
-    final_grid_path   = "MainSequence/random_MS_280224.mgrid"
+    initial_grid_path = "MainSequence/random_MS_2.mgrid"
+    initial_cl_path   = "MainSequence/random_MS_2_avail.mgrid"
+    initial_mod_path  = "MainSequence/random_MS_2_solar.mgrid"
+    final_grid_path   = "MainSequence/random_MS_2_080324.mgrid"
 
     # clean namelists in dispatch folder (other than new ones)
     clean_namelists = false
@@ -27,18 +27,18 @@ end
 #= Dispatch setup =#
 begin
     patch_size = 15                 # Points per patch
-    τ_up = -4.5                     # Upper limit of simulation domain
+    τ_up = -5.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 6.5                    # Lower limit of simulation domain
     τ_ee0 = -1.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -2.0                   # Newton cooling placement (height)
+    τ_zee0 = -1.0                   # Newton cooling placement (height)
     τ_rho0 = -1.0                   # Density normaliztion height
-    scale_resolution = 0.9          # Down or upsampling of simulation domain
+    scale_resolution = 0.8          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
-        :courant_target=>0.2,
+        :courant_target=>0.3,
         :courant_rt=>0.5,
         :newton_params=>(
             :on=>true,
@@ -67,10 +67,10 @@ begin
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = true
+    skip_binning = false
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = true
+    skip_formation = false
 
     # recompute the rosseland optical depth for the first model in the grid
     recompute_ross = false
