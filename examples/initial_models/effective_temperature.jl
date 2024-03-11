@@ -292,6 +292,7 @@ md"## Compute"
 
 # ╔═╡ f49c2f6c-a884-47ed-aac8-3d119efb15c2
 begin
+	compute
 	m3dpaths = ["data/$(m)_binned" for m in listm3dsnapsResample]
 end
 

@@ -167,9 +167,6 @@ md"### Optical Surface"
 # ╔═╡ b757013d-aee5-41a4-ab0a-7715ba47bd97
 topticalsurfaces = timeevolution(monitoring, "opticalSurfaces")
 
-# ╔═╡ 09b4edcd-d333-42a2-b8e7-1814e85b446a
-
-
 # ╔═╡ 0639ce7d-955d-448f-84a0-353dfd4e93a3
 let 
 	plt.close()
@@ -1161,7 +1158,7 @@ end
 # ╠═2f1edd2a-b56e-11ee-29e7-c353938e7088
 # ╟─7cd7d6f0-8498-44ff-b59c-d298365d6416
 # ╟─78c88a26-1e84-4ba2-a8f2-d4c7f6468dd3
-# ╟─e2e0b39b-9c60-4630-817b-f180c2631a08
+# ╠═e2e0b39b-9c60-4630-817b-f180c2631a08
 # ╟─409ff57f-8d9d-419b-b448-fdf40c0843b4
 # ╟─6754b2c3-d205-4a12-88b3-53fe62c5637f
 # ╟─41f0864e-26ee-46a6-b4ab-c401a4712941
@@ -1195,7 +1192,6 @@ end
 # ╟─76a1714e-a5bb-488f-ad93-b8552e4531fd
 # ╟─f5ccc550-6bf3-4f0f-baf3-d8de3d216737
 # ╟─b757013d-aee5-41a4-ab0a-7715ba47bd97
-# ╠═09b4edcd-d333-42a2-b8e7-1814e85b446a
 # ╟─0639ce7d-955d-448f-84a0-353dfd4e93a3
 # ╟─c24a3b12-c7c0-449b-9a76-6e9c5d475344
 # ╟─3d371088-2322-462b-ab93-7cb49fcdf75f
