@@ -319,9 +319,18 @@ save(w::WatchDog, monitoring) = begin
     close(fid)
 end
 
-reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {S<:WatchDog} = begin
-    w = s(name; folder=folder)
 
+
+
+reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {S<:WatchDog} = begin
+    reload(s(name; folder=folder), snap, mmap=mmap)
+end
+
+reload(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false) where {S<:WatchDog} = begin
+    reload(s(name; folder=folder), mmap=mmap, asDict=asDict)
+end
+
+reload(w::S, snap; mmap=false) where {S<:WatchDog} = begin
     fid = HDF5.h5open(monitoringPath(w, snap), "r")
     fvals = Dict()
 
@@ -338,15 +347,14 @@ reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {
     fvals
 end
 
-reload(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false) where {S<:WatchDog} = begin
-    w = s(name; folder=folder)
+reload(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
     listOfSnaps = availableSnaps(w)
     
     if !asDict
         l  = []
         for snap in listOfSnaps
             try
-                si = reload(s, name, snapshotnumber(snap); folder=folder, mmap=mmap)
+                si = reload(s, snapshotnumber(snap); mmap=mmap)
                 append!(l, [si])
             catch
                 nothing
@@ -358,7 +366,7 @@ reload(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false)
         l = Dict()
         for snap in listOfSnaps
             try
-                l[snap] = reload(s, name, snap; folder=folder, mmap=mmap)
+                l[snap] = reload(s, snap; mmap=mmap)
             catch
                 nothing
             end
@@ -367,4 +375,3 @@ reload(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false)
         l
     end
 end
-
