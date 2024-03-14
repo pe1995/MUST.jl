@@ -43,6 +43,7 @@ begin
 	mean = MUST.mean
 	plt = matplotlib.pyplot
 	matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
+	#matplotlib.style.use("dark_background")
 end;
 
 # ╔═╡ 6754b2c3-d205-4a12-88b3-53fe62c5637f
@@ -166,9 +167,6 @@ md"### Optical Surface"
 
 # ╔═╡ b757013d-aee5-41a4-ab0a-7715ba47bd97
 topticalsurfaces = timeevolution(monitoring, "opticalSurfaces")
-
-# ╔═╡ 09b4edcd-d333-42a2-b8e7-1814e85b446a
-
 
 # ╔═╡ 0639ce7d-955d-448f-84a0-353dfd4e93a3
 let 
@@ -373,7 +371,7 @@ let
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
 	i = ax[0].imshow(
-		tuppersurfaces["lnDplane"][itimeSurface],
+		exp.(tuppersurfaces["lnDplane"][itimeSurface]),
 		origin="lower",
 		extent=extent,
 		cmap="coolwarm"
@@ -392,7 +390,7 @@ let
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
 	i = ax[1].imshow(
-		tuppersurfaces["lnDplane"][itimeSurface2],
+		exp.(tuppersurfaces["lnDplane"][itimeSurface2]),
 		origin="lower",
 		extent=extent,
 		cmap="coolwarm"
@@ -1195,7 +1193,6 @@ end
 # ╟─76a1714e-a5bb-488f-ad93-b8552e4531fd
 # ╟─f5ccc550-6bf3-4f0f-baf3-d8de3d216737
 # ╟─b757013d-aee5-41a4-ab0a-7715ba47bd97
-# ╠═09b4edcd-d333-42a2-b8e7-1814e85b446a
 # ╟─0639ce7d-955d-448f-84a0-353dfd4e93a3
 # ╟─c24a3b12-c7c0-449b-9a76-6e9c5d475344
 # ╟─3d371088-2322-462b-ab93-7cb49fcdf75f

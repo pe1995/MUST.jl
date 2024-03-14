@@ -29,7 +29,9 @@ MUST.@import_dispatch "../../../dispatch2"
 linelists = String[
 	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/vald_2490-25540.list",
 	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/1000-2490-vald.list",
-	"/home/eitner/shared/StAt/LINE-LISTS/25500-200000_cut-4/atom_25500-200000.list"
+	"/home/eitner/shared/StAt/LINE-LISTS/25500-200000_cut-4/atom_25500-200000.list",
+	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
+	#"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/12CH_multi.list"
 ]
 
 # ╔═╡ 61b5121d-670c-4baf-b021-c1ed259d8b4c
@@ -44,7 +46,7 @@ modelatmosfolder = "input_multi3d/test_opac_table/"
 # ╔═╡ e9e182bd-e296-43ce-a309-2c89df055cbc
 begin
 	minT = 1000.
-	maxT = 5.5e5
+	maxT = 50000
 	minρ = 1e-15
 	maxρ = 1e-2
 	nT   = 150
@@ -87,7 +89,7 @@ model = eosTableInput(
 md"# Run M3D"
 
 # ╔═╡ 18f2d770-4803-4ee7-860b-aa87db9245f7
-compute = true
+compute = false
 
 # ╔═╡ 15a2ab2c-71e1-4778-8d22-759ad16a0bbe
 eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10,
@@ -120,7 +122,7 @@ eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10
                 :abund_file=>"./input_multi3d/abund_magg",
 				:ldtemp=>δlnT,
 				:ldrho=>δlnρ,
-				:tmolim=>0
+				:tmolim=>10000.0
 			),
             kwargs...
 		),
@@ -142,11 +144,11 @@ if compute
 		δlnT=(log(maxT)-log(minT))/nT, 
 		δlnρ=(log(maxρ)-log(minρ))/nρ,
 		slurm=false,
-		nν=20
-		#m3dis_kwargs=Dict(
-		#	:threads=>32,
-		#	:memMB=>90000
-		#)
+		nν=20,
+		#=m3dis_kwargs=Dict(
+			:threads=>32,
+			:memMB=>90000
+		)=#
 	)
 end
 
@@ -168,12 +170,14 @@ md"EoS Versions:
 - v1.1: + H lines (possibly issues with Lalpha)
 - v1.2: same as v1.1, but after Richard fixed H lines
 - v1.3: same as v1.0, but with smaller range
-- v1.4: small range without molecules in EoS
-- v1.5: small range without molecules in EoS + Hslines
+- v1.4: small range without molecules in EoS + Hlines
+- v1.5: small range without molecules in EoS 
+...
+- v2.0: w/o scattering in absorptio + sep. table, no molecular lines yet
 "
 
 # ╔═╡ 934be5d3-a7c5-46f2-870d-8ba7d8c134dc
-eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v1.4"
+eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v2.0"
 
 # ╔═╡ d84c4140-1702-4fa4-8fc5-955a1e9c0d78
 !isdir(eos_folder) && mkdir(eos_folder)
@@ -185,7 +189,7 @@ eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_t
 run = MUST.M3DISRun("data/$(model)")
 
 # ╔═╡ e44b4fab-f33f-4d93-afea-c80b4a1849e1
-eos, opa = TSO.collect_opacity(
+eos, opa, scat = TSO.collect_opacity(
 	run, 
 	compute_ross=true
 )
@@ -194,6 +198,9 @@ eos, opa = TSO.collect_opacity(
 begin
 	save(eos, joinpath(eos_folder, "combined_eos_$(extension).hdf5"))
 	save(opa, joinpath(eos_folder, "combined_opacities_$(extension).hdf5"))
+	if !isnothing(scat)
+		save(scat, joinpath(eos_folder, "combined_sopacities_$(extension).hdf5"))
+	end
 end
 
 # ╔═╡ 8c4c378c-0d0a-4d01-bcff-0b8201fdd402
@@ -210,7 +217,6 @@ let
 	
 	im = plt.scatter(tt, dd, s=1.0, c=eos.lnRoss)
 
-	@show minimum(eos.lnNe)
 	plt.colorbar(im)
 
 	gcf()

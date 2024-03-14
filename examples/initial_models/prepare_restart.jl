@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.19.38
 
 using Markdown
 using InteractiveUtils
@@ -229,9 +229,6 @@ begin
 			:on=>true,
 			:end_time=>40,
 			:decay_scale=>5
-		),
-		:boundary_params=>(
-			:htop_scale=>1.0,
 		),
 	)
 end

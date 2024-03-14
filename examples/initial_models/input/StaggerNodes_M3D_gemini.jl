@@ -37,7 +37,7 @@ begin
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -1.0                   # Newton cooling placement (height)
     τ_rho0 = -1.0                   # Density normaliztion height
-    scale_resolution = 0.9          # Down or upsampling of simulation domain
+    scale_resolution = 0.75         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
@@ -61,17 +61,18 @@ begin
     # Location of the opacity table
 
     # for MARCS EoS
-    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v1.4"
+    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v2.0"
     extension = "magg_m0_a0"
     eos_path = "combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
-    sopa_path = "" # There are no scattering opacities in M3D LTE yet
+    sopa_path = "combined_sopacities_"*extension*".hdf5" 
 
     # opacity table version (output)
     # v1.4.x ===> no molecules (lines + cont, also not in EoS) + no H lines!
     # v1.4   -> 8 bins (M3D)
     # v1.4.1 -> Grey (M3D)
-    version = "v1.4"
+    # v2.0.x ===> no molecules (lines), scattering independent, rest similar to MARCS
+    version = "v2.0"
 
     # Number of bins in the opacity table (output)
     Nbins = 8
