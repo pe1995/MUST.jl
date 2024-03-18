@@ -46,11 +46,11 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
                 # give the snapshot some time to be written (optional)
                 sleep(delay)
 
-                success = if true
+                success = try
                     @info "Analysing snapshot $(snapf)..."
                     analyse(w, snapf, save_box=save_box)
                     true
-                else
+                catch
                     @info "...snapshot $(snapf) failed."
                     false
                 end
