@@ -12,6 +12,7 @@ begin
 	using TSO
 	using PythonPlot
 	plt = matplotlib.pyplot
+	
 end
 
 # ╔═╡ 789f821a-be1c-4fa3-8b75-b888f9eeed1f
@@ -24,13 +25,13 @@ scat1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/stor
 opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v2.0/combined_opacities_magg_m0_a0.hdf5", mmap=true)
 
 # ╔═╡ bdf0a7ba-d30d-40f2-92f4-b9dd791a9ba9
-eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.9/combined_eos_magg_m0_a0.hdf5")
+eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v2.0.1/combined_eos_magg_m0_a0.hdf5")
 
 # ╔═╡ 7cd8df75-c5e5-4ce3-b3af-cb54a7ec8cce
-opa2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.9/combined_opacities_magg_m0_a0.hdf5", mmap=true)
+opa2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v2.0.1/combined_opacities_magg_m0_a0.hdf5", mmap=true)
 
 # ╔═╡ 91c07140-e22f-4522-b2c2-8e2362946ddc
-scat2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.9/combined_Sopacities_magg_m0_a0.hdf5", mmap=true)
+scat2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v2.0.1/combined_sopacities_magg_m0_a0.hdf5", mmap=true)
 
 # ╔═╡ dc956c31-3c2c-4ee9-8b21-11a3411cf18b
 let

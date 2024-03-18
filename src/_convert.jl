@@ -19,7 +19,12 @@ function snapshotBox(
     add_selection=false, 
     to_multi=false,
     is_box=true, 
-    use_mmap=false
+    use_mmap=false,
+    convert_units=Dict(
+        :dt_rt=>:t,
+        :qr=>:qr,
+        :pg=>:p
+    )
     )
     folder = if !isdir(folder)
         #@warn "Given folder does not exist. Trying to add dispatch location"
@@ -69,33 +74,17 @@ function snapshotBox(
         units = StandardUnits(snap)
 
         # Convert its content to pure Julia
-        s, add_selection = if add_selection
-            try
-                !is_box ? 
-                    (Space(snap, :d, :ee, :ux, :uy, :uz, :e, :qr, :tt, :pg), true) :
-                    (Box(snap, :d, :ee, :ux, :uy, :uz, :e, :qr, :tt, :pg, use_mmap=use_mmap), true)
-            catch
-                !is_box ?
-                    (Space(snap, :d, :ee, :ux, :uy, :uz, :e), false) :
-                    (Box(snap, :d, :ee, :ux, :uy, :uz, :e, use_mmap=use_mmap), false)
-            end
+        s = if !is_box
+            Space(snap, :d, :ee, :ux, :uy, :uz, :e)
         else
-            !is_box ?
-                (Space(snap, :d, :ee, :ux, :uy, :uz, :e), false) :
-                (Box(snap, :d, :ee, :ux, :uy, :uz, :e, use_mmap=use_mmap), false)
+            Box(snap, :d, :ee, :ux, :uy, :uz, :e, use_mmap=use_mmap)
         end
 
         # Apply the conversion
-        if add_selection
-            convert!(s, units; d=:d, ee=:ee, e=:e, 
-                                qr=:qr, pg=:p,
-                                ux=:u, uy=:u, uz=:u,
-                                x=:l, y=:l, z=:l, time=:t)
-        else
-            convert!(s, units; d=:d, ee=:ee, e=:e, 
-                                ux=:u, uy=:u, uz=:u,
-                                x=:l, y=:l, z=:l, time=:t)
-        end
+        convert!(s, units; d=:d, ee=:ee, e=:e, 
+                            ux=:u, uy=:u, uz=:u,
+                            x=:l, y=:l, z=:l, time=:t, convert_units...)
+        
 
         # Add additional columns already in CGS after converting
         add_from_EOS!(s, eos_sq, :T)

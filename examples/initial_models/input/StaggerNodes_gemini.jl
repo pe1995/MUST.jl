@@ -8,9 +8,9 @@ begin
 
     # input and output names of the grid
     #initial_grid_path = "stagger_grid_full_o.mgrid"
-    #initial_grid_path = "stagger_grid_sun.mgrid"
+    initial_grid_path = "stagger_grid_sun.mgrid"
     #initial_grid_path = "stagger_grid_full_subgiant.mgrid"
-    initial_grid_path = "stagger_grid_full_solar.mgrid"
+    #initial_grid_path = "stagger_grid_full_solar.mgrid"
 
     initial_cl_path   = "stagger_grid_avail.mgrid"
     initial_mod_path  = "stagger_grid_solar.mgrid"
@@ -29,27 +29,33 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 17                 # Points per patch
-    τ_up = -5.5                     # Upper limit of simulation domain
+    patch_size = 14                 # Points per patch
+    τ_up = -4.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 6.5                    # Lower limit of simulation domain
+    τ_down = 5.5                    # Lower limit of simulation domain
     τ_ee0 = -1.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -1.0                   # Newton cooling placement (height)
     τ_rho0 = -1.0                   # Density normaliztion height
-    scale_resolution = 0.90         # Down or upsampling of simulation domain
+    scale_resolution = 0.65         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
-        :courant_target=>0.3,
-        :courant_rt=>0.4,
+        :courant_target=>1.0,
+        :courant_rt=>1.0,
         :newton_params=>(
             :on=>true,
             :delay_rt=>true
         ),
+        :sc_rt_params=>(
+            :rt_freq=>1.5,
+        ),
         :io_params=>(
             :out_time=>1.0,
-        ) 
+        ),
+        :aux_params=>(
+            :select=>["dt_rt"]
+        )
     )
 end
 
@@ -70,10 +76,10 @@ begin
     # v0.5   -> 8 bins (MARCS)
     # v0.5.1 -> Grey (MARCS)
     # v0.5.2 -> 4 MURaM bins (MARCS)
-    version = "v0.5"
+    version = "v0.5.2"
 
     # Number of bins in the opacity table (output)
-    Nbins = 8
+    Nbins = 4
 
     # Skip binning procedure (assumes it has already been done)
     skip_binning = true

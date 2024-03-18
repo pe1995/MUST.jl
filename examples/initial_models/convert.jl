@@ -38,7 +38,7 @@ snapshots = sort(MUST.list_of_snapshots(content_of_folder))
 
 snapshots = if length(ARGS) > 1
     istart = length(snapshots) - 1 - parse(Int, ARGS[2])
-     snapshots[istart:end-2]
+    snapshots[istart:end-2]
 else
     snapshots[1:end-2]
 end

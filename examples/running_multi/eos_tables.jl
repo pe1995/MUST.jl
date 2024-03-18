@@ -46,8 +46,8 @@ modelatmosfolder = "input_multi3d/test_opac_table/"
 # ╔═╡ e9e182bd-e296-43ce-a309-2c89df055cbc
 begin
 	minT = 1000.
-	maxT = 50000
-	minρ = 1e-15
+	maxT = 50000.
+	minρ = 1e-20
 	maxρ = 1e-2
 	nT   = 150
 	nρ   = 150
@@ -89,7 +89,7 @@ model = eosTableInput(
 md"# Run M3D"
 
 # ╔═╡ 18f2d770-4803-4ee7-860b-aa87db9245f7
-compute = false
+compute = true
 
 # ╔═╡ 15a2ab2c-71e1-4778-8d22-759ad16a0bbe
 eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10,
@@ -161,9 +161,6 @@ md"Decide where to save the table"
 # ╔═╡ 270b37a1-d0c9-48b1-bd05-891a8c83cf72
 extension = "magg_m0_a0"
 
-# ╔═╡ 97df8e54-bb39-46b9-811c-f61e6a7287b3
-
-
 # ╔═╡ e3f7e4bf-17c2-4c7d-b086-8ef846fdff32
 md"EoS Versions:
 - v1.0: First test, no H lines, no Molecules
@@ -173,17 +170,18 @@ md"EoS Versions:
 - v1.4: small range without molecules in EoS + Hlines
 - v1.5: small range without molecules in EoS 
 ...
-- v2.0: w/o scattering in absorptio + sep. table, no molecular lines yet
+-------------------------------------------------------
+- v2.X: w/o scattering in absorptio + sep. table, no molecular lines yet
+- v2.0:
+	- v2.0.1: Parallel rosseland_opacity 
+- v2.1: low density table
 "
 
 # ╔═╡ 934be5d3-a7c5-46f2-870d-8ba7d8c134dc
-eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v2.0"
+eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v2.1"
 
 # ╔═╡ d84c4140-1702-4fa4-8fc5-955a1e9c0d78
 !isdir(eos_folder) && mkdir(eos_folder)
-
-# ╔═╡ 0d78efc6-77de-4810-b98a-82c7bdc69c6c
-
 
 # ╔═╡ 4611660d-f561-457a-80d4-fd37630e5c3b
 run = MUST.M3DISRun("data/$(model)")

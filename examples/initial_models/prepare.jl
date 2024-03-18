@@ -53,6 +53,17 @@ end
 @everywhere MUST.@import_dispatch dispatch_location
 @everywhere prepare4dispatch = MUST.ingredients("prepare4dispatch.jl")
 
+
+#===================== Step (-1): Add timings ================================#
+begin
+    if !("SLURM_NTASKS" in keys(ENV))
+        @info "Activate timing..."
+        TSO.activate_timing!.(TSO.timers)
+        TSO.start_timing!()
+    end
+end
+
+
 #=================== Step (A): The Initial Grid ==============================#
 begin
     grid = MUST.StaggerGrid(initial_grid_path)
@@ -74,7 +85,7 @@ begin
     end
 
     # within the EoS root folder, check if the desired EoS and opacities are available
-    iwarn = true
+    iwarn = false
     for i in 1:nrow(grid.info)
         if !isfile(grid.info[i, "eos_root"], eos_path)
             error("For grid entry $(i) there is no EoS at the given `eos_path` at the given `eos_root`!")
@@ -82,10 +93,10 @@ begin
         if !isfile(grid.info[i, "eos_root"], opa_path)
             error("For grid entry $(i) there is no Opacitiy table at the given `opa_path` at the given `eos_root`!")
         end
-        if iwarn
+        if !iwarn
             if !isfile(grid.info[i, "eos_root"], sopa_path)
                 @warn "For grid entry $(i) there is no scattering at the given `sopa_path` at the given `eos_root`!"
-                global iwarn = false
+                global iwarn = true
                 #global sopa_path = nothing
             end
         end
@@ -274,3 +285,8 @@ begin
 end
 
 #=============================================================================#
+
+
+begin
+    TSO.end_timing!()
+end

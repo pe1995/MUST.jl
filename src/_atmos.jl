@@ -479,9 +479,9 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 	# first we loop through and get the sizes of all patches
 	patch_data = []
 	@inbounds for (i, patch) in enumerate(snap.patches)
-		x = pyconvert.(Float32, patch.xi)
-        y = pyconvert.(Float32, patch.yi) 
-        z = pyconvert.(Float32, patch.zi)
+		x = pyconvert(Array{Float32}, patch.xi)
+        y = pyconvert(Array{Float32}, patch.yi) 
+        z = pyconvert(Array{Float32}, patch.zi)
 
         fname = pyconvert(Any, patch.filename)
 		shp = Tuple(pyconvert.(Any, patch.ncell))
@@ -489,7 +489,8 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 		li = pyconvert(Vector{Int}, patch.li)
 		ui = pyconvert(Vector{Int}, patch.ui)
         idxd = patch.idx.__dict__
-
+        aux_vars = patch.aux.vars
+       
 		meta = Dict(
 			:x=>x,
 			:y=>y,
@@ -499,18 +500,20 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
             :off=>off,
             :li=>li,
             :ui=>ui,
-            :idxd=>idxd
+            :idxd=>idxd,
+            :aux_vars=>aux_vars
 		)
 		append!(patch_data, [meta])
 	end
 
 	x, y, z, patch_range = _build_cube(patch_data)
-	
+    q_and_aux = [quantities..., Symbol.(pyconvert(Vector{String}, first(patch_data)[:aux_vars].keys()))...]
+
 	# now we create the data arrays
 	data = if !use_mmap
 		Dict{Symbol,Array{Float32,3}}(
 			q=>Array{Float32, 3}(undef, length(x), length(y), length(z)) 
-			for q in quantities
+			for q in q_and_aux
 		)
 	else
 		pname = tempname(pwd())
@@ -518,9 +521,9 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 		d = mmap(io, Array{Float32, 4}, (length(x), length(y), length(z), length(quantities)))
 		Dict{Symbol,Array{Float32,3}}(
 			q=>@view d[:, :, :, i] 
-			for (i, q) in enumerate(quantities)
+			for (i, q) in enumerate(quantq_and_auxities)
 		)
-	end
+	end    
 
 	# and we loop through the patches, read the mmaps, and fill them in the data arrays
 	r = zeros(Int, 3, 2)
@@ -538,6 +541,16 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 				density=density
 			)
 		end
+
+        # add aux variables
+        av = pyconvert(Vector{String}, pd[:aux_vars].keys())
+        li = pd[:li]
+        ui = pd[:ui]
+        for (j, aux) in enumerate(av)
+            data[Symbol(aux)][r[1,1]:r[1,2], r[2,1]:r[2,2], r[3,1]:r[3,2]] .= pyconvert(
+                Array{Float32}, pd[:aux_vars][aux]["v"]
+            )[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+        end
 	end
 
 	time = pyconvert(Any, snap.nml_list["snapshot_nml"]["time"])
@@ -628,7 +641,11 @@ function convert!(s::AbstractSpace, u::AtmosUnits; params...)
         if s_para == :time
             s.parameter.time = s.parameter.time * getfield(u, u_para)
         else
-            s[s_para] .= s[s_para] .* getfield(u, u_para)
+            if !(s_para in keys(s.data)) & !(s_para in [:x, :y, :z])
+                continue
+            else
+                s[s_para] .= s[s_para] .* getfield(u, u_para)
+            end
         end
     end
     nothing

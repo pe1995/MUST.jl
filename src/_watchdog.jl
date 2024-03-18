@@ -46,11 +46,11 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
                 # give the snapshot some time to be written (optional)
                 sleep(delay)
 
-                success = try
+                success = if true
                     @info "Analysing snapshot $(snapf)..."
                     analyse(w, snapf, save_box=save_box)
                     true
-                catch
+                else
                     @info "...snapshot $(snapf) failed."
                     false
                 end
@@ -99,7 +99,6 @@ function analyse(w::WatchDog, snapshot; save_box=false)
         w.folder, 
         optical_depth_scale=true, 
         save_snapshot=save_box, 
-        add_selection=false, 
         to_multi=false,
         is_box=true, 
         use_mmap=false
@@ -154,6 +153,14 @@ _geostatistic(f, b) = begin
 
     results
 end
+
+# quantiles
+geometrical15thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.15), b)
+geometrical30thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.30), b)
+geometrical45thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.45), b)
+geometrical60thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.60), b)
+geometrical75thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.75), b)
+geometrical90thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.90), b)
 
 geometricalAverages(w::WatchDog, b, bτ) = _geostatistic(mean, b)
 geometricalMinimum(w::WatchDog, b, bτ) = _geostatistic(minimum, b)
@@ -263,6 +270,12 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     geometricalMinimum = geometricalMinimum,
     geometricalMaximum = geometricalMaximum,
     upperBoundarySurface=upperBoundarySurface,
+    geometrical15thQuantile=geometrical15thQuantile,
+    geometrical30thQuantile=geometrical30thQuantile,
+    geometrical45thQuantile=geometrical45thQuantile,
+    geometrical60thQuantile=geometrical60thQuantile,
+    geometrical75thQuantile=geometrical75thQuantile,
+    geometrical90thQuantile=geometrical90thQuantile,
     additional_functions...
 )
 
@@ -354,7 +367,7 @@ reload(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
         l  = []
         for snap in listOfSnaps
             try
-                si = reload(s, snapshotnumber(snap); mmap=mmap)
+                si = reload(w, snapshotnumber(snap); mmap=mmap)
                 append!(l, [si])
             catch
                 nothing
@@ -366,7 +379,7 @@ reload(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
         l = Dict()
         for snap in listOfSnaps
             try
-                l[snap] = reload(s, snap; mmap=mmap)
+                l[snap] = reload(w, snapshotnumber(snap); mmap=mmap)
             catch
                 nothing
             end

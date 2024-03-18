@@ -29,27 +29,33 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 17                 # Points per patch
-    τ_up = -5.5                     # Upper limit of simulation domain
+    patch_size = 14                 # Points per patch
+    τ_up = -4.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 6.5                    # Lower limit of simulation domain
+    τ_down = 5.5                    # Lower limit of simulation domain
     τ_ee0 = -1.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -1.0                   # Newton cooling placement (height)
     τ_rho0 = -1.0                   # Density normaliztion height
-    scale_resolution = 0.75         # Down or upsampling of simulation domain
+    scale_resolution = 0.65         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
-        :courant_target=>0.3,
-        :courant_rt=>0.4,
+        :courant_target=>1.0,
+        :courant_rt=>1.0,
         :newton_params=>(
             :on=>true,
             :delay_rt=>true
         ),
+        :sc_rt_params=>(
+            :rt_freq=>1.5,
+        ),
         :io_params=>(
             :out_time=>1.0,
-        ) 
+        ),
+        :aux_params=>(
+            :select=>["dt_rt"]
+        )
     )
 end
 
@@ -61,7 +67,7 @@ begin
     # Location of the opacity table
 
     # for MARCS EoS
-    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v2.0"
+    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v2.1"
     extension = "magg_m0_a0"
     eos_path = "combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
@@ -69,19 +75,20 @@ begin
 
     # opacity table version (output)
     # v1.4.x ===> no molecules (lines + cont, also not in EoS) + no H lines!
-    # v1.4   -> 8 bins (M3D)
-    # v1.4.1 -> Grey (M3D)
+    #   v1.4   -> 8 bins (M3D)
+    #   v1.4.1 -> Grey (M3D)
     # v2.0.x ===> no molecules (lines), scattering independent, rest similar to MARCS
-    version = "v2.0"
+    #   v2.1   -> bit more extended EoS (lower densities), multithreaded binning from now on!
+    version = "v2.1"
 
     # Number of bins in the opacity table (output)
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = false
+    skip_binning = true
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = false
+    skip_formation = true
 
     # remove formation opacities after binning (save disk space)
     clean = false

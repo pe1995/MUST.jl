@@ -213,7 +213,7 @@ md"## Picking EoS"
 md"Enter the folder where EoS tables can be found:"
 
 # ╔═╡ 926aa121-ba10-4410-a91c-f36fc79a63ed
-@bind eosfolder TextField(default="input_data/grd/")
+@bind eosfolder confirm(TextField(default="input_data/grd/"))
 
 # ╔═╡ 91ddaf2d-abd6-4e2d-92eb-cfa7d0ba79bc
 function eos_input(simulation_names::Vector)
@@ -405,7 +405,7 @@ plot_given && let
 		for (j, snap) in enumerate(snapshots[name])
 			axA.plot(
 				profile(mean, snap, :z, :T)..., 
-				lw=2., 
+				lw=2.5, 
 				color=colors[name][j], 
 				label=labels[name][j]
 			)
@@ -462,7 +462,7 @@ plot_given && let
 		for (j, snap) in enumerate(snapshots[name])
 			axA.plot(
 				profile(mean, snap, :z, :log10d)..., 
-				lw=2., 
+				lw=2.5, 
 				color=colors[name][j], 
 				label=labels[name][j]
 			)
@@ -506,7 +506,7 @@ plot_given && let
 		
 			axA.plot(
 				d, T,
-				lw=2., 
+				lw=2.5, 
 				color=colors[name][j], 
 				label=labels[name][j]
 			)
@@ -550,7 +550,7 @@ plot_given && let
 		
 			axA.plot(
 				z, u,
-				lw=2., 
+				lw=2.5, 
 				color=colors[name][j], 
 				label=labels[name][j]
 			)
@@ -587,7 +587,7 @@ plot_given && let
 		for (j, snap) in enumerate(snapshots_τ[name])
 			axA.plot(
 				profile(mean, snap, :log10τ_ross, :T)..., 
-				lw=2., 
+				lw=2.5, 
 				color=colors[name][j], 
 				label=labels[name][j]
 			)
@@ -626,7 +626,8 @@ plot_given && let
 			axA.plot(
 				profile(rms5, snap, :log10τ_ross, :uz)..., 
 				color=colors[name][j], 
-				label=labels[name][j]
+				label=labels[name][j],
+				lw=2.5
 			)
 		end
 	end
@@ -706,6 +707,128 @@ if (nmodels > 0) && plot_given
 			append!(axDs, [axD])
 		end
 	end
+	
+	gcf()
+end
+
+# ╔═╡ 11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
+
+
+# ╔═╡ 6d360e73-736e-41e3-a9f3-86e7d53db58a
+md"# Time steps
+Optionally, it is possible to save the radiative timestep in addition. If it is available, we can plot e.g. where the timestep is smallest. We can for example cut through the atmosphere at a given x value or compute the plane mean."
+
+# ╔═╡ dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
+zextent(snap) = begin
+	y = MUST.axis(snap, :y) ./1e8
+	z = MUST.axis(snap, :z) ./1e8
+
+	[minimum(y), maximum(y), minimum(z), maximum(z)]
+end
+
+# ╔═╡ 48d19c84-a203-4b58-aeae-52d99dc49387
+begin
+	dt_xslice = Dict(name=>[] for name in keys(snapshots))
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots[name])
+			if :dt_rt in keys(snap.data)
+				dt = snap[:dt_rt]
+				ix = floor(Int, size(dt, 1) /2)
+				append!(dt_xslice[name], [dt[ix, :, :]])
+			end
+		end
+	end
+end
+
+# ╔═╡ 122b9c94-3e14-4dab-8432-d6ef174e6085
+if (nmodels > 0) && plot_given && any([length(dt_xslice[d]) for d in keys(dt_xslice)] .> 0)
+	let		
+		vmin = minimum(
+			[minimum(u) for name in keys(dt_xslice) for u in dt_xslice[name]]
+		) 
+		vmax = maximum(
+			[maximum(u) for name in keys(dt_xslice) for u in dt_xslice[name]]
+		)
+	
+		figs = []
+		axs = []
+		
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				if :dt_rt in keys(snap.data)
+					plt.close()			
+					f, ax = plt.subplots(1, 1, figsize=(5, 6))
+				
+					i = ax.imshow(
+						dt_xslice[name][j]',
+						origin="lower",
+						#vmin=vmin, vmax=vmax,
+						extent=zextent(snap),
+						cmap="coolwarm",
+						aspect="auto"
+					)
+	
+					cb = f.colorbar(i, ax=ax, fraction=0.046, pad=0.04)
+					cb.set_label(L"\rm dt\ [s]")
+		
+					ax.set_xlabel("y [cm]")
+					ax.set_ylabel("z [cm]")
+					
+					append!(figs, [f])
+					append!(axs, [ax])
+				end
+			end
+		end
+		gcf()
+	end
+end
+
+# ╔═╡ febe3153-2478-443b-80d8-04a15eeb8b51
+plot_given && any([length(dt_xslice[d]) for d in keys(dt_xslice)] .> 0) && let
+	plt.close()
+
+	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
+
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots[name])
+			!(:dt_rt in keys(snap.data)) && continue
+			axA.plot(
+				profile(mean, snap, :z, :dt_rt)..., 
+				lw=2.5, 
+				color=colors[name][j], 
+				label=labels[name][j]
+			)
+		end
+	end
+	
+	axA.legend()
+	axA.set_ylabel("timestep [s]")
+	axA.set_xlabel("z [cm]")
+
+	gcf()
+end
+
+# ╔═╡ 5e57c740-4090-4e39-9104-04e6b025d855
+plot_given && any([length(dt_xslice[d]) for d in keys(dt_xslice)] .> 0) && let
+	plt.close()
+
+	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
+
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots_τ[name])
+			!(:dt_rt in keys(snap.data)) && continue
+			axA.plot(
+				profile(mean, snap, :log10τ_ross, :dt_rt)..., 
+				lw=2.5, 
+				color=colors[name][j], 
+				label=labels[name][j]
+			)
+		end
+	end
+
+	axA.legend()
+	axA.set_ylabel("timestep [s]")
+	axA.set_xlabel(L"\rm \log \tau_{ross}")
 	
 	gcf()
 end
@@ -998,6 +1121,13 @@ end
 # ╟─12446032-6cc4-4eac-94cc-6ccb8de46c5d
 # ╟─488b2eec-daf8-4920-9140-7d67c6ca3de1
 # ╟─1ffcf11f-58dd-41dd-921f-995d0a84f0d0
+# ╟─11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
+# ╟─6d360e73-736e-41e3-a9f3-86e7d53db58a
+# ╟─dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
+# ╠═48d19c84-a203-4b58-aeae-52d99dc49387
+# ╟─122b9c94-3e14-4dab-8432-d6ef174e6085
+# ╟─febe3153-2478-443b-80d8-04a15eeb8b51
+# ╟─5e57c740-4090-4e39-9104-04e6b025d855
 # ╟─c46c5b32-a1cd-43d3-b087-7f6af7adb88d
 # ╟─440097e4-f518-46fe-aa1f-3d446e4cbd25
 # ╟─296cbac2-97da-401c-a038-ff2fc8770dd3
