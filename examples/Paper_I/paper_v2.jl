@@ -142,6 +142,9 @@ begin
 		folder=folder_stagger)	
 end
 
+# ╔═╡ b8bd4aa7-8e9e-40de-8188-0ddb8b233b5e
+
+
 # ╔═╡ f6edb03c-5177-4777-b3f2-fc69513a7249
 md"### Muram"
 
@@ -161,6 +164,9 @@ keys(muram.data)
 # ╔═╡ 0a2286e2-29e4-454b-b3a7-6a33a6828760
 #MUST.save(muram_τ, folder=folder_muram, name="box_MURaM_cube_small.221000_HDSun_t")
 
+# ╔═╡ 2e44bee0-da4c-47cf-8c7e-e8c46e696bd2
+
+
 # ╔═╡ 9465b4d5-08e2-453a-b758-6d4d6744c20b
 md"### MARCS"
 
@@ -169,6 +175,9 @@ marcs_model = readdlm(
 	"/u/peitner/DISPATCH/examples/from_stagger/marcs_sun.txt", 
 	skipstart=1
 )
+
+# ╔═╡ a22bef7c-6409-4eb5-a17e-66ea1a42ab73
+
 
 # ╔═╡ 0016626d-bb90-47eb-83f8-ec1f9d905a03
 md"We can also read other marcs models. The one above I modified to make it better readable as csv, but I now added a reader for the true MARCS models."
@@ -180,9 +189,36 @@ marcs_models = MUST.MARCSModel.(
 	"p5500_g+4.5_m0.0_t00_st_z+0.00_a+0.00_c+0.00_n+0.00_o+0.00_r+0.00_s+0.00.mod",
 	"p6000_g+4.5_m0.0_t00_st_z+0.00_a+0.00_c+0.00_n+0.00_o+0.00_r+0.00_s+0.00.mod",
 	"p6500_g+4.5_m0.0_t00_st_z+0.00_a+0.00_c+0.00_n+0.00_o+0.00_r+0.00_s+0.00.mod",
-	"p4500_g+4.0_m0.0_t00_st_z+0.00_a+0.00_c+0.00_n+0.00_o+0.00_r+0.00_s+0.00.mod"
+	"p4500_g+4.0_m0.0_t00_st_z+0.00_a+0.00_c+0.00_n+0.00_o+0.00_r+0.00_s+0.00.mod",
+	"p5777_g+4.4_m0.0_t01_st_z+0.00_a+0.00_c+0.00_n+0.00_o+0.00_r+0.00_s+0.00.mod"
 	])
 )
+
+# ╔═╡ 4eecac61-40f9-45d4-b789-d017aef6f149
+
+
+# ╔═╡ 2270321b-6581-4d45-a00f-0e728022bc56
+md"MARCS models with different alpha values"
+
+# ╔═╡ 5b42ec94-a9fc-4ada-aa7e-5fb6bac656b1
+begin
+	marcs_alpha = readdlm.(
+		[
+			"marcs_alpha/soleil-alpha0.5.txt", 
+			"marcs_alpha/soleil-alpha1.5-nopturb.txt", 
+			"marcs_alpha/soleil-alpha1.5.txt"
+		],
+		skipstart=1
+	)
+	marcs_alpha = Dict(
+		"alpha0.5"=>marcs_alpha[1],
+		"alpha1.5n"=>marcs_alpha[2],
+		"alpha1.5"=>marcs_alpha[3]
+	)
+end
+
+# ╔═╡ 0f310354-ca88-468f-a760-8194322855f3
+
 
 # ╔═╡ c9a52157-81c4-4b8c-8dcd-b728a0890b00
 md"### Co5bold"
@@ -514,7 +550,7 @@ begin
 		color="cornflowerblue",
 		ls="-",
 		label=L"\rm M3DIS\ (D)",
-		lw=3
+		lw=4
 	)
 	axA[0].plot(
 		profile(mean, stagger_τ, :log10τ_ross, :T)...,
@@ -529,7 +565,7 @@ begin
 		label=L"\rm Co5bold"
 	)
 	axA[0].plot(
-		marcs_model[:, 2], marcs_model[:, 5],
+		marcs_models[5].structure["lgTauR"],marcs_models[5].structure["T"],
 		color="k",
 		ls=":",
 		label=L"\rm MARCS"
@@ -542,7 +578,7 @@ begin
 		color="cornflowerblue",
 		ls="-",
 		label=L"\rm M3DIS\ (D)",
-		lw=3
+		lw=4
 	)
 	axA[1].plot(
 		profile(mean, stagger_τ, :log10τ_ross, :log10d)...,
@@ -557,7 +593,7 @@ begin
 		label=L"\rm Co5bold"
 	)
 	axA[1].plot(
-		marcs_model[:, 2], log10.(marcs_model[:, 11]),
+		marcs_models[5].structure["lgTauR"], log10.(marcs_models[5].structure["Density"]),
 		color="k",
 		ls=":",
 		label=L"\rm MARCS"
@@ -570,7 +606,7 @@ begin
 		color="cornflowerblue",
 		ls="-",
 		label=labels[modelA],
-		lw=3
+		lw=4
 	)
 	axA[2].plot(
 		profile(rms5, stagger_τ, :log10τ_ross, :uz)...,
@@ -593,9 +629,9 @@ begin
 	axA[2].set_ylabel(L"\rm v_{z}\ [km \ s^{-1}]")
 	
 	axA[2].set_xlabel(L"\rm \log \tau_{ross}")
-	axA[2].set_xlim(-4, 2)
-	axA[0].set_ylim(4000, 10500)
-	axA[1].set_ylim(-8.75, -6.25)
+	#axA[2].set_xlim(-4, 2)
+	#axA[0].set_ylim(4000, 10500)
+	#axA[1].set_ylim(-8.75, -6.25)
 	
 	
 	gcf()
@@ -727,7 +763,7 @@ begin
 		label=L"\rm Co5bold"
 	)
 	axA2.plot(
-		log10.(marcs_model[:, 11]), marcs_model[:, 5],
+		marcs_models[5].structure["lgTauR"], marcs_models[5].structure["T"],
 		color="k",
 		ls=":",
 		label=L"\rm MARCS"
@@ -759,7 +795,7 @@ begin
 		color="cornflowerblue",
 		ls="-",
 		label=L"\rm M3DIS\ (D)",
-		lw=3
+		lw=4.5
 	)
 	axA3.plot(
 		staggerA_xTp, staggerA_yTp,
@@ -773,11 +809,31 @@ begin
 		ls="--",
 		label=L"\rm Co5bold"
 	)
-	axA3.plot(
-		log10.(marcs_model[:, 7]), marcs_model[:, 5],
+	#=axA3.plot(
+		log10.(marcs_models[5].structure["Pg"]), marcs_models[5].structure["T"],
 		color="k",
-		ls=":",
+		ls="-.",
 		label=L"\rm MARCS"
+	)=#
+
+	# add MARCS models with different alpha
+	axA3.plot(
+		log10.(marcs_alpha["alpha1.5n"][:, 7]), marcs_alpha["alpha1.5n"][:, 5],
+		color="k",
+		ls="-.", lw=2.5,
+		label=L"\rm MARCS\ \alpha=1.5\ no\ p_{turb}", zorder=0
+	)
+	axA3.plot(
+		log10.(marcs_alpha["alpha1.5"][:, 7]), marcs_alpha["alpha1.5"][:, 5],
+		color="cyan",
+		ls="-.", lw=2.5,
+		label=L"\rm MARCS\ \alpha=1.5 + p_{turb}", zorder=0
+	)
+	axA3.plot(
+		log10.(marcs_alpha["alpha0.5"][:, 7]), marcs_alpha["alpha0.5"][:, 5],
+		color="magenta",
+		ls="-.", lw=2.5,
+		label=L"\rm MARCS\ \alpha=0.5 + p_{turb}", zorder=0
 	)
 
 	axA3.legend(framealpha=0, labelspacing=0.01, handlelength=hl)
@@ -785,8 +841,12 @@ begin
 	axA3.set_ylabel(L"\rm T\ [K]")
 	axA3.set_xlabel(L"\rm \log P_g\ [g \times cm \times s^{-2}]")
 	
-	axA3.set_ylim(3600, 14500)
-	axA3.set_xlim(3.2, 6.1)
+	#axA3.set_ylim(3600, 14500)
+	#xA3.set_xlim(3.2, 6.1)
+
+	axA3.set_ylim(5000, 11100)
+	axA3.set_xlim(4.8, 5.3)
+	
 
 	fA3.savefig("T-Pg_3D_MARCS.pdf", bbox_inches="tight")
 	fA3.savefig("T-Pg_3D_MARCS.png", bbox_inches="tight", dpi=300)
@@ -938,7 +998,7 @@ begin
 		
 		axB[0].plot(
 			common_tauB, 
-			(ip(marcs_model[:, 2], marcs_model[:, 5]) .- ip(m3disB_x, m3disB_y)) ./ ip(m3disB_x, m3disB_y) *100.0,
+			(ip(marcs_models[5].structure["lgTauR"], marcs_models[5].structure["T"]) .- ip(m3disB_x, m3disB_y)) ./ ip(m3disB_x, m3disB_y) *100.0,
 			color="k",
 			label=L"\rm MARCS - M3DIS\ (D)",
 			ls=":",
@@ -946,8 +1006,8 @@ begin
 		)
 		axB[0].fill_between( 
 			common_tauB, 
-			(ip(marcs_model[:, 2], marcs_model[:, 5]) .- ip(m3disB_x, m3disB_y.-m3disB_yerr)) ./ ip(m3disB_x, m3disB_y.-m3disB_yerr) *100.0,
-			(ip(marcs_model[:, 2], marcs_model[:, 5]) .- ip(m3disB_x, m3disB_y.+m3disB_yerr)) ./ ip(m3disB_x, m3disB_y.+m3disB_yerr) *100.0,
+			(ip(marcs_models[5].structure["lgTauR"], marcs_models[5].structure["T"]) .- ip(m3disB_x, m3disB_y.-m3disB_yerr)) ./ ip(m3disB_x, m3disB_y.-m3disB_yerr) *100.0,
+			(ip(marcs_models[5].structure["lgTauR"], marcs_models[5].structure["T"]) .- ip(m3disB_x, m3disB_y.+m3disB_yerr)) ./ ip(m3disB_x, m3disB_y.+m3disB_yerr) *100.0,
 			color="0.5", alpha=0.3
 		)
 
@@ -1021,7 +1081,7 @@ begin
 		)=#
 		axB[1].plot(
 			common_tauB, 
-			ip(marcs_model[:, 2], log10.(marcs_model[:, 11])) .- ip(m3disB_xr, m3disB_yr),
+			ip(marcs_models[5].structure["lgTauR"], log10.(marcs_models[5].structure["Density"])) .- ip(m3disB_xr, m3disB_yr),
 			color="k",
 			label=L"\rm MARCS - M3DIS\ (D)",
 			ls=":",
@@ -1029,8 +1089,8 @@ begin
 		)
 		axB[1].fill_between( 
 			common_tauB, 
-			(ip(marcs_model[:, 2], log10.(marcs_model[:, 11])) .- ip(m3disB_xr, m3disB_yr.-m3disB_yerrr)),
-			(ip(marcs_model[:, 2], log10.(marcs_model[:, 11])) .- ip(m3disB_xr, m3disB_yr.+m3disB_yerrr)),
+			(ip(marcs_models[5].structure["lgTauR"], log10.(marcs_models[5].structure["Density"])) .- ip(m3disB_xr, m3disB_yr.-m3disB_yerrr)),
+			(ip(marcs_models[5].structure["lgTauR"], log10.(marcs_models[5].structure["Density"])) .- ip(m3disB_xr, m3disB_yr.+m3disB_yerrr)),
 			color="0.5", alpha=0.3
 		)
 
@@ -2161,8 +2221,8 @@ function optical_turnover(model; logg)
 	
 	add!(m3disM, Pg=pgM)
 
-	hpM = MUST.pressurescaleheight(m3disM, τ_ross=0.0, logspace=true, logg=logg)
-	ctM = MUST.convectiveturnovertime(m3disM, τ_ross=0.0, logspace=true, logg=logg)
+	hpM = MUST.pressurescaleheight(m3disM, τ_ross=5.0, logspace=true, logg=logg)
+	ctM = MUST.convectiveturnovertime(m3disM, τ_ross=5.0, logspace=true, logg=logg)
 
 	@info "Pressure scale height [km]: $(hpM/100000.0)"
 	@info "Convective turnover time [s]: $(ctM)"
@@ -2422,21 +2482,21 @@ begin
 	]
 
 	marcs_TN = [
-		marcs_model[:, 5],
+		marcs_models[5].structure["T"],
 		marcs_models[1].structure["T"],
 		marcs_models[3].structure["T"],
 		marcs_models[4].structure["T"]
 	]
 
 	marcs_TauN = [
-		marcs_model[:, 2],
+		marcs_models[5].structure["lgTauR"],
 		marcs_models[1].structure["lgTauR"],
 		marcs_models[3].structure["lgTauR"],
 		marcs_models[4].structure["lgTauR"]
 	]
 
 	marcs_zN = [
-		-marcs_model[:, 4],
+		-marcs_models[5].structure["Depth"],
 		-marcs_models[1].structure["Depth"],
 		-marcs_models[3].structure["Depth"],
 		-marcs_models[4].structure["Depth"]
@@ -2503,14 +2563,14 @@ begin
 
 	marcs_TO = [
 		marcs_models[1].structure["T"],
-		marcs_model[:, 5],
+		marcs_models[5].structure["T"],
 		marcs_models[3].structure["T"],
 		marcs_models[4].structure["T"]
 	]
 
 	marcs_trO = [
 		marcs_models[1].structure["lgTauR"],
-		marcs_model[:, 2],
+		marcs_models[5].structure["lgTauR"],
 		marcs_models[3].structure["lgTauR"],
 		marcs_models[4].structure["lgTauR"]
 	]
@@ -2636,15 +2696,22 @@ end
 # ╟─ec5e9d64-e461-44ec-9753-c306cc8d29dd
 # ╟─33690f11-20d9-48ee-82b9-bc0df0f9e560
 # ╟─8e521645-e67e-463d-ad8b-9a9a8dd9056e
+# ╟─b8bd4aa7-8e9e-40de-8188-0ddb8b233b5e
 # ╟─f6edb03c-5177-4777-b3f2-fc69513a7249
 # ╟─f0327365-b8ff-44ac-9aa1-d42ecd5a0a3f
 # ╟─b67ca362-66e0-4e6b-ac1e-094515498379
 # ╠═9a504c51-4e79-4ef4-8a4f-570f549422c0
 # ╠═0a2286e2-29e4-454b-b3a7-6a33a6828760
+# ╟─2e44bee0-da4c-47cf-8c7e-e8c46e696bd2
 # ╟─9465b4d5-08e2-453a-b758-6d4d6744c20b
 # ╠═d87a8635-7527-4584-81f6-eef0da1101d6
+# ╟─a22bef7c-6409-4eb5-a17e-66ea1a42ab73
 # ╟─0016626d-bb90-47eb-83f8-ec1f9d905a03
 # ╠═dfb2ddf1-10ec-426d-8907-eec2b694fe5a
+# ╟─4eecac61-40f9-45d4-b789-d017aef6f149
+# ╟─2270321b-6581-4d45-a00f-0e728022bc56
+# ╠═5b42ec94-a9fc-4ada-aa7e-5fb6bac656b1
+# ╟─0f310354-ca88-468f-a760-8194322855f3
 # ╟─c9a52157-81c4-4b8c-8dcd-b728a0890b00
 # ╠═515e5910-4bf1-4769-84b9-cff2a08751a0
 # ╠═fa715a70-036e-420a-a0fa-06cefc3ef3c0
@@ -2678,8 +2745,8 @@ end
 # ╟─ae765c38-1c13-4914-85a1-41c41bff4f3f
 # ╠═0ef33323-1d6a-484c-9292-3485b4871b38
 # ╟─381be17e-b257-4e51-aa79-941db153f398
-# ╟─e1517fd6-523f-4083-bb74-ebf666813002
-# ╠═e73c5a0e-ae3b-4bbd-b098-d8e6ff215c2e
+# ╠═e1517fd6-523f-4083-bb74-ebf666813002
+# ╟─e73c5a0e-ae3b-4bbd-b098-d8e6ff215c2e
 # ╟─f6f45939-55f8-42c3-b0d2-79c1cefb645c
 # ╟─d77216a7-038d-491f-b7c2-ba74d627e2a2
 # ╟─518657e8-1865-4ecf-bb57-73cb502b5b19
@@ -2721,11 +2788,11 @@ end
 # ╠═78ce2d34-9898-4140-a7fd-8fe2e807d972
 # ╠═94c55529-523a-4a44-9ed8-1caaf34e4da5
 # ╟─3466e7cb-17ab-4a1a-ac4f-7b3f1264584d
-# ╠═cb14997c-ed1f-4be0-80ce-bba1d94765d4
+# ╟─cb14997c-ed1f-4be0-80ce-bba1d94765d4
 # ╠═f6736f9c-f76e-40ae-bb85-63c1aef6605c
 # ╟─9cbc4ead-5f1d-41b9-a7ac-dea24f4b91cb
 # ╟─f33f10e7-506d-4d55-a7c2-1b573ee6e13e
-# ╟─c11b167f-ba1f-4ae6-8e38-e3c011f6f036
+# ╠═c11b167f-ba1f-4ae6-8e38-e3c011f6f036
 # ╠═3f194d77-08cf-4d51-81ee-f811ed587967
 # ╠═95849fd6-e8bf-48e4-a0d9-2dd86cee58bb
 # ╠═a15e914f-13f6-456f-a74f-b9edd63a7ab9
