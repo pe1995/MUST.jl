@@ -347,13 +347,13 @@ axis(box, :τ_ross, 3)
 or simply use the shortcut
 
 ```julia
-τ, T = profile(mean, box, :log10τ_ross, T)
+τ, T = profile(mean, box, :log10τ_ross, :T)
 ```
 
 where log10 or log can be added in front of any variable to apply the corresponding log directly. This is convenient when you want to past this in the plotting function directly, for example
 
 ```julia
-plot(profile(mean, box, :log10τ_ross, T)...)
+plot(profile(mean, box, :log10τ_ross, :T)...)
 ```
 
 will plot the average temperature as a function of optical depth. Note that this will only be correct, if the given `Box` is indeed on the $\rm \tau$ scale. Computing the average quantites on the geometrical scale and plot against average optical depth is **not** equal to average planes in a cube interpolated to a uniform optical depth scale. One should always compute averages on planes of constant optical depth if one intents to compare on that scale.
@@ -381,6 +381,42 @@ which is more convenient and will also interpolate by column.
 
 ## Time Statistics
 
+*Relevant examples: `examples/initial_models/progress.jl, monitor.jl`*
+
+Time dependent statistics can be computed on the fly by `MUST.WatchDog` capabilities. Such a watchdog can be run in parallel to the running DISPATCH simulation. It will detect new snapshots and perform the statistics presented above directly. Per default it will not save the converted cubes to save disk space, also because many of the intermediate snapshots are not relevant for the end-product and will be ignored anyways. Saving their cubes is hence mostly irrelevant. You can create a `WatchDog` by passing the name of the simulation it should track and the functions it should evaluate on the cubes.
+
+```julia
+using MUST
+@import_dispatch "path/to/dispatch2"
+
+# default watchdog contains many usefull statistics
+w = MUST.defaultWatchDog("grid_t5777g44m00", folder=@in_dispatch("data/"))
+
+# you can also add functions with the following call structure e.g.
+mystatistic(watchdog, box, box_t) = begin
+    # e.g. average profile, can be aything
+    # 'box' is the geometrical, 'box_t' the optical depth 3D cube.
+    x, y = MUST.profile(MUST.mean, box, :z, :T)
+
+    # return your result as Dict, so that it will have proper names when loaded
+    Dict(
+        "x" => x,
+	"y" => y
+    )
+end
+
+w = MUST.defaultWatchDog("grid_t5777g44m00", folder=@in_dispatch("data/"), mystatistic=mystatistic)
+
+# run the monitoring, stops when there is now new snapshot after timeout seconds
+MUST.monitor(w; timeout=2*60*60)
+```
+
+The default watchdog can also be started by e.g.
+
+```
+$ julia --project monitor.jl grid_t5777g44m00
+```
+or send to the background with `nohup`. You can look at the results by calling `monitoring = MUST.reload(MUST.WatchDog, "grid_t5777g44m00", folder=datafolder)`, or by simply using the `examples/initial_models/progress.jl` notebook, which provides a nice interface.
 
 --------------
 

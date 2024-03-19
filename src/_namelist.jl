@@ -181,7 +181,7 @@ function reverse_parse(value)
         end
         val_str = val_str[1:end-1]
     elseif typeof(value) <:String
-        if (occursin('"', value)) | (value in ["t", "f", ".true.", ".false."]) | (occursin('*', value))
+        if (occursin("'", value)) | (occursin('"', value)) | (value in ["t", "f", ".true.", ".false."]) | (occursin('*', value))
             val_str = "$(value)"
         else
             can_be_float = try 

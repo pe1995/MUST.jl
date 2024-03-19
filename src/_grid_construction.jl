@@ -38,11 +38,8 @@ Grid(b::Box, zscale::Symbol; order=[1, 2, 3], scale=log) = begin
     RegularBoxGrid(axes)
 end
 
-#Grid(x, y, z) = RegularBoxGrid(
-#    RegularBoxAxis(x), 
-#    RegularBoxAxis(y), 
-#    RegularBoxAxis(z)
-#)
+
+
 
 
 #= Utilities =#
@@ -106,6 +103,12 @@ end
 
 #= Scaling a box in resolution =#
 
+"""
+    gresample(b, b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), method=:linear, order=[1, 2, 3], dont_log=[:T, :ux, :uy, :uz, :ee, :e])
+
+Resample the given cube to the given resolution. Specify the variables that you don't want to interpolate
+in the log (maybe due to negative/positive values) in `dont_log`.
+"""
 function gresample(b::Box; 
         nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), 
         method=:linear, order=[1, 2, 3], 
@@ -125,10 +128,6 @@ function gresample(b::Box;
 	y_new = isnothing(ny) ? deepcopy(nodes(grid.axes[2])) : scale_axis(axis(b, :y), N=ny)
 	z_new = isnothing(nz) ? deepcopy(nodes(grid.axes[3])) : scale_axis(axis(b, :z), N=nz)
 	target_grid = Grid([x_new, y_new, z_new][order]...)
-
-    #@show nodes(axis(target_grid)[3])
-    #@show nodes(axis(grid)[3])
-
 
 	# interpolate 
 	ip = ginterpolate(grid, target_grid, method=method)
@@ -166,76 +165,3 @@ function gresample(b::Box;
 
 	Box(xx, yy, zz, data_new, deepcopy(b.parameter))
 end
-
-
-#=
-function gresample(b::Box, zscale::Symbol; 
-                    nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), 
-                    method=:linear, order=[1, 2, 3], scale=:log)
-	if (nx==size(b, 1)) & (ny==size(b, 2)) & (nz==size(b, 3))
-		@warn "Size of new box = size of old box."
-	end
-
-    b = deepcopy(b)
-
-    fs = scale == :log ? log : identity
-    fs_back = scale == :log ? exp : identity
-
-    natural_order = sortperm(order)
-
-	# The coordinate grid of the input box
-	grid = Grid(b, zscale, order=order, scale=fs)
-
-	# build the new axis
-	x_new = scale_axis(axis(b, :x), N=nx)
-	y_new = scale_axis(axis(b, :y), N=ny)
-	z_new = scale_axis(fs.(axis(b, zscale, 3)), N=nz)
-	target_grid = Grid([x_new, y_new, z_new][order]...)
-
-    @show grid.axes[3].nodes
-    @show target_grid.axes[3].nodes
-
-
-	# interpolate 
-	ip = ginterpolate(grid, target_grid, method=method)
-
-	# compute the interpolate quantities
-	data_new = Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}()
-    d_tmp = permutedims(first(values(b.data)), order)
-
-    TN = eltype(b.x)
-	for f in keys(b.data)
-        if f == zscale
-            continue
-        end
-
-		d_tmp .= if all(b.data[f] .> 0.0) & (eltype(b.data[f]) <: AbstractFloat)
-			permutedims(log.(b.data[f]), order)
-		else
-			permutedims(b.data[f], order)
-		end
-		
-        # interpolate
-		data_new[f] = Base.convert.(TN, permutedims(gevaluate!(ip, d_tmp), natural_order))
-
-        # apply exp again if needed
-		data_new[f] .= if all(b.data[f] .> 0.0) & 
-							(eltype(b.data[f]) <: AbstractFloat)
-			exp.(data_new[f])
-		else
-			data_new[f]
-		end
-	end
-
-	xx, yy, zz = meshgrid(x_new, y_new, z_new)
-    xx = Base.convert.(TN, xx)
-    yy = Base.convert.(TN, yy)
-    zz = Base.convert.(TN, zz)
-
-    data_new[zscale] = fs_back.(zz)
-    d_tmp .= permutedims(b.z, order)
-    z_real = Base.convert.(TN, permutedims(gevaluate!(ip, d_tmp), natural_order))
-
-	Box(xx, yy, z_real, data_new, deepcopy(b.parameter))
-end
-=#

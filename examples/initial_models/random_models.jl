@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.32
+# v0.19.38
 
 using Markdown
 using InteractiveUtils
@@ -81,11 +81,21 @@ end
 
 # ╔═╡ d1415b10-403e-4736-9930-14c451f4f366
 begin
-	paras = random_paramters(grid, 10, teff=[4500, 6500], logg=[4.0, 4.5], feh=[0.0, 0.0])
-	#=paras = zeros(1, 3)
-	paras[:, 1] .= 5000.0
-	paras[:, 2] .= 4.0
-	paras[:, 3] .= 0.0=#
+	paras = random_paramters(
+		grid, 
+		40, 
+		teff=[5000, 6500], 
+		logg=[4.0, 4.7], 
+		feh=[0.0, 0.0]
+	)
+end
+
+# ╔═╡ 0bffe69d-50fa-4b1c-adba-de962e8f38cc
+begin
+	# add hot Jupyter testcase
+	paras_extended = zeros(eltype(paras), size(paras, 1)+1, 3)
+	paras_extended[1:end-1, :] .= paras
+	paras_extended[end, :] = [4500.0, 4.8, 0.0]
 end
 
 # ╔═╡ 8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
@@ -93,12 +103,12 @@ md"## EoS
 We can add information about the EoS. This will make the interpolation better because it will use the rosseland optical depth information to interpolate at constant optical depth between models. If not, just position is used for the interpolation. Depending on the chemical composition of the model you need to pick a different EoS here! So it might be best to include the mother table of the respective model in the grid, so that for each metallicity the correct one can be used."
 
 # ╔═╡ e17316a1-a29e-4ce7-b651-65a75881180f
-mother_table_path = "/u/peitner/DISPATCH/opacity_tables/TSO_MARCS_v1.6"
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
 
 # ╔═╡ d001bc84-4082-4888-89c1-15f590ec9834
 eos = [
-	reload(SqEoS, joinpath(mother_table_path, "combined_ross_eos_magg22.hdf5"))
-	for _ in 1:size(paras, 1)
+	reload(SqEoS, joinpath(mother_table_path, "ross_combined_eos_magg_m0_a0.hdf5"))
+	for _ in 1:size(paras_extended, 1)
 ]
 
 # ╔═╡ ee45e7db-2fc3-43f3-83cf-bd2dca6d52e7
@@ -109,21 +119,21 @@ md"We can add a matching eos for each of the grid nodes. In the case of non-exis
 
 # ╔═╡ 2dee306a-531f-4eb2-bac7-e4a5c8a219a7
 grid.info[!, "matching_eos"] = [
-	joinpath(mother_table_path, "combined_ross_eos_magg22.hdf5") 
+	joinpath(mother_table_path, "ross_combined_eos_magg_m0_a0.hdf5") 
 	for _ in 1:nrow(grid.info)
 ]
 
 # ╔═╡ 27f3dc38-c32c-4e35-b5a6-cce2443e64d3
 ig = modelgrids.interpolate_from_grid(
 	grid, 
-	teff=round.(paras[:, 1], sigdigits=4), 
-	logg=round.(paras[:, 2], sigdigits=4), 
-	feh=paras[:, 3],
+	teff=round.(paras_extended[:, 1], sigdigits=4), 
+	logg=round.(paras_extended[:, 2], sigdigits=4), 
+	feh=paras_extended[:, 3],
 	eos=eos
 )
 
 # ╔═╡ a47fa3e9-bd97-45e4-bf55-8de2e0d75c64
-ig.info[!, "eos_root"] = [mother_table_path for _ in 1:size(paras, 1)]
+ig.info[!, "eos_root"] = [mother_table_path for _ in 1:size(paras_extended, 1)]
 
 # ╔═╡ 47f9397e-a5fc-4c7a-a2f6-cf2eb45653e0
 md"## Validate interpolation"
@@ -166,7 +176,7 @@ begin
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
-MUST.save(ig, "random_grid_mod.mgrid")
+MUST.save(ig, "random_MS_2.mgrid")
 
 # ╔═╡ Cell order:
 # ╟─a0516377-218a-4260-ae15-acf6ac36f2c1
@@ -180,6 +190,7 @@ MUST.save(ig, "random_grid_mod.mgrid")
 # ╟─6e0c166b-58a5-4a25-a726-a66cc357731c
 # ╟─6dffcedb-ae0b-4bb4-9490-94c22ec3e953
 # ╠═d1415b10-403e-4736-9930-14c451f4f366
+# ╠═0bffe69d-50fa-4b1c-adba-de962e8f38cc
 # ╟─8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
 # ╠═e17316a1-a29e-4ce7-b651-65a75881180f
 # ╠═d001bc84-4082-4888-89c1-15f590ec9834

@@ -43,11 +43,13 @@ find_integer_simple(f, dxdz_approx, desired_n_patches; step=0.1) = begin
 end
 
 find_integer_simple(dxdz_approx, desired_n_patches; step=0.1) = begin
-    p = find_integer_simple(+, dxdz_approx, desired_n_patches)
-    m = find_integer_simple(-, dxdz_approx, desired_n_patches)
+    p = find_integer_simple(+, dxdz_approx, desired_n_patches, step=step)
+    m = find_integer_simple(-, dxdz_approx, desired_n_patches, step=step)
     a = dxdz_approx * desired_n_patches
 
     [p, m][argmin([abs(p - a), abs(m - a)])]
+
+    p
 end
 
 @inline patches(res, patch_size) = Int(floor(res / patch_size))
@@ -201,7 +203,7 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
     actual_x_patches = find_integer_simple(dxdz_approx, desired_n_patches, step=step)
     
     # For some reason the fraction needs to be integer as well...
-    actual_x_patches = round(dxdz, sigdigits=1) * desired_n_patches
+    #actual_x_patches = round(dxdz, sigdigits=1) * desired_n_patches
     actual_dx = actual_x_patches / desired_n_patches * actual_dz
 
     actual_dx, actual_x_patches*patch_size, actual_dz, desired_n_patches*patch_size
@@ -238,7 +240,8 @@ quadrantlimit(name, table_folder, opa_path; λ_lim=5.0) = begin
 end
 
 clean(table_folder, name) = begin
-	rm(joinpath(table_folder, "combined_formation_opacities_$(name).hdf5"))
+    f = joinpath(table_folder, "combined_formation_opacities_$(name).hdf5")
+	isfile(f) && rm(f)
 end
 
 
@@ -323,8 +326,14 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     end
 
     stellar_w = round(0.1 * velocity_ratio, sigdigits=3)
-    strength = round(0.1 * 100.0 / tscale / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
-    tbot = round(0.01 * 100.0 / tscale / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+    strength = round(0.1 / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+    tbot = round(0.01 / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+
+    # htop_scale can be estimated via logg linearly (set it limits for now at 3 and 0.1)
+    htop_scale = min(max(-2 * logg + 10.1, 0.1), 4.0)
+    
+    # or exponentially
+    htop_scale = max(exp(-1.15*(logg-5.0))-0.6, 0.1)
 
     x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     MUST.set!(
@@ -357,8 +366,9 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         :rt_freq=>0.0,
                         :rt_grace=>0.1,
                         :rt_res=>[-1,-1,rt_patch_size]),
+        boundary_params=(:upper_bc=>2, :htop_scale=>htop_scale),
         an_params=(:courant=>courant_hd,),
-        eos_params=(:table_loc=>eos_table, :gamma=>1.666667)
+        eos_params=(:table_loc=>eos_table, :gamma=>1.2)
     )
 
     # set additional kwargs if wanted
@@ -436,6 +446,8 @@ function new_zscale(eospath, av_path, logg; common_size=1000, saveat=nothing, kw
 		open(saveat, "w") do f
 			MUST.writedlm(f, [a.z exp.(a.lnT) a.lnρ])
 		end
+    else
+        @warn "Model from $(av_path) not saved!"
 	end
 
     a
@@ -485,39 +497,43 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     T_lo = zeros(nrow(grid.info))
 
     for i in 1:nrow(grid.info)
-        ## What should the resolution be
-        #xd[i], xr[i], zd[i], zr[i] = resolutionHD(models[i], 
-        #                                        grid.info[i, "mi_x"], grid.info[i, "ma_x"], grid.info[i, "mi_z"], grid.info[i, "ma_z"], grid.info[i, "hres"],
-        #                                        patch_size; cut_bottom=cut_bottom)
-        ## Where is the optical surface
-        #it0 = argmin(abs.(log10.(models[i].τ) .- τ_surf))
-        ### where is the upper edge (roughly)
-        #itup = argmin(abs.(log10.(models[i].τ) .- τ_up))
-        ### Where can we start with the adiabat
-        #itlo = argmin(abs.(log10.(models[i].τ) .- τ_down))
-
         ## interpolator
         m = TSO.flip(models[i])
         mask = sortperm(m.τ)
-        τ_down = min(τ_down, maximum(log10.(m.τ)))
+        td = min(τ_down, maximum(log10.(m.τ)))
+        tu = τ_up #max(τ_up, minimum(log10.(m.τ)))
+
+        xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
+            m, 
+            grid.info[i, "mi_x"], 
+            grid.info[i, "ma_x"], 
+            grid.info[i, "mi_z"], 
+            grid.info[i, "ma_z"], 
+            tu,
+            τ_surf,
+            td,
+            grid.info[i, "hres"],
+            patch_size, 
+            scale_resolution=scale_resolution
+        )
 
         ip_r = MUST.linear_interpolation(
-            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.lnρ[mask], 
             extrapolation_bc=MUST.Flat()
         )
         ip_z = MUST.linear_interpolation(
-            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.z[mask], 
             extrapolation_bc=MUST.Flat()
         )
         ip_E = MUST.linear_interpolation(
-            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.lnEi[mask], 
             extrapolation_bc=MUST.Flat()
         )
         ip_T = MUST.linear_interpolation(
-            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask])),
+            MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.lnT[mask], 
             extrapolation_bc=MUST.Flat()
         )
@@ -526,31 +542,17 @@ resolution!(grid::MUST.AbstractMUSTGrid;
 
         l_norm[i] = zd[i] |> abs 
         
-        z_up[i] = abs(ip_z(τ_up) - ip_z(τ_surf))
+        z_up[i] = abs(ip_z(tu) - ip_z(τ_surf))
         z_s[i] = ip_z(τ_surf)
-        z_h[i] = ip_z(τ_up)
+        z_h[i] = ip_z(tu)
 
         ee0[i] = exp.(ip_E(τ_ee0))
         zee0[i] = ip_z(τ_zee0)
         eemin[i] = exp.(ip_E(τ_eemin)) 
 
-        z_lo[i] = ip_z(τ_down)
-        d_lo[i] = exp.(ip_r(τ_down))
-        T_lo[i] = exp.(ip_T(τ_down))
-
-        xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
-            m, 
-            grid.info[i, "mi_x"], 
-            grid.info[i, "ma_x"], 
-            grid.info[i, "mi_z"], 
-            grid.info[i, "ma_z"], 
-            τ_up,
-            τ_surf,
-            τ_down,
-            grid.info[i, "hres"],
-            patch_size, 
-            scale_resolution=scale_resolution
-        )
+        z_lo[i] = ip_z(td)
+        d_lo[i] = exp.(ip_r(td))
+        T_lo[i] = exp.(ip_T(td))
     end
 
     xd, xr, zd, zr

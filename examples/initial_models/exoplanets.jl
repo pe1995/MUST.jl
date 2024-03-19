@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.35
+# v0.19.38
 
 using Markdown
 using InteractiveUtils
@@ -145,11 +145,11 @@ md"# EoS
 We need to add an EoS to each model at this point, because opacities are required in order to create the height scale after interpolating."
 
 # ╔═╡ c6ea5cfe-c64c-4887-8d14-52c253620b2f
-mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/TS_opacity_tables/TSO.jl/examples/converting_tables/TSO_MARCS_magg_m0_a0_v1.6"
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
 
 # ╔═╡ bc3054de-c877-467b-87de-2b31e972f178
 eos = [
-	reload(SqEoS, joinpath(mother_table_path, "combined_ross_eos_magg_m0_a0.hdf5"))
+	reload(SqEoS, joinpath(mother_table_path, "ross_combined_eos_magg_m0_a0.hdf5"))
 	for _ in 1:nrow(catalogSelect)
 ]
 
@@ -158,7 +158,7 @@ md"Also make a note of the given EoS in the grid we interpolate in. NOTE: This i
 
 # ╔═╡ d5264ffe-ff35-484e-be53-fb1c1f39c345
 grid.info[!, "matching_eos"] = [
-	joinpath(mother_table_path, "combined_ross_eos_magg_m0_a0.hdf5") 
+	joinpath(mother_table_path, "ross_combined_eos_magg_m0_a0.hdf5") 
 	for _ in 1:nrow(grid.info)
 ]
 

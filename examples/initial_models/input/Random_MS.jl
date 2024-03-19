@@ -4,13 +4,13 @@ begin
     dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
     # Under what name should the binned opacities be saved
-    name_extension    = "PLATO/M"
+    name_extension    = "MainSequence/R2"
 
     # PLATO models
-    initial_grid_path = "PLATO/plato_initial_121223.mgrid"
-    initial_cl_path   = "PLATO/plato_initial_121223_avail.mgrid"
-    initial_mod_path  = "PLATO/plato_initial_121223_solar.mgrid"
-    final_grid_path   = "PLATO/plato_121223.mgrid"
+    initial_grid_path = "MainSequence/random_MS_2.mgrid"
+    initial_cl_path   = "MainSequence/random_MS_2_avail.mgrid"
+    initial_mod_path  = "MainSequence/random_MS_2_solar.mgrid"
+    final_grid_path   = "MainSequence/random_MS_2_080324.mgrid"
 
     # clean namelists in dispatch folder (other than new ones)
     clean_namelists = false
@@ -26,20 +26,20 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 17                 # Points per patch
+    patch_size = 15                 # Points per patch
     τ_up = -5.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 7.0                    # Lower limit of simulation domain
-    τ_ee0 = -3.0                    # Newton cooling placement (energy)
+    τ_down = 6.5                    # Lower limit of simulation domain
+    τ_ee0 = -1.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -2.0                   # Newton cooling placement (height)
-    τ_rho0 = -2.0                   # Density normaliztion height
-    scale_resolution = 0.9          # Down or upsampling of simulation domain
+    τ_zee0 = -1.0                   # Newton cooling placement (height)
+    τ_rho0 = -1.0                   # Density normaliztion height
+    scale_resolution = 0.8          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
-        :courant_target=>0.2,
-        :courant_rt=>0.4,
+        :courant_target=>0.3,
+        :courant_rt=>0.5,
         :newton_params=>(
             :on=>true,
             :delay_rt=>true
@@ -60,10 +60,8 @@ begin
     sopa_path = "combined_Sopacities_"*extension*".hdf5"
 
     # verion of the binned table
-    # v0.3 - 8 Bins
-    # v0.4 - 10 Bins
-    # v0.5 - 4 bins
-    version = "v0.3"
+    # v1.0 - 8 Bins
+    version = "v1.0"
 
     # Number of bins
     Nbins = 8
@@ -103,5 +101,5 @@ begin
     end
 
     # remove formation opacities after usage to save disk space
-    clean = false
+    clean = true
 end

@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.32
+# v0.19.38
 
 using Markdown
 using InteractiveUtils
@@ -26,6 +26,8 @@ begin
 	using DelimitedFiles
 	using PlutoUI
 	using PlutoUI: combine
+	using ProgressLogging
+	PythonCall = MUST.PythonCall
 end;
 
 # ╔═╡ bd7cdaf2-c05e-4bc9-afbb-cfb61260d62c
@@ -41,9 +43,16 @@ TableOfContents()
 begin
 	mean = MUST.mean
 	plt = matplotlib.pyplot
-	matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
-	MUST.@import_dispatch "../../../dispatch2"
 end;
+
+# ╔═╡ 123d3deb-a412-4408-a0cf-92271b7e4ab3
+matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
+
+# ╔═╡ 25234aa1-7c1c-4f2e-ae55-17c82428c4c3
+MUST.@import_dispatch "../../../dispatch2"
+
+# ╔═╡ 9edfd60d-05a3-4141-8cb0-ae202716aa27
+
 
 # ╔═╡ 9ac91858-17d8-4934-8d47-fed1519efe42
 availableRuns(path) = begin
@@ -138,6 +147,9 @@ end
 # ╔═╡ 2bf867fc-15bd-437c-b989-b1efbf2bf9d4
 @bind snapshots_convert snapshots_all_input(available_runs)
 
+# ╔═╡ 8a5327d2-748c-43f4-ac21-f0245653e16f
+md"Click here to additionally convert them to the MULTI3D format: $(@bind alsom3d CheckBox(default=false))"
+
 # ╔═╡ fa8c564d-195b-424a-8814-0c47cd3e03a8
 md"Tick box to start converting snapshots: $(@bind convert_given CheckBox(default=false))"
 
@@ -146,7 +158,7 @@ if convert_given
 	for name in keys(snapshots_convert)
 		@info "Converting snapshot $(name), Number: $(snapshots_convert[name])"
 		p = @in_dispatch(joinpath(datafolder, "$(name)"))
-		snapshotBox(snapshots_convert[name], folder=p)
+		snapshotBox(snapshots_convert[name], folder=p, to_multi=alsom3d)
 	end
 end
 
@@ -201,7 +213,7 @@ md"## Picking EoS"
 md"Enter the folder where EoS tables can be found:"
 
 # ╔═╡ 926aa121-ba10-4410-a91c-f36fc79a63ed
-@bind eosfolder TextField(default="input_data/grd/")
+@bind eosfolder confirm(TextField(default="input_data/grd/"))
 
 # ╔═╡ 91ddaf2d-abd6-4e2d-92eb-cfa7d0ba79bc
 function eos_input(simulation_names::Vector)
@@ -393,7 +405,7 @@ plot_given && let
 		for (j, snap) in enumerate(snapshots[name])
 			axA.plot(
 				profile(mean, snap, :z, :T)..., 
-				lw=2., 
+				lw=2.5, 
 				color=colors[name][j], 
 				label=labels[name][j]
 			)
@@ -450,7 +462,7 @@ plot_given && let
 		for (j, snap) in enumerate(snapshots[name])
 			axA.plot(
 				profile(mean, snap, :z, :log10d)..., 
-				lw=2., 
+				lw=2.5, 
 				color=colors[name][j], 
 				label=labels[name][j]
 			)
@@ -494,7 +506,7 @@ plot_given && let
 		
 			axA.plot(
 				d, T,
-				lw=2., 
+				lw=2.5, 
 				color=colors[name][j], 
 				label=labels[name][j]
 			)
@@ -538,7 +550,7 @@ plot_given && let
 		
 			axA.plot(
 				z, u,
-				lw=2., 
+				lw=2.5, 
 				color=colors[name][j], 
 				label=labels[name][j]
 			)
@@ -575,7 +587,7 @@ plot_given && let
 		for (j, snap) in enumerate(snapshots_τ[name])
 			axA.plot(
 				profile(mean, snap, :log10τ_ross, :T)..., 
-				lw=2., 
+				lw=2.5, 
 				color=colors[name][j], 
 				label=labels[name][j]
 			)
@@ -614,7 +626,8 @@ plot_given && let
 			axA.plot(
 				profile(rms5, snap, :log10τ_ross, :uz)..., 
 				color=colors[name][j], 
-				label=labels[name][j]
+				label=labels[name][j],
+				lw=2.5
 			)
 		end
 	end
@@ -698,6 +711,128 @@ if (nmodels > 0) && plot_given
 	gcf()
 end
 
+# ╔═╡ 11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
+
+
+# ╔═╡ 6d360e73-736e-41e3-a9f3-86e7d53db58a
+md"# Time steps
+Optionally, it is possible to save the radiative timestep in addition. If it is available, we can plot e.g. where the timestep is smallest. We can for example cut through the atmosphere at a given x value or compute the plane mean."
+
+# ╔═╡ dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
+zextent(snap) = begin
+	y = MUST.axis(snap, :y) ./1e8
+	z = MUST.axis(snap, :z) ./1e8
+
+	[minimum(y), maximum(y), minimum(z), maximum(z)]
+end
+
+# ╔═╡ 48d19c84-a203-4b58-aeae-52d99dc49387
+begin
+	dt_xslice = Dict(name=>[] for name in keys(snapshots))
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots[name])
+			if :dt_rt in keys(snap.data)
+				dt = snap[:dt_rt]
+				ix = floor(Int, size(dt, 1) /2)
+				append!(dt_xslice[name], [dt[ix, :, :]])
+			end
+		end
+	end
+end
+
+# ╔═╡ 122b9c94-3e14-4dab-8432-d6ef174e6085
+if (nmodels > 0) && plot_given && any([length(dt_xslice[d]) for d in keys(dt_xslice)] .> 0)
+	let		
+		vmin = minimum(
+			[minimum(u) for name in keys(dt_xslice) for u in dt_xslice[name]]
+		) 
+		vmax = maximum(
+			[maximum(u) for name in keys(dt_xslice) for u in dt_xslice[name]]
+		)
+	
+		figs = []
+		axs = []
+		
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				if :dt_rt in keys(snap.data)
+					plt.close()			
+					f, ax = plt.subplots(1, 1, figsize=(5, 6))
+				
+					i = ax.imshow(
+						dt_xslice[name][j]',
+						origin="lower",
+						#vmin=vmin, vmax=vmax,
+						extent=zextent(snap),
+						cmap="coolwarm",
+						aspect="auto"
+					)
+	
+					cb = f.colorbar(i, ax=ax, fraction=0.046, pad=0.04)
+					cb.set_label(L"\rm dt\ [s]")
+		
+					ax.set_xlabel("y [cm]")
+					ax.set_ylabel("z [cm]")
+					
+					append!(figs, [f])
+					append!(axs, [ax])
+				end
+			end
+		end
+		gcf()
+	end
+end
+
+# ╔═╡ febe3153-2478-443b-80d8-04a15eeb8b51
+plot_given && any([length(dt_xslice[d]) for d in keys(dt_xslice)] .> 0) && let
+	plt.close()
+
+	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
+
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots[name])
+			!(:dt_rt in keys(snap.data)) && continue
+			axA.plot(
+				profile(mean, snap, :z, :dt_rt)..., 
+				lw=2.5, 
+				color=colors[name][j], 
+				label=labels[name][j]
+			)
+		end
+	end
+	
+	axA.legend()
+	axA.set_ylabel("timestep [s]")
+	axA.set_xlabel("z [cm]")
+
+	gcf()
+end
+
+# ╔═╡ 5e57c740-4090-4e39-9104-04e6b025d855
+plot_given && any([length(dt_xslice[d]) for d in keys(dt_xslice)] .> 0) && let
+	plt.close()
+
+	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
+
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots_τ[name])
+			!(:dt_rt in keys(snap.data)) && continue
+			axA.plot(
+				profile(mean, snap, :log10τ_ross, :dt_rt)..., 
+				lw=2.5, 
+				color=colors[name][j], 
+				label=labels[name][j]
+			)
+		end
+	end
+
+	axA.legend()
+	axA.set_ylabel("timestep [s]")
+	axA.set_xlabel(L"\rm \log \tau_{ross}")
+	
+	gcf()
+end
+
 # ╔═╡ c46c5b32-a1cd-43d3-b087-7f6af7adb88d
 md"# Time evolution"
 
@@ -708,8 +843,8 @@ md"## Pick models"
 md"Pick models for time evolution:"
 
 # ╔═╡ 146e68f1-d03f-42b5-bd43-76ce21edcfae
-if nmodels>0
-	@bind models confirm(Select([keys(snapshots_picks)...]))
+if length(available_runs)>0
+	@bind models confirm(Select(available_runs))
 else
 	models = []
 end
@@ -774,7 +909,7 @@ if start_timeevolution
 		)
 	end
 
-	if models in keys(initial_adiabats)
+	#=if models in keys(initial_adiabats)
 		axF.plot(
 			initial_profile_to_plot(initial_adiabats[models])..., 
 			lw=1., 
@@ -782,7 +917,7 @@ if start_timeevolution
 			alpha=0.7,
 			ls="-"
 		)
-	end
+	end=#
 
 	color_sequence = [
 		cmap_time(i/length(snaps_converted)) for i in eachindex(snaps_converted)
@@ -791,21 +926,25 @@ if start_timeevolution
 	#axF.axvline(0.57e8)
 	
 	for (c, i) in enumerate(snaps_converted)
-		s, st = pick_snapshot(sc, i)
-		if c == 1
-			axF.plot(
-				profile_to_plot(mean, s, st)..., 
-				lw=1., 
-				color=color_sequence[c], 
-				label="$(models)"
-			)
-		else
-			axF.plot(
-				profile_to_plot(mean, s, st)..., 
-				lw=1., 
-				color=color_sequence[c],
-				alpha=0.5
-			)
+		try
+			s, st = pick_snapshot(sc, i)
+			if c == 1
+				axF.plot(
+					profile_to_plot(mean, s, st)..., 
+					lw=1., 
+					color=color_sequence[c], 
+					label="$(models)"
+				)
+			else
+				axF.plot(
+					profile_to_plot(mean, s, st)..., 
+					lw=1., 
+					color=color_sequence[c],
+					alpha=0.5
+				)
+			end
+		catch
+			@warn "snapshot $i could not be loaded."
 		end
 	end
 
@@ -824,12 +963,92 @@ if start_timeevolution
 	gcf()
 end
 
+# ╔═╡ 3a93fc3c-f3f4-447b-a061-006eb3bcc984
+
+
+# ╔═╡ 4eca4f1c-c2e2-41ba-9e2e-10b3591f0f6a
+md"## 3D velocity cube animation"
+
+# ╔═╡ bfe41f19-ab35-43e4-b497-335cbc1071eb
+visual = MUST.ingredients("visual.jl")
+
+# ╔═╡ 40339dd0-acc2-4df0-92fc-bdec12c9a80a
+begin
+	velCube_var = :T
+	velCube_vmin_3d = 2000
+	velCube_vmax_3d = 15500
+	velCube_s_3d = 12
+	velCube_arrow_length_ratio = 0.2
+	velCube_skipv = 3
+	velCube_xoff = 5
+	velCube_yoff = 5
+	velCube_zoff = 5
+	velCube_len_vec = 0.65
+	velCube_cmap = "RdYlBu"
+	velCube_show_time = true
+	gif_duration=0.8
+	velCube_name = "$(models)_vel3D.gif"
+end;
+
+# ╔═╡ 67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
+
+
+# ╔═╡ 456bee2f-8e00-4705-9b58-00ee5c896b65
+md"Tick box to start animation: $(@bind start_vel_cube CheckBox(default=false))"
+
+# ╔═╡ ad37b578-4d3a-480b-a59b-20ca953c0584
+let
+	if start_vel_cube
+		@info "[$(models)] Building Animation..."
+		
+		matplotlib.style.use("dark_background")
+		!isdir("gifs") && mkdir("gifs")
+		
+		model_path = joinpath(MUST.@in_dispatch(datafolder), "$(models)")
+		snaps = MUST.converted_snapshots(model_path)
+		snaplist = MUST.list_snapshots(snaps)
+
+		fls = []
+		
+		@progress for (i, snap) in enumerate(snaplist)
+			s, _ = try
+				pick_snapshot(snaps, snap)
+			catch
+				continue
+			end
+			plt.close()
+			f, ax = visual.cube_with_velocities(s, 
+				velCube_var,
+				vmin_3d=velCube_vmin_3d,
+				vmax_3d=velCube_vmax_3d,
+				s_3d=velCube_s_3d,
+				arrow_length_ratio=velCube_arrow_length_ratio,
+				skipv=velCube_skipv,
+				xoff=velCube_xoff,
+				yoff=velCube_yoff,
+				zoff=velCube_zoff,
+				len_vec=velCube_len_vec,
+				cmap=velCube_cmap,
+				show_time=velCube_show_time
+			)
+			f.savefig("gifs/cube_$(i).png", bbox_inches="tight")
+			append!(fls, ["gifs/cube_$(i).png"])
+		end
+
+		visual.gifs.gifs_from_png(fls, "gifs/$(velCube_name)", gif_duration);
+		@info "[$(models)] GIF saved at gifs/$(velCube_name)."
+	end
+end
+
 # ╔═╡ Cell order:
 # ╟─bd7cdaf2-c05e-4bc9-afbb-cfb61260d62c
 # ╟─827e54c7-d0a3-455a-8837-52255eeff202
 # ╠═4a837d4c-724c-11ee-0b6b-21a88a56df5b
 # ╟─d9b5bbbd-6229-47c3-9738-dbe9087016d8
 # ╟─9e9c5903-762d-43d7-adf2-0eccee134974
+# ╠═123d3deb-a412-4408-a0cf-92271b7e4ab3
+# ╠═25234aa1-7c1c-4f2e-ae55-17c82428c4c3
+# ╟─9edfd60d-05a3-4141-8cb0-ae202716aa27
 # ╟─9ac91858-17d8-4934-8d47-fed1519efe42
 # ╟─73d9fd32-0dae-478a-80ff-a8e314adbd6e
 # ╟─16786647-4021-4068-9af1-2a548240758e
@@ -841,6 +1060,7 @@ end
 # ╟─73e9bde0-c72e-4a01-aa68-486237e0c475
 # ╟─68510276-b102-4a70-bd2f-a63195a4bb08
 # ╟─2bf867fc-15bd-437c-b989-b1efbf2bf9d4
+# ╟─8a5327d2-748c-43f4-ac21-f0245653e16f
 # ╟─fa8c564d-195b-424a-8814-0c47cd3e03a8
 # ╟─2d684eb0-aa4b-40a6-9e04-ab0b42ed0516
 # ╟─53706541-27d7-4093-b37f-3e384c6c8a7c
@@ -901,6 +1121,13 @@ end
 # ╟─12446032-6cc4-4eac-94cc-6ccb8de46c5d
 # ╟─488b2eec-daf8-4920-9140-7d67c6ca3de1
 # ╟─1ffcf11f-58dd-41dd-921f-995d0a84f0d0
+# ╟─11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
+# ╟─6d360e73-736e-41e3-a9f3-86e7d53db58a
+# ╟─dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
+# ╠═48d19c84-a203-4b58-aeae-52d99dc49387
+# ╟─122b9c94-3e14-4dab-8432-d6ef174e6085
+# ╟─febe3153-2478-443b-80d8-04a15eeb8b51
+# ╟─5e57c740-4090-4e39-9104-04e6b025d855
 # ╟─c46c5b32-a1cd-43d3-b087-7f6af7adb88d
 # ╟─440097e4-f518-46fe-aa1f-3d446e4cbd25
 # ╟─296cbac2-97da-401c-a038-ff2fc8770dd3
@@ -912,4 +1139,11 @@ end
 # ╟─7d10a077-75c1-4aee-b732-35a7ff71d109
 # ╠═5b856c06-da72-41be-adc7-6d4e4570ad45
 # ╟─34fecdab-ed33-4685-92f2-70c0e763e893
-# ╠═139e7d21-e102-48de-bcbd-ee1a1e78bb5d
+# ╟─139e7d21-e102-48de-bcbd-ee1a1e78bb5d
+# ╟─3a93fc3c-f3f4-447b-a061-006eb3bcc984
+# ╟─4eca4f1c-c2e2-41ba-9e2e-10b3591f0f6a
+# ╟─bfe41f19-ab35-43e4-b497-335cbc1071eb
+# ╠═40339dd0-acc2-4df0-92fc-bdec12c9a80a
+# ╟─67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
+# ╟─456bee2f-8e00-4705-9b58-00ee5c896b65
+# ╠═ad37b578-4d3a-480b-a59b-20ca953c0584

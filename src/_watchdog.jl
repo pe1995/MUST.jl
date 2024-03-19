@@ -24,7 +24,7 @@ depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::WatchDog; timeout=2*60*60, check_every=30)
+function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -36,10 +36,19 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=30)
 
         # check if there is a new snapshot
         for (i, snapf) in enumerate(w.snapshots)
+            # for safety reasons, we dont convert the last N snaps
+            # this avoids them being read while not written properly
+            if i >= length(w.snapshots)-snapshotbuffer
+                continue
+            end
+
             if !(snapf in w.snapshotsCompleted)
+                # give the snapshot some time to be written (optional)
+                sleep(delay)
+
                 success = try
                     @info "Analysing snapshot $(snapf)..."
-                    analyse(w, snapf)
+                    analyse(w, snapf, save_box=save_box)
                     true
                 catch
                     @info "...snapshot $(snapf) failed."
@@ -90,7 +99,6 @@ function analyse(w::WatchDog, snapshot; save_box=false)
         w.folder, 
         optical_depth_scale=true, 
         save_snapshot=save_box, 
-        add_selection=false, 
         to_multi=false,
         is_box=true, 
         use_mmap=false
@@ -100,6 +108,10 @@ function analyse(w::WatchDog, snapshot; save_box=false)
     for (fname, f) in w.functions
         monitoring[fname] = f(w, b, bτ)
     end
+
+    b = nothing
+    bτ = nothing
+    Base.GC.gc()
 
     monitoring["general"] = Dict(
         "name" => w.name,
@@ -142,7 +154,17 @@ _geostatistic(f, b) = begin
     results
 end
 
+# quantiles
+geometrical15thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.15), b)
+geometrical30thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.30), b)
+geometrical45thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.45), b)
+geometrical60thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.60), b)
+geometrical75thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.75), b)
+geometrical90thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.90), b)
+
 geometricalAverages(w::WatchDog, b, bτ) = _geostatistic(mean, b)
+geometricalMinimum(w::WatchDog, b, bτ) = _geostatistic(minimum, b)
+geometricalMaximum(w::WatchDog, b, bτ) = _geostatistic(maximum, b)
 geometricalRMS(w::WatchDog, b, bτ) = _geostatistic(x->sqrt(mean(x .^2)), b)
 geometricalStd(w::WatchDog, b, bτ) = _geostatistic(std, b)
 
@@ -155,6 +177,20 @@ geoMassFlux(w::WatchDog, b, bτ) = begin
     Dict(
         "massFlux" => massFlux[2] ./ d,
         "z" => massFlux[1]
+    )
+end
+
+upperBoundarySurface(w::WatchDog, b, bτ) = begin
+    uzplane = b[:uz][:, :, end]
+    Tplane = b[:T][:, :, end]
+    Dplane = log.(b[:d][:, :, end])
+
+    Dict(
+        "uzplane" => uzplane[:, :],
+        "Tplane" => Tplane[:, :],
+        "lnDplane" => Dplane[:, :],
+        "x" => b.x[:, :, end],
+        "y" => b.y[:, :, end]
     )
 end
 
@@ -174,6 +210,8 @@ _optstatistic(f, bτ) = begin
 end
 
 opticalAverages(w::WatchDog, b, bτ) = _optstatistic(mean, bτ)
+opticalMaximum(w::WatchDog, b, bτ) = _optstatistic(maximum, bτ)
+opticalMinimum(w::WatchDog, b, bτ) = _optstatistic(minimum, bτ)
 opticalRMS(w::WatchDog, b, bτ) = _optstatistic(x->sqrt(mean(x .^2)), bτ) 
 opticalStd(w::WatchDog, b, bτ) = _optstatistic(std, bτ)
 
@@ -199,7 +237,7 @@ opticalSurfaces(w::WatchDog, b, bτ) = begin
         "Tplane" => Tplane[:, :, 1],
         "lnDplane" => Dplane[:, :, 1],
         "x" => b.x[:, :, 1],
-        "y" => b.x[:, :, 1]
+        "y" => b.y[:, :, 1]
     )
 end
 
@@ -227,6 +265,17 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     optMassFlux = optMassFlux,
     geoMassFlux = geoMassFlux,
     opticalSurfaces = opticalSurfaces,
+    opticalMaximum = opticalMaximum,
+    opticalMinimum = opticalMinimum,
+    geometricalMinimum = geometricalMinimum,
+    geometricalMaximum = geometricalMaximum,
+    upperBoundarySurface=upperBoundarySurface,
+    geometrical15thQuantile=geometrical15thQuantile,
+    geometrical30thQuantile=geometrical30thQuantile,
+    geometrical45thQuantile=geometrical45thQuantile,
+    geometrical60thQuantile=geometrical60thQuantile,
+    geometrical75thQuantile=geometrical75thQuantile,
+    geometrical90thQuantile=geometrical90thQuantile,
     additional_functions...
 )
 
@@ -283,16 +332,26 @@ save(w::WatchDog, monitoring) = begin
     close(fid)
 end
 
-reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {S<:WatchDog} = begin
-    w = s(name; folder=folder)
 
+
+
+reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {S<:WatchDog} = begin
+    reload(s(name; folder=folder), snap, mmap=mmap)
+end
+
+reload(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false) where {S<:WatchDog} = begin
+    reload(s(name; folder=folder), mmap=mmap, asDict=asDict)
+end
+
+reload(w::S, snap; mmap=false) where {S<:WatchDog} = begin
     fid = HDF5.h5open(monitoringPath(w, snap), "r")
     fvals = Dict()
 
     for gname in keys(fid)
         fvals[gname] = Dict()
-        for dname in keys(fid[gname])
-            fvals[gname][dname] = mmap ? HDF5.readmmap(fid[gname][dname]) : HDF5.read(fid[gname][dname])
+        group = fid[gname]
+        for dname in keys(group)
+            fvals[gname][dname] = mmap ? HDF5.readmmap(group[dname]) : HDF5.read(group[dname])
         end
     end
 
@@ -301,17 +360,31 @@ reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {
     fvals
 end
 
-reload(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false) where {S<:WatchDog} = begin
-    w = s(name; folder=folder)
+reload(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
     listOfSnaps = availableSnaps(w)
     
     if !asDict
-        [reload(s, name, snapshotnumber(snap); folder=folder, mmap=mmap) for snap in listOfSnaps]
+        l  = []
+        for snap in listOfSnaps
+            try
+                si = reload(w, snapshotnumber(snap); mmap=mmap)
+                append!(l, [si])
+            catch
+                nothing
+            end
+        end
+
+        l
     else
-        Dict(
-            snap => reload(s, name, snap; folder=folder, mmap=mmap) 
-            for snap in listOfSnaps
-        )
+        l = Dict()
+        for snap in listOfSnaps
+            try
+                l[snap] = reload(w, snapshotnumber(snap); mmap=mmap)
+            catch
+                nothing
+            end
+        end
+
+        l
     end
 end
-

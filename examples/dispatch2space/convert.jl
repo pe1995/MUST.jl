@@ -80,7 +80,7 @@ MUST.sendsync(workers(), folder=folder, do_teff=save_info, ini_nml=nml, eos=eos_
 @everywhere function convert_snapshots(snapshots)
     for i_s in eachindex(snapshots)
         @info "Converting snapshot $(snapshots[i_s]) on worker $(myid())"
-        if true
+        try
             # The dispatch snapshot object (Python)
             snap = dispatch.snapshot(snapshots[i_s], data=folder)
 
@@ -136,7 +136,7 @@ MUST.sendsync(workers(), folder=folder, do_teff=save_info, ini_nml=nml, eos=eos_
             #MUST.save(s;   name="space_sn$(snapshots[i_s])", folder=folder)
             MUST.save(b_s; name="box_tau_sn$(snapshots[i_s])",   folder=folder)
 
-        else
+        catch
             @warn "snapshot $(snapshots[i_s]) could not be loaded."
             continue
         end

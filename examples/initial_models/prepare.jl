@@ -50,8 +50,19 @@ end
 end
 
 @everywhere include($(input_file))
-@everywhere MUST.@import_dispatch "../../../dispatch2"
+@everywhere MUST.@import_dispatch dispatch_location
 @everywhere prepare4dispatch = MUST.ingredients("prepare4dispatch.jl")
+
+
+#===================== Step (-1): Add timings ================================#
+begin
+    if !("SLURM_NTASKS" in keys(ENV))
+        @info "Activate timing..."
+        TSO.activate_timing!.(TSO.timers)
+        TSO.start_timing!()
+    end
+end
+
 
 #=================== Step (A): The Initial Grid ==============================#
 begin
@@ -60,9 +71,9 @@ begin
     MUST.save(grid, initial_cl_path)
 
     # To save time, remove models now that are not interesting at the moment
-    deleteat!(grid.info, grid["feh"].!=0.0)
-    deleteat!(grid.info, grid["teff"].!=5000.0)
-    deleteat!(grid.info, grid["logg"].!=4.0)
+    #deleteat!(grid.info, grid["feh"].!=0.0)
+    #deleteat!(grid.info, (grid["teff"].==5000.0) .| ((grid["teff"].!=5777.0)))
+    #deleteat!(grid.info, (grid["logg"].==4.0) .| ((grid["logg"].!=4.0)))
     MUST.save(grid, initial_mod_path)
 
 
@@ -74,7 +85,7 @@ begin
     end
 
     # within the EoS root folder, check if the desired EoS and opacities are available
-    iwarn = true
+    iwarn = false
     for i in 1:nrow(grid.info)
         if !isfile(grid.info[i, "eos_root"], eos_path)
             error("For grid entry $(i) there is no EoS at the given `eos_path` at the given `eos_root`!")
@@ -82,14 +93,12 @@ begin
         if !isfile(grid.info[i, "eos_root"], opa_path)
             error("For grid entry $(i) there is no Opacitiy table at the given `opa_path` at the given `eos_root`!")
         end
-        if !isfile(grid.info[i, "eos_root"], sopa_path)
-            if iwarn
+        if !iwarn
+            if !isfile(grid.info[i, "eos_root"], sopa_path)
                 @warn "For grid entry $(i) there is no scattering at the given `sopa_path` at the given `eos_root`!"
-                global iwarn = false
-            else
-                continue
+                global iwarn = true
+                #global sopa_path = nothing
             end
-            global sopa_path = nothing
         end
     end
 
@@ -102,6 +111,9 @@ begin
     end
     if !("sopa_original" in names(grid.info))
         grid.info[!, "sopa_original"] = [sopa_path for _ in 1:nrow(grid.info)]
+    end
+    if (iwarn)
+        grid.info[!, "sopa_original"] = ["" for _ in 1:nrow(grid.info)]
     end
 end
 
@@ -148,6 +160,12 @@ begin
         sopa_path = args[7]
         method = args[8]
         Nbins = args[9]
+
+        sopa_path = if (sopa_path=="")
+            nothing
+        else
+            sopa_path
+        end
         
         # formation opacities
         (!skip_formation) && prepare4dispatch.formation_opacities(
@@ -229,24 +247,26 @@ begin
                 saveat=joinpath(grid.info[i, "binned_E_tables"], "inim.dat"),
                 common_size=grid.info[i, "initial_model_size"]
             )
-
-            @info "Recomputing model $(grid.info[i, "name"]) dimensions based on new z scale."
-            prepare4dispatch.resolution!(
-                grid, 
-                patch_size=patch_size, 
-                τ_up=τ_up, 
-                τ_surf=τ_surf, 
-                τ_down=τ_down, 
-                scale_resolution=scale_resolution,
-                τ_ee0=τ_ee0, 
-                τ_eemin=τ_eemin, 
-                τ_zee0=τ_zee0, 
-                τ_rho0=τ_rho0,
-                use_inim=true
-            )
         else
             cp(grid.info[i, "av_path"], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), force=true)
         end
+    end
+
+    if use_avnewz
+        @info "Recomputing model dimensions based on new z scale."
+        prepare4dispatch.resolution!(
+            grid, 
+            patch_size=patch_size, 
+            τ_up=τ_up, 
+            τ_surf=τ_surf, 
+            τ_down=τ_down, 
+            scale_resolution=scale_resolution,
+            τ_ee0=τ_ee0, 
+            τ_eemin=τ_eemin, 
+            τ_zee0=τ_zee0, 
+            τ_rho0=τ_rho0,
+            use_inim=true
+        )
     end
 end
 
@@ -265,3 +285,8 @@ begin
 end
 
 #=============================================================================#
+
+
+begin
+    TSO.end_timing!()
+end

@@ -84,6 +84,10 @@ export marcsBox
 export axis, closest
 export ingredients
 
+# monitoring
+export defaultWatchDog, monitor
+
+
 #= Julia code files =#
 include("_constants.jl")
 include("_argparse.jl")
