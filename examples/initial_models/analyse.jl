@@ -680,6 +680,7 @@ if (nmodels > 0) && plot_given
 	vmin = minimum([minimum(u) for name in keys(uz) for u in uz[name]]) ./1e5
 	vmax = maximum([maximum(u) for name in keys(uz) for u in uz[name]]) ./1e5
 
+	#vmax = vmax*1.2
 	vmax = min(abs.([vmin, vmax])...)
 	vmin = -vmax
 
@@ -694,11 +695,12 @@ if (nmodels > 0) && plot_given
 				origin="lower",
 				vmin=vmin, vmax=vmax,
 				extent=extent(snap),
-				cmap="coolwarm"
+				cmap="seismic_r"
 			)
 	
 			cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
 			cb.set_label(L"\rm U_z\ [km\ \times\ s^{-1}]")
+			#cb.set_label(L"\rm T\ [K]")
 	
 			axD.set_xlabel("x [cm]")
 			axD.set_ylabel("y [cm]")	

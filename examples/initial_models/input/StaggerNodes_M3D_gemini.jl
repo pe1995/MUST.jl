@@ -29,10 +29,10 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 14                 # Points per patch
+    patch_size = 20                 # Points per patch
     τ_up = -4.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 5.5                    # Lower limit of simulation domain
+    τ_down = 6.5                    # Lower limit of simulation domain
     τ_ee0 = -1.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -1.0                   # Newton cooling placement (height)
@@ -41,7 +41,7 @@ begin
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
-        :courant_target=>1.0,
+        :courant_target=>0.3,
         :courant_rt=>1.0,
         :newton_params=>(
             :on=>true,
@@ -54,8 +54,11 @@ begin
             :out_time=>1.0,
         ),
         :aux_params=>(
-            :select=>["dt_rt"]
-        )
+            :select=>["dt_rt", "flux"]
+        ),
+        :boundary_params=>(
+            :upper_bc=>7,
+        )     
     )
 end
 
@@ -65,8 +68,7 @@ begin
     recompute_ross = false
 
     # Location of the opacity table
-
-    # for MARCS EoS
+    # for M3D EoS
     mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v2.1"
     extension = "magg_m0_a0"
     eos_path = "combined_eos_"*extension*".hdf5"

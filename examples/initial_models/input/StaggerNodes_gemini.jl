@@ -32,7 +32,7 @@ begin
     patch_size = 14                 # Points per patch
     τ_up = -4.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 5.5                    # Lower limit of simulation domain
+    τ_down = 6.0                    # Lower limit of simulation domain
     τ_ee0 = -1.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -1.0                   # Newton cooling placement (height)
@@ -41,7 +41,7 @@ begin
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
-        :courant_target=>1.0,
+        :courant_target=>0.3,
         :courant_rt=>1.0,
         :newton_params=>(
             :on=>true,
@@ -54,7 +54,7 @@ begin
             :out_time=>1.0,
         ),
         :aux_params=>(
-            :select=>["dt_rt"]
+            :select=>["dt_rt", "flux"],
         )
     )
 end
@@ -76,13 +76,17 @@ begin
     # v0.5   -> 8 bins (MARCS)
     # v0.5.1 -> Grey (MARCS)
     # v0.5.2 -> 4 MURaM bins (MARCS)
-    version = "v0.5.2"
+    # v0.5.3 -> 5 bins in paper-setup
+    # v0.5.4 -> 8 bins in paper-setup
+    # v0.5.5 -> 12 bins in paper-setup
+    # v0.5.6 -> 7 bins in paper-setup
+    version = "v0.5.6"
 
     # Number of bins in the opacity table (output)
-    Nbins = 4
+    Nbins = 7
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = true
+    skip_binning = false
 
     # Skip formation opacity procedure (assumes it has already been done)
     skip_formation = true
@@ -118,5 +122,12 @@ begin
         #=quadrants = [ 
             TSO.Quadrant((0.0, 100.0), (-100, 100), 1)
         ]=#
+
+        # N bins paper style
+        quadrants=[ 
+            TSO.Quadrant((0.0, 4.0),   (-100, 4.5), 4),
+            TSO.Quadrant((0.0, 4.0),   (4.5, 100), 1),
+            TSO.Quadrant((4.0, 100.0), (-100, 100), 2)
+        ]
     end
 end

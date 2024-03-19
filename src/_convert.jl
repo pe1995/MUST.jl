@@ -23,7 +23,8 @@ function snapshotBox(
     convert_units=Dict(
         :dt_rt=>:t,
         :qr=>:qr,
-        :pg=>:p
+        :pg=>:p,
+        :flux=>:flux
     )
     )
     folder = if !isdir(folder)

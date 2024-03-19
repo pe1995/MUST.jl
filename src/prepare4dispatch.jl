@@ -201,11 +201,10 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
     step = 0.1
 
     actual_x_patches = find_integer_simple(dxdz_approx, desired_n_patches, step=step)
-    
+    actual_x_patches = actual_x_patches % 2 == 0 ? actual_x_patches : actual_x_patches + 1
     # For some reason the fraction needs to be integer as well...
     #actual_x_patches = round(dxdz, sigdigits=1) * desired_n_patches
     actual_dx = actual_x_patches / desired_n_patches * actual_dz
-
     actual_dx, actual_x_patches*patch_size, actual_dz, desired_n_patches*patch_size
 end
 
@@ -279,7 +278,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     # z_lo should be the bottom z value. The same should be true for the simulation domain
     # this means that we need to shift it down until that value is reached
     ddown = abs((z_size/2.0 - abs(z_lo)))
-    
+    ddown = abs((z_size/2.0 - abs(zh)))
+
     #=courant_rt = if (logg >= 4) & (teff<6500)
         1.0
     elseif ((logg < 4) & (logg >= 3)) | (teff>=6500)
@@ -298,14 +298,14 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     end=#
     courant_hd = courant_hd
 
-
-    larger_than_sun = x_size /1.0e8 /6.0
+    l_cgs_raw = z_size / 3.0
+    larger_than_sun = z_size / 3.0e8
     newton_time = newton_time #* larger_than_sun
     friction_time = friction_time #* larger_than_sun
     newton_scale = newton_scale #* larger_than_sun
 
-    l_cgs_raw = 1e8 * larger_than_sun
-    l_cgs = round(1e8 * larger_than_sun, sigdigits=3) #MUST.roundto(l_cgs * larger_than_sun, 0.1, magnitude=1e3)
+    #l_cgs_raw = 1e8 * larger_than_sun
+    l_cgs = round(l_cgs_raw, sigdigits=4) #MUST.roundto(l_cgs * larger_than_sun, 0.1, magnitude=1e3)
 
     # experiment with t scale based on size only
     test_tscale = true
@@ -334,6 +334,12 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     
     # or exponentially
     htop_scale = max(exp(-1.15*(logg-5.0))-0.6, 0.1)
+
+    # size scaling
+    dxdz = patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
+    if dxdz != 2
+        @warn "$(name) more than twice the number of patches in x and y."
+    end
 
     x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     MUST.set!(
@@ -501,7 +507,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         m = TSO.flip(models[i])
         mask = sortperm(m.τ)
         td = min(τ_down, maximum(log10.(m.τ)))
-        tu = τ_up #max(τ_up, minimum(log10.(m.τ)))
+        tu = max(τ_up, minimum(log10.(m.τ)))
 
         xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
             m, 

@@ -27,7 +27,7 @@ end
 md"# Dispatch Monitoring Board"
 
 # ╔═╡ c1ad6c59-fae6-49e7-bfc0-8426c553aa2d
-md"## Setup"
+md"# Setup"
 
 # ╔═╡ 7cd7d6f0-8498-44ff-b59c-d298365d6416
 TableOfContents()
@@ -128,7 +128,7 @@ if !isnothing(selectDeleted)
 end
 
 # ╔═╡ bd936d7d-e79f-4f9b-ba54-e0694c6a83f0
-md"## General Properties"
+md"# General Properties"
 
 # ╔═╡ 2c64fcf2-1a0b-49cf-a3f1-890f152d0650
 time = timeevolution(monitoring, "atmosphericParameters", "time")
@@ -137,7 +137,7 @@ time = timeevolution(monitoring, "atmosphericParameters", "time")
 
 
 # ╔═╡ 8d6d674b-153b-4357-9f2d-c4e3cb05d059
-md"## Individual Snapshots"
+md"# Individual Snapshots"
 
 # ╔═╡ b9a721cf-46ef-4e3c-a37c-8b35653e31cb
 md"Pick the time for which you want to see the status: $(@bind timeSurface Slider(time, show_value=true, default=last(time)))
@@ -163,7 +163,7 @@ itimeSurface2 = findfirst(time .== timeSurface2);
 
 
 # ╔═╡ f5ccc550-6bf3-4f0f-baf3-d8de3d216737
-md"### Optical Surface"
+md"## Optical Surface"
 
 # ╔═╡ b757013d-aee5-41a4-ab0a-7715ba47bd97
 topticalsurfaces = timeevolution(monitoring, "opticalSurfaces")
@@ -182,7 +182,7 @@ let
 		topticalsurfaces["uzplane"][itimeSurface] ./1e5,
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="coolwarm_r"
 	)
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
@@ -196,7 +196,7 @@ let
 		topticalsurfaces["uzplane"][itimeSurface2] ./1e5,
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="coolwarm_r"
 	)
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm v_z\ [km\ s^{-1}]")
@@ -227,7 +227,7 @@ let
 		exp.(topticalsurfaces["lnDplane"][itimeSurface]),
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="gist_heat_r"
 	)
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
@@ -246,7 +246,7 @@ let
 		exp.(topticalsurfaces["lnDplane"][itimeSurface2]),
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="gist_heat_r"
 	)
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
@@ -274,7 +274,7 @@ let
 		topticalsurfaces["Tplane"][itimeSurface],
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="gist_heat"
 	)
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
@@ -293,7 +293,7 @@ let
 		topticalsurfaces["Tplane"][itimeSurface2],
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="gist_heat"
 	)
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
@@ -311,7 +311,7 @@ end
 
 
 # ╔═╡ 7f77f259-505d-4344-8ee4-8628387f2401
-md"### Upper Boundary Surface"
+md"## Upper Boundary Surface"
 
 # ╔═╡ cc5fbd5a-c8a0-471a-a56b-0512e4c3989b
 tuppersurfaces = timeevolution(monitoring, "upperBoundarySurface")
@@ -330,7 +330,7 @@ let
 		tuppersurfaces["uzplane"][itimeSurface] ./1e5,
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="coolwarm_r"
 	)
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
@@ -344,7 +344,7 @@ let
 		tuppersurfaces["uzplane"][itimeSurface2] ./1e5,
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="coolwarm_r"
 	)
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm v_z\ [km\ s^{-1}]")
@@ -374,7 +374,7 @@ let
 		exp.(tuppersurfaces["lnDplane"][itimeSurface]),
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="gist_heat_r"
 	)
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
@@ -393,7 +393,7 @@ let
 		exp.(tuppersurfaces["lnDplane"][itimeSurface2]),
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="gist_heat_r"
 	)
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
@@ -421,7 +421,7 @@ let
 		tuppersurfaces["Tplane"][itimeSurface],
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="gist_heat"
 	)
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
@@ -440,7 +440,7 @@ let
 		tuppersurfaces["Tplane"][itimeSurface2],
 		origin="lower",
 		extent=extent,
-		cmap="coolwarm"
+		cmap="gist_heat"
 	)
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
@@ -458,7 +458,7 @@ end
 
 
 # ╔═╡ b0c40c50-3361-4b01-ae87-45ae30387526
-md"### Geometrical Profiles"
+md"## Geometrical Profiles"
 
 # ╔═╡ 96a3ddc0-3d70-4b65-a7c2-7482c8817186
 tGeoAv = timeevolution(monitoring, "geometricalAverages")
@@ -666,7 +666,7 @@ end
 
 
 # ╔═╡ db1a9405-e93c-476d-a43b-f11f3138b57a
-md"### Optical Profiles"
+md"## Optical Profiles"
 
 # ╔═╡ 3da231de-ff58-4161-a6a4-58162483825a
 tOptAv = timeevolution(monitoring, "opticalAverages")
@@ -869,14 +869,66 @@ let
 	gcf()
 end
 
+# ╔═╡ 0da614f4-9021-44f3-af89-bd6dab57dc1b
+md"## Time steps
+Optionally the radiative timestep can be saved in dispatch. If it is, it should be included in the monitoring by default."
+
 # ╔═╡ d55d7d42-c78c-447c-9959-3689f5341655
+("dt_rt" in keys(tOptAv)) && let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	# First one
+	x, y = tOptMin["log10τ_ross"][itimeSurface], tOptMin["dt_rt"][itimeSurface]
+	ax.plot(
+		x, y,
+		color="magenta", marker="", ls="-"
+	) 
+	x, y = tOptMax["log10τ_ross"][itimeSurface], tOptMax["dt_rt"][itimeSurface]
+	ax.plot(
+		x, y,
+		color="cyan", marker="", ls="-"
+	) 
+	x, y = tOptAv["log10τ_ross"][itimeSurface], tOptAv["dt_rt"][itimeSurface]
+	ax.plot(
+		x, y,
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
+	) 
+
+	# Second one
+	x, y = tOptMin["log10τ_ross"][itimeSurface2], tOptMin["dt_rt"][itimeSurface2]
+	ax.plot(
+		x, y,
+		color="magenta", marker="", ls="--"
+	) 
+	x, y = tOptMax["log10τ_ross"][itimeSurface2], tOptMax["dt_rt"][itimeSurface2]
+	ax.plot(
+		x, y,
+		color="cyan", marker="", ls="--"
+	)
+	x, y = tOptAv["log10τ_ross"][itimeSurface2], tOptAv["dt_rt"][itimeSurface2]
+	ax.plot(
+		x, y,
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
+	) 
+
+	ax.set_yscale("log")
+	ax.set_xlabel(L"\rm \log\ \tau_{ross}")
+	ax.set_ylabel(L"\rm \Delta t_{RT}\ [s]")
+	ax.legend()
+
+	gcf()
+end
+
+# ╔═╡ c3fb528f-4bd8-4ae7-bb4c-ac90899fbf21
 
 
 # ╔═╡ 321e3dda-cd15-4787-95e6-f928125535d5
-md"## Time evolution"
+md"# Time evolution"
 
 # ╔═╡ 35f64e1d-2273-4178-879e-187b86b24043
-md"### Optical Surace"
+md"## Optical Surace"
 
 # ╔═╡ c2b64d82-09a7-4d67-97d0-b51d96d30d25
 ttempsurface = timeevolution(monitoring, "opticalSurfaces", "Tplane")
@@ -978,7 +1030,7 @@ end
 
 
 # ╔═╡ df9b58cf-fe4f-4858-a296-879bb0385ba7
-md"### Upper Boundary"
+md"## Upper Boundary"
 
 # ╔═╡ ccf5f4e6-adc6-419d-a717-4b3b597c2233
 ttopgeo = timeevolution(monitoring, "geometricalAverages")
@@ -1079,7 +1131,7 @@ end
 
 
 # ╔═╡ 9e883b44-f225-4566-9d76-ecd3e34d3b5b
-md"### Mass flux"
+md"## Mass flux"
 
 # ╔═╡ 3bfef187-d899-473d-9a92-acf5c65fa50d
 tmassfluxgeo = timeevolution(monitoring, "geoMassFlux")
@@ -1222,7 +1274,9 @@ end
 # ╟─eddc02bf-d7ca-41e1-878e-ef1103bf1b0f
 # ╟─25c3d608-9440-4ac9-8277-3855ba3b6a7b
 # ╟─e59ab649-3b30-4af1-ab28-6f6d6aacee1c
+# ╟─0da614f4-9021-44f3-af89-bd6dab57dc1b
 # ╟─d55d7d42-c78c-447c-9959-3689f5341655
+# ╟─c3fb528f-4bd8-4ae7-bb4c-ac90899fbf21
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─35f64e1d-2273-4178-879e-187b86b24043
 # ╟─c2b64d82-09a7-4d67-97d0-b51d96d30d25

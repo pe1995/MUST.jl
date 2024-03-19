@@ -96,7 +96,7 @@ and the corresponding data.
 function analyse(w::WatchDog, snapshot; save_box=false)
     b, bτ = snapshotBox(
         snapshot; 
-        w.folder, 
+        folder=w.folder, 
         optical_depth_scale=true, 
         save_snapshot=save_box, 
         to_multi=false,
