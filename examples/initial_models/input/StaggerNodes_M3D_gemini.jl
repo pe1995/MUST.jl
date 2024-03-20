@@ -33,31 +33,32 @@ begin
     τ_up = -4.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 6.5                    # Lower limit of simulation domain
-    τ_ee0 = -1.5                    # Newton cooling placement (energy)
+    τ_ee0 = -2.2                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -1.0                   # Newton cooling placement (height)
+    τ_zee0 = -2.0                   # Newton cooling placement (height)
     τ_rho0 = -1.0                   # Density normaliztion height
     scale_resolution = 0.65         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
-        :newton_decay_scale=>20.0,  #   for direct namelist replacement
+        :newton_decay_scale=>30.0,  #   for direct namelist replacement
         :courant_target=>0.3,
-        :courant_rt=>1.0,
+        :courant_rt=>0.75,
         :newton_params=>(
             :on=>true,
             :delay_rt=>true
         ),
         :sc_rt_params=>(
-            :rt_freq=>1.5,
+            :rt_freq=>1.25,
         ),
         :io_params=>(
             :out_time=>1.0,
         ),
         :aux_params=>(
-            :select=>["dt_rt", "flux"]
+            :select=>["dt_rt", "flux"],
         ),
         :boundary_params=>(
             :upper_bc=>7,
+            :smallr=>1e-6
         )     
     )
 end

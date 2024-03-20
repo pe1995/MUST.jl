@@ -24,7 +24,10 @@ begin
 end
 
 # ╔═╡ c7dc3b15-6555-4824-872a-d487fe5145ea
-md"# Dispatch Monitoring Board"
+md"""
+# Dispatch Monitoring Board
+Monitoring Board to visualize DISPATCH stellar atmosphere simulations while they are running or after completion. All visualizations rely on the computations from a `MUST.WatchDog`, that converts, computes statistics and deletes converted snapshots afterwards to avoid wasting disk space. 
+"""
 
 # ╔═╡ c1ad6c59-fae6-49e7-bfc0-8426c553aa2d
 md"# Setup"
@@ -93,15 +96,6 @@ timeevolution(m, group) = begin
 	)
 end
 
-# ╔═╡ bcb4fd58-2b60-4b24-ad3e-ebc68392f320
-
-
-# ╔═╡ e5b373f5-f565-4910-88b0-f5580880fac4
-md"Available Groups:"
-
-# ╔═╡ 53f4fdc7-5509-44dd-bf71-ceacb78e3e54
-keys(monitoring[1]) |> collect
-
 # ╔═╡ 60199001-8f0e-44a6-ae50-e829687c045c
 
 
@@ -134,6 +128,15 @@ md"# General Properties"
 time = timeevolution(monitoring, "atmosphericParameters", "time")
 
 # ╔═╡ ef5ee4f6-96be-4669-ba68-3c1117605a4c
+
+
+# ╔═╡ 9265061d-eaa5-4fc1-a7b9-51392a357c91
+md"Available Groups that contain a number of variables with respect to the same topic:"
+
+# ╔═╡ ea625d84-28fe-4f64-ad9f-95890b7d43aa
+keys(monitoring[1]) |> collect
+
+# ╔═╡ 33c1da97-0760-495e-abd5-65531d5e1170
 
 
 # ╔═╡ 8d6d674b-153b-4357-9f2d-c4e3cb05d059
@@ -869,66 +872,146 @@ let
 	gcf()
 end
 
+# ╔═╡ 69734479-fb5b-4662-bc04-2ea03aa9ea3e
+
+
 # ╔═╡ 0da614f4-9021-44f3-af89-bd6dab57dc1b
-md"## Time steps
+md"## Time Steps
 Optionally the radiative timestep can be saved in dispatch. If it is, it should be included in the monitoring by default."
 
 # ╔═╡ d55d7d42-c78c-447c-9959-3689f5341655
-("dt_rt" in keys(tOptAv)) && let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(5, 6))
-
-	# First one
-	x, y = tOptMin["log10τ_ross"][itimeSurface], tOptMin["dt_rt"][itimeSurface]
-	ax.plot(
-		x, y,
-		color="magenta", marker="", ls="-"
-	) 
-	x, y = tOptMax["log10τ_ross"][itimeSurface], tOptMax["dt_rt"][itimeSurface]
-	ax.plot(
-		x, y,
-		color="cyan", marker="", ls="-"
-	) 
-	x, y = tOptAv["log10τ_ross"][itimeSurface], tOptAv["dt_rt"][itimeSurface]
-	ax.plot(
-		x, y,
-		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
-	) 
-
-	# Second one
-	x, y = tOptMin["log10τ_ross"][itimeSurface2], tOptMin["dt_rt"][itimeSurface2]
-	ax.plot(
-		x, y,
-		color="magenta", marker="", ls="--"
-	) 
-	x, y = tOptMax["log10τ_ross"][itimeSurface2], tOptMax["dt_rt"][itimeSurface2]
-	ax.plot(
-		x, y,
-		color="cyan", marker="", ls="--"
-	)
-	x, y = tOptAv["log10τ_ross"][itimeSurface2], tOptAv["dt_rt"][itimeSurface2]
-	ax.plot(
-		x, y,
-		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
-	) 
-
-	ax.set_yscale("log")
-	ax.set_xlabel(L"\rm \log\ \tau_{ross}")
-	ax.set_ylabel(L"\rm \Delta t_{RT}\ [s]")
-	ax.legend()
-
-	gcf()
+if ("dt_rt" in keys(tOptAv)) 
+	let
+		plt.close()
+	
+		f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	
+		# First one
+		x, y = tOptMin["log10τ_ross"][itimeSurface], tOptMin["dt_rt"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="-"
+		) 
+		x, y = tOptMax["log10τ_ross"][itimeSurface], tOptMax["dt_rt"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="-"
+		) 
+		x, y = tOptAv["log10τ_ross"][itimeSurface], tOptAv["dt_rt"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
+		) 
+	
+		# Second one
+		x, y = tOptMin["log10τ_ross"][itimeSurface2], tOptMin["dt_rt"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="--"
+		) 
+		x, y = tOptMax["log10τ_ross"][itimeSurface2], tOptMax["dt_rt"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="--"
+		)
+		x, y = tOptAv["log10τ_ross"][itimeSurface2], tOptAv["dt_rt"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
+		) 
+	
+		ax.set_yscale("log")
+		ax.set_xlabel(L"\rm \log\ \tau_{ross}")
+		ax.set_ylabel(L"\rm \Delta t_{RT}\ [s]")
+		ax.legend()
+	
+		gcf()
+	end
 end
 
 # ╔═╡ c3fb528f-4bd8-4ae7-bb4c-ac90899fbf21
 
 
+# ╔═╡ 10e5e8cb-0881-40d0-b392-2f66c0cbfc7c
+md"""
+## Bolometric Flux
+It is also possible to monitor the evolution of the bolometric flux. The effective temperature then is computed as 
+
+$\rm T_{eff} = (F_{bol}/2/\sigma_{SB})^{1/4}$
+
+where we divide by 2 to only account for the outgoing flux. This is needed because $\rm F_{bol}$ has been integrated over all angles, including downwards radiation, within the RT solver of DISPATCH. 
+"""
+
+# ╔═╡ 4c3b9b8a-03a5-494d-a321-7f5c400ed054
+teff(f) = (f /2 / MUST.σ_S) ^0.25
+
+# ╔═╡ dc0315d8-0616-433b-8182-33840afb0b0f
+teff_str(f) = L"\rm T_{eff} =\ "*"$(round(teff(f), sigdigits=5))"*L"\rm \ K"
+
+# ╔═╡ aef86067-68b0-48b8-8bb2-0d410a7521c2
+if haskey(tGeoAv, "flux")
+	let
+		plt.close()
+	
+		f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	
+		x, y = tGeoMax["z"][itimeSurface] ./1e8, tGeoMax["flux"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="-"
+		) 
+		x, y = tGeoMin["z"][itimeSurface] ./1e8, tGeoMin["flux"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="-"
+		) 
+		x, y = tGeoAv["z"][itimeSurface] ./1e8, tGeoAv["flux"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="-", 
+			label="t = $(time[itimeSurface]) s, "*teff_str(tGeoAv["flux"][itimeSurface][end]), lw=2.5
+		) 
+	
+	
+	
+		
+		x, y = tGeoMax["z"][itimeSurface2] ./1e8, tGeoMax["flux"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="--"
+		) 
+		x, y = tGeoMin["z"][itimeSurface2] ./1e8, tGeoMin["flux"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="--"
+		) 
+		x, y = tGeoAv["z"][itimeSurface2] ./1e8, tGeoAv["flux"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="--", 
+			label="t = $(time[itimeSurface2]) s, "*teff_str(tGeoAv["flux"][itimeSurface2][end]), lw=2.
+		) 
+
+		ax.set_yscale("log")
+		ax.set_xlabel("z [Mm]")
+		ax.set_ylabel(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+		ax.legend()
+
+		gcf()
+	end
+end
+
+# ╔═╡ c727a6fe-f09c-4561-8a86-fbd7fdd4f6a8
+
+
 # ╔═╡ 321e3dda-cd15-4787-95e6-f928125535d5
-md"# Time evolution"
+md"""
+# Time evolution
+In the following the time evolution of different quantities is shown by computing statistics for every snapshot.
+"""
 
 # ╔═╡ 35f64e1d-2273-4178-879e-187b86b24043
-md"## Optical Surace"
+md"## Optical Surface"
 
 # ╔═╡ c2b64d82-09a7-4d67-97d0-b51d96d30d25
 ttempsurface = timeevolution(monitoring, "opticalSurfaces", "Tplane")
@@ -1058,7 +1141,7 @@ let
 		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
-	ax.set_title("Upper Boundary")
+	#ax.set_title("Upper Boundary")
 	ax.set_xlabel("time [s]")
 	ax.set_ylabel(L"\rm <T_{top}>\ [K]")
 
@@ -1088,7 +1171,7 @@ let
 		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
-	ax.set_title("Upper Boundary")
+	#ax.set_title("Upper Boundary")
 	ax.set_xlabel("time [s]")
 	ax.set_ylabel(L"\rm  <\rho_{top}>\ [g\ cm^{-3}]")
 	gcf()
@@ -1119,19 +1202,49 @@ let
 
 	ax.axhline(0.0, color="k", alpha=0.2, ls="--")
 
-	
-
-	ax.set_title("Upper Boundary")
+	#ax.set_title("Upper Boundary")
 	ax.set_xlabel("time [s]")
 	ax.set_ylabel(L"\rm  <v_z^{top}>\ [km\ s^{-1}]")
 	gcf()
+end
+
+# ╔═╡ 0378dcdf-0291-4e9c-a30b-5dacd346707c
+if haskey(ttopgeo, "flux")
+	let
+		plt.close()
+	
+		f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	
+		surfaceT = teff.((ttopgeo["flux"] .|> last))
+		surfaceMa = teff.((tGeoMax["flux"] .|> last))
+		surfaceMi = teff.((tGeoMin["flux"] .|> last))
+		
+		ax.plot(
+			time, surfaceMi, 
+			color="magenta", marker="s", markerfacecolor="w", ls="-"
+		) 
+		ax.plot(
+			time, surfaceMa, 
+			color="cyan", marker="s", markerfacecolor="w", ls="-"
+		) 
+		ax.plot(
+			time, surfaceT, 
+			color="k", marker="s", markerfacecolor="w", ls="-"
+		) 
+	
+		#ax.set_title("Upper Boundary")
+		ax.set_xlabel("time [s]")
+		ax.set_ylabel(L"\rm T_{eff}\ [K]")
+	
+		gcf()
+	end
 end
 
 # ╔═╡ b4fd0320-74b2-4ed4-b7b0-beca4eccd553
 
 
 # ╔═╡ 9e883b44-f225-4566-9d76-ecd3e34d3b5b
-md"## Mass flux"
+md"## Mass Flux"
 
 # ╔═╡ 3bfef187-d899-473d-9a92-acf5c65fa50d
 tmassfluxgeo = timeevolution(monitoring, "geoMassFlux")
@@ -1205,6 +1318,44 @@ let
 	gcf()
 end
 
+# ╔═╡ 82daeb7f-1a3b-420a-8193-148d7314f557
+
+
+# ╔═╡ b59908ac-50a9-49fd-bcc2-94c59b205543
+md"## Time Step (minimum)"
+
+# ╔═╡ 787b1cc4-9e1f-4421-874d-bdff7c231bf9
+if ("dt_rt" in keys(tGeoAv)) 
+	let
+		plt.close()
+	
+		f, ax = plt.subplots(1, 1, figsize=(5, 6))
+		
+		surfaceT = (tGeoAv["dt_rt"] .|> minimum)
+		surfaceMa = (tGeoMax["dt_rt"] .|> minimum)
+		surfaceMi = (tGeoMin["dt_rt"] .|> minimum)
+		
+		ax.plot(
+			time, surfaceMi, 
+			color="magenta", marker="s", markerfacecolor="w", ls="-"
+		) 
+		ax.plot(
+			time, surfaceMa, 
+			color="cyan", marker="s", markerfacecolor="w", ls="-"
+		) 
+		ax.plot(
+			time, surfaceT, 
+			color="k", marker="s", markerfacecolor="w", ls="-"
+		) 
+
+		ax.set_yscale("log")
+		ax.set_xlabel("time [s]")
+		ax.set_ylabel(L"\rm min\left( \Delta t_{RT}\right)\ [s]")
+	
+		gcf()
+	end
+end
+
 # ╔═╡ Cell order:
 # ╟─c7dc3b15-6555-4824-872a-d487fe5145ea
 # ╟─c1ad6c59-fae6-49e7-bfc0-8426c553aa2d
@@ -1223,9 +1374,6 @@ end
 # ╟─6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
 # ╟─1fcefd1e-1c50-43b5-b203-62920944344a
 # ╟─e752753c-b982-40c6-b45d-ad9bfcd3bbfe
-# ╟─bcb4fd58-2b60-4b24-ad3e-ebc68392f320
-# ╟─e5b373f5-f565-4910-88b0-f5580880fac4
-# ╟─53f4fdc7-5509-44dd-bf71-ceacb78e3e54
 # ╟─60199001-8f0e-44a6-ae50-e829687c045c
 # ╟─0e4df1b3-52ef-4fce-8f32-bddc966b0516
 # ╟─3aadeb1c-3585-46af-8b9d-daf33bfcb7f3
@@ -1235,6 +1383,9 @@ end
 # ╟─bd936d7d-e79f-4f9b-ba54-e0694c6a83f0
 # ╟─2c64fcf2-1a0b-49cf-a3f1-890f152d0650
 # ╟─ef5ee4f6-96be-4669-ba68-3c1117605a4c
+# ╟─9265061d-eaa5-4fc1-a7b9-51392a357c91
+# ╟─ea625d84-28fe-4f64-ad9f-95890b7d43aa
+# ╟─33c1da97-0760-495e-abd5-65531d5e1170
 # ╟─8d6d674b-153b-4357-9f2d-c4e3cb05d059
 # ╟─b9a721cf-46ef-4e3c-a37c-8b35653e31cb
 # ╟─725f7500-c31b-4efa-9df9-00c51640914a
@@ -1274,9 +1425,15 @@ end
 # ╟─eddc02bf-d7ca-41e1-878e-ef1103bf1b0f
 # ╟─25c3d608-9440-4ac9-8277-3855ba3b6a7b
 # ╟─e59ab649-3b30-4af1-ab28-6f6d6aacee1c
+# ╟─69734479-fb5b-4662-bc04-2ea03aa9ea3e
 # ╟─0da614f4-9021-44f3-af89-bd6dab57dc1b
 # ╟─d55d7d42-c78c-447c-9959-3689f5341655
 # ╟─c3fb528f-4bd8-4ae7-bb4c-ac90899fbf21
+# ╟─10e5e8cb-0881-40d0-b392-2f66c0cbfc7c
+# ╟─4c3b9b8a-03a5-494d-a321-7f5c400ed054
+# ╟─dc0315d8-0616-433b-8182-33840afb0b0f
+# ╟─aef86067-68b0-48b8-8bb2-0d410a7521c2
+# ╟─c727a6fe-f09c-4561-8a86-fbd7fdd4f6a8
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─35f64e1d-2273-4178-879e-187b86b24043
 # ╟─c2b64d82-09a7-4d67-97d0-b51d96d30d25
@@ -1291,6 +1448,7 @@ end
 # ╟─913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
 # ╟─2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
 # ╟─aa0376dc-5982-4274-9b4d-4aef1d1de896
+# ╟─0378dcdf-0291-4e9c-a30b-5dacd346707c
 # ╟─b4fd0320-74b2-4ed4-b7b0-beca4eccd553
 # ╟─9e883b44-f225-4566-9d76-ecd3e34d3b5b
 # ╟─3bfef187-d899-473d-9a92-acf5c65fa50d
@@ -1299,3 +1457,6 @@ end
 # ╟─dd1297cd-62d0-4b39-b0a3-e41fab79bc8b
 # ╟─43590370-0a2e-4d6e-9531-f93eb1630acd
 # ╟─cd9ff780-66d2-4bcb-8b89-145d9d857306
+# ╟─82daeb7f-1a3b-420a-8193-148d7314f557
+# ╟─b59908ac-50a9-49fd-bcc2-94c59b205543
+# ╟─787b1cc4-9e1f-4421-874d-bdff7c231bf9
