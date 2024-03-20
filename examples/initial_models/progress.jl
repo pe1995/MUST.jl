@@ -127,14 +127,20 @@ md"# General Properties"
 # ╔═╡ 2c64fcf2-1a0b-49cf-a3f1-890f152d0650
 time = timeevolution(monitoring, "atmosphericParameters", "time")
 
-# ╔═╡ ef5ee4f6-96be-4669-ba68-3c1117605a4c
+# ╔═╡ 65c9d5ea-45a2-4ab8-99e8-5eee29935589
 
 
 # ╔═╡ 9265061d-eaa5-4fc1-a7b9-51392a357c91
-md"Available Groups that contain a number of variables with respect to the same topic:"
+md"Available Groups that contain a number of fields with respect to the same topic:"
 
-# ╔═╡ ea625d84-28fe-4f64-ad9f-95890b7d43aa
-keys(monitoring[1]) |> collect
+# ╔═╡ 63b0d9d6-f27a-492e-9018-876db8091914
+let
+	a = sort(keys(monitoring[1]) |> collect)
+	for name in a
+		fields = keys(monitoring[1][name]) |> collect
+		@info name fields
+	end
+end
 
 # ╔═╡ 33c1da97-0760-495e-abd5-65531d5e1170
 
@@ -1382,9 +1388,9 @@ end
 # ╟─73df16bf-b033-494d-b321-608ffff33467
 # ╟─bd936d7d-e79f-4f9b-ba54-e0694c6a83f0
 # ╟─2c64fcf2-1a0b-49cf-a3f1-890f152d0650
-# ╟─ef5ee4f6-96be-4669-ba68-3c1117605a4c
+# ╟─65c9d5ea-45a2-4ab8-99e8-5eee29935589
 # ╟─9265061d-eaa5-4fc1-a7b9-51392a357c91
-# ╟─ea625d84-28fe-4f64-ad9f-95890b7d43aa
+# ╟─63b0d9d6-f27a-492e-9018-876db8091914
 # ╟─33c1da97-0760-495e-abd5-65531d5e1170
 # ╟─8d6d674b-153b-4357-9f2d-c4e3cb05d059
 # ╟─b9a721cf-46ef-4e3c-a37c-8b35653e31cb
