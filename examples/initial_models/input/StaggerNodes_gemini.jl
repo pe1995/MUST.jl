@@ -8,9 +8,9 @@ begin
 
     # input and output names of the grid
     #initial_grid_path = "stagger_grid_full_o.mgrid"
-    #initial_grid_path = "stagger_grid_sun.mgrid"
+    initial_grid_path = "stagger_grid_sun.mgrid"
     #initial_grid_path = "stagger_grid_full_subgiant.mgrid"
-    initial_grid_path = "stagger_grid_full_solar.mgrid"
+    #initial_grid_path = "stagger_grid_full_solar.mgrid"
 
     initial_cl_path   = "stagger_grid_avail.mgrid"
     initial_mod_path  = "stagger_grid_solar.mgrid"

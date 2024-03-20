@@ -163,7 +163,7 @@ itimeSurface = findfirst(time .== timeSurface);
 itimeSurface2 = findfirst(time .== timeSurface2);
 
 # ╔═╡ a54433ec-14b4-4e5e-a0a7-2e6e50a5fa49
-
+md"Snapshot Info:"
 
 # ╔═╡ 695e28be-31c8-4f44-85e3-72ce387d9da5
 @info "You are looking at snapshots (A) $(timeevolution(monitoring, "general", "snapshot")[itimeSurface]) and (B) $(timeevolution(monitoring, "general", "snapshot")[itimeSurface2])"
