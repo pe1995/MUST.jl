@@ -78,8 +78,11 @@ md"Click 'Submit' again to look for new snapshots."
 # ╔═╡ ed9cc79f-0161-4178-b6f0-81a2bccbf188
 md"## Load monitoring"
 
+# ╔═╡ 28d708db-45a7-4fad-a226-e907ebf88b43
+wd = MUST.WatchDog(selectedRun, folder=datafolder)
+
 # ╔═╡ 6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
-monitoring = MUST.reload(MUST.WatchDog, selectedRun, folder=datafolder)
+monitoring = MUST.reload!(wd)
 
 # ╔═╡ 1fcefd1e-1c50-43b5-b203-62920944344a
 timeevolution(m, group, field) = [
@@ -103,7 +106,7 @@ end
 md"## Deleting Snapshots"
 
 # ╔═╡ 3aadeb1c-3585-46af-8b9d-daf33bfcb7f3
-snapshotnames(moni) = [nothing, timeevolution(moni, "general", "snapshot")...];
+snapshotnames(moni) = [nothing, wd.snapshotsCompleted...];
 
 # ╔═╡ 2d580186-96a6-41b8-91aa-da527691ea1d
 md"""You can delete a snapshot by picking its number:\
@@ -128,6 +131,9 @@ md"# General Properties"
 time = timeevolution(monitoring, "atmosphericParameters", "time")
 
 # ╔═╡ 65c9d5ea-45a2-4ab8-99e8-5eee29935589
+snapshots = snapshotnames(monitoring)[2:end]
+
+# ╔═╡ 0f9a1524-9c47-49d6-a554-66db88663093
 
 
 # ╔═╡ 9265061d-eaa5-4fc1-a7b9-51392a357c91
@@ -149,18 +155,18 @@ end
 md"# Individual Snapshots"
 
 # ╔═╡ b9a721cf-46ef-4e3c-a37c-8b35653e31cb
-md"Pick the time for which you want to see the status: $(@bind timeSurface Slider(time, show_value=true, default=last(time)))
+md"Pick the time for which you want to see the status: $(@bind timeSurface Slider(snapshots, show_value=true, default=last(snapshots)))
 "
 
 # ╔═╡ 725f7500-c31b-4efa-9df9-00c51640914a
-md"Pick a second time for comparison: $(@bind timeSurface2 Slider(time, show_value=true))
+md"Pick a second time for comparison: $(@bind timeSurface2 Slider(snapshots, show_value=true))
 "
 
 # ╔═╡ a34793ae-db12-4dac-b2f8-348a88092815
-itimeSurface = findfirst(time .== timeSurface);
+itimeSurface = findfirst(snapshots .== timeSurface);
 
 # ╔═╡ 63f58f6c-954c-44e9-84b1-1aa799323586
-itimeSurface2 = findfirst(time .== timeSurface2);
+itimeSurface2 = findfirst(snapshots .== timeSurface2);
 
 # ╔═╡ a54433ec-14b4-4e5e-a0a7-2e6e50a5fa49
 md"Snapshot Info:"
@@ -1016,6 +1022,41 @@ md"""
 In the following the time evolution of different quantities is shown by computing statistics for every snapshot.
 """
 
+# ╔═╡ 643eaee3-a1f8-4be2-b032-08fcb325fbe8
+
+
+# ╔═╡ aae74666-7fdd-4db9-8869-68e4597f6940
+md"__Snapshot selector__\
+You can select a snapshot by moving the vertical line in the plots:"
+
+# ╔═╡ 15f1108e-6f72-4700-89d9-fc2dfaf7ea47
+md"$(@bind snapshotSelector Slider(snapshots, show_value=true, default=first(snapshots)))"
+
+# ╔═╡ e452c94a-3b4b-4dd1-a286-3c32a5c8e995
+md"Click to show the selector in the plots: $(@bind activateSnapshotSelector CheckBox(default=false))"
+
+# ╔═╡ c370ebd5-fc25-4e81-b3f9-37bf99b35598
+snapshotSelected = findfirst(i->i==snapshotSelector, snapshots);
+
+# ╔═╡ fc550522-d506-4f0e-b582-e7c54cd23be0
+plot_time_selector!(ax) = begin
+	# Selector
+	if activateSnapshotSelector
+		#xlim = ax.get_xlim()
+		xloc = time[snapshotSelected]./(60*60) 
+		ylim = ax.get_ylim()
+		yloc = abs(ylim[1] -ylim[0])*0.01 + ylim[1]
+		ax.axvline(time[snapshotSelected]./(60*60), color="0.5", ls="--", lw=1)
+		
+		ax.text(
+			xloc, yloc, 
+			"$snapshotSelector", 
+			color="0.5",
+			ha="center", va="bottom"
+		)
+	end
+end
+
 # ╔═╡ 35f64e1d-2273-4178-879e-187b86b24043
 md"## Optical Surface"
 
@@ -1033,20 +1074,22 @@ let
 	surfaceMin = [minimum(t) for t in ttempsurface]
 	
 	ax.plot(
-		time, surfaceMax, 
+		time./(60*60), surfaceMax, 
 		color="cyan", marker="s", markerfacecolor="w", ls="-"
 	) 
 	ax.plot(
-		time, surfaceMin, 
+		time./(60*60), surfaceMin, 
 		color="magenta", marker="s", markerfacecolor="w", ls="-"
 	) 
 	ax.plot(
-		time, surfaceTemp, 
+		time./(60*60), surfaceTemp, 
 		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
-	ax.set_xlabel("time [s]")
+	ax.set_xlabel("time [h]")
 	ax.set_ylabel(L"\rm <T_{\tau=1}>\ [K]")
+
+	plot_time_selector!(ax)
 
 	gcf()
 end
@@ -1065,21 +1108,23 @@ let
 	surfaceMin = [log10.(minimum(exp.(t))) for t in tdsurface]
 
 	ax.plot(
-		time, surfaceMax, 
+		time./(60*60), surfaceMax, 
 		color="cyan", marker="s", markerfacecolor="w", ls="-"
 	) 
 	ax.plot(
-		time, surfaceMin, 
+		time./(60*60), surfaceMin, 
 		color="magenta", marker="s", markerfacecolor="w", ls="-"
 	) 
 	ax.plot(
-		time, surfaceRho, 
+		time./(60*60), surfaceRho, 
 		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 	
 
-	ax.set_xlabel("time [s]")
+	ax.set_xlabel("time [h]")
 	ax.set_ylabel(L"\rm \log < \rho_{\tau=1}>\ [g\ cm^{-3}]")
 
+	plot_time_selector!(ax)
+	
 	gcf()
 end
 
@@ -1097,20 +1142,22 @@ let
 	surfaceMin = [minimum(t)  for t in tuzsurface]
 	
 	ax.plot(
-		time, surfaceMax ./1e5, 
+		time./(60*60), surfaceMax ./1e5, 
 		color="cyan", marker="s", markerfacecolor="w", ls="-"
 	) 
 	ax.plot(
-		time, surfaceMin ./1e5, 
+		time./(60*60), surfaceMin ./1e5, 
 		color="magenta", marker="s", markerfacecolor="w", ls="-"
 	) 
 	ax.plot(
-		time, surfaceUz ./1e5, 
+		time./(60*60), surfaceUz ./1e5, 
 		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
-	ax.set_xlabel("time [s]")
+	ax.set_xlabel("time [h]")
 	ax.set_ylabel(L"\rm rms\ v_z^{\tau=1}\ [km\ s^{-1}]")
+
+	plot_time_selector!(ax)
 
 	gcf()
 end
@@ -1135,22 +1182,24 @@ let
 	surfaceMi = (tGeoMin["T"] .|> last)
 	
 	ax.plot(
-		time, surfaceMi, 
+		time./(60*60), surfaceMi, 
 		color="magenta", marker="s", markerfacecolor="w", ls="-"
 	) 
 	ax.plot(
-		time, surfaceMa, 
+		time./(60*60), surfaceMa, 
 		color="cyan", marker="s", markerfacecolor="w", ls="-"
 	) 
 	ax.plot(
-		time, surfaceT, 
+		time./(60*60), surfaceT, 
 		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
 	#ax.set_title("Upper Boundary")
-	ax.set_xlabel("time [s]")
+	ax.set_xlabel("time [h]")
 	ax.set_ylabel(L"\rm <T_{top}>\ [K]")
 
+	plot_time_selector!(ax)
+	
 	gcf()
 end
 
@@ -1165,21 +1214,24 @@ let
 	surfaceMi = (tGeoMin["d"] .|> last)
 
 	ax.plot(
-		time, log10.(surfaceMi), 
+		time./(60*60), log10.(surfaceMi), 
 		color="magenta", marker="s", markerfacecolor="w", ls="-"
 	) 
 	ax.plot(
-		time, log10.(surfaceMa), 
+		time./(60*60), log10.(surfaceMa), 
 		color="cyan", marker="s", markerfacecolor="w", ls="-"
 	) 
 	ax.plot(
-		time, log10.(surfaceT), 
+		time./(60*60), log10.(surfaceT), 
 		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
 	#ax.set_title("Upper Boundary")
-	ax.set_xlabel("time [s]")
+	ax.set_xlabel("time [h]")
 	ax.set_ylabel(L"\rm  <\rho_{top}>\ [g\ cm^{-3}]")
+
+	plot_time_selector!(ax)
+	
 	gcf()
 end
 
@@ -1194,23 +1246,26 @@ let
 	surfaceMi = (tGeoMin["uz"] .|> last) ./1e5
 
 	ax.plot(
-		time, surfaceMi, 
+		time./(60*60), surfaceMi, 
 		color="magenta", marker="s", markerfacecolor="w", ls="-", markersize=5.5
 	) 
 	ax.plot(
-		time, surfaceMa, 
+		time./(60*60), surfaceMa, 
 		color="cyan", marker="s", markerfacecolor="w", ls="-", markersize=5.5
 	) 
 	ax.plot(
-		time, surfaceT, 
+		time./(60*60), surfaceT, 
 		color="k", marker="s", markerfacecolor="w", ls="-", markersize=5.5
 	) 
 
 	ax.axhline(0.0, color="k", alpha=0.2, ls="--")
 
 	#ax.set_title("Upper Boundary")
-	ax.set_xlabel("time [s]")
+	ax.set_xlabel("time [h]")
 	ax.set_ylabel(L"\rm  <v_z^{top}>\ [km\ s^{-1}]")
+
+	plot_time_selector!(ax)
+	
 	gcf()
 end
 
@@ -1226,21 +1281,24 @@ if haskey(ttopgeo, "flux")
 		surfaceMi = teff.((tGeoMin["flux"] .|> last))
 		
 		ax.plot(
-			time, surfaceMi, 
+			time./(60*60), surfaceMi, 
 			color="magenta", marker="s", markerfacecolor="w", ls="-"
 		) 
 		ax.plot(
-			time, surfaceMa, 
+			time./(60*60), surfaceMa, 
 			color="cyan", marker="s", markerfacecolor="w", ls="-"
 		) 
 		ax.plot(
-			time, surfaceT, 
+			time./(60*60), surfaceT, 
 			color="k", marker="s", markerfacecolor="w", ls="-"
 		) 
 	
 		#ax.set_title("Upper Boundary")
-		ax.set_xlabel("time [s]")
+		ax.set_xlabel("time [h]")
 		ax.set_ylabel(L"\rm T_{eff}\ [K]")
+
+		plot_time_selector!(ax)
+		
 	
 		gcf()
 	end
@@ -1270,15 +1328,16 @@ let
 	]
 	
 	ax.plot(
-		time, surfaceMF, 
+		time./(60*60), surfaceMF, 
 		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
 	ax.axhline(0.0, color="k", alpha=0.2, ls="--")
 
-	ax.set_xlabel("time [s]")
+	ax.set_xlabel("time [h]")
 	ax.set_ylabel(L"\rm <\rho\ v_z>\ /\ <\rho>\ [km\ s^{-1}]")
 
+	plot_time_selector!(ax)
 
 	gcf()
 end
@@ -1311,15 +1370,16 @@ let
 	surfaceMF = [ip[i].(parse(Float64, opplotmass)) for i in eachindex(ip)]
 	
 	ax.plot(
-		time, surfaceMF, 
+		time./(60*60), surfaceMF, 
 		color="k", marker="s", markerfacecolor="w", ls="-"
 	) 
 
 	ax.axhline(0.0, color="k", alpha=0.2, ls="--")
 
-	ax.set_xlabel("time [s]")
+	ax.set_xlabel("time [h]")
 	ax.set_ylabel(L"\rm <\rho\ v_z>\ /\ <\rho>\ [km\ s^{-1}]")
 
+	plot_time_selector!(ax)
 
 	gcf()
 end
@@ -1342,22 +1402,24 @@ if ("dt_rt" in keys(tGeoAv))
 		surfaceMi = (tGeoMin["dt_rt"] .|> minimum)
 		
 		ax.plot(
-			time, surfaceMi, 
+			time./(60*60), surfaceMi, 
 			color="magenta", marker="s", markerfacecolor="w", ls="-"
 		) 
 		ax.plot(
-			time, surfaceMa, 
+			time./(60*60), surfaceMa, 
 			color="cyan", marker="s", markerfacecolor="w", ls="-"
 		) 
 		ax.plot(
-			time, surfaceT, 
+			time./(60*60), surfaceT, 
 			color="k", marker="s", markerfacecolor="w", ls="-"
 		) 
 
 		ax.set_yscale("log")
-		ax.set_xlabel("time [s]")
+		ax.set_xlabel("time [h]")
 		ax.set_ylabel(L"\rm min\left( \Delta t_{RT}\right)\ [s]")
-	
+
+		plot_time_selector!(ax)
+		
 		gcf()
 	end
 end
@@ -1377,6 +1439,7 @@ end
 # ╟─498f998c-9996-43dc-a647-3b08abf9786d
 # ╟─3c05fe1e-1c19-4c30-b34e-a874f63b91bc
 # ╟─ed9cc79f-0161-4178-b6f0-81a2bccbf188
+# ╟─28d708db-45a7-4fad-a226-e907ebf88b43
 # ╟─6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
 # ╟─1fcefd1e-1c50-43b5-b203-62920944344a
 # ╟─e752753c-b982-40c6-b45d-ad9bfcd3bbfe
@@ -1389,6 +1452,7 @@ end
 # ╟─bd936d7d-e79f-4f9b-ba54-e0694c6a83f0
 # ╟─2c64fcf2-1a0b-49cf-a3f1-890f152d0650
 # ╟─65c9d5ea-45a2-4ab8-99e8-5eee29935589
+# ╟─0f9a1524-9c47-49d6-a554-66db88663093
 # ╟─9265061d-eaa5-4fc1-a7b9-51392a357c91
 # ╟─63b0d9d6-f27a-492e-9018-876db8091914
 # ╟─33c1da97-0760-495e-abd5-65531d5e1170
@@ -1436,11 +1500,17 @@ end
 # ╟─d55d7d42-c78c-447c-9959-3689f5341655
 # ╟─c3fb528f-4bd8-4ae7-bb4c-ac90899fbf21
 # ╟─10e5e8cb-0881-40d0-b392-2f66c0cbfc7c
-# ╟─4c3b9b8a-03a5-494d-a321-7f5c400ed054
+# ╠═4c3b9b8a-03a5-494d-a321-7f5c400ed054
 # ╟─dc0315d8-0616-433b-8182-33840afb0b0f
 # ╟─aef86067-68b0-48b8-8bb2-0d410a7521c2
 # ╟─c727a6fe-f09c-4561-8a86-fbd7fdd4f6a8
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
+# ╟─643eaee3-a1f8-4be2-b032-08fcb325fbe8
+# ╟─aae74666-7fdd-4db9-8869-68e4597f6940
+# ╟─15f1108e-6f72-4700-89d9-fc2dfaf7ea47
+# ╟─e452c94a-3b4b-4dd1-a286-3c32a5c8e995
+# ╟─c370ebd5-fc25-4e81-b3f9-37bf99b35598
+# ╟─fc550522-d506-4f0e-b582-e7c54cd23be0
 # ╟─35f64e1d-2273-4178-879e-187b86b24043
 # ╟─c2b64d82-09a7-4d67-97d0-b51d96d30d25
 # ╟─eb335a4d-e662-499c-bb80-8bf38c84329f

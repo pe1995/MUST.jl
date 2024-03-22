@@ -339,8 +339,8 @@ reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {
     reload(s(name; folder=folder), snap, mmap=mmap)
 end
 
-reload(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false) where {S<:WatchDog} = begin
-    reload(s(name; folder=folder), mmap=mmap, asDict=asDict)
+reload!(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false) where {S<:WatchDog} = begin
+    reload!(s(name; folder=folder), mmap=mmap, asDict=asDict)
 end
 
 reload(w::S, snap; mmap=false) where {S<:WatchDog} = begin
@@ -360,15 +360,16 @@ reload(w::S, snap; mmap=false) where {S<:WatchDog} = begin
     fvals
 end
 
-reload(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
+reload!(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
     listOfSnaps = availableSnaps(w)
-    
+    w.snapshotsCompleted = []
     if !asDict
         l  = []
         for snap in listOfSnaps
             try
                 si = reload(w, snapshotnumber(snap); mmap=mmap)
                 append!(l, [si])
+                append!(w.snapshotsCompleted, [snapshotnumber(snap)])
             catch
                 nothing
             end
@@ -380,6 +381,7 @@ reload(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
         for snap in listOfSnaps
             try
                 l[snap] = reload(w, snapshotnumber(snap); mmap=mmap)
+                append!(w.snapshotsCompleted, [snapshotnumber(snap)])
             catch
                 nothing
             end
