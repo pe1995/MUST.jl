@@ -33,7 +33,7 @@ end
 
 find_integer_simple(f, dxdz_approx, desired_n_patches; step=0.1) = begin
     actual_x_patches = desired_n_patches * dxdz_approx
-    while !isinteger(actual_x_patches)
+    while !isinteger(actual_x_patches) | !(actual_x_patches % 2 == 0)
         dxdz_approx = f(dxdz_approx, step)
         dxdz_approx = round(dxdz_approx, sigdigits=2)
         actual_x_patches = desired_n_patches * dxdz_approx
@@ -48,8 +48,6 @@ find_integer_simple(dxdz_approx, desired_n_patches; step=0.1) = begin
     a = dxdz_approx * desired_n_patches
 
     [p, m][argmin([abs(p - a), abs(m - a)])]
-
-    p
 end
 
 @inline patches(res, patch_size) = Int(floor(res / patch_size))
@@ -201,7 +199,8 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
     step = 0.1
 
     actual_x_patches = find_integer_simple(dxdz_approx, desired_n_patches, step=step)
-    actual_x_patches = actual_x_patches % 2 == 0 ? actual_x_patches : actual_x_patches + 1
+    #actual_x_patches = actual_x_patches % 2 == 0 ? actual_x_patches : actual_x_patches + 1
+
     # For some reason the fraction needs to be integer as well...
     #actual_x_patches = round(dxdz, sigdigits=1) * desired_n_patches
     actual_dx = actual_x_patches / desired_n_patches * actual_dz
@@ -506,8 +505,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         ## interpolator
         m = TSO.flip(models[i])
         mask = sortperm(m.τ)
-        td = min(τ_down, maximum(log10.(m.τ)))
-        tu = max(τ_up, minimum(log10.(m.τ)))
+        td = min(τ_down, maximum(log10.(m.τ[5:end-5])))
+        tu = max(τ_up, minimum(log10.(m.τ[5:end-5])))
 
         xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
             m, 

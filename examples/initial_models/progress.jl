@@ -136,6 +136,9 @@ snapshots = snapshotnames(monitoring)[2:end]
 # ╔═╡ 0f9a1524-9c47-49d6-a554-66db88663093
 
 
+# ╔═╡ 2ebb80e6-1966-4673-bc79-50d17add3969
+md"## Available Statistics"
+
 # ╔═╡ 9265061d-eaa5-4fc1-a7b9-51392a357c91
 md"Available Groups that contain a number of fields with respect to the same topic:"
 
@@ -146,6 +149,21 @@ let
 		fields = keys(monitoring[1][name]) |> collect
 		@info name fields
 	end
+end
+
+# ╔═╡ c7bb05cd-0798-4989-94de-f7238fea8d89
+
+
+# ╔═╡ b76f0efd-6b2f-47d3-84e7-ca9fb866292e
+md"## Resolution"
+
+# ╔═╡ 4eef1012-c8cd-4579-9a7e-ac2b4d4c7af6
+let
+	z = timeevolution(monitoring, "geometricalAverages", "z") |> first
+	HD_dims = (length(z)*2, length(z)*2, length(z))
+	HD_res = maximum(diff(z)) / 1e5
+	
+	@info "[$selectedRun] HD Resolution (Nx, Ny, Nz), dz [km]" HD_dims HD_res
 end
 
 # ╔═╡ 33c1da97-0760-495e-abd5-65531d5e1170
@@ -949,63 +967,63 @@ md"""
 ## Bolometric Flux
 It is also possible to monitor the evolution of the bolometric flux. The effective temperature then is computed as 
 
-$\rm T_{eff} = (F_{bol}/2/\sigma_{SB})^{1/4}$
+$\rm T_{eff} = (F_{bol}/\sigma_{SB})^{1/4}$
 
-where we divide by 2 to only account for the outgoing flux. This is needed because $\rm F_{bol}$ has been integrated over all angles, including downwards radiation, within the RT solver of DISPATCH. 
+where we divide the angle weights by 2 to only account for the outgoing flux in DISPATCH. This is needed because $\rm q_r$ has been integrated over all angles, including downwards radiation, within the RT solver of DISPATCH. 
 """
 
 # ╔═╡ 4c3b9b8a-03a5-494d-a321-7f5c400ed054
-teff(f) = (f /2 / MUST.σ_S) ^0.25
+teff(f) = (f /MUST.σ_S) ^0.25
 
 # ╔═╡ dc0315d8-0616-433b-8182-33840afb0b0f
 teff_str(f) = L"\rm T_{eff} =\ "*"$(round(teff(f), sigdigits=5))"*L"\rm \ K"
 
 # ╔═╡ aef86067-68b0-48b8-8bb2-0d410a7521c2
-if haskey(tGeoAv, "flux")
+if haskey(tOptAv, "flux")
 	let
 		plt.close()
 	
 		f, ax = plt.subplots(1, 1, figsize=(5, 6))
 	
-		x, y = tGeoMax["z"][itimeSurface] ./1e8, tGeoMax["flux"][itimeSurface]
+		x, y = tOptMax["log10τ_ross"][itimeSurface], tOptMax["flux"][itimeSurface]
 		ax.plot(
 			x, y,
 			color="cyan", marker="", ls="-"
 		) 
-		x, y = tGeoMin["z"][itimeSurface] ./1e8, tGeoMin["flux"][itimeSurface]
+		x, y = tOptMin["log10τ_ross"][itimeSurface], tOptMin["flux"][itimeSurface]
 		ax.plot(
 			x, y,
 			color="magenta", marker="", ls="-"
 		) 
-		x, y = tGeoAv["z"][itimeSurface] ./1e8, tGeoAv["flux"][itimeSurface]
+		x, y = tOptAv["log10τ_ross"][itimeSurface], tOptAv["flux"][itimeSurface]
 		ax.plot(
 			x, y,
 			color="k", marker="", ls="-", 
-			label="t = $(time[itimeSurface]) s, "*teff_str(tGeoAv["flux"][itimeSurface][end]), lw=2.5
+			label="t = $(time[itimeSurface]) s, "*teff_str(tOptAv["flux"][itimeSurface][end]), lw=2.5
 		) 
 	
 	
 	
 		
-		x, y = tGeoMax["z"][itimeSurface2] ./1e8, tGeoMax["flux"][itimeSurface2]
+		x, y = tOptMax["log10τ_ross"][itimeSurface2], tOptMax["flux"][itimeSurface2]
 		ax.plot(
 			x, y,
 			color="cyan", marker="", ls="--"
 		) 
-		x, y = tGeoMin["z"][itimeSurface2] ./1e8, tGeoMin["flux"][itimeSurface2]
+		x, y = tOptMin["log10τ_ross"][itimeSurface2], tOptMin["flux"][itimeSurface2]
 		ax.plot(
 			x, y,
 			color="magenta", marker="", ls="--"
 		) 
-		x, y = tGeoAv["z"][itimeSurface2] ./1e8, tGeoAv["flux"][itimeSurface2]
+		x, y = tOptAv["log10τ_ross"][itimeSurface2], tOptAv["flux"][itimeSurface2]
 		ax.plot(
 			x, y,
 			color="k", marker="", ls="--", 
-			label="t = $(time[itimeSurface2]) s, "*teff_str(tGeoAv["flux"][itimeSurface2][end]), lw=2.
+			label="t = $(time[itimeSurface2]) s, "*teff_str(tOptAv["flux"][itimeSurface2][end]), lw=2.
 		) 
 
 		ax.set_yscale("log")
-		ax.set_xlabel("z [Mm]")
+		ax.set_xlabel(L"\rm \log \tau_{ross}")
 		ax.set_ylabel(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
 		ax.legend()
 
@@ -1453,8 +1471,12 @@ end
 # ╟─2c64fcf2-1a0b-49cf-a3f1-890f152d0650
 # ╟─65c9d5ea-45a2-4ab8-99e8-5eee29935589
 # ╟─0f9a1524-9c47-49d6-a554-66db88663093
+# ╟─2ebb80e6-1966-4673-bc79-50d17add3969
 # ╟─9265061d-eaa5-4fc1-a7b9-51392a357c91
 # ╟─63b0d9d6-f27a-492e-9018-876db8091914
+# ╟─c7bb05cd-0798-4989-94de-f7238fea8d89
+# ╟─b76f0efd-6b2f-47d3-84e7-ca9fb866292e
+# ╟─4eef1012-c8cd-4579-9a7e-ac2b4d4c7af6
 # ╟─33c1da97-0760-495e-abd5-65531d5e1170
 # ╟─8d6d674b-153b-4357-9f2d-c4e3cb05d059
 # ╟─b9a721cf-46ef-4e3c-a37c-8b35653e31cb

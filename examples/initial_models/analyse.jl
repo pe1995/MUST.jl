@@ -60,6 +60,9 @@ availableRuns(path) = begin
 	last.(split.(runs, "/", keepempty=false))
 end
 
+# ╔═╡ d6659c51-1ab7-47f2-a030-3a188956961e
+
+
 # ╔═╡ 80fefa1e-de68-4448-a371-d4ae0ec70868
 md"## Picking Models
 You can pick a model from the output folder, that was already converted using 'convert.jl' or 'snapshot2box.jl'"
@@ -378,6 +381,26 @@ begin
 end
 
 # ╔═╡ 1be872a8-eef5-422d-b3a6-13d581a999c0
+
+
+# ╔═╡ 3508e2bc-7fd1-4a46-a68d-a3f16774db4e
+
+
+# ╔═╡ ea323dfd-6fdd-4754-9000-10c980c5db7e
+md"# Resolution"
+
+# ╔═╡ e346c195-441e-4bb9-aee4-e531921ed5cd
+let
+	for name in keys(snapshots)
+		m = first(snapshots[name])
+		HD_dims = size(m.z)
+		HD_res = maximum(diff(MUST.axis(m, :z))) /1e5
+		RT_res = maximum(diff(MUST.axis(m, :z))) /1e5/2.
+		@info "[$(name)] Resolution (Nx, Ny, Nz), dz [km]:" HD_dims HD_res RT_res
+	end
+end
+
+# ╔═╡ bdb0930c-dc11-4030-bbc6-2b332184a2b4
 
 
 # ╔═╡ f3ffa698-bcea-4ab3-9b63-84d518c14068
@@ -1055,6 +1078,7 @@ end
 # ╟─73d9fd32-0dae-478a-80ff-a8e314adbd6e
 # ╟─16786647-4021-4068-9af1-2a548240758e
 # ╟─91ddaf2d-abd6-4e2d-92eb-cfa7d0ba79bc
+# ╟─d6659c51-1ab7-47f2-a030-3a188956961e
 # ╟─80fefa1e-de68-4448-a371-d4ae0ec70868
 # ╟─de91f663-285b-4250-9edb-41f48d5b36e1
 # ╟─6fea8f52-3ca6-4854-aca7-6b125d4c6542
@@ -1103,6 +1127,10 @@ end
 # ╟─13a647a4-3d71-4afb-ba31-867e108a8154
 # ╟─17ca4c8c-9563-4be4-8ab7-a7446ba28dec
 # ╟─1be872a8-eef5-422d-b3a6-13d581a999c0
+# ╟─3508e2bc-7fd1-4a46-a68d-a3f16774db4e
+# ╟─ea323dfd-6fdd-4754-9000-10c980c5db7e
+# ╟─e346c195-441e-4bb9-aee4-e531921ed5cd
+# ╟─bdb0930c-dc11-4030-bbc6-2b332184a2b4
 # ╟─f3ffa698-bcea-4ab3-9b63-84d518c14068
 # ╟─ce691c30-5025-4ffc-8185-eced3087ca13
 # ╟─5e882897-d396-470c-ad46-37a39326225c
@@ -1126,7 +1154,7 @@ end
 # ╟─11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
 # ╟─6d360e73-736e-41e3-a9f3-86e7d53db58a
 # ╟─dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
-# ╠═48d19c84-a203-4b58-aeae-52d99dc49387
+# ╟─48d19c84-a203-4b58-aeae-52d99dc49387
 # ╟─122b9c94-3e14-4dab-8432-d6ef174e6085
 # ╟─febe3153-2478-443b-80d8-04a15eeb8b51
 # ╟─5e57c740-4090-4e39-9104-04e6b025d855
