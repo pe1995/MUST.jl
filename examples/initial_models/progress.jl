@@ -84,19 +84,33 @@ wd = MUST.WatchDog(selectedRun, folder=datafolder)
 # ╔═╡ 6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
 monitoring = MUST.reload!(wd)
 
-# ╔═╡ 1fcefd1e-1c50-43b5-b203-62920944344a
-timeevolution(m, group, field) = [
-	moni[group][field] 
-	for moni in m
-]
+# ╔═╡ 62e93fea-6600-4619-bb66-5908be8c26e3
 
-# ╔═╡ e752753c-b982-40c6-b45d-ad9bfcd3bbfe
-timeevolution(m, group) = begin
-	mg = m[1][group]
-	Dict(
-		k => [moni[group][k] for moni in m]
-		for k in keys(mg)
-	)
+
+# ╔═╡ 1fcefd1e-1c50-43b5-b203-62920944344a
+begin
+	"""
+		timeevolution(m, group, field) 
+	
+	Return an array containing the time evolution from all available snapshots in `m` for the given topic `group` and variable `field` in that topic.
+	"""
+	timeevolution(m, group, field) = [
+		moni[group][field] 
+		for moni in m
+	]
+	
+	"""
+		timeevolution(m, group) 
+	
+	Return an Dictionary containing arrays of the time evolution from all available snapshots in `m` for the given topic `group` with all variables in that topic as dictionary entried.
+	"""
+	timeevolution(m, group) = begin
+		mg = m[1][group]
+		Dict(
+			k => [moni[group][k] for moni in m]
+			for k in keys(mg)
+		)
+	end
 end
 
 # ╔═╡ 60199001-8f0e-44a6-ae50-e829687c045c
@@ -505,6 +519,18 @@ tGeoMax = timeevolution(monitoring, "geometricalMaximum")
 # ╔═╡ f3002fa3-b796-4479-8008-fc8149e797bf
 tGeoRms = timeevolution(monitoring, "geometricalRMS")
 
+# ╔═╡ 32603241-ed2c-4579-9319-40e50eb2172c
+tGeoQuantiles = Dict(
+	k=>timeevolution(monitoring, "geometrical$(k)thQuantile")
+	for k in [15, 30, 45, 60, 75, 90]
+)
+
+# ╔═╡ 53bed7de-b834-465e-8d13-2909240286b5
+
+
+# ╔═╡ 29803b42-3f55-4fb1-8853-8848bbdd5bd9
+md"### Averages"
+
 # ╔═╡ 68477423-a6f7-424f-8fd4-849d63648b57
 let
 	plt.close()
@@ -695,6 +721,118 @@ let
 	gcf()
 end
 
+# ╔═╡ 12e00c80-67d9-4f01-a832-7852e9d4ec49
+
+
+# ╔═╡ 274d42e7-20eb-4560-a0f0-e4a631aedcec
+md"### Quantiles"
+
+# ╔═╡ 46db420f-2f46-4989-846e-145a70001ddf
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	colors = plt.cm.coolwarm.(Vector(0.0:0.01:1.0))
+	sm = plt.cm.ScalarMappable(cmap="coolwarm", norm=plt.Normalize(vmin=0, vmax=100))
+
+	getcolor(q) = begin
+		colors[ceil(Int, q)]
+	end
+
+	for (q, data) in tGeoQuantiles
+		x, y = data["z"][itimeSurface] ./1e8, data["T"][itimeSurface]
+		ax.plot(
+			x, y,
+			color=getcolor(q), 
+			marker="", ls="-", lw=2.
+		) 
+	
+		x, y = data["z"][itimeSurface2] ./1e8, data["T"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color=getcolor(q), 
+			marker="", ls="--", lw=2.,
+		)
+	end
+
+	x, y = tGeoAv["z"][itimeSurface] ./1e8, tGeoAv["T"][itimeSurface]
+	ax.plot(
+		x, y,
+		color="k", 
+		marker="", ls="-", lw=2.5,
+		label="t = $(time[itimeSurface]) s"
+	) 
+
+	x, y = tGeoAv["z"][itimeSurface2] ./1e8, tGeoAv["T"][itimeSurface2]
+	ax.plot(
+		x, y,
+		color="k", 
+		marker="", ls="--", lw=2.,
+		label="t = $(time[itimeSurface2]) s"
+	)
+
+	f.colorbar(sm, ax=ax, location="right", label="quantile [%]")
+
+	ax.set_xlabel("z [Mm]")
+	ax.set_ylabel(L"\rm T\ [K]")
+	ax.legend()
+
+	gcf()
+end
+
+# ╔═╡ b046b3a0-05d4-4b6c-be80-7396f475be3d
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	colors = plt.cm.coolwarm.(Vector(0.0:0.01:1.0))
+	sm = plt.cm.ScalarMappable(cmap="coolwarm", norm=plt.Normalize(vmin=0, vmax=100))
+
+	getcolor(q) = begin
+		colors[ceil(Int, q)]
+	end
+
+	for (q, data) in tGeoQuantiles
+		x, y = data["z"][itimeSurface] ./1e8, data["d"][itimeSurface]
+		ax.plot(
+			x, log10.(y),
+			color=getcolor(q), 
+			marker="", ls="-", lw=2.
+		) 
+	
+		x, y = data["z"][itimeSurface2] ./1e8, data["d"][itimeSurface2]
+		ax.plot(
+			x, log10.(y),
+			color=getcolor(q), 
+			marker="", ls="--", lw=2.,
+		)
+	end
+
+	x, y = tGeoAv["z"][itimeSurface] ./1e8, tGeoAv["d"][itimeSurface]
+	ax.plot(
+		x, log10.(y),
+		color="k", 
+		marker="", ls="-", lw=2.5,
+		label="t = $(time[itimeSurface]) s"
+	) 
+
+	x, y = tGeoAv["z"][itimeSurface2] ./1e8, tGeoAv["d"][itimeSurface2]
+	ax.plot(
+		x, log10.(y),
+		color="k", 
+		marker="", ls="--", lw=2.,
+		label="t = $(time[itimeSurface2]) s"
+	)
+
+	f.colorbar(sm, ax=ax, location="right", label="quantile [%]")
+
+	ax.set_xlabel("z [Mm]")
+	ax.set_ylabel(L"\rm \log \rho\ [g\ cm^{-3}]")
+	ax.legend()
+
+	gcf()
+end
+
 # ╔═╡ b09b0c9e-3d76-4ff0-ae82-205cbc3b83b5
 
 
@@ -712,6 +850,12 @@ tOptMax = timeevolution(monitoring, "opticalMaximum")
 
 # ╔═╡ 699ef294-a1b0-4ea5-8618-5cfd0b143c9a
 tOptRms = timeevolution(monitoring, "opticalRMS")
+
+# ╔═╡ 46944b1e-1590-4cba-9b9a-078f34d987ad
+
+
+# ╔═╡ f5c4d377-09f2-4ecf-9cd6-458c10be2943
+md"### Averages"
 
 # ╔═╡ 0fdf3055-4d11-4dea-8a50-e595ef1c112d
 let
@@ -902,7 +1046,7 @@ let
 	gcf()
 end
 
-# ╔═╡ 69734479-fb5b-4662-bc04-2ea03aa9ea3e
+# ╔═╡ 23c0607b-d70e-4bbd-85ba-7f2b322d93dc
 
 
 # ╔═╡ 0da614f4-9021-44f3-af89-bd6dab57dc1b
@@ -1459,8 +1603,8 @@ end
 # ╟─ed9cc79f-0161-4178-b6f0-81a2bccbf188
 # ╟─28d708db-45a7-4fad-a226-e907ebf88b43
 # ╟─6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
+# ╟─62e93fea-6600-4619-bb66-5908be8c26e3
 # ╟─1fcefd1e-1c50-43b5-b203-62920944344a
-# ╟─e752753c-b982-40c6-b45d-ad9bfcd3bbfe
 # ╟─60199001-8f0e-44a6-ae50-e829687c045c
 # ╟─0e4df1b3-52ef-4fce-8f32-bddc966b0516
 # ╟─3aadeb1c-3585-46af-8b9d-daf33bfcb7f3
@@ -1503,21 +1647,30 @@ end
 # ╟─8c03ccae-6a25-4f2b-a99d-bf537221d007
 # ╟─2f86b88f-b53a-489b-8a1e-7d5116492e34
 # ╟─f3002fa3-b796-4479-8008-fc8149e797bf
+# ╟─32603241-ed2c-4579-9319-40e50eb2172c
+# ╟─53bed7de-b834-465e-8d13-2909240286b5
+# ╟─29803b42-3f55-4fb1-8853-8848bbdd5bd9
 # ╟─68477423-a6f7-424f-8fd4-849d63648b57
 # ╟─8ef763ae-d1bd-40de-a26a-f91f529c03bf
 # ╟─d9546636-2dbb-4b14-9954-76872b95fd06
 # ╟─7fd50fcd-8a9d-417d-a28a-febd9f0f68f3
+# ╟─12e00c80-67d9-4f01-a832-7852e9d4ec49
+# ╟─274d42e7-20eb-4560-a0f0-e4a631aedcec
+# ╟─46db420f-2f46-4989-846e-145a70001ddf
+# ╟─b046b3a0-05d4-4b6c-be80-7396f475be3d
 # ╟─b09b0c9e-3d76-4ff0-ae82-205cbc3b83b5
 # ╟─db1a9405-e93c-476d-a43b-f11f3138b57a
 # ╟─3da231de-ff58-4161-a6a4-58162483825a
 # ╟─efc11ddf-99b9-4344-ab4f-1e5d7b7e2805
 # ╟─e0d8aa2e-85cb-43fe-a5f4-65a7a757f19c
 # ╟─699ef294-a1b0-4ea5-8618-5cfd0b143c9a
+# ╟─46944b1e-1590-4cba-9b9a-078f34d987ad
+# ╟─f5c4d377-09f2-4ecf-9cd6-458c10be2943
 # ╟─0fdf3055-4d11-4dea-8a50-e595ef1c112d
 # ╟─eddc02bf-d7ca-41e1-878e-ef1103bf1b0f
 # ╟─25c3d608-9440-4ac9-8277-3855ba3b6a7b
 # ╟─e59ab649-3b30-4af1-ab28-6f6d6aacee1c
-# ╟─69734479-fb5b-4662-bc04-2ea03aa9ea3e
+# ╟─23c0607b-d70e-4bbd-85ba-7f2b322d93dc
 # ╟─0da614f4-9021-44f3-af89-bd6dab57dc1b
 # ╟─d55d7d42-c78c-447c-9959-3689f5341655
 # ╟─c3fb528f-4bd8-4ae7-bb4c-ac90899fbf21
