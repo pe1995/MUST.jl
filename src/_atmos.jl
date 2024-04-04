@@ -1429,9 +1429,9 @@ function interpolate_to(box, v::Symbol; logspace=true, kwargs...)
 end
 
 """
-    interpolate_to(box, v; logspace=true, kwargs...)
+    interpolate_to(box; logspace=true, kwargs...)
 
-Interpolate the `Box` of values v to the plane given in kwargs. Specify `logspace=true`
+Interpolate the `Box` to the plane given in kwargs. Specify `logspace=true`
 if the given quantity is in log.
 """
 function interpolate_to(box; logspace=true, kwargs...)

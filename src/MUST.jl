@@ -1,6 +1,7 @@
 module MUST
 
 #= Julia modules =#
+using CondaPkg
 using PythonCall
 using DataFrames
 using CSV
@@ -30,12 +31,14 @@ import Base.:+
 
 
 #= Python modules =#
-const numpy             = PythonCall.pynew()
+const numpy = PythonCall.pynew()
+const f90nml = PythonCall.pynew()
 const scipy_interpolate = PythonCall.pynew()
 
 __init__() = begin 
-    PythonCall.pycopy!(scipy_interpolate,pyimport("scipy.interpolate"))
-    PythonCall.pycopy!(numpy,pyimport("numpy"))
+    PythonCall.pycopy!(scipy_interpolate, pyimport("scipy.interpolate"))
+    PythonCall.pycopy!(numpy, pyimport("numpy"))
+    PythonCall.pycopy!(f90nml, pyimport("f90nml"))
 end
 
 

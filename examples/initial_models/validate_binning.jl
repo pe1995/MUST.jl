@@ -74,11 +74,9 @@ findEoSAvailable(folder; kind=:unbinned) = begin
 	alleosNames[mask]
 end;
 
-# ╔═╡ 7c61a228-09bd-48d7-8c1f-403e29c80d14
-md"__Pick a EoS among those that are available at the given location__"
-
 # ╔═╡ 543c7cbc-a060-4ba7-a09b-685f8692864e
-@bind unbinnedName Select(findEoSAvailable(unbinnedDir, kind=:unbinned))
+md"__Pick a EoS among those that are available at the given location__\
+$(@bind unbinnedName Select(findEoSAvailable(unbinnedDir, kind=:unbinned)))"
 
 # ╔═╡ e41dd9d3-5d80-4b2a-a584-69726d5e245d
 
@@ -203,11 +201,9 @@ We use the 1D given in the EoS as reference models. We compute the heating for o
 # ╔═╡ c053cd06-3ebd-4eaf-aad7-a716ab4482f4
 
 
-# ╔═╡ 94a9809b-a321-4a9c-a144-bb1bcf2b462a
-md"__Pick 1D model to compute the heating__"
-
 # ╔═╡ dd7d534e-480c-4583-82a6-2b002db20644
-@bind modelSelected Select(binnedNames)
+md"__Pick 1D model to compute the heating__\
+$(@bind modelSelected Select(binnedNames))"
 
 # ╔═╡ 6946afe6-d93f-4bd6-8adc-0bdeb3c34c84
 
@@ -450,7 +446,7 @@ if !isnothing(a)
 		f, ax = plt.subplots(1, 1, figsize=(5, 6))
 	
 		im = ax.plot(
-			log10.(unbinnedOpa.λ), a, ls="-", color="k", lw=1
+			log10.(unbinnedOpa.λ), a, ls="", color="k", lw=0.1, marker="."
 		)
 	
 		ax.set_ylabel(L"\rm bin")
@@ -471,7 +467,6 @@ end
 # ╟─f0ec0348-c6c9-4318-b76d-f927b1bc150f
 # ╟─307a49fc-1592-4796-b71c-4fd900b832bd
 # ╟─eb8b4ea1-3bb3-44ea-9768-781363e36507
-# ╟─7c61a228-09bd-48d7-8c1f-403e29c80d14
 # ╟─543c7cbc-a060-4ba7-a09b-685f8692864e
 # ╟─e41dd9d3-5d80-4b2a-a584-69726d5e245d
 # ╟─44f5edca-b77b-41e1-9a8b-964ce9e7bf9e
@@ -493,7 +488,6 @@ end
 # ╟─a50d8f3d-2a94-4b5f-b58d-8e8708149209
 # ╟─bbd9666c-3e56-4a2c-993d-08c67c5a00a2
 # ╟─c053cd06-3ebd-4eaf-aad7-a716ab4482f4
-# ╟─94a9809b-a321-4a9c-a144-bb1bcf2b462a
 # ╟─dd7d534e-480c-4583-82a6-2b002db20644
 # ╟─6946afe6-d93f-4bd6-8adc-0bdeb3c34c84
 # ╟─c3e8e5f4-115c-4f8c-9373-5ea3d2b5c190

@@ -57,6 +57,58 @@ mutable struct M3DNamelist <: MUST.AbstractNamelist
     composition_params ::Dict{String,Any}   
 end
 
+"""
+    FreeNamelist()
+
+Namelist with no limitations on the fields it contains.
+"""
+mutable struct FreeNamelist <: MUST.AbstractNamelist
+    data ::Dict{Symbol,Any}   
+end
+
+
+
+
+
+#= Interface =#
+
+nmlFields(nml::AbstractNamelist) = fieldnames(typeof(nml))
+nmlFields(nml::FreeNamelist) = keys(nml.data)
+nmlField(nml::AbstractNamelist, key) = getfield(nml, key)
+nmlField(nml::FreeNamelist, key) = getindex(nml.data, key)
+
+nmlSetField!(nml::AbstractNamelist, key, value) = setfield!(nml, key, value)
+nmlSetField!(nml::FreeNamelist, key, value) = nml.data[key] = value
+
+nmlParameter(nml::AbstractNamelist, para) = begin
+    matches = Dict()
+
+    for f in nmlFields(nml)
+        d = nmlField(nml, f)
+        if para in keys(d)
+            matches[f] = d[para]
+        end
+    end
+
+    if length(keys(matches)) == 0
+        @warn "No paramter $(para) found."
+    elseif length(matches) > 1
+        #@warn "More than one paramter $(para) found. Consider using `nmlField` with the correct field."
+    end
+
+    matches
+end
+
+nmlValue(nml::AbstractNamelist, para) = begin
+    v = values(nmlParameter(nml, para))
+    if length(v) > 0
+        first(v)
+    else
+        nothing
+    end
+end
+
+
 
 
 
@@ -81,15 +133,50 @@ SnapshotNamelist() = SnapshotNamelist([Dict{String,Any}() for f in fieldnames(Sn
 SnapshotNamelist(path::String) = begin 
     s = SnapshotNamelist()
     read!(s, path)
-    for field in fieldnames(typeof(s))
-        d = getfield(s, field)
+    #=for field in nmlFields(s)
+        d = nmlField(s, field)
         for key in keys(d)
             !(typeof(d[key])<:AbstractArray) ? continue : nothing
             d[key] = parse_from_namelist.(d[key][1:end-1])
         end
-    end
+    end=#
     s
 end
+
+FreeNamelist() = FreeNamelist(Dict{Symbol, Any}())
+FreeNamelist(path::String; buzzword=nothing) = begin 
+    s = FreeNamelist()
+    read!(s, path, buzzword=buzzword)
+    #=for field in nmlFields(s)
+        d = nmlField(s, field)
+        for key in keys(d)
+            (!(typeof(d[key])<:AbstractArray)) && continue 
+            d[key] = parse_from_namelist.(d[key][1:end-1])
+        end
+    end=#
+    s
+end
+FreeNamelist(path::String, stack) = begin 
+    i = 1
+    nmls = []
+    while true
+        bw = (stack, i)
+        s = FreeNamelist(path, buzzword=bw)
+
+        if length(nmlFields(s)) == 0
+            break
+        end
+
+        append!(nmls, [s])
+        i+=1
+    end
+
+    nmls
+end
+
+
+
+
 
 
 
@@ -101,21 +188,44 @@ end
 """
 Read a namelist from path.
 """
-function read!(nml::AbstractNamelist, path::String)
+function read!(nml::AbstractNamelist, path::String; buzzword=nothing)
     content = Dict{Symbol, Dict{String, Any}}()
 
     # Read the data line by line and save the parameter
     lines = readlines(path)
     para  = :nothing
+    buzzcount = 0
+    stop_at_next = false
+    skip_this_field = false
     for line in lines
         occursin("!", line) ? continue : nothing
         
         # If there is a & it is a new parameter, then remove this from the line
         if occursin("&", line) 
-            para          = Symbol(lowercase(split(line)[1][2:end]))
+            para = Symbol(lowercase(split(line)[1][2:end]))
+
+            # If the buzzword is detected for the nth time, we stop afterwards
+            if stop_at_next
+                break
+            end
+            if !isnothing(buzzword)
+                if para==buzzword[1]
+                    buzzcount += 1
+                end
+                if (buzzcount == buzzword[2]) && (para==buzzword[1])
+                    stop_at_next = true
+                    skip_this_field = false
+                else
+                    skip_this_field = true
+                end
+            end
+
+            skip_this_field && continue 
             content[para] = Dict{String, Any}()
-            line          = line[length(String(para))+2:end]
+            line = line[length(String(para))+2:end]
         end
+
+        skip_this_field && continue 
 
         # Split the lines at the = sign. Every second entry is value then
         line_s = split_namelist_line(line)
@@ -126,11 +236,12 @@ function read!(nml::AbstractNamelist, path::String)
     end
 
     for key in keys(content)
-        if !(key in fieldnames(typeof(nml))) 
-            @warn "$(key) is not a valid fieldname"
-            continue
+        if !(key in nmlFields(nml))
+            if _nmlWarn(nml)
+                continue
+            end
         end
-        setfield!(nml, key, content[key])
+        nmlSetField!(nml, key, content[key])
     end
 end
 
@@ -139,37 +250,67 @@ function parse_from_namelist(value_string)
         return ""
     end
     value_string = ("$(strip(value_string)[end])" == "/") ? strip(strip(value_string)[1:end-1]) : value_string
-    val = nothing 
-    if occursin(",", value_string) 
-        val_spl = split(value_string, ",")
-        
-        if any(occursin.(".", val_spl))
-            val = try
+    val = if occursin(",", value_string) 
+        val_spl = strip.(split(value_string, ",", keepempty=false))
+        val = if any(occursin.(".", val_spl))
+            try
                 parse.(Float64, val_spl)
             catch
                 String.(val_spl)
             end
         else
-            val = try
+            try
                 parse.(Int64, val_spl)
             catch
                 String.(val_spl)
             end
         end
 
+        if length(val) == 1
+            first(val)
+        else
+            val
+        end
     elseif occursin(".", value_string)
-        val = try
+        try
             parse(Float64, value_string)
         catch
             String(value_string)
         end
     else
-        val = try
+        try
             parse(Int64, value_string)
         catch
             String(value_string)
         end
     end
+
+    val = if typeof(val) <: AbstractString
+        if lowercase(val) in ["t", ".true."]
+            true
+        elseif lowercase(val) in ["F", ".false."]
+            false
+        else
+            val
+        end
+    elseif (typeof(val) <: AbstractArray) && (typeof(first(val)) <: AbstractString)
+        v = []
+        for iv in val
+            vi = if lowercase(iv) in ["t", ".true."]
+                true
+            elseif lowercase(iv) in ["f", ".false."]
+                false
+            else
+                iv
+            end
+            append!(v, [vi])
+        end
+
+        v
+    else
+        val
+    end
+
     return val
 end
 
@@ -225,11 +366,26 @@ function split_namelist_line(line)
     out
 end
 
+
+
+
+#= modified warning =#
+
+_nmlWarn(nml::AbstractNamelist) = begin
+    @warn "$(key) is not a valid fieldname"
+    true
+end
+_nmlWarn(nml::FreeNamelist) = false
+
+
+
+
+
 """
 Write a namelist to path.
 """
 function write(nml::AbstractNamelist, path::String; soft_line_limit=85)
-    para_names   = String.(fieldnames(typeof(nml)))
+    para_names   = String.(nmlFields(nml))
     longest_name = maximum(length.(para_names))
 
     f = open(path, "w")
@@ -237,7 +393,7 @@ function write(nml::AbstractNamelist, path::String; soft_line_limit=85)
     for (i,p) in enumerate(para_names)
         spaces = longest_name - length(p) +1
         line   = "&$(p)" * repeat(" ", spaces) 
-        d      = getfield(nml, Symbol(p))
+        d = nmlField(nml, Symbol(p))
         
         lline = longest_name+2
         for word in keys(d)
@@ -279,7 +435,7 @@ function set!(nml::AbstractNamelist; kwargs...)
         end
 
         for (p,v) in paras
-            getfield(nml, field)[String(p)] = v
+            nmlField(nml, field)[String(p)] = v
         end
     end
 end
@@ -291,6 +447,8 @@ read_eos_params(path::String) = begin
         lines = Dict(kv[1]=>kv[2] for kv in lines if length(kv)==2)
     end
 end
+
+
 
 
 
