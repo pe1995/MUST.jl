@@ -271,7 +271,7 @@ let
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
 	i = ax[0].imshow(
-		exp.(topticalsurfaces["lnDplane"][itimeSurface]),
+		log10.(exp.(topticalsurfaces["lnDplane"][itimeSurface])),
 		origin="lower",
 		extent=extent,
 		cmap="gist_heat_r"
@@ -290,14 +290,14 @@ let
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
 	i = ax[1].imshow(
-		exp.(topticalsurfaces["lnDplane"][itimeSurface2]),
+		log10.(exp.(topticalsurfaces["lnDplane"][itimeSurface2])),
 		origin="lower",
 		extent=extent,
 		cmap="gist_heat_r"
 	)
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
-	cb.set_label(L"\rm \rho\ [g\ cm^{-3}]")
+	cb.set_label(L"\rm \log_{10} \rho\ [g\ cm^{-3}]")
 
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
@@ -418,7 +418,7 @@ let
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
 	i = ax[0].imshow(
-		exp.(tuppersurfaces["lnDplane"][itimeSurface]),
+		log10.(exp.(tuppersurfaces["lnDplane"][itimeSurface])),
 		origin="lower",
 		extent=extent,
 		cmap="gist_heat_r"
@@ -437,14 +437,14 @@ let
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
 	i = ax[1].imshow(
-		exp.(tuppersurfaces["lnDplane"][itimeSurface2]),
+		log10.(exp.(tuppersurfaces["lnDplane"][itimeSurface2])),
 		origin="lower",
 		extent=extent,
 		cmap="gist_heat_r"
 	)
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
-	cb.set_label(L"\rm \rho\ [g\ cm^{-3}]")
+	cb.set_label(L"\rm \log_{10} \rho\ [g\ cm^{-3}]")
 
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
@@ -501,6 +501,61 @@ let
 	gcf()
 end
 
+# ╔═╡ 0e3d2723-1ecb-4e5a-8125-78f6f27407e2
+if haskey(tuppersurfaces, "dtplane") 
+	let 
+		plt.close()
+		f, ax = plt.subplots(1, 2, figsize=(10, 6))
+	
+		x = tuppersurfaces["x"][itimeSurface] ./1e8
+		y = tuppersurfaces["y"][itimeSurface] ./1e8
+	
+		extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+
+		#=i = ax[0].imshow(
+			tuppersurfaces["Tplane"][itimeSurface],
+			origin="lower",
+			extent=extent,
+			cmap="gist_heat"
+		)=#
+		i = ax[0].imshow(
+			tuppersurfaces["dtplane"][itimeSurface],
+			origin="lower",
+			extent=extent,
+			cmap="rainbow_r", alpha=1
+		)
+		
+		cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+	
+		ax[0].set_xlabel("x [cm]")
+		ax[0].set_ylabel("y [cm]")
+	
+	
+	
+		x = tuppersurfaces["x"][itimeSurface2] ./1e8
+		y = tuppersurfaces["y"][itimeSurface2] ./1e8
+	
+		extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+		
+		i = ax[1].imshow(
+			tuppersurfaces["dtplane"][itimeSurface2],
+			origin="lower",
+			extent=extent,
+			cmap="rainbow_r"
+		)
+		
+		cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+		cb.set_label(L"\rm \Delta t\ [s]")
+	
+		ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+		ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+	
+		ax[1].set_xlabel("x [cm]")
+		
+		gcf()
+	end
+end
+
 # ╔═╡ 3403a014-2441-4ad2-95f6-2e686ae99ba8
 
 
@@ -521,8 +576,9 @@ tGeoRms = timeevolution(monitoring, "geometricalRMS")
 
 # ╔═╡ 32603241-ed2c-4579-9319-40e50eb2172c
 tGeoQuantiles = Dict(
-	k=>timeevolution(monitoring, "geometrical$(k)thQuantile")
-	for k in [15, 30, 45, 60, 75, 90]
+	k=>timeevolution(monitoring, "geometrical$(k)thQuantile") 
+	for k in [15, 30, 45, 60, 75, 90] 
+	if "geometrical$(k)thQuantile" in keys(monitoring[1])
 )
 
 # ╔═╡ 53bed7de-b834-465e-8d13-2909240286b5
@@ -721,7 +777,7 @@ let
 	gcf()
 end
 
-# ╔═╡ 12e00c80-67d9-4f01-a832-7852e9d4ec49
+# ╔═╡ cdfb5217-e298-4ee1-ac5d-f294d04f5abc
 
 
 # ╔═╡ 274d42e7-20eb-4560-a0f0-e4a631aedcec
@@ -1641,6 +1697,7 @@ end
 # ╟─495e3733-d290-40ab-af63-0eb10a033b53
 # ╟─ed29d53f-00bc-4295-93f6-864a44f92ccb
 # ╟─fa8161aa-0e1c-404f-8c7e-0e3914917df4
+# ╟─0e3d2723-1ecb-4e5a-8125-78f6f27407e2
 # ╟─3403a014-2441-4ad2-95f6-2e686ae99ba8
 # ╟─b0c40c50-3361-4b01-ae87-45ae30387526
 # ╟─96a3ddc0-3d70-4b65-a7c2-7482c8817186
@@ -1654,7 +1711,7 @@ end
 # ╟─8ef763ae-d1bd-40de-a26a-f91f529c03bf
 # ╟─d9546636-2dbb-4b14-9954-76872b95fd06
 # ╟─7fd50fcd-8a9d-417d-a28a-febd9f0f68f3
-# ╟─12e00c80-67d9-4f01-a832-7852e9d4ec49
+# ╟─cdfb5217-e298-4ee1-ac5d-f294d04f5abc
 # ╟─274d42e7-20eb-4560-a0f0-e4a631aedcec
 # ╟─46db420f-2f46-4989-846e-145a70001ddf
 # ╟─b046b3a0-05d4-4b6c-be80-7396f475be3d

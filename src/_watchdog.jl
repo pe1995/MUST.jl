@@ -184,13 +184,15 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     uzplane = b[:uz][:, :, end]
     Tplane = b[:T][:, :, end]
     Dplane = log.(b[:d][:, :, end])
+    dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, end] : nothing
 
     Dict(
         "uzplane" => uzplane[:, :],
         "Tplane" => Tplane[:, :],
         "lnDplane" => Dplane[:, :],
         "x" => b.x[:, :, end],
-        "y" => b.y[:, :, end]
+        "y" => b.y[:, :, end],
+        "dtplane" => dtplane[:, :]
     )
 end
 
