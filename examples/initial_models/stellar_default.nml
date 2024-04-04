@@ -11,7 +11,7 @@
                       decay_limit=1e-2 position=0.45 ee1=0.0 axis=3 decay_scale=10.0 delay_rt=.true. 
                       on=t /
 &friction_params      decay_limit=1e-2 end_time=50.0 time=0.1 on=t decay_scale=25.0 /
-&boundary_params      upper_bc=2 lower_bc=3 /
+&boundary_params      upper_bc=2 lower_bc=5 /
 &gravity_params       constant=-27400.0 axis=3 on=t mass=-1 position=0.0 
                       minrad=-1 /
 &pressure_node_params /
