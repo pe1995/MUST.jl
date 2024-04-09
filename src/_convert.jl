@@ -168,38 +168,51 @@ function snapshotBox_jl(
     optical_depth_scale=true, 
     to_multi=false,
     use_mmap=false,
-    quantites=MUST.defaultQuantities,
+    quantites=defaultQuantities,
+    eos_reader=_squaregaseos, 
+    lookup_generator=nothing,
     kwargs...)
     folder = if !isdir(folder)
         @in_dispatch folder
     else
         folder
     end
+    try
+        # read patch data, collect to data cube
+        b_s = MUST.Box(
+            number, 
+            rundir=folder, 
+            quantities=quantites,
+            mmap=use_mmap,
+            eos_reader=eos_reader,
+            lookup_generator=lookup_generator
+        )
+        
+        # Add the optical depth
+        τ = optical_depth(b_s, opacity=:kr, density=:d)
+        add!(b_s, τ, :τ_ross)
 
-    # read patch data, collect to data cube
-    b_s = MUST.Box(number, rundir=folder, quantities=quantites, mmap=use_mmap)
-    
-    # Add the optical depth
-    τ = optical_depth(b_s, opacity=:kr, density=:d)
-    add!(b_s, τ, :τ_ross)
+        # interpolate to optical depth scale
+        b_τ = if optical_depth_scale
+            b_τ = height_scale_fast(b_s, :τ_ross)
+            save(b_τ; name="box_tau_sn$(number)", folder=folder)
 
-    # interpolate to optical depth scale
-    b_τ = if optical_depth_scale
-        b_τ = height_scale_fast(b_s, :τ_ross)
-        save(b_τ; name="box_tau_sn$(number)", folder=folder)
+            b_τ 
+        else
+            nothing
+        end
 
-        b_τ 
-    else
-        nothing
+        # convert to Multi format and save in the same folder, keep the number of the snapshot!
+        if to_multi
+            b_s.data[:ne] = b_s.data[:Ne]
+            multiBox(b_s, joinpath(folder, "m3dis_$(number)"))
+        end
+
+        b_s, b_τ
+    catch
+        @warn "snapshot $(number) could not be loaded."
+        nothing, nothing
     end
-
-    # convert to Multi format and save in the same folder, keep the number of the snapshot!
-    if to_multi
-        b_s.data[:ne] = b_s.data[:Ne]
-        multiBox(b_s, joinpath(folder, "m3dis_$(number)"))
-    end
-
-    b_s, b_τ
 end
 
 """

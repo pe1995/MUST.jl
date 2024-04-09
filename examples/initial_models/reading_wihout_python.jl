@@ -834,6 +834,9 @@ end
 # ╔═╡ 04701ec7-6831-4617-b81c-1518264f7aaa
 md"# Test within MUST"
 
+# ╔═╡ 19fc41ec-abcb-4c1d-9a6b-e16221ad7244
+c2m = MUST.ingredients("convert2must.jl")
+
 # ╔═╡ 14672d91-6b5d-4a0c-a2c2-e52150f766cb
 eos = TSO.reload(SqEoS, @in_dispatch("input_data/grd/DIS_MARCS_E_t5777g44m00_v0.5.1/eos.hdf5"))
 
@@ -841,9 +844,10 @@ eos = TSO.reload(SqEoS, @in_dispatch("input_data/grd/DIS_MARCS_E_t5777g44m00_v0.
 opa = TSO.reload(SqOpacity, @in_dispatch("input_data/grd/DIS_MARCS_E_t5777g44m00_v0.5.1/binned_opacities.hdf5"))
 
 # ╔═╡ b3f3425b-3ccb-4de5-b32f-a698df810ce3
-b2, bt2 = MUST.snapshotBox(
+b2, bt2 = MUST.Box(
+	"grid_t5777g44m00_deep",
 	10, 
-	folder=@in_dispatch("data/grid_t5777g44m00_deep"),
+	data=@in_dispatch("data"),
 	legacy=false
 )
 
@@ -889,6 +893,7 @@ end
 # ╠═b3f76f05-57c7-4890-92a0-2f268f72ec5f
 # ╟─51ab063f-a103-4b77-80f6-b7b5601df785
 # ╟─04701ec7-6831-4617-b81c-1518264f7aaa
+# ╠═19fc41ec-abcb-4c1d-9a6b-e16221ad7244
 # ╠═14672d91-6b5d-4a0c-a2c2-e52150f766cb
 # ╠═ff186ff3-c7de-4f93-a9b2-0331bcf2652b
 # ╠═b3f3425b-3ccb-4de5-b32f-a698df810ce3

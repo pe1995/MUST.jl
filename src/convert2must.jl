@@ -81,17 +81,14 @@ Julia version:
 Convert a snapshot with number `snapshot` from the simulation output `simulation` to a ```MUST.jl``` ```Box```. EoS and opacity tables in the ```TSO.jl``` format are used to add T and κ-ross.
 """
 function _Box_jl(simulation, snapshot; data, mmap=false)
-    bs = MUST.Box(snapshot, run=simulation, data=data, eos_reader=sqeos_reader, lookup_generator=lookup_function_generator, mmap=mmap)
-
-	# Compute an vertical optical depth
-	τ = MUST.optical_depth(bs, opacity=:kr, density=:d)
-    MUST.add!(bs, τ, :τ_ross)
-
-    bs_τ = MUST.height_scale_fast(bs, :τ_ross)
- 	MUST.save(bs_τ; name="box_tau_sn$(snapshot)", folder=joinpath(data, simulation))
-	bs_τ = MUST.Box("box_tau_sn$(snapshot)", folder=joinpath(data, simulation))
-
-	bs, bs_τ
+	MUST.snapshotBox(
+		snapshot, 
+		folder=joinpath(data, simulation), 
+		eos_reader=sqeos_reader,
+		lookup_generator=lookup_function_generator, 
+		use_mmap=mmap,
+		legacy=false
+	)
 end
 
 
