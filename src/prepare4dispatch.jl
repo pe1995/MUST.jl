@@ -254,10 +254,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         tscale, vmax, vmin; 
                         courant_rt=0.2, courant_hd=0.2, newton_time=100, friction_time=150,
                         newton_scale=0.1, newton_decay_scale=15.0, friction_decay_scale=10.0,
+                        duration=360,
                         courant_target=0.25, kwargs...)
-    #ngrid = nrow(grid.info)
-    #phase = grid.name
-
     dummy_nml = MUST.StellarNamelist("stellar_default.nml")
 
     # name of namelists
@@ -324,9 +322,15 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         tscale
     end
 
-    stellar_w = round(0.1 * velocity_ratio, sigdigits=3)
-    strength = round(0.1 / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
-    tbot = round(0.01 / velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+    # crossing time estimate
+    t_cross = x_size / min(abs(vmax), abs(vmin))
+
+    # how many time scales is one crossing time compared to the sun
+    t_scaling = t_cross / tscale / ((6.0e8 / 12.0e5) /100)
+
+    stellar_w = 0.1 # round(0.1 * velocity_ratio, sigdigits=3)
+    strength = 0.1 #round(0.1 * velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
+    tbot = 0.01 #round(0.01 * velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
 
     # htop_scale can be estimated via logg linearly (set it limits for now at 3 and 0.1)
     htop_scale = min(max(-2 * logg + 10.1, 0.1), 4.0)
@@ -343,37 +347,71 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     MUST.set!(
         nml, 
-        cartesian_params=(:size=>[x, x, round(z_size/l_cgs_raw, sigdigits=3)], 
-                        :dims=>[patches(x_resolution, patch_size), 
-                                patches(x_resolution, patch_size), 
-                                patches(z_resolution, patch_size)],
-                        :position=>[0,0,round(-ddown/l_cgs_raw, sigdigits=3)]),
-        patch_params=(:n=>[patch_size, patch_size, patch_size], :grace=>0.2),
-        scaling_params=(:l_cgs=>l_cgs, :d_cgs=>d_cgs, :t_cgs=>tscale),
-        experiment_params=(:t_bot=>tbot,),
-        stellar_params=(:g_cgs=>round(exp10(logg), sigdigits=5), 
-                        :ee_min_cgs=>round(log(eemin), sigdigits=7), 
-                        :nz=>nz-1, 
-                        :w_perturb=>stellar_w,
-                        :initial_path=>initial_path),
-        friction_params=(:end_time=>friction_time, :decay_scale=>friction_decay_scale, :time=>strength,),
-        gravity_params=(:constant=>-round(exp10(logg), sigdigits=5),),
-        newton_params=(:ee0_cgs=>round(log(ee0), sigdigits=7), 
-                        :position=>round(zee0/l_cgs_raw, sigdigits=3),#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
-                        :end_time=>newton_time, 
-                        :decay_scale=>newton_decay_scale,
-                        :time=>strength,
-                        :scale=>newton_scale),
-        sc_rt_params=(  :rt_llc=>[-x/2, -x/2, -round((z_size/2 + ddown)/l_cgs_raw, sigdigits=3)], 
-                        :rt_urc=>[ x/2,  x/2,  round((z_size/2 - ddown)/l_cgs_raw, sigdigits=3)], 
-                        :n_bin=>n_bin,
-                        :courant=>courant_rt,
-                        :rt_freq=>0.0,
-                        :rt_grace=>0.1,
-                        :rt_res=>[-1,-1,rt_patch_size]),
-        boundary_params=(:upper_bc=>2, :htop_scale=>htop_scale),
-        an_params=(:courant=>courant_hd,),
-        eos_params=(:table_loc=>eos_table, :gamma=>1.2)
+        cartesian_params=(
+            :size=>[x, x, round(z_size/l_cgs_raw, sigdigits=3)], 
+            :dims=>[patches(x_resolution, patch_size), patches(x_resolution, patch_size), patches(z_resolution, patch_size)],
+            :position=>[0,0,round(-ddown/l_cgs_raw, sigdigits=3)]
+        ),
+        patch_params=(
+            :n=>[patch_size, patch_size, patch_size], 
+            :grace=>0.2
+        ),
+        scaling_params=(
+            :l_cgs=>l_cgs, 
+            :d_cgs=>d_cgs, 
+            :t_cgs=>tscale
+        ),
+        experiment_params=(
+            :t_bot=>tbot,
+        ),
+        stellar_params=(
+            :g_cgs=>round(exp10(logg), digits=3), 
+            :ee_min_cgs=>round(log(eemin), sigdigits=7), 
+            :nz=>nz-1, 
+            :w_perturb=>stellar_w,
+            :initial_path=>initial_path
+        ),
+        friction_params=(
+            :end_time=>round(friction_time*t_scaling, sigdigits=4), 
+            :decay_scale=>round(friction_decay_scale*t_scaling, sigdigits=4), 
+            :time=>0.1,
+        ),
+        gravity_params=(
+            :constant=>-round(exp10(logg), digits=3),
+        ),
+        newton_params=(
+            :ee0_cgs=>round(log(ee0), sigdigits=7), 
+            :position=>round(zee0/l_cgs_raw, sigdigits=3),#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
+            :end_time=>round(newton_time*t_scaling, sigdigits=4), 
+            :decay_scale=>round(newton_decay_scale*t_scaling, sigdigits=4),
+            :time=>strength,
+            :scale=>newton_scale
+        ),
+        sc_rt_params=(  
+            :rt_llc=>[-x/2, -x/2, -round((z_size/2 + ddown)/l_cgs_raw, sigdigits=3)], 
+            :rt_urc=>[ x/2,  x/2,  round((z_size/2 - ddown)/l_cgs_raw, sigdigits=3)], 
+            :n_bin=>n_bin,
+            :courant=>courant_rt,
+            :rt_freq=>0.0,
+            :rt_grace=>0.1,
+            :rt_res=>[-1,-1,rt_patch_size]
+        ),
+        io_params=(
+            :out_time=>1.0,
+            :end_time=>round(duration*t_scaling)
+        ),
+        boundary_params=(
+            :upper_bc=>2, 
+            :htop_scale=>round(htop_scale, sigdigits=5),
+            :lower_bc=>5
+        ),
+        an_params=(
+            :courant=>courant_hd,
+        ),
+        eos_params=(
+            :table_loc=>eos_table, 
+            :gamma=>1.2
+        )
     )
 
     # set additional kwargs if wanted

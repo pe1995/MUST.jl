@@ -79,6 +79,45 @@ function StandardUnits(snap::T) where {T<:Py}
     StaggerCGS(l=l,d=d,t=t,u=v)
 end
 
+"""
+    StandardUnits(name::String; folder=@in_dispatch("data"))
+
+Read Units from Dispatch snapshot with name `name` and save the conversion to CGS.
+"""
+function StandardUnits(name::String, folder::String)
+	rundir = joinpath(folder, name)
+	StandardUnits(rundir)
+end
+
+StandardUnits(folder::String) = begin
+    file = joinpath(folder, "params.nml")
+    ps = FreeNamelist(file)
+
+	scalingp = nmlField(ps, Symbol("scaling_params"))
+    pnames = keys(scalingp) |> collect
+	
+    l_name = "l_cgs" 
+    d_name = "d_cgs" 
+    v_name = "v_cgs" 
+    t_name = "t_cgs" 
+
+    l = scalingp[l_name]
+    d = scalingp[d_name]
+
+	if t_name in pnames
+        t = scalingp[t_name]
+        v = l / t
+	elseif v_name in pnames
+        v = scalingp[v_name]
+        t = l / v
+	else
+		error("Either t or v scaling needs to be provided")
+    end
+
+    StandardUnits(l=l,d=d,t=t,u=v)
+end
+
+
 DispatchCGS(snap::T) where {T<:Py} = StandardUnits(snap)
 StaggerCGS(snap::T) where {T<:Py}  = StandardUnits(snap)
 StaggerCGS(args...; kwargs...)     = StandardUnits(args...; kwargs...)

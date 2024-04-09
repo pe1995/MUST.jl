@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.38
+# v0.19.40
 
 using Markdown
 using InteractiveUtils
@@ -61,7 +61,7 @@ end
 
 
 # ╔═╡ d45457a4-9e33-4492-9a06-930f41f10fdc
-md"""Select one of the available runs:\
+md"""__Select one of the available runs__\
 $(@bind selectedRun confirm(Select(availableRuns(datafolder))))"""
 
 # ╔═╡ cbbe908e-01f2-485c-a6f1-a915c841838b
@@ -74,7 +74,8 @@ md"## Select Snapshots"
 allsnaps = sort(MUST.list_of_snapshots(runfolder));
 
 # ╔═╡ 288fb1ad-529e-40e1-ae8e-5994d438157d
-md"Pick the snapshot from which you want to start: $(@bind firstSnap Slider(allsnaps, show_value=true, default=allsnaps[end-11]))
+md"__Pick the snapshot from which you want to start__\
+$(@bind firstSnap Slider(allsnaps, show_value=true, default=allsnaps[end-11]))
 "
 
 # ╔═╡ a1c18af7-0d55-4c6c-b503-3950e13b6b17
@@ -230,6 +231,19 @@ begin
 			:end_time=>40,
 			:decay_scale=>5
 		),
+		#=:boundary_params=>(
+			:htop_scale=>1.1,
+			:lower_bc=>5
+		),=#
+		:cartesian_params=>(
+			:dims=>[10,10,5],
+		),
+		:patch_params=>(
+			:n=>[10,10,10],
+		),
+		:sc_rt_params=>(
+			:rt_res=>[-1,-1,20],
+		)
 	)
 end
 
@@ -237,13 +251,13 @@ end
 
 
 # ╔═╡ 28d04061-0040-45b5-9490-54c4cdb943f4
-md"Enter factor to extend atmosphere (%): $(@bind exAt TextField(default=\"0.0\"))"
+md"__Enter factor to extend atmosphere (%):__ $(@bind exAt TextField(default=\"0.0\"))"
 
 # ╔═╡ 1e1e380f-9684-496c-8bf4-158f281a679b
-md"Click to continue decaying timescales: $(@bind decay CheckBox(default=false))"
+md"__Click to continue decaying timescales:__ $(@bind decay CheckBox(default=false))"
 
 # ╔═╡ 946b586e-5c04-44c8-9300-0f2b7a8babf8
-md"Click to start preparations: $(@bind convert_given CheckBox(default=false))"
+md"__Click to start preparations:__ $(@bind convert_given CheckBox(default=false))"
 
 # ╔═╡ 4c7c7f16-cfa4-4547-8355-72744211219a
 begin
@@ -257,6 +271,18 @@ begin
 			new_namelist_params...
 		)
 	end
+end
+
+# ╔═╡ ba1b17e3-eebe-4015-b956-49ee95eae9f5
+
+
+# ╔═╡ f546ee73-db3e-4242-bb0c-3e7babae05d8
+let
+	plt.close()
+
+	plt.plot(profile(MUST.mean, b, :z, :T)...)
+
+	gcf()
 end
 
 # ╔═╡ Cell order:
@@ -287,3 +313,5 @@ end
 # ╟─1e1e380f-9684-496c-8bf4-158f281a679b
 # ╟─946b586e-5c04-44c8-9300-0f2b7a8babf8
 # ╟─4c7c7f16-cfa4-4547-8355-72744211219a
+# ╟─ba1b17e3-eebe-4015-b956-49ee95eae9f5
+# ╠═f546ee73-db3e-4242-bb0c-3e7babae05d8

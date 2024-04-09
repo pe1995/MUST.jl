@@ -44,6 +44,13 @@ end
 
 include_helper(name) = joinpath(dirname(@__FILE__), name)
 
+
+"""
+    ingredients(path::String)
+
+Include the julia script given into the current namespace.
+The file be looked for in the src folder where ` MUST`` is located.
+"""
 function ingredients(path::String)
 	# this is from the Julia source code (evalfile in base/loading.jl)
 	# but with the modification that it returns the module instead of the last object

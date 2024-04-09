@@ -8,9 +8,9 @@ begin
 
     # input and output names of the grid
     #initial_grid_path = "stagger_grid_full_o.mgrid"
-    initial_grid_path = "stagger_grid_sun.mgrid"
+    #initial_grid_path = "stagger_grid_sun.mgrid"
     #initial_grid_path = "stagger_grid_full_subgiant.mgrid"
-    #initial_grid_path = "stagger_grid_full_solar.mgrid"
+    initial_grid_path = "stagger_grid_full_solar.mgrid"
 
     initial_cl_path   = "stagger_grid_avail.mgrid"
     initial_mod_path  = "stagger_grid_solar.mgrid"
@@ -29,30 +29,27 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 14                 # Points per patch
-    τ_up = -4.5                     # Upper limit of simulation domain
+    patch_size = 20                 # Points per patch
+    τ_up = -3.75                    # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 6.5                    # Lower limit of simulation domain
-    τ_ee0 = -1.5                    # Newton cooling placement (energy)
+    τ_down = 7.0                    # Lower limit of simulation domain
+    τ_ee0 = -0.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -1.0                   # Newton cooling placement (height)
-    τ_rho0 = -1.0                   # Density normaliztion height
-    scale_resolution = 0.65         # Down or upsampling of simulation domain
+    τ_zee0 = -0.25                  # Newton cooling placement (height)
+    τ_rho0 =  0.0                   # Density normaliztion height
+    scale_resolution = 0.50         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
-        :newton_time=>200.0,        #   Optional: Give namelist field = NamedTuple 
-        :newton_decay_scale=>40.0,  #   for direct namelist replacement
+        :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
+        :newton_decay_scale=>50.0,  #   for direct namelist replacement
         :courant_target=>0.3,
-        :courant_rt=>1.0,
+        :courant_rt=>0.8,
+        :duration=>600,
         :newton_params=>(
             :on=>true,
             :delay_rt=>true
         ),
         :sc_rt_params=>(
-            :rt_freq=>1.5,
-        ),
-        :io_params=>(
-            :out_time=>1.0,
-            :end_time=>600
+            :rt_freq=>2.0,
         ),
         :aux_params=>(
             :select=>["dt_rt", "flux"],
@@ -75,13 +72,15 @@ begin
 
     # opacity table version (output)
     # v0.5   -> 8 bins (MARCS)
+    # v0.5+1 -> 8 bins (MARCS) - redo for debugging (logg 4.44 for sun)
     # v0.5.1 -> Grey (MARCS)
     # v0.5.2 -> 4 MURaM bins (MARCS)
     # v0.5.3 -> 5 bins in paper-setup
     # v0.5.4 -> 8 bins in paper-setup
     # v0.5.5 -> 12 bins in paper-setup
     # v0.5.6 -> 7 bins in paper-setup
-    version = "v0.5"
+    # v0.5.7 -> 12 bins in Co5bold setup
+    version = "v0.5+1"
 
     # Number of bins in the opacity table (output)
     Nbins = 8
@@ -117,6 +116,22 @@ begin
             TSO.Quadrant((0.0, 100.0), (0.0, 2.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (2.0, 4.0), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (4.0, 100.0), 1, stripes=:κ)
+        ]=#
+
+        # 12 CO5BOLD bins
+        #=quadrants = [ 
+            TSO.Quadrant(log10.((0.0,    5500.0)),     reverse(-1 .* (0.15,  99.0)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((5500.0, 10000000.0)),  reverse(-1 .* (0.15,  99.0)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((0.0,    6000.0)),     reverse(-1 .* (0.00,  0.15)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((6000.0, 10000000.0)),  reverse(-1 .* (0.00,  0.15)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((0.0,    6500.0)),     reverse(-1 .* (-0.75, 0.00)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((6500.0, 10000000.0)),  reverse(-1 .* (-0.75, 0.00)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((0.0,    10000000.0)),  reverse(-1 .* (-1.50, -0.75)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((0.0,    10000000.0)),  reverse(-1 .* (-2.25, -1.50)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((0.0,    10000000.0)),  reverse(-1 .* (-3.00, -2.25)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((0.0,    10000000.0)),  reverse(-1 .* (-3.75, -3.00)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((0.0,    10000000.0)),  reverse(-1 .* (-4.50, -3.75)), 1, stripes=:κ)
+            TSO.Quadrant(log10.((0.0,    10000000.0)),  reverse(-1 .* (-99.0, -4.50)), 1, stripes=:κ)
         ]=#
 
         # grey

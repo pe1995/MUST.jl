@@ -1,5 +1,5 @@
 """
-    snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=true, add_selection=false, to_multi=true)
+    snapshotBox_py(number; folder, optical_depth_scale=true, save_snapshot=true, add_selection=false, to_multi=true)
 
 Convert the snapshot with number `number` from dispatch to a Space object.
 In the current version, this relies on the dispatch python package.
@@ -8,10 +8,10 @@ This may change in the future.
 # Examples
 ```julia
 MUST.@import_dispatch "/path/to/dispatch2"
-box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"))
+box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"), legacy=true)
 ```
 """
-function snapshotBox(
+function snapshotBox_py(
     number; 
     folder, 
     optical_depth_scale=true, 
@@ -148,3 +148,71 @@ function snapshotBox(
         nothing, nothing
     end
 end
+
+"""
+    snapshotBox_jl(number; folder, optical_depth_scale=true, to_multi=false, use_mmap=false, quantites=MUST.defaultQuantities)
+
+Convert the snapshot with number `number` from dispatch to a Space object.
+In the current version, this relies on the dispatch python package.
+This may change in the future.
+
+# Examples
+```julia
+MUST.@import_dispatch "/path/to/dispatch2"
+box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"), legacy=false)
+```
+"""
+function snapshotBox_jl(
+    number; 
+    folder, 
+    optical_depth_scale=true, 
+    to_multi=false,
+    use_mmap=false,
+    quantites=MUST.defaultQuantities,
+    kwargs...)
+    folder = if !isdir(folder)
+        @in_dispatch folder
+    else
+        folder
+    end
+
+    # read patch data, collect to data cube
+    b_s = MUST.Box(number, rundir=folder, quantities=quantites, mmap=use_mmap)
+    
+    # Add the optical depth
+    τ = optical_depth(b_s, opacity=:kr, density=:d)
+    add!(b_s, τ, :τ_ross)
+
+    # interpolate to optical depth scale
+    b_τ = if optical_depth_scale
+        b_τ = height_scale_fast(b_s, :τ_ross)
+        save(b_τ; name="box_tau_sn$(number)", folder=folder)
+
+        b_τ 
+    else
+        nothing
+    end
+
+    # convert to Multi format and save in the same folder, keep the number of the snapshot!
+    if to_multi
+        b_s.data[:ne] = b_s.data[:Ne]
+        multiBox(b_s, joinpath(folder, "m3dis_$(number)"))
+    end
+
+    b_s, b_τ
+end
+
+"""
+    snapshotBox(number; folder, optical_depth_scale=true, save_snapshot=true, add_selection=false, to_multi=true)
+
+Convert the snapshot with number `number` from dispatch to a Space object.
+In the current version, this relies on the dispatch python package.
+This may change in the future.
+
+# Examples
+```julia
+MUST.@import_dispatch "/path/to/dispatch2"
+box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"))
+```
+"""
+snapshotBox(args...; legacy=true, kwargs...) = legacy ? snapshotBox_py(args...; kwargs...) : snapshotBox_jl(args...; kwargs...)

@@ -26,15 +26,15 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 15                 # Points per patch
-    τ_up = -5.5                     # Upper limit of simulation domain
+    patch_size = 14                 # Points per patch
+    τ_up = -4.2                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 6.5                    # Lower limit of simulation domain
-    τ_ee0 = -1.5                    # Newton cooling placement (energy)
+    τ_down = 7.0                    # Lower limit of simulation domain
+    τ_ee0 = -1.75                   # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -1.0                   # Newton cooling placement (height)
+    τ_zee0 = -1.5                   # Newton cooling placement (height)
     τ_rho0 = -1.0                   # Density normaliztion height
-    scale_resolution = 0.8          # Down or upsampling of simulation domain
+    scale_resolution = 0.5          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
@@ -46,7 +46,14 @@ begin
         ),
         :io_params=>(
             :out_time=>1.0,
-        ) 
+        ),
+        :aux_params=>(
+            :select=>["dt_rt", "flux"],
+        ),
+        :boundary_params=>(
+            :upper_bc=>2,
+            :smallr=>1e-10
+        )
     )
 end
 
@@ -67,10 +74,10 @@ begin
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = false
+    skip_binning = true
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = false
+    skip_formation = true
 
     # recompute the rosseland optical depth for the first model in the grid
     recompute_ross = false

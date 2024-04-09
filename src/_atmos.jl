@@ -949,7 +949,11 @@ end
 function Box(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
     if !isfile(name)
         path = isnothing(folder) ? @in_dispatch(name*".hdf5") : joinpath(folder, name*".hdf5")
-        @assert isfile(path) 
+        if !isfile(path) 
+            error("$(path) does not exist.")
+        end
+
+        path
     else
         path = name
     end
@@ -2075,3 +2079,13 @@ function flip!(box::Box; density=:d, uz=:uz)
 
     box
 end
+
+
+
+
+
+
+
+
+#= NEW: Convert from Dispatch entirely in Julia =#
+include("_box_direct.jl")

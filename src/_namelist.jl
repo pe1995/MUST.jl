@@ -250,26 +250,12 @@ function parse_from_namelist(value_string)
         return ""
     end
     value_string = ("$(strip(value_string)[end])" == "/") ? strip(strip(value_string)[1:end-1]) : value_string
-    val = if occursin(",", value_string) 
-        val_spl = strip.(split(value_string, ",", keepempty=false))
-        val = if any(occursin.(".", val_spl))
-            try
-                parse.(Float64, val_spl)
-            catch
-                String.(val_spl)
-            end
+    val = if occursin(",", value_string)|occursin("*", value_string)
+        v = parse_multiple(value_string)
+        if length(v) == 1
+            first(v)
         else
-            try
-                parse.(Int64, val_spl)
-            catch
-                String.(val_spl)
-            end
-        end
-
-        if length(val) == 1
-            first(val)
-        else
-            val
+            v
         end
     elseif occursin(".", value_string)
         try
@@ -288,7 +274,7 @@ function parse_from_namelist(value_string)
     val = if typeof(val) <: AbstractString
         if lowercase(val) in ["t", ".true."]
             true
-        elseif lowercase(val) in ["F", ".false."]
+        elseif lowercase(val) in ["f", ".false."]
             false
         else
             val
@@ -446,6 +432,54 @@ read_eos_params(path::String) = begin
         lines = [strip.(split(strip(l), "=")) for l in lines]
         lines = Dict(kv[1]=>kv[2] for kv in lines if length(kv)==2)
     end
+end
+
+"""
+    parse_multiple(s)
+
+Parse namelist strings that have a multiplication sign in them.
+"""
+function parse_multiple(s)
+	sComponents = []
+	
+	# split at commas
+	sComma = strip.(split(s, ",", keepempty=false))
+
+	# split for multiplication signs
+	sMulti = [strip.(split(si, "*", keepempty=false)) for si in sComma]
+
+	# flatten the list
+	for component in sMulti
+		c = if length(component) > 1
+			repeat([last(component)], parse(Int, first(component)))
+		else
+			component
+		end
+
+		append!(sComponents, c)
+	end
+
+	# try to convert to number
+	sComponentsParsed = []
+	for component in sComponents
+		c_new = if occursin(".", component)
+			try 
+				parse(Float64, component)
+			catch
+				component
+			end
+		else
+			try 
+				parse(Int, component)
+			catch
+				component
+			end
+		end
+
+		append!(sComponentsParsed, [c_new])
+	end
+		
+	sComponentsParsed
 end
 
 
