@@ -168,6 +168,7 @@ function snapshotBox_jl(
     optical_depth_scale=true, 
     to_multi=false,
     use_mmap=false,
+    save_snapshot=true,
     quantites=defaultQuantities,
     eos_reader=_squaregaseos, 
     lookup_generator=nothing,
@@ -185,7 +186,8 @@ function snapshotBox_jl(
             quantities=quantites,
             mmap=use_mmap,
             eos_reader=eos_reader,
-            lookup_generator=lookup_generator
+            lookup_generator=lookup_generator,
+            save_snapshot=save_snapshot
         )
         
         # Add the optical depth
@@ -195,7 +197,7 @@ function snapshotBox_jl(
         # interpolate to optical depth scale
         b_τ = if optical_depth_scale
             b_τ = height_scale_fast(b_s, :τ_ross)
-            save(b_τ; name="box_tau_sn$(number)", folder=folder)
+            save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=folder)
 
             b_τ 
         else

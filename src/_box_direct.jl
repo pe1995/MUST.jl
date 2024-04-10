@@ -323,8 +323,9 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 			aux = readaux(auxname)
 
 			for a in aux
-				if a.name in variablesAndAux
-					temp_storage[Symbol(a.name)] .= a.data[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] 
+				asym = Symbol(a.name)
+				if asym in variablesAndAux
+					temp_storage[asym] .= a.data[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] 
 				end
 			end
 		end
@@ -418,6 +419,25 @@ function _save_box(number, fid::Dict, time, logg, folder)
     save(b, number, folder=folder)
 end
 
+function _to_box(number, fid::Dict, time, logg, folder)
+    dtype = eltype(fid["x"])
+    p = AtmosphericParameters(
+        Base.convert(dtype, time), 
+        Base.convert(dtype, -99.0), 
+        Base.convert(dtype, logg), 
+        Dict{Symbol, dtype}()
+    )
+
+    data = Dict(Symbol(p)=>v for (p, v) in fid if !(p in ["x", "y", "z"]))
+    Box(
+        fid["x"],
+        fid["y"],
+        fid["z"],
+        data,
+        p
+    )
+end
+
 
 
 
@@ -434,9 +454,15 @@ __Note__: TSO hooks are included to use the TSO EoS interface directly by passin
 This is implemented for you and ready to be used in the ingredient `convert2must.jl`. Without using this ingredient, the dafault setup will be used,
 which is the `MUST` EoS reader.
 """
-function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_reader=_squaregaseos, lookup_generator=nothing, mmap=false)	
+function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_reader=_squaregaseos, lookup_generator=nothing, mmap=false, save_snapshot=false)	
 	# check the inputs
     run, rundir, datadir, params_list, files = _check_files(iout, data, run, rundir)
+
+	mmap = if !save_snapshot 
+		false
+	else
+		mmap
+	end
 
 	# load the units and prepare the converters
 	units = StandardUnits(rundir)
@@ -455,7 +481,7 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 
 	# general quantities
     logg = Base.convert(Float32, log10.(abs.(nmlValue(params_list, "g_cgs"))))
-	time = Base.convert(Float32, nmlValue(params_list, "time"))
+	time = Base.convert(Float32, nmlValue(snapshot_nml, "time")) * units.t
 
     # Use the Squaregas EOS 
     eos_sq, eos_quantities = eos_reader(run)
@@ -509,11 +535,14 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 		lookup_generator
 	)
 
-	_save_box(iout, fid, time, logg, rundir)
-	
-	# return the mmaped box
-	Box(
-		"box_sn$(iout)",
-		folder=rundir
-	)
+	if save_snapshot
+		_save_box(iout, fid, time, logg, rundir)
+		# return the mmaped box
+		Box(
+			"box_sn$(iout)",
+			folder=rundir
+		)
+	else
+		_to_box(iout, fid, time, logg, rundir)
+	end
 end

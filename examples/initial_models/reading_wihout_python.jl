@@ -643,7 +643,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 			aux = readaux(auxname)
 
 			for a in aux
-				if a.name in variablesAndAux
+				if Symbol(a.name) in variablesAndAux
 					temp_storage[Symbol(a.name)] .= a.data[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] 
 				end
 			end
@@ -743,8 +743,8 @@ function snapshot(iout; run="", data=MUST.@in_dispatch("data"), quantities=defau
 
 	# general quantities
     logg = Base.convert(Float32, log10.(abs.(MUST.nmlValue(params_list, "g_cgs"))))
-	time = Base.convert(Float32, MUST.nmlValue(params_list, "time"))
-
+	time = Base.convert(Float32, MUST.nmlValue(snapshot_nml, "time")) * units.t
+	
     # Use the Squaregas EOS 
     eos_sq, eos_quantities = eos_reader(run)
 	
@@ -801,7 +801,7 @@ function snapshot(iout; run="", data=MUST.@in_dispatch("data"), quantities=defau
 	
 	# return the mmaped box
 	MUST.Box(
-		"box_$(iout)",
+		"box_sn$(iout)",
 		folder=rundir
 	)
 end
@@ -813,17 +813,23 @@ StandardUnits("grid_t5777g44m00_deep")
 begin
 	TSO.reset_timer!(to)
 	b = snapshot(
-		1, 
+		10, 
 		run="grid_t5777g44m00_deep"
 	)
 	show(to)
 end
 
+# ╔═╡ ef238fdf-31eb-42c5-b91b-134196d5cf8f
+b.parameter.time
+
+# ╔═╡ 41c7c4ce-ff05-43ca-adc0-f1a4771c9844
+b.parameter.logg
+
 # ╔═╡ b3f76f05-57c7-4890-92a0-2f268f72ec5f
 let
 	plt.close()
 
-	plt.plot(profile(MUST.mean, b, :z, :T)...)
+	plt.plot(profile(MUST.mean, b, :z, :dt_rt)...)
 
 	gcf()
 end
@@ -855,7 +861,7 @@ b2, bt2 = MUST.Box(
 let
 	plt.close()
 
-	plt.plot(profile(MUST.mean, bt2, :log10τ_ross, :T)...)
+	plt.plot(profile(MUST.mean, bt2, :z, :dt_rt)...)
 
 	gcf()
 end
@@ -890,6 +896,8 @@ end
 # ╠═486a3d26-cafb-4dbd-b735-c0a3c89c02d9
 # ╠═35102657-6a9a-4fbb-82b9-24f5289946c4
 # ╠═71163085-0adb-49a3-8ce5-028d18c8f5d7
+# ╠═ef238fdf-31eb-42c5-b91b-134196d5cf8f
+# ╠═41c7c4ce-ff05-43ca-adc0-f1a4771c9844
 # ╠═b3f76f05-57c7-4890-92a0-2f268f72ec5f
 # ╟─51ab063f-a103-4b77-80f6-b7b5601df785
 # ╟─04701ec7-6831-4617-b81c-1518264f7aaa

@@ -101,7 +101,8 @@ function analyse(w::WatchDog, snapshot; save_box=false)
         save_snapshot=save_box, 
         to_multi=false,
         is_box=true, 
-        use_mmap=false
+        use_mmap=false,
+        legacy=false
     )
 
     monitoring = Dict()
