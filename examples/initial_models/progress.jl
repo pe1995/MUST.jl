@@ -1199,7 +1199,7 @@ if haskey(tOptAv, "flux")
 		ax.plot(
 			x, y,
 			color="k", marker="", ls="-", 
-			label="t = $(time[itimeSurface]) s, "*teff_str(tOptAv["flux"][itimeSurface][end]), lw=2.5
+			label="t = $(time[itimeSurface]) s, "*teff_str(tGeoAv["flux"][itimeSurface][end]), lw=2.5
 		) 
 	
 	
@@ -1219,7 +1219,7 @@ if haskey(tOptAv, "flux")
 		ax.plot(
 			x, y,
 			color="k", marker="", ls="--", 
-			label="t = $(time[itimeSurface2]) s, "*teff_str(tOptAv["flux"][itimeSurface2][end]), lw=2.
+			label="t = $(time[itimeSurface2]) s, "*teff_str(tGeoAv["flux"][itimeSurface2][end]), lw=2.
 		) 
 
 		ax.set_yscale("log")
