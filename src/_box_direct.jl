@@ -394,15 +394,25 @@ function _save_box(number, fid, time, logg, folder)
     HDF5.delete_object(fid, "logg")
     fid["time"] = time
     fid["logg"] = logg
+
+	# see if we can get teff
+	teff = _get_teff_from_fid(fid)
+
+	HDF5.delete_object(fid, "teff")
+    fid["teff"] = teff
     
     close(fid)
 end
 
 function _save_box(number, fid::Dict, time, logg, folder)
     dtype = eltype(fid["x"])
+
+	# see if we can get teff
+	teff = _get_teff_from_fid(fid)
+
     p = AtmosphericParameters(
         Base.convert(dtype, time), 
-        Base.convert(dtype, -99.0), 
+        Base.convert(dtype, teff), 
         Base.convert(dtype, logg), 
         Dict{Symbol, dtype}()
     )
@@ -421,6 +431,10 @@ end
 
 function _to_box(number, fid::Dict, time, logg, folder)
     dtype = eltype(fid["x"])
+
+	# see if we can get teff
+	teff = _get_teff_from_fid(fid)
+
     p = AtmosphericParameters(
         Base.convert(dtype, time), 
         Base.convert(dtype, -99.0), 
@@ -438,7 +452,13 @@ function _to_box(number, fid::Dict, time, logg, folder)
     )
 end
 
-
+_get_teff_from_fid(fid, flux_name="flux") = begin
+	if flux_name in keys(fid)
+		(mean(fid[flux_name][:, :, end]) /σ_S) ^0.25
+	else
+		-99.0
+	end
+end
 
 
 
