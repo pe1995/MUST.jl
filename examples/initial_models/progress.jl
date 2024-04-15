@@ -20,6 +20,8 @@ begin
 	using Pkg; Pkg.activate(".")
 	using MUST
 	using PythonPlot
+	using Plots
+	using Images
 	using PlutoUI
 end
 
@@ -1642,6 +1644,101 @@ if ("dt_rt" in keys(tGeoAv))
 	end
 end
 
+# ╔═╡ 8ae48e0a-cddf-4775-9a1a-8eada0c07ca7
+
+
+# ╔═╡ 61b3e522-2af4-4413-9c69-ee30b0d4673f
+md"# Movies"
+
+# ╔═╡ 40bf37a4-318b-4263-8705-a566a3321f87
+md"## Optical Surface Movie"
+
+# ╔═╡ 366d0c55-c52e-4b5e-b0af-73102bf5dd44
+md"""
+__Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))
+"""
+
+# ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
+begin
+	surfacesMovie = topticalsurfaces["Tplane"]
+	dpi = 72
+	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
+	labelsurfaceMovie = L"\rm temperature\ [K]"
+	cmap = "gist_heat"
+end
+
+# ╔═╡ 8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
+begin		
+	v_min_movie = minimum(minimum, surfacesMovie)
+	v_max_movie = maximum(maximum, surfacesMovie)	
+	v_opt_folder_name = "v_opt"
+	
+	if isdir(v_opt_folder_name)
+		rm(v_opt_folder_name, recursive=true)
+	end
+	mkdir(v_opt_folder_name)
+	
+	f_movie, ax_movie, fnames_movie = [], [], []
+end;
+
+# ╔═╡ ba5049f0-b015-41ad-907e-b86edbcbf7fb
+begin
+	redoMovie = true
+	if createGifImages
+		rm.(fnames_movie)
+		for i in eachindex(fnames_movie)
+			pop!(fnames_movie)
+			pop!(f_movie)
+			pop!(ax_movie)
+		end
+		let 
+			for i in eachindex(snapshots)
+				plt.close()
+				f, ax = plt.subplots(1, 1, figsize=(5, 6))
+				
+				x = topticalsurfaces["x"][i] ./1e8
+				y = topticalsurfaces["y"][i] ./1e8
+			
+				extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+			
+				im = ax.imshow(
+					surfacesMovie[i],
+					origin="lower",
+					extent=extent,
+					cmap=cmap,
+					vmin=v_min_movie,
+					vmax=v_max_movie
+				)
+				cb = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+				cb.set_label(labelsurfaceMovie)
+			
+				
+				ax.set_title("t = $(MUST.@sprintf("%i", time[i])) s")
+				
+				ax.set_xlabel("x [cm]")
+				ax.set_ylabel("y [cm]")
+				
+				append!(f_movie, [f])
+				append!(ax_movie, [ax])
+				append!(fnames_movie, [joinpath(v_opt_folder_name, "im_$i.png")])
+				f.savefig(joinpath(v_opt_folder_name, "im_$i.png"), dpi=dpi)
+			end
+		end
+	end;
+end
+
+# ╔═╡ 7308fc51-5236-4b07-b773-df5451852fbb
+(length(fnames_movie) > 0) && begin
+	redoMovie
+	
+	v_images = Images.load.(fnames_movie)
+	anim = @animate for i ∈ eachindex(v_images)
+		Plots.plot(axis=([], false))
+		Plots.plot!(v_images[i])
+	end every 1
+	gif(anim, joinpath(v_opt_folder_name, "v_opt.gif"), fps=8)
+end
+
 # ╔═╡ Cell order:
 # ╟─c7dc3b15-6555-4824-872a-d487fe5145ea
 # ╟─c1ad6c59-fae6-49e7-bfc0-8426c553aa2d
@@ -1768,3 +1865,11 @@ end
 # ╟─82daeb7f-1a3b-420a-8193-148d7314f557
 # ╟─b59908ac-50a9-49fd-bcc2-94c59b205543
 # ╟─787b1cc4-9e1f-4421-874d-bdff7c231bf9
+# ╟─8ae48e0a-cddf-4775-9a1a-8eada0c07ca7
+# ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
+# ╟─40bf37a4-318b-4263-8705-a566a3321f87
+# ╟─366d0c55-c52e-4b5e-b0af-73102bf5dd44
+# ╠═1483a522-8d36-45f3-a7bc-8f8f8076085f
+# ╟─8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
+# ╟─ba5049f0-b015-41ad-907e-b86edbcbf7fb
+# ╟─7308fc51-5236-4b07-b773-df5451852fbb
