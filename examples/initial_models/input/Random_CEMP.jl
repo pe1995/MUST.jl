@@ -4,13 +4,13 @@ begin
     dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
     # Under what name should the binned opacities be saved
-    name_extension    = "MainSequence/R3"
+    name_extension    = "CEMP/R1"
 
     # PLATO models
-    initial_grid_path = "MainSequence/random_MS_3.mgrid"
-    initial_cl_path   = "MainSequence/random_MS_3_avail.mgrid"
-    initial_mod_path  = "MainSequence/random_MS_3_solar.mgrid"
-    final_grid_path   = "MainSequence/random_MS_3_080324.mgrid"
+    initial_grid_path = "CEMP/random_CEMP_1.mgrid"
+    initial_cl_path   = "CEMP/random_CEMP_1_avail.mgrid"
+    initial_mod_path  = "CEMP/random_CEMP_1_avail.mgrid"
+    final_grid_path   = "CEMP/random_CEMP_1_120424.mgrid"
 
     # clean namelists in dispatch folder (other than new ones)
     clean_namelists = false
@@ -60,11 +60,11 @@ begin
             :dlnr_limit=>0.5
         ),
         :patch_params=>(
-            :grace=>0.01,
+            :grace=>0.1,
             :nt=>5
         ),
         :sc_rt_params=>(
-            :rt_grace=>0.01,
+            :grace=>0.05,
             :rt_freq=>2.0 
         )
     )
@@ -73,24 +73,24 @@ end
 #= Opacities =#
 begin
     # Location of the opacity table
-    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
-    extension = "magg_m0_a0"
-    eos_path = "ross_combined_eos_"*extension*".hdf5"
+    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m1_a0_c1_v3.0"
+    extension = "magg_m1_a0_c1"
+    eos_path = "combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
-    sopa_path = "combined_Sopacities_"*extension*".hdf5"
+    sopa_path = "combined_sopacities_"*extension*".hdf5"
 
     # verion of the binned table
-    # v1.0 - 8 Bins
+    # v1.0 - 8 Bins, Carbon enhanced (+1)
     version = "v1.0"
 
     # Number of bins
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = true
+    skip_binning = false
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = true
+    skip_formation = false
 
     # recompute the rosseland optical depth for the first model in the grid
     recompute_ross = false

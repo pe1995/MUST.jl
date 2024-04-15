@@ -236,13 +236,13 @@ begin
 			:lower_bc=>5
 		),=#
 		:cartesian_params=>(
-			:dims=>[10,10,5],
+			:dims=>[12,12,6],
 		),
 		:patch_params=>(
-			:n=>[10,10,10],
+			:n=>[20,20,20],
 		),
 		:sc_rt_params=>(
-			:rt_res=>[-1,-1,20],
+			:rt_res=>[-1,-1,40],
 		)
 	)
 end

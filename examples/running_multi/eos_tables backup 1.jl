@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.19.38
 
 using Markdown
 using InteractiveUtils
@@ -145,7 +145,6 @@ if compute
 		δlnρ=(log(maxρ)-log(minρ))/nρ,
 		slurm=false,
 		nν=20,
-		FeH=-1.0
 		#=m3dis_kwargs=Dict(
 			:threads=>32,
 			:memMB=>90000
@@ -160,29 +159,26 @@ md"# Read EoS Table"
 md"Decide where to save the table"
 
 # ╔═╡ 270b37a1-d0c9-48b1-bd05-891a8c83cf72
-extension = "magg_m1_a0_c0"
+extension = "magg_m0_a0"
 
 # ╔═╡ e3f7e4bf-17c2-4c7d-b086-8ef846fdff32
 md"EoS Versions:
--------------------------------------------------------
-	v1.0: First test, no H lines, no Molecules
+- v1.0: First test, no H lines, no Molecules
 - v1.1: + H lines (possibly issues with Lalpha)
 - v1.2: same as v1.1, but after Richard fixed H lines
 - v1.3: same as v1.0, but with smaller range
 - v1.4: small range without molecules in EoS + Hlines
 - v1.5: small range without molecules in EoS 
+...
 -------------------------------------------------------
-	v2.X: w/o scattering in absorptio + sep. table, no molecular lines yet
+- v2.X: w/o scattering in absorptio + sep. table, no molecular lines yet
 - v2.0:
-- v2.0.1: Parallel rosseland_opacity 
+	- v2.0.1: Parallel rosseland_opacity 
 - v2.1: low density table
--------------------------------------------------------
-	v3.X: FeH = -1, still no molecular lines!
-- v3.0:	Carbon enhanced <-> Carbon solar
 "
 
 # ╔═╡ 934be5d3-a7c5-46f2-870d-8ba7d8c134dc
-eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v3.0"
+eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v2.1"
 
 # ╔═╡ d84c4140-1702-4fa4-8fc5-955a1e9c0d78
 !isdir(eos_folder) && mkdir(eos_folder)
@@ -275,9 +271,11 @@ end
 # ╟─cf6b3809-a161-4093-8285-2cb303c380f4
 # ╟─fe9f9763-0b3e-4a47-9a2c-e5a24d2bfd67
 # ╠═270b37a1-d0c9-48b1-bd05-891a8c83cf72
+# ╟─97df8e54-bb39-46b9-811c-f61e6a7287b3
 # ╟─e3f7e4bf-17c2-4c7d-b086-8ef846fdff32
 # ╠═934be5d3-a7c5-46f2-870d-8ba7d8c134dc
 # ╠═d84c4140-1702-4fa4-8fc5-955a1e9c0d78
+# ╟─0d78efc6-77de-4810-b98a-82c7bdc69c6c
 # ╠═4611660d-f561-457a-80d4-fd37630e5c3b
 # ╠═e44b4fab-f33f-4d93-afea-c80b4a1849e1
 # ╠═da9cbcec-5e3d-47e6-8b52-e9aad755de20

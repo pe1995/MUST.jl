@@ -42,15 +42,6 @@ Because this includes MUST and TSO, it is only available as ingredient, to keep 
 # ╔═╡ c72e1a5a-d13a-481a-b732-3b6be3326326
 modelgrids = MUST.ingredients("modelgrids.jl")
 
-# ╔═╡ 6e0c166b-58a5-4a25-a726-a66cc357731c
-begin
-	plot(framestyle=:box, grid=false)
-	scatter!(
-		grid["logg"][grid["feh"].==0], grid["teff"][grid["feh"].==0], 
-		label="FeH=0"
-	)
-end
-
 # ╔═╡ 6dffcedb-ae0b-4bb4-9490-94c22ec3e953
 function random_paramters(grid, N; 
 	teff=[minimum(grid["teff"]), maximum(grid["teff"])], 
@@ -85,8 +76,8 @@ begin
 		grid, 
 		40, 
 		teff=[5000, 6500], 
-		logg=[4.0, 4.7], 
-		feh=[0.0, 0.0]
+		logg=[3.9, 4.7], 
+		feh=[-1.0, -1.0]
 	)
 end
 
@@ -98,16 +89,46 @@ begin
 	paras_extended[end, :] = [4500.0, 4.8, 0.0]
 end
 
+# ╔═╡ 5fbd389f-9ea5-4b09-839b-59aad0c72a0d
+begin
+	plot(framestyle=:box, grid=false, minorticks=true)
+	scatter!(
+		grid["logg"][grid["feh"].==0], grid["teff"][grid["feh"].==-1], 
+		label="Grid",
+		color="black",
+		markersize=8
+	)
+	scatter!(
+		paras_extended[:, 2], paras_extended[:, 1],
+		color="red",
+		label="New models",
+		marker=:square,
+		markersize=6
+	)
+end
+
 # ╔═╡ 8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
 md"## EoS
 We can add information about the EoS. This will make the interpolation better because it will use the rosseland optical depth information to interpolate at constant optical depth between models. If not, just position is used for the interpolation. Depending on the chemical composition of the model you need to pick a different EoS here! So it might be best to include the mother table of the respective model in the grid, so that for each metallicity the correct one can be used."
 
 # ╔═╡ e17316a1-a29e-4ce7-b651-65a75881180f
-mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+#mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
 
-# ╔═╡ d001bc84-4082-4888-89c1-15f590ec9834
+# ╔═╡ 5e777d3b-2db8-4e82-a125-564c7db64281
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m1_a0_c1_v3.0"
+
+# ╔═╡ 1ca259f3-54b6-4c96-8930-eab6454a2cd2
+#eos_mother_path = "ross_combined_eos_magg_m0_a0.hdf5"
+
+# ╔═╡ b40c3cee-303b-4a24-9692-fc92a69a9b50
+eos_mother_path = "combined_eos_magg_m1_a0_c1.hdf5"
+
+# ╔═╡ af910237-0a7d-4b58-a870-1fbcfd5e883e
+
+
+# ╔═╡ 2f101c34-f3f7-46d8-b1e3-fb855281c6ac
 eos = [
-	reload(SqEoS, joinpath(mother_table_path, "ross_combined_eos_magg_m0_a0.hdf5"))
+	reload(SqEoS, joinpath(mother_table_path, eos_mother_path))
 	for _ in 1:size(paras_extended, 1)
 ]
 
@@ -119,7 +140,7 @@ md"We can add a matching eos for each of the grid nodes. In the case of non-exis
 
 # ╔═╡ 2dee306a-531f-4eb2-bac7-e4a5c8a219a7
 grid.info[!, "matching_eos"] = [
-	joinpath(mother_table_path, "ross_combined_eos_magg_m0_a0.hdf5") 
+	joinpath(mother_table_path, eos_mother_path) 
 	for _ in 1:nrow(grid.info)
 ]
 
@@ -176,7 +197,7 @@ begin
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
-MUST.save(ig, "random_MS_3.mgrid")
+MUST.save(ig, "random_CEMP_1.mgrid")
 
 # ╔═╡ Cell order:
 # ╟─a0516377-218a-4260-ae15-acf6ac36f2c1
@@ -187,13 +208,17 @@ MUST.save(ig, "random_MS_3.mgrid")
 # ╠═b3b31521-9967-4ab8-9bf0-3bde45e2db6b
 # ╟─5701903e-59f3-4495-9dcc-4e730ed2e15f
 # ╠═c72e1a5a-d13a-481a-b732-3b6be3326326
-# ╟─6e0c166b-58a5-4a25-a726-a66cc357731c
 # ╟─6dffcedb-ae0b-4bb4-9490-94c22ec3e953
 # ╠═d1415b10-403e-4736-9930-14c451f4f366
 # ╠═0bffe69d-50fa-4b1c-adba-de962e8f38cc
+# ╟─5fbd389f-9ea5-4b09-839b-59aad0c72a0d
 # ╟─8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
 # ╠═e17316a1-a29e-4ce7-b651-65a75881180f
-# ╠═d001bc84-4082-4888-89c1-15f590ec9834
+# ╠═5e777d3b-2db8-4e82-a125-564c7db64281
+# ╠═1ca259f3-54b6-4c96-8930-eab6454a2cd2
+# ╠═b40c3cee-303b-4a24-9692-fc92a69a9b50
+# ╟─af910237-0a7d-4b58-a870-1fbcfd5e883e
+# ╠═2f101c34-f3f7-46d8-b1e3-fb855281c6ac
 # ╟─ee45e7db-2fc3-43f3-83cf-bd2dca6d52e7
 # ╟─0364f91e-e768-4126-b347-ec6684b9c033
 # ╠═2dee306a-531f-4eb2-bac7-e4a5c8a219a7
