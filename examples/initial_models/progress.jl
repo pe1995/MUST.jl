@@ -255,9 +255,9 @@ let
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
 
-	ax[0].set_xlabel("x [cm]")
-	ax[1].set_xlabel("x [cm]")
-	ax[0].set_ylabel("y [cm]")
+	ax[0].set_xlabel("x [Mm]")
+	ax[1].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
 	
 	gcf()
 end
@@ -281,8 +281,8 @@ let
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
-	ax[0].set_xlabel("x [cm]")
-	ax[0].set_ylabel("y [cm]")
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
 
 
 
@@ -304,7 +304,7 @@ let
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
-	ax[1].set_xlabel("x [cm]")
+	ax[1].set_xlabel("x [Mm]")
 	
 	gcf()
 end
@@ -328,8 +328,8 @@ let
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
-	ax[0].set_xlabel("x [cm]")
-	ax[0].set_ylabel("y [cm]")
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
 
 
 
@@ -351,7 +351,7 @@ let
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
-	ax[1].set_xlabel("x [cm]")
+	ax[1].set_xlabel("x [Mm]")
 	
 	gcf()
 end
@@ -402,9 +402,9 @@ let
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
 
-	ax[0].set_xlabel("x [cm]")
-	ax[1].set_xlabel("x [cm]")
-	ax[0].set_ylabel("y [cm]")
+	ax[0].set_xlabel("x [Mm]")
+	ax[1].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
 	
 	gcf()
 end
@@ -428,8 +428,8 @@ let
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
-	ax[0].set_xlabel("x [cm]")
-	ax[0].set_ylabel("y [cm]")
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
 
 
 
@@ -451,7 +451,7 @@ let
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
-	ax[1].set_xlabel("x [cm]")
+	ax[1].set_xlabel("x [Mm]")
 	
 	gcf()
 end
@@ -475,8 +475,8 @@ let
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
-	ax[0].set_xlabel("x [cm]")
-	ax[0].set_ylabel("y [cm]")
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
 
 
 
@@ -498,7 +498,7 @@ let
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
-	ax[1].set_xlabel("x [cm]")
+	ax[1].set_xlabel("x [Mm]")
 	
 	gcf()
 end
@@ -529,8 +529,8 @@ if haskey(tuppersurfaces, "dtplane")
 		
 		cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 	
-		ax[0].set_xlabel("x [cm]")
-		ax[0].set_ylabel("y [cm]")
+		ax[0].set_xlabel("x [Mm]")
+		ax[0].set_ylabel("y [Mm]")
 	
 	
 	
@@ -552,7 +552,7 @@ if haskey(tuppersurfaces, "dtplane")
 		ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 		ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 	
-		ax[1].set_xlabel("x [cm]")
+		ax[1].set_xlabel("x [Mm]")
 		
 		gcf()
 	end
@@ -724,7 +724,7 @@ let
 		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2
 	) 
 
-	ax.set_xlabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
+	ax.set_xlabel(L"\rm \log \rho\ [g\ cm^{-3}]")
 	ax.set_ylabel(L"\rm T\ [K]")
 	
 	ax.legend()
@@ -1658,6 +1658,9 @@ md"""
 __Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))
 """
 
+# ╔═╡ 00876598-ab41-4741-9cb8-1538b0bd01a0
+fps = 8
+
 # ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
 begin
 	surfacesMovie = topticalsurfaces["Tplane"]
@@ -1715,8 +1718,8 @@ begin
 				
 				ax.set_title("t = $(MUST.@sprintf("%i", time[i])) s")
 				
-				ax.set_xlabel("x [cm]")
-				ax.set_ylabel("y [cm]")
+				ax.set_xlabel("x [Mm]")
+				ax.set_ylabel("y [Mm]")
 				
 				append!(f_movie, [f])
 				append!(ax_movie, [ax])
@@ -1736,7 +1739,7 @@ end
 		Plots.plot(axis=([], false))
 		Plots.plot!(v_images[i])
 	end every 1
-	gif(anim, joinpath(v_opt_folder_name, "v_opt.gif"), fps=8)
+	gif(anim, joinpath(v_opt_folder_name, "v_opt.gif"), fps=fps)
 end
 
 # ╔═╡ Cell order:
@@ -1869,6 +1872,7 @@ end
 # ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
 # ╟─40bf37a4-318b-4263-8705-a566a3321f87
 # ╟─366d0c55-c52e-4b5e-b0af-73102bf5dd44
+# ╠═00876598-ab41-4741-9cb8-1538b0bd01a0
 # ╠═1483a522-8d36-45f3-a7bc-8f8f8076085f
 # ╟─8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
 # ╟─ba5049f0-b015-41ad-907e-b86edbcbf7fb
