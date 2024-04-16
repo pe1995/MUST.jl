@@ -39,7 +39,7 @@ begin
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
         :courant_target=>0.3,
-        :courant_rt=>0.5,
+        :courant_rt=>0.3,
         :newton_params=>(
             :on=>true,
             :delay_rt=>true
@@ -64,7 +64,7 @@ begin
             :nt=>5
         ),
         :sc_rt_params=>(
-            :grace=>0.05,
+            :rt_grace=>0.05,
             :rt_freq=>2.0 
         )
     )
@@ -74,13 +74,14 @@ end
 begin
     # Location of the opacity table
     mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m1_a0_c1_v3.0"
-    extension = "magg_m1_a0_c1"
+    extension = "magg_m1_a0_c0"
     eos_path = "combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
     sopa_path = "combined_sopacities_"*extension*".hdf5"
 
     # verion of the binned table
     # v1.0 - 8 Bins, Carbon enhanced (+1)
+    #   v1.0.1 - 8 Bins, Carbon not enhanced (+1)
     version = "v1.0"
 
     # Number of bins
