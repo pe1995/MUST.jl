@@ -34,7 +34,7 @@ standardConversion(name) = begin
     (units) -> getfield(units, name)
 end
 
-Quantity(name) = Quantity(name, identity, standardConversion(name), false)
+Quantity(name) = Quantity(name, nothing, standardConversion(name), false)
 Quantity(name, recipe) = Quantity(name, recipe, standardConversion(name), true)
 Quantity(name, recipe, conversion) = Quantity(name, recipe, conversion, true)
 
@@ -49,8 +49,8 @@ uxQ = Quantity(:ux, (; d, px, kwargs...)->(px ./ d), standardConversion(:u))
 uyQ = Quantity(:uy, (; d, py, kwargs...)->(py ./ d), standardConversion(:u))
 uzQ = Quantity(:uz, (; d, pz, kwargs...)->(pz ./ d), standardConversion(:u))
 eeQ = Quantity(:ee, (; d, e, kwargs...)->(e ./ d), standardConversion(:ee))
-dtQ = Quantity(:dt_rt, identity, standardConversion(:t))
-fluxQ = Quantity(:flux, identity, standardConversion(:flux))
+dtQ = Quantity(:dt_rt, nothing, standardConversion(:t))
+fluxQ = Quantity(:flux, nothing, standardConversion(:flux))
 
 defaultQuantities = [
     dQ,
