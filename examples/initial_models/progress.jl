@@ -23,6 +23,7 @@ begin
 	using Plots
 	using Images
 	using PlutoUI
+	using ProgressLogging
 end
 
 # ╔═╡ c7dc3b15-6555-4824-872a-d487fe5145ea
@@ -1695,7 +1696,7 @@ begin
 			pop!(ax_movie)
 		end
 		let 
-			for i in eachindex(snapshots)
+			@progress for i in eachindex(snapshots)
 				plt.close()
 				f, ax = plt.subplots(1, 1, figsize=(5, 6))
 				
