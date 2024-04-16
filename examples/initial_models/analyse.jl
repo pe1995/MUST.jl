@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.38
+# v0.19.40
 
 using Markdown
 using InteractiveUtils
@@ -222,6 +222,7 @@ md"Enter the folder where EoS tables can be found:"
 function eos_input(simulation_names::Vector)
 	all_eos = glob("*/", @in_dispatch(eosfolder))
 	all_eos = convert.(String, last.(split.(all_eos, "/", keepempty=false)))
+	all_eos = [a for a in all_eos if isfile(joinpath(a, "eos.hdf5"))]
 	simulation_names = convert.(String, simulation_names)
 
 	return combine() do Child
@@ -392,11 +393,13 @@ md"# Resolution"
 # ╔═╡ e346c195-441e-4bb9-aee4-e531921ed5cd
 let
 	for name in keys(snapshots)
-		m = first(snapshots[name])
-		HD_dims = size(m.z)
-		HD_res = maximum(diff(MUST.axis(m, :z))) /1e5
-		RT_res = maximum(diff(MUST.axis(m, :z))) /1e5/2.
-		@info "[$(name)] Resolution (Nx, Ny, Nz), dz [km]:" HD_dims HD_res RT_res
+		if length(snapshots[name]) > 0
+			m = first(snapshots[name])
+			HD_dims = size(m.z)
+			HD_res = maximum(diff(MUST.axis(m, :z))) /1e5
+			RT_res = maximum(diff(MUST.axis(m, :z))) /1e5/2.
+			@info "[$(name)] Resolution (Nx, Ny, Nz), dz [km]:" HD_dims HD_res RT_res
+		end
 	end
 end
 
@@ -1013,6 +1016,7 @@ begin
 	velCube_show_time = true
 	gif_duration=0.8
 	velCube_name = "$(models)_vel3D.gif"
+	cpu_time(i, N) = i/N * 24.0*72*4
 end;
 
 # ╔═╡ 67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
@@ -1041,6 +1045,7 @@ let
 			catch
 				continue
 			end
+			
 			plt.close()
 			f, ax = visual.cube_with_velocities(s, 
 				velCube_var,
@@ -1054,7 +1059,8 @@ let
 				zoff=velCube_zoff,
 				len_vec=velCube_len_vec,
 				cmap=velCube_cmap,
-				show_time=velCube_show_time
+				show_time=velCube_show_time,
+				cpu_time=cpu_time(i, length(snaplist))
 			)
 			f.savefig("gifs/cube_$(i).png", bbox_inches="tight")
 			append!(fls, ["gifs/cube_$(i).png"])
@@ -1077,7 +1083,7 @@ end
 # ╟─9ac91858-17d8-4934-8d47-fed1519efe42
 # ╟─73d9fd32-0dae-478a-80ff-a8e314adbd6e
 # ╟─16786647-4021-4068-9af1-2a548240758e
-# ╟─91ddaf2d-abd6-4e2d-92eb-cfa7d0ba79bc
+# ╠═91ddaf2d-abd6-4e2d-92eb-cfa7d0ba79bc
 # ╟─d6659c51-1ab7-47f2-a030-3a188956961e
 # ╟─80fefa1e-de68-4448-a371-d4ae0ec70868
 # ╟─de91f663-285b-4250-9edb-41f48d5b36e1
@@ -1165,7 +1171,7 @@ end
 # ╟─38767bff-5a3b-4085-b313-ddacb941da71
 # ╟─3225b57c-be7a-438c-83d0-e9b67303b23a
 # ╟─873c07cd-7f02-4144-99fd-842a0aacc6d9
-# ╠═f2f27ccc-358b-4bec-9506-b31c27d6f759
+# ╟─f2f27ccc-358b-4bec-9506-b31c27d6f759
 # ╟─7d10a077-75c1-4aee-b732-35a7ff71d109
 # ╠═5b856c06-da72-41be-adc7-6d4e4570ad45
 # ╟─34fecdab-ed33-4685-92f2-70c0e763e893
