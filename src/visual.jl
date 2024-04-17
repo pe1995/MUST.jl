@@ -257,12 +257,12 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
     ax_3d.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 
     if show_time
-        ts = @sprintf("%i", m_3d.parameter.time)
+        ts = @sprintf("%.3f", m_3d.parameter.time /(60*60))
         ts_cpu = if !isnothing(cpu_time)
             tc = @sprintf("%i", cpu_time)
-            "stellar time: $(ts) s, CPU time: $tc CPU-h"
+            "stellar time: $(ts) h, CPU time: $tc CPU-h"
         else
-            "stellar time: $(ts) s"
+            "stellar time: $(ts) h"
         end
         ax_3d.set_title(ts_cpu, fontsize=fontsize)
     end
