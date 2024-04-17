@@ -50,6 +50,7 @@ begin
 	plt = matplotlib.pyplot
 	matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
 	#matplotlib.style.use("dark_background")
+	scipy_fft = MUST.pyimport("scipy.fft")
 end;
 
 # ╔═╡ 6754b2c3-d205-4a12-88b3-53fe62c5637f
@@ -1176,7 +1177,7 @@ where we divide the angle weights by 2 to only account for the outgoing flux in 
 """
 
 # ╔═╡ 4c3b9b8a-03a5-494d-a321-7f5c400ed054
-teff(f) = (f /MUST.σ_S) ^0.25
+teff(f) = (abs.(f) /MUST.σ_S) ^0.25
 
 # ╔═╡ dc0315d8-0616-433b-8182-33840afb0b0f
 teff_str(f) = L"\rm T_{eff} =\ "*"$(round(teff(f), sigdigits=5))"*L"\rm \ K"
@@ -1648,28 +1649,87 @@ end
 # ╔═╡ 8ae48e0a-cddf-4775-9a1a-8eada0c07ca7
 
 
+# ╔═╡ 43b11d24-2496-44f2-9e9f-fc30ff8d285d
+md"# Fourier transformation"
+
+# ╔═╡ c5550bd5-725d-4d3e-9990-324860af7f67
+fft(args...; kwargs...) = MUST.pyconvert(Array, scipy_fft.fftn(args...; kwargs...))
+
+# ╔═╡ 43ab1632-3df6-4b76-9385-627452ce97aa
+fftfreq(axis) = begin
+	s = length(axis)
+	d = abs(diff(axis) |> first)
+	MUST.pyconvert(Array, scipy_fft.fftfreq(s, d=d))
+end
+
+# ╔═╡ 587cd5a6-2117-4a65-b50e-c8d2107adfd9
+rms(data) = sqrt(mean(data .^2))
+
+# ╔═╡ 58b167bf-d79d-48e1-8118-ffc1a13ba913
+begin
+	iend_fft = length(time)
+	istart_fft = iend_fft - 200
+end
+
+# ╔═╡ 47f967fb-e063-4b23-97e9-02ca76985fa9
+let 
+	if istart_fft>1
+		data = topticalsurfaces["uzplane"][istart_fft:iend_fft] ./ 1e5
+		data = [mean(d) for d in data]
+		t = time[istart_fft:iend_fft]
+	
+		surfaces = zeros(length(data))
+		for (i, d) in enumerate(data)
+			surfaces[i] = d
+		end
+
+		q = fft(surfaces)
+		surfaceFFT = sqrt.(real(q).^2 .+ imag(q).^2)
+		timeFFT = fftfreq(t)
+		meanSurfaceFFT = mean(surfaceFFT, dims=1)
+		sortmask = sortperm(timeFFT)
+	
+		plt.close()
+		f, ax = plt.subplots(1, 1, figsize=(5, 6))
+		x = timeFFT[sortmask]
+		y = surfaceFFT[sortmask] ./ maximum(surfaceFFT[sortmask])
+		ax.plot(x, y, color="k")
+		ax.set_xlabel(L"\rm frequency\ [Hz]")
+		ax.set_ylabel(L"\rm fft(<v_z^{\tau=1}>)\ [normalized]")
+		f
+	end
+end
+
+# ╔═╡ f6916a12-cb30-4fa1-8d24-e75d1729ede2
+
+
 # ╔═╡ 61b3e522-2af4-4413-9c69-ee30b0d4673f
 md"# Movies"
 
 # ╔═╡ 40bf37a4-318b-4263-8705-a566a3321f87
-md"## Optical Surface Movie"
+md"
+## 2D Surface Movie
+You can select any of the 2D plane monitoring results you wish, as well as the image resolution and FPS of the final movie."
 
-# ╔═╡ 366d0c55-c52e-4b5e-b0af-73102bf5dd44
-md"""
-__Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))
-"""
+# ╔═╡ 362e608f-4765-4f03-85f9-0d4673f6bd2b
+
 
 # ╔═╡ 00876598-ab41-4741-9cb8-1538b0bd01a0
-fps = 8
+fps = 7
 
 # ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
 begin
-	surfacesMovie = topticalsurfaces["Tplane"]
-	dpi = 72
+	#surfacesMovie = topticalsurfaces["uzplane"]
+	#surfacesMovie = topticalsurfaces["uzplane"] ./1e5
+	surfacesMovie = tuppersurfaces["uzplane"] ./1e5
+	#surfacesMovie = timeevolution(monitoring, "minimumTempSurface")["uzplane"]
+	
 	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
-	labelsurfaceMovie = L"\rm temperature\ [K]"
+	#labelsurfaceMovie = L"\rm temperature\ [K]"
+	
+	dpi = 72
 	cmap = "gist_heat"
-end
+end;
 
 # ╔═╡ 8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
 begin		
@@ -1684,6 +1744,11 @@ begin
 	
 	f_movie, ax_movie, fnames_movie = [], [], []
 end;
+
+# ╔═╡ 2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a
+md"""
+__Click to create GIF__: $(@bind createGifImages CheckBox(default=false))
+"""
 
 # ╔═╡ ba5049f0-b015-41ad-907e-b86edbcbf7fb
 begin
@@ -1737,8 +1802,7 @@ end
 	
 	v_images = Images.load.(fnames_movie)
 	anim = @animate for i ∈ eachindex(v_images)
-		Plots.plot(axis=([], false))
-		Plots.plot!(v_images[i])
+		Plots.plot(v_images[i], axis=([], false), background_color=:transparent)
 	end every 1
 	gif(anim, joinpath(v_opt_folder_name, "v_opt.gif"), fps=fps)
 end
@@ -1870,11 +1934,19 @@ end
 # ╟─b59908ac-50a9-49fd-bcc2-94c59b205543
 # ╟─787b1cc4-9e1f-4421-874d-bdff7c231bf9
 # ╟─8ae48e0a-cddf-4775-9a1a-8eada0c07ca7
+# ╟─43b11d24-2496-44f2-9e9f-fc30ff8d285d
+# ╟─c5550bd5-725d-4d3e-9990-324860af7f67
+# ╟─43ab1632-3df6-4b76-9385-627452ce97aa
+# ╟─587cd5a6-2117-4a65-b50e-c8d2107adfd9
+# ╠═58b167bf-d79d-48e1-8118-ffc1a13ba913
+# ╟─47f967fb-e063-4b23-97e9-02ca76985fa9
+# ╟─f6916a12-cb30-4fa1-8d24-e75d1729ede2
 # ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
 # ╟─40bf37a4-318b-4263-8705-a566a3321f87
-# ╟─366d0c55-c52e-4b5e-b0af-73102bf5dd44
+# ╟─362e608f-4765-4f03-85f9-0d4673f6bd2b
 # ╠═00876598-ab41-4741-9cb8-1538b0bd01a0
 # ╠═1483a522-8d36-45f3-a7bc-8f8f8076085f
 # ╟─8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
+# ╟─2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a
 # ╟─ba5049f0-b015-41ad-907e-b86edbcbf7fb
 # ╟─7308fc51-5236-4b07-b773-df5451852fbb
