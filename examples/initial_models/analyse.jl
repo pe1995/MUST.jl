@@ -27,6 +27,8 @@ begin
 	using PlutoUI
 	using PlutoUI: combine
 	using ProgressLogging
+	using Plots
+	using Images
 	PythonCall = MUST.PythonCall
 end;
 
@@ -1003,7 +1005,7 @@ visual = MUST.ingredients("visual.jl")
 # ╔═╡ 40339dd0-acc2-4df0-92fc-bdec12c9a80a
 begin
 	velCube_var = :T
-	velCube_vmin_3d = 2000
+	velCube_vmin_3d = 3000
 	velCube_vmax_3d = 15500
 	velCube_s_3d = 12
 	velCube_arrow_length_ratio = 0.2
@@ -1017,6 +1019,8 @@ begin
 	gif_duration=0.8
 	velCube_name = "$(models)_vel3D.gif"
 	cpu_time(i, N) = i/N * 24.0*72*4
+	dpi=72
+	fps=8
 end;
 
 # ╔═╡ 67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
@@ -1062,12 +1066,24 @@ let
 				show_time=velCube_show_time,
 				cpu_time=cpu_time(i, length(snaplist))
 			)
-			f.savefig("gifs/cube_$(i).png", bbox_inches="tight")
+			f.savefig("gifs/cube_$(i).png", bbox_inches="tight", dpi=dpi)
 			append!(fls, ["gifs/cube_$(i).png"])
 		end
 
-		visual.gifs.gifs_from_png(fls, "gifs/$(velCube_name)", gif_duration);
-		@info "[$(models)] GIF saved at gifs/$(velCube_name)."
+		#visual.gifs.gifs_from_png(fls, "gifs/$(velCube_name)", gif_duration);
+		#@info "[$(models)] GIF saved at gifs/$(velCube_name)."
+		v_images = Images.load.(fls)
+		anim = @animate for i ∈ eachindex(v_images)
+			Plots.plot(
+				v_images[i], 
+				axis=([], false), 
+				background_color=:transparent
+			)
+		end every 1
+		g = gif(anim, "gifs/$(velCube_name)", fps=fps)
+		rm.(fls)
+
+		g
 	end
 end
 
@@ -1083,7 +1099,7 @@ end
 # ╟─9ac91858-17d8-4934-8d47-fed1519efe42
 # ╟─73d9fd32-0dae-478a-80ff-a8e314adbd6e
 # ╟─16786647-4021-4068-9af1-2a548240758e
-# ╠═91ddaf2d-abd6-4e2d-92eb-cfa7d0ba79bc
+# ╟─91ddaf2d-abd6-4e2d-92eb-cfa7d0ba79bc
 # ╟─d6659c51-1ab7-47f2-a030-3a188956961e
 # ╟─80fefa1e-de68-4448-a371-d4ae0ec70868
 # ╟─de91f663-285b-4250-9edb-41f48d5b36e1
@@ -1182,4 +1198,4 @@ end
 # ╠═40339dd0-acc2-4df0-92fc-bdec12c9a80a
 # ╟─67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
 # ╟─456bee2f-8e00-4705-9b58-00ee5c896b65
-# ╠═ad37b578-4d3a-480b-a59b-20ca953c0584
+# ╟─ad37b578-4d3a-480b-a59b-20ca953c0584
