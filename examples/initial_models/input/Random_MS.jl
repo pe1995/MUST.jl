@@ -4,13 +4,13 @@ begin
     dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
     # Under what name should the binned opacities be saved
-    name_extension    = "MainSequence/R3"
+    name_extension    = "MainSequence/R4"
 
     # PLATO models
-    initial_grid_path = "MainSequence/random_MS_3.mgrid"
-    initial_cl_path   = "MainSequence/random_MS_3_avail.mgrid"
-    initial_mod_path  = "MainSequence/random_MS_3_solar.mgrid"
-    final_grid_path   = "MainSequence/random_MS_3_080324.mgrid"
+    initial_grid_path = "MainSequence/random_MS_4.mgrid"
+    initial_cl_path   = "MainSequence/random_MS_4_avail.mgrid"
+    initial_mod_path  = "MainSequence/random_MS_4_solar.mgrid"
+    final_grid_path   = "MainSequence/random_MS_4_160423.mgrid"
 
     # clean namelists in dispatch folder (other than new ones)
     clean_namelists = false
@@ -87,10 +87,10 @@ begin
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = true
+    skip_binning = false
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = true
+    skip_formation = false
 
     # recompute the rosseland optical depth for the first model in the grid
     recompute_ross = false

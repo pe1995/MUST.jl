@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.38
+# v0.19.40
 
 using Markdown
 using InteractiveUtils
@@ -27,6 +27,8 @@ begin
 	using PlutoUI
 	using PlutoUI: combine
 	using ProgressLogging
+	using Plots
+	using Images
 	PythonCall = MUST.PythonCall
 end;
 
@@ -222,6 +224,7 @@ md"Enter the folder where EoS tables can be found:"
 function eos_input(simulation_names::Vector)
 	all_eos = glob("*/", @in_dispatch(eosfolder))
 	all_eos = convert.(String, last.(split.(all_eos, "/", keepempty=false)))
+	all_eos = [a for a in all_eos if isfile(joinpath(a, "eos.hdf5"))]
 	simulation_names = convert.(String, simulation_names)
 
 	return combine() do Child
@@ -392,11 +395,13 @@ md"# Resolution"
 # ╔═╡ e346c195-441e-4bb9-aee4-e531921ed5cd
 let
 	for name in keys(snapshots)
-		m = first(snapshots[name])
-		HD_dims = size(m.z)
-		HD_res = maximum(diff(MUST.axis(m, :z))) /1e5
-		RT_res = maximum(diff(MUST.axis(m, :z))) /1e5/2.
-		@info "[$(name)] Resolution (Nx, Ny, Nz), dz [km]:" HD_dims HD_res RT_res
+		if length(snapshots[name]) > 0
+			m = first(snapshots[name])
+			HD_dims = size(m.z)
+			HD_res = maximum(diff(MUST.axis(m, :z))) /1e5
+			RT_res = maximum(diff(MUST.axis(m, :z))) /1e5/2.
+			@info "[$(name)] Resolution (Nx, Ny, Nz), dz [km]:" HD_dims HD_res RT_res
+		end
 	end
 end
 
@@ -1000,7 +1005,7 @@ visual = MUST.ingredients("visual.jl")
 # ╔═╡ 40339dd0-acc2-4df0-92fc-bdec12c9a80a
 begin
 	velCube_var = :T
-	velCube_vmin_3d = 2000
+	velCube_vmin_3d = 3000
 	velCube_vmax_3d = 15500
 	velCube_s_3d = 12
 	velCube_arrow_length_ratio = 0.2
@@ -1013,6 +1018,9 @@ begin
 	velCube_show_time = true
 	gif_duration=0.8
 	velCube_name = "$(models)_vel3D.gif"
+	cpu_time(i, N) = i/N * 24.0*72*4
+	dpi=72
+	fps=8
 end;
 
 # ╔═╡ 67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
@@ -1041,6 +1049,7 @@ let
 			catch
 				continue
 			end
+			
 			plt.close()
 			f, ax = visual.cube_with_velocities(s, 
 				velCube_var,
@@ -1054,14 +1063,27 @@ let
 				zoff=velCube_zoff,
 				len_vec=velCube_len_vec,
 				cmap=velCube_cmap,
-				show_time=velCube_show_time
+				show_time=velCube_show_time,
+				cpu_time=cpu_time(i, length(snaplist))
 			)
-			f.savefig("gifs/cube_$(i).png", bbox_inches="tight")
+			f.savefig("gifs/cube_$(i).png", bbox_inches="tight", dpi=dpi)
 			append!(fls, ["gifs/cube_$(i).png"])
 		end
 
-		visual.gifs.gifs_from_png(fls, "gifs/$(velCube_name)", gif_duration);
-		@info "[$(models)] GIF saved at gifs/$(velCube_name)."
+		#visual.gifs.gifs_from_png(fls, "gifs/$(velCube_name)", gif_duration);
+		#@info "[$(models)] GIF saved at gifs/$(velCube_name)."
+		v_images = Images.load.(fls)
+		anim = @animate for i ∈ eachindex(v_images)
+			Plots.plot(
+				v_images[i], 
+				axis=([], false), 
+				background_color=:transparent
+			)
+		end every 1
+		g = gif(anim, "gifs/$(velCube_name)", fps=fps)
+		rm.(fls)
+
+		g
 	end
 end
 
@@ -1165,7 +1187,7 @@ end
 # ╟─38767bff-5a3b-4085-b313-ddacb941da71
 # ╟─3225b57c-be7a-438c-83d0-e9b67303b23a
 # ╟─873c07cd-7f02-4144-99fd-842a0aacc6d9
-# ╠═f2f27ccc-358b-4bec-9506-b31c27d6f759
+# ╟─f2f27ccc-358b-4bec-9506-b31c27d6f759
 # ╟─7d10a077-75c1-4aee-b732-35a7ff71d109
 # ╠═5b856c06-da72-41be-adc7-6d4e4570ad45
 # ╟─34fecdab-ed33-4685-92f2-70c0e763e893
@@ -1176,4 +1198,4 @@ end
 # ╠═40339dd0-acc2-4df0-92fc-bdec12c9a80a
 # ╟─67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
 # ╟─456bee2f-8e00-4705-9b58-00ee5c896b65
-# ╠═ad37b578-4d3a-480b-a59b-20ca953c0584
+# ╟─ad37b578-4d3a-480b-a59b-20ca953c0584

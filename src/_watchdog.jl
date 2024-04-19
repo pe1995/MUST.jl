@@ -183,12 +183,16 @@ end
 
 upperBoundarySurface(w::WatchDog, b, bτ) = begin
     uzplane = b[:uz][:, :, end]
+    uxplane = b[:ux][:, :, end]
+    uyplane = b[:uy][:, :, end]
     Tplane = b[:T][:, :, end]
     Dplane = log.(b[:d][:, :, end])
     dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, end] : nothing
 
     Dict(
         "uzplane" => uzplane[:, :],
+        "uxplane" => uxplane[:, :],
+        "uyplane" => uyplane[:, :],
         "Tplane" => Tplane[:, :],
         "lnDplane" => Dplane[:, :],
         "x" => b.x[:, :, end],
@@ -196,6 +200,31 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
         "dtplane" => dtplane[:, :]
     )
 end
+
+minimumTempSurface(w::WatchDog, b, bτ) = begin
+    # plane of minimum temperature
+    iplane = argmin(b[:T])[3]
+
+    uzplane = b[:uz][:, :, iplane]
+    uxplane = b[:ux][:, :, iplane]
+    uyplane = b[:uy][:, :, iplane]
+
+    Tplane = b[:T][:, :, iplane]
+    Dplane = log.(b[:d][:, :, iplane])
+    dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, iplane] : nothing
+
+    Dict(
+        "uzplane" => uzplane[:, :],
+        "uxplane" => uxplane[:, :],
+        "uyplane" => uyplane[:, :],
+        "Tplane" => Tplane[:, :],
+        "lnDplane" => Dplane[:, :],
+        "x" => b.x[:, :, iplane],
+        "y" => b.y[:, :, iplane],
+        "dtplane" => dtplane[:, :]
+    )
+end
+
 
 
 
@@ -232,17 +261,23 @@ end
 opticalSurfaces(w::WatchDog, b, bτ) = begin
     add!(b, lnd=log.(b[:d]))
     uzplane = interpolate_to(b, :uz; logspace=true, τ_ross=0.0)[:uz]
+    uxplane = interpolate_to(b, :ux; logspace=true, τ_ross=0.0)[:ux]
+    uyplane = interpolate_to(b, :uy; logspace=true, τ_ross=0.0)[:uy]
     Tplane = interpolate_to(b, :T; logspace=true, τ_ross=0.0)[:T]
     Dplane = interpolate_to(b, :lnd; logspace=true, τ_ross=0.0)[:lnd]
 
     Dict(
         "uzplane" => uzplane[:, :, 1],
+        "uxplane" => uxplane[:, :, 1],
+        "uyplane" => uyplane[:, :, 1],
         "Tplane" => Tplane[:, :, 1],
         "lnDplane" => Dplane[:, :, 1],
         "x" => b.x[:, :, 1],
         "y" => b.y[:, :, 1]
     )
 end
+
+
 
 
 
@@ -267,6 +302,7 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     opticalStd = opticalStd,
     optMassFlux = optMassFlux,
     geoMassFlux = geoMassFlux,
+    minimumTempSurface = minimumTempSurface,
     opticalSurfaces = opticalSurfaces,
     opticalMaximum = opticalMaximum,
     opticalMinimum = opticalMinimum,

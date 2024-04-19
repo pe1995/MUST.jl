@@ -511,6 +511,14 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 		datadir, rank_nmls, snapshot_nml
 	)
 
+	# decide if there are quantities to skip because there is no aux data for them
+	# and they can not be derived otherwise
+	variableMaskOk = [ (!q.derived)|(q.name in Symbol.(auxnames))|(!isnothing(q.recipe)) for q in quantities]
+	#if count(.!variableMaskOk) > 0
+	#	@warn "Exluding $(varnames(quantities)[.!variableMaskOk]) because they are derived, not available as aux parameters and no recipe to derive them was given."
+	#end
+	quantities = quantities[variableMaskOk]
+
 	# build the 3D cube from patch meta data
 	global_x, global_y, global_z, patch_range = _build_cube_direct(patchMeta)
 	shape = length.([global_x, global_y, global_z])

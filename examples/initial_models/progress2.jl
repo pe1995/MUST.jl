@@ -19,11 +19,11 @@ end
 begin
 	using Pkg; Pkg.activate(".")
 	using MUST
-	using PythonPlot
 	using Plots
-	using Images
 	using PlutoUI
-	using ProgressLogging
+	using LaTeXStrings
+
+	gaston()
 end
 
 # ╔═╡ c7dc3b15-6555-4824-872a-d487fe5145ea
@@ -47,10 +47,21 @@ datafolder = @in_dispatch "data"
 # ╔═╡ 409ff57f-8d9d-419b-b448-fdf40c0843b4
 begin
 	mean = MUST.mean
-	plt = matplotlib.pyplot
-	matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
-	#matplotlib.style.use("dark_background")
-	scipy_fft = MUST.pyimport("scipy.fft")
+	double_figure() = plot(
+		layout=2, 
+		framestyle=:box, 
+		minorticks=true, 
+		grid=false, 
+		size=(10*100, 6*100), 
+		dpi=100
+	)
+	single_figure() = plot( 
+		framestyle=:box, 
+		minorticks=true, 
+		grid=false, 
+		size=(500, 600), 
+		dpi=100
+	)
 end;
 
 # ╔═╡ 6754b2c3-d205-4a12-88b3-53fe62c5637f
@@ -216,52 +227,66 @@ md"Snapshot Info:"
 # ╔═╡ f5ccc550-6bf3-4f0f-baf3-d8de3d216737
 md"## Optical Surface"
 
+# ╔═╡ 9fa47f5b-3203-4bd7-854f-89b3fa3f6dd5
+#default(; fontfamily="DejaVu Sans")
+
 # ╔═╡ b757013d-aee5-41a4-ab0a-7715ba47bd97
 topticalsurfaces = timeevolution(monitoring, "opticalSurfaces")
 
+# ╔═╡ cea70530-1260-43e2-8681-8cd6c6858229
+begin
+	d = zeros(10, 2)
+	plot(d, w=1)
+end
+
 # ╔═╡ 0639ce7d-955d-448f-84a0-353dfd4e93a3
 let 
-	plt.close()
-	f, ax = plt.subplots(1, 2, figsize=(10, 6))
-
-	x = topticalsurfaces["x"][itimeSurface] ./1e8
-	y = topticalsurfaces["y"][itimeSurface] ./1e8
+	double_figure()
+	plot!(
+		size=(800, 400), margin=2*Plots.mm
+	)
+	
+	x = topticalsurfaces["x"][itimeSurface][:, 1] ./1e8
+	y = topticalsurfaces["y"][itimeSurface][1, :] ./1e8
 
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 
-	i = ax[0].imshow(
+	@show extent
+	heatmap!(
+		x, 
+		y,
 		topticalsurfaces["uzplane"][itimeSurface] ./1e5,
-		origin="lower",
-		extent=extent,
-		cmap="coolwarm_r"
+		subplot=1, 
+		aspect_ratio=:auto,
+		colorbartitle=L"\mathrm{v_z\ [km\ s^{-1}]}"
 	)
-	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
-
-
-	x = topticalsurfaces["x"][itimeSurface2] ./1e8
-	y = topticalsurfaces["y"][itimeSurface2] ./1e8
+	
+	x = topticalsurfaces["x"][itimeSurface2][:, 1] ./1e8
+	y = topticalsurfaces["y"][itimeSurface2][1, :] ./1e8
 
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 
-	i = ax[1].imshow(
+	heatmap!(
+		x, 
+		y,
 		topticalsurfaces["uzplane"][itimeSurface2] ./1e5,
-		origin="lower",
-		extent=extent,
-		cmap="coolwarm_r"
+		subplot=2,
+		aspect_ratio=:auto
 	)
-	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
-	cb.set_label(L"\rm v_z\ [km\ s^{-1}]")
-
 	
-	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
-	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
-
-
-	ax[0].set_xlabel("x [Mm]")
-	ax[1].set_xlabel("x [Mm]")
-	ax[0].set_ylabel("y [Mm]")
 	
-	gcf()
+	#ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	#ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+
+	plot!(xlabel="x [cm]")
+	#ax[0].set_xlabel("x [cm]")
+	#ax[1].set_xlabel("x [cm]")
+	#ax[0].set_ylabel("y [cm]")
+	
+	#gcf()
+
+	plot!()
 end
 
 # ╔═╡ c24a3b12-c7c0-449b-9a76-6e9c5d475344
@@ -283,8 +308,8 @@ let
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
-	ax[0].set_xlabel("x [Mm]")
-	ax[0].set_ylabel("y [Mm]")
+	ax[0].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
 
 
 
@@ -306,7 +331,7 @@ let
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
-	ax[1].set_xlabel("x [Mm]")
+	ax[1].set_xlabel("x [cm]")
 	
 	gcf()
 end
@@ -330,8 +355,8 @@ let
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
-	ax[0].set_xlabel("x [Mm]")
-	ax[0].set_ylabel("y [Mm]")
+	ax[0].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
 
 
 
@@ -353,7 +378,7 @@ let
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
-	ax[1].set_xlabel("x [Mm]")
+	ax[1].set_xlabel("x [cm]")
 	
 	gcf()
 end
@@ -404,9 +429,9 @@ let
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
 
-	ax[0].set_xlabel("x [Mm]")
-	ax[1].set_xlabel("x [Mm]")
-	ax[0].set_ylabel("y [Mm]")
+	ax[0].set_xlabel("x [cm]")
+	ax[1].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
 	
 	gcf()
 end
@@ -430,8 +455,8 @@ let
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
-	ax[0].set_xlabel("x [Mm]")
-	ax[0].set_ylabel("y [Mm]")
+	ax[0].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
 
 
 
@@ -453,7 +478,7 @@ let
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
-	ax[1].set_xlabel("x [Mm]")
+	ax[1].set_xlabel("x [cm]")
 	
 	gcf()
 end
@@ -477,8 +502,8 @@ let
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
-	ax[0].set_xlabel("x [Mm]")
-	ax[0].set_ylabel("y [Mm]")
+	ax[0].set_xlabel("x [cm]")
+	ax[0].set_ylabel("y [cm]")
 
 
 
@@ -500,7 +525,7 @@ let
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
-	ax[1].set_xlabel("x [Mm]")
+	ax[1].set_xlabel("x [cm]")
 	
 	gcf()
 end
@@ -531,8 +556,8 @@ if haskey(tuppersurfaces, "dtplane")
 		
 		cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 	
-		ax[0].set_xlabel("x [Mm]")
-		ax[0].set_ylabel("y [Mm]")
+		ax[0].set_xlabel("x [cm]")
+		ax[0].set_ylabel("y [cm]")
 	
 	
 	
@@ -554,7 +579,7 @@ if haskey(tuppersurfaces, "dtplane")
 		ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 		ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 	
-		ax[1].set_xlabel("x [Mm]")
+		ax[1].set_xlabel("x [cm]")
 		
 		gcf()
 	end
@@ -726,7 +751,7 @@ let
 		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2
 	) 
 
-	ax.set_xlabel(L"\rm \log \rho\ [g\ cm^{-3}]")
+	ax.set_xlabel(L"\rm \log \rho\ [g\ cm^{-3}]]")
 	ax.set_ylabel(L"\rm T\ [K]")
 	
 	ax.legend()
@@ -1177,7 +1202,7 @@ where we divide the angle weights by 2 to only account for the outgoing flux in 
 """
 
 # ╔═╡ 4c3b9b8a-03a5-494d-a321-7f5c400ed054
-teff(f) = (abs.(f) /MUST.σ_S) ^0.25
+teff(f) = (f /MUST.σ_S) ^0.25
 
 # ╔═╡ dc0315d8-0616-433b-8182-33840afb0b0f
 teff_str(f) = L"\rm T_{eff} =\ "*"$(round(teff(f), sigdigits=5))"*L"\rm \ K"
@@ -1649,162 +1674,64 @@ end
 # ╔═╡ 8ae48e0a-cddf-4775-9a1a-8eada0c07ca7
 
 
-# ╔═╡ 43b11d24-2496-44f2-9e9f-fc30ff8d285d
-md"# Fourier transformation"
-
-# ╔═╡ c5550bd5-725d-4d3e-9990-324860af7f67
-fft(args...; kwargs...) = MUST.pyconvert(Array, scipy_fft.fftn(args...; kwargs...))
-
-# ╔═╡ 43ab1632-3df6-4b76-9385-627452ce97aa
-fftfreq(axis) = begin
-	s = length(axis)
-	d = abs(diff(axis) |> first)
-	MUST.pyconvert(Array, scipy_fft.fftfreq(s, d=d))
-end
-
-# ╔═╡ 587cd5a6-2117-4a65-b50e-c8d2107adfd9
-rms(data) = sqrt(mean(data .^2))
-
-# ╔═╡ 58b167bf-d79d-48e1-8118-ffc1a13ba913
-begin
-	iend_fft = length(time)
-	istart_fft = iend_fft - 200
-end
-
-# ╔═╡ 47f967fb-e063-4b23-97e9-02ca76985fa9
-let 
-	if istart_fft>1
-		data = topticalsurfaces["uzplane"][istart_fft:iend_fft] ./ 1e5
-		data = [mean(d) for d in data]
-		t = time[istart_fft:iend_fft]
-	
-		surfaces = zeros(length(data))
-		for (i, d) in enumerate(data)
-			surfaces[i] = d
-		end
-
-		q = fft(surfaces)
-		surfaceFFT = sqrt.(real(q).^2 .+ imag(q).^2)
-		timeFFT = fftfreq(t)
-		meanSurfaceFFT = mean(surfaceFFT, dims=1)
-		sortmask = sortperm(timeFFT)
-	
-		plt.close()
-		f, ax = plt.subplots(1, 1, figsize=(5, 6))
-		x = timeFFT[sortmask]
-		y = surfaceFFT[sortmask] ./ maximum(surfaceFFT[sortmask])
-		ax.plot(x, y, color="k")
-		ax.set_xlabel(L"\rm frequency\ [Hz]")
-		ax.set_ylabel(L"\rm fft(<v_z^{\tau=1}>)\ [normalized]")
-		f
-	end
-end
-
-# ╔═╡ f6916a12-cb30-4fa1-8d24-e75d1729ede2
-
-
 # ╔═╡ 61b3e522-2af4-4413-9c69-ee30b0d4673f
 md"# Movies"
 
-# ╔═╡ 40bf37a4-318b-4263-8705-a566a3321f87
-md"
-## 2D Surface Movie
-You can select any of the 2D plane monitoring results you wish, as well as the image resolution and FPS of the final movie."
-
-# ╔═╡ 362e608f-4765-4f03-85f9-0d4673f6bd2b
-
-
-# ╔═╡ 00876598-ab41-4741-9cb8-1538b0bd01a0
-fps = 7
-
-# ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
-begin
-	#surfacesMovie = topticalsurfaces["uzplane"]
-	#surfacesMovie = topticalsurfaces["uzplane"] ./1e5
-	surfacesMovie = tuppersurfaces["uzplane"] ./1e5
-	#surfacesMovie = timeevolution(monitoring, "minimumTempSurface")["uzplane"]
-	
-	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
-	#labelsurfaceMovie = L"\rm temperature\ [K]"
-	
-	dpi = 72
-	cmap = "gist_heat"
-end;
+# ╔═╡ 76524ca1-5c0d-4531-9f4a-44c2363638b2
+@bind clockMovieOpt Clock(max_value=length(snapshots), repeat=true)
 
 # ╔═╡ 8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
-begin		
-	v_min_movie = minimum(minimum, surfacesMovie)
-	v_max_movie = maximum(maximum, surfacesMovie)	
-	v_opt_folder_name = "v_opt"
-	
-	if isdir(v_opt_folder_name)
-		rm(v_opt_folder_name, recursive=true)
-	end
-	mkdir(v_opt_folder_name)
-	
-	f_movie, ax_movie, fnames_movie = [], [], []
+begin	
+	gifs = MUST.@get_help_py gifs
+	duration = 0.1
+	uz_min_movie = minimum(minimum, topticalsurfaces["uzplane"] ./1e5)
+	uz_max_movie = maximum(maximum, topticalsurfaces["uzplane"] ./1e5)	
+	uz_opt_gif_name = "uz_opt.gif"
 end;
-
-# ╔═╡ 2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a
-md"""
-__Click to create GIF__: $(@bind createGifImages CheckBox(default=false))
-"""
 
 # ╔═╡ ba5049f0-b015-41ad-907e-b86edbcbf7fb
 begin
-	redoMovie = true
-	if createGifImages
-		rm.(fnames_movie)
-		for i in eachindex(fnames_movie)
-			pop!(fnames_movie)
-			pop!(f_movie)
-			pop!(ax_movie)
+	f_movie, ax_movie, fnames_movie = [], [], []
+	#=let 
+		for i in eachindex(snapshots)
+			plt.close()
+			f, ax = plt.subplots(1, 1, figsize=(5, 6))
+			
+			x = topticalsurfaces["x"][i] ./1e8
+			y = topticalsurfaces["y"][i] ./1e8
+		
+			extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+		
+			im = ax.imshow(
+				topticalsurfaces["uzplane"][i] ./1e5,
+				origin="lower",
+				extent=extent,
+				cmap="coolwarm_r",
+				vmin=uz_min_movie,
+				vmax=uz_max_movie
+			)
+			cb = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+			cb.set_label(L"\rm v_z\ [km\ s^{-1}]")
+		
+			
+			ax.set_title("t = $(MUST.@sprintf("%i", time[i])) s")
+			
+			ax.set_xlabel("x [cm]")
+			ax.set_ylabel("y [cm]")
+			
+			append!(f_movie, [f])
+			append!(ax_movie, [ax])
 		end
-		let 
-			@progress for i in eachindex(snapshots)
-				plt.close()
-				f, ax = plt.subplots(1, 1, figsize=(5, 6))
-				
-				x = topticalsurfaces["x"][i] ./1e8
-				y = topticalsurfaces["y"][i] ./1e8
-			
-				extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
-			
-				im = ax.imshow(
-					surfacesMovie[i],
-					origin="lower",
-					extent=extent,
-					cmap=cmap,
-					vmin=v_min_movie,
-					vmax=v_max_movie
-				)
-				cb = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-				cb.set_label(labelsurfaceMovie)
-			
-				
-				ax.set_title("t = $(MUST.@sprintf("%i", time[i])) s")
-				
-				ax.set_xlabel("x [Mm]")
-				ax.set_ylabel("y [Mm]")
-				
-				append!(f_movie, [f])
-				append!(ax_movie, [ax])
-				append!(fnames_movie, [joinpath(v_opt_folder_name, "im_$i.png")])
-				f.savefig(joinpath(v_opt_folder_name, "im_$i.png"), dpi=dpi)
-			end
-		end
-	end;
-end
+	end=#
+end;
 
-# ╔═╡ 7308fc51-5236-4b07-b773-df5451852fbb
-(length(fnames_movie) > 0) && begin
-	redoMovie
-	
-	v_images = Images.load.(fnames_movie)
-	anim = @animate for i ∈ eachindex(v_images)
-		Plots.plot(v_images[i], axis=([], false), background_color=:transparent)
-	end every 1
-	gif(anim, joinpath(v_opt_folder_name, "v_opt.gif"), fps=fps)
+# ╔═╡ e38c83ae-baa2-4be8-973e-0d6a1b64fea4
+if clockMovieOpt > 0
+	let 
+		#f = f_movie[clockMovieOpt]
+
+		#f
+	end
 end
 
 # ╔═╡ Cell order:
@@ -1814,7 +1741,7 @@ end
 # ╟─7cd7d6f0-8498-44ff-b59c-d298365d6416
 # ╠═78c88a26-1e84-4ba2-a8f2-d4c7f6468dd3
 # ╠═e2e0b39b-9c60-4630-817b-f180c2631a08
-# ╟─409ff57f-8d9d-419b-b448-fdf40c0843b4
+# ╠═409ff57f-8d9d-419b-b448-fdf40c0843b4
 # ╟─6754b2c3-d205-4a12-88b3-53fe62c5637f
 # ╟─41f0864e-26ee-46a6-b4ab-c401a4712941
 # ╟─c596d1b3-32c5-4651-a8c1-3100fcd6cd59
@@ -1852,8 +1779,10 @@ end
 # ╟─695e28be-31c8-4f44-85e3-72ce387d9da5
 # ╟─76a1714e-a5bb-488f-ad93-b8552e4531fd
 # ╟─f5ccc550-6bf3-4f0f-baf3-d8de3d216737
+# ╠═9fa47f5b-3203-4bd7-854f-89b3fa3f6dd5
 # ╟─b757013d-aee5-41a4-ab0a-7715ba47bd97
-# ╟─0639ce7d-955d-448f-84a0-353dfd4e93a3
+# ╠═cea70530-1260-43e2-8681-8cd6c6858229
+# ╠═0639ce7d-955d-448f-84a0-353dfd4e93a3
 # ╟─c24a3b12-c7c0-449b-9a76-6e9c5d475344
 # ╟─3d371088-2322-462b-ab93-7cb49fcdf75f
 # ╟─5817821d-67f5-4e41-a0d3-7ca12961b0c7
@@ -1934,19 +1863,8 @@ end
 # ╟─b59908ac-50a9-49fd-bcc2-94c59b205543
 # ╟─787b1cc4-9e1f-4421-874d-bdff7c231bf9
 # ╟─8ae48e0a-cddf-4775-9a1a-8eada0c07ca7
-# ╟─43b11d24-2496-44f2-9e9f-fc30ff8d285d
-# ╟─c5550bd5-725d-4d3e-9990-324860af7f67
-# ╟─43ab1632-3df6-4b76-9385-627452ce97aa
-# ╟─587cd5a6-2117-4a65-b50e-c8d2107adfd9
-# ╠═58b167bf-d79d-48e1-8118-ffc1a13ba913
-# ╟─47f967fb-e063-4b23-97e9-02ca76985fa9
-# ╟─f6916a12-cb30-4fa1-8d24-e75d1729ede2
 # ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
-# ╟─40bf37a4-318b-4263-8705-a566a3321f87
-# ╟─362e608f-4765-4f03-85f9-0d4673f6bd2b
-# ╠═00876598-ab41-4741-9cb8-1538b0bd01a0
-# ╠═1483a522-8d36-45f3-a7bc-8f8f8076085f
+# ╟─76524ca1-5c0d-4531-9f4a-44c2363638b2
 # ╟─8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
-# ╟─2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a
 # ╟─ba5049f0-b015-41ad-907e-b86edbcbf7fb
-# ╟─7308fc51-5236-4b07-b773-df5451852fbb
+# ╟─e38c83ae-baa2-4be8-973e-0d6a1b64fea4
