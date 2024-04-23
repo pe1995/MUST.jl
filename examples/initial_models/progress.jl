@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -1719,13 +1719,23 @@ fps = 7
 
 # ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
 begin
-	#surfacesMovie = topticalsurfaces["uzplane"]
-	#surfacesMovie = topticalsurfaces["uzplane"] ./1e5
+	#=
+	surfacesMovie = topticalsurfaces["Tplane"]
+	surfacesMovie = topticalsurfaces["uzplane"] ./1e5
+	surfacesMovie = tuppersurfaces["lnDplane"]
 	surfacesMovie = tuppersurfaces["uzplane"] ./1e5
-	#surfacesMovie = timeevolution(monitoring, "minimumTempSurface")["uzplane"]
-	
+	surfacesMovie = tuppersurfaces["Tplane"] 
+	surfacesMovie = tuppersurfaces["dtplane"]
+	surfacesMovie = timeevolution(monitoring, "minimumTempSurface")["uzplane"]
+	=#
+	surfacesMovie = tuppersurfaces["uzplane"] ./1e5
+
+	#=
 	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
-	#labelsurfaceMovie = L"\rm temperature\ [K]"
+	labelsurfaceMovie = L"\rm temperature\ [K]"
+	labelsurfaceMovie = L"\rm density\ [g\ cm^{-3}]"
+	=#
+	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
 	
 	dpi = 72
 	cmap = "gist_heat"

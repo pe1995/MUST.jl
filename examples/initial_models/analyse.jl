@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -1019,7 +1019,7 @@ begin
 	gif_duration=0.8
 	velCube_name = "$(models)_vel3D.gif"
 	cpu_time(i, N) = i/N * 24.0*72*4
-	dpi=72
+	dpi=150
 	fps=8
 end;
 
@@ -1064,6 +1064,7 @@ let
 				len_vec=velCube_len_vec,
 				cmap=velCube_cmap,
 				show_time=velCube_show_time,
+				fontsize="x-large",
 				cpu_time=cpu_time(i, length(snaplist))
 			)
 			f.savefig("gifs/cube_$(i).png", bbox_inches="tight", dpi=dpi)
@@ -1077,7 +1078,7 @@ let
 			Plots.plot(
 				v_images[i], 
 				axis=([], false), 
-				background_color=:transparent
+				background_color=:black
 			)
 		end every 1
 		g = gif(anim, "gifs/$(velCube_name)", fps=fps)

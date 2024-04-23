@@ -4,13 +4,13 @@ begin
     dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
     # Under what name should the binned opacities be saved
-    name_extension    = "MainSequence/R4"
+    name_extension    = "MainSequence/R5"
 
     # PLATO models
-    initial_grid_path = "MainSequence/random_MS_4.mgrid"
-    initial_cl_path   = "MainSequence/random_MS_4_avail.mgrid"
-    initial_mod_path  = "MainSequence/random_MS_4_solar.mgrid"
-    final_grid_path   = "MainSequence/random_MS_4_160423.mgrid"
+    initial_grid_path = "MainSequence/random_MS_5.mgrid"
+    initial_cl_path   = "MainSequence/random_MS_5_avail.mgrid"
+    initial_mod_path  = "MainSequence/random_MS_5_solar.mgrid"
+    final_grid_path   = "MainSequence/random_MS_5_220424.mgrid"
 
     # clean namelists in dispatch folder (other than new ones)
     clean_namelists = false
@@ -30,16 +30,16 @@ begin
     τ_up = -4.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 6.0                    # Lower limit of simulation domain
-    τ_ee0 = -0.6                   # Newton cooling placement (energy)
+    τ_ee0 = -0.6                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -0.3                   # Newton cooling placement (height)
     τ_rho0 = -0.1                   # Density normaliztion height
-    scale_resolution = 0.7          # Down or upsampling of simulation domain
+    scale_resolution = 0.75         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
         :courant_target=>0.3,
-        :courant_rt=>0.5,
+        :courant_rt=>0.4,
         :newton_params=>(
             :on=>true,
             :delay_rt=>true
@@ -87,10 +87,10 @@ begin
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = false
+    skip_binning = true
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = false
+    skip_formation = true
 
     # recompute the rosseland optical depth for the first model in the grid
     recompute_ross = false

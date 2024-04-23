@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -228,13 +228,12 @@ begin
 	new_namelist_params = Dict(
 		:friction_params=>(
 			:on=>true,
-			:end_time=>40,
-			:decay_scale=>5
+			:end_time=>50,
+			:decay_scale=>20
 		),
-		#=:boundary_params=>(
-			:htop_scale=>1.1,
-			:lower_bc=>5
-		),=#
+		#:boundary_params=>(
+		#	:htop_scale=>7.0,
+		#),
 		:cartesian_params=>(
 			:dims=>[12,12,6],
 		),
@@ -273,18 +272,6 @@ begin
 	end
 end
 
-# ╔═╡ ba1b17e3-eebe-4015-b956-49ee95eae9f5
-
-
-# ╔═╡ f546ee73-db3e-4242-bb0c-3e7babae05d8
-let
-	plt.close()
-
-	plt.plot(profile(MUST.mean, b, :z, :T)...)
-
-	gcf()
-end
-
 # ╔═╡ Cell order:
 # ╠═d69a0642-cb28-11ee-2eb3-d33c850d3799
 # ╟─2189049a-20e6-43fb-96cb-20ae7994f96b
@@ -313,5 +300,3 @@ end
 # ╟─1e1e380f-9684-496c-8bf4-158f281a679b
 # ╟─946b586e-5c04-44c8-9300-0f2b7a8babf8
 # ╟─4c7c7f16-cfa4-4547-8355-72744211219a
-# ╟─ba1b17e3-eebe-4015-b956-49ee95eae9f5
-# ╠═f546ee73-db3e-4242-bb0c-3e7babae05d8
