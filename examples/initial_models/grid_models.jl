@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -193,7 +193,7 @@ end
 md"## Crashed Models"
 
 # ╔═╡ 38273a36-ea28-4bf4-bb36-529d1a619511
-crashedModels = lastSnap .< 200
+crashedModels = lastSnap .< 175
 
 # ╔═╡ 7c39ae82-d34a-4921-9b69-7f8736fcf5dc
 let
@@ -240,22 +240,27 @@ DataFrame(
 # ╔═╡ 8950923d-e4d9-4517-83d5-95b6dbaa5b19
 md"# Monitoring"
 
+# ╔═╡ 095d5c29-d828-409c-afd9-2384d1bb3a83
+begin
+	# number of modes
+	notCrashedRuns = allRuns[.!crashedModels]
+	notCrashedteff = round.(Int, teffName[.!crashedModels])
+	notCrashedlogg = round.(loggName[.!crashedModels], sigdigits=4)
+
+	mask = sortperm((collect(zip(notCrashedteff, notCrashedlogg))))
+	notCrashedRuns = notCrashedRuns[mask]
+	notCrashedteff = notCrashedteff[mask]
+	notCrashedlogg = notCrashedlogg[mask]
+
+	teff = notCrashedteff
+	logg = notCrashedlogg
+end
+
 # ╔═╡ 2dd0de7c-028b-43f2-960e-e0839d3fa7b7
 md"## Optical Surface"
 
 # ╔═╡ c3b9f946-4fae-4aca-9722-a80dc999b95d
 let
-	# number of modes
-	notCrashedRuns = allRuns[.!crashedModels]
-	teff = round.(Int, teffName[.!crashedModels])
-	logg = round.(loggName[.!crashedModels], sigdigits=4)
-
-	mask = sortperm((collect(zip(teff, logg))))
-	notCrashedRuns = notCrashedRuns[mask]
-	teff = teff[mask]
-	logg = logg[mask]
-	
-	
 	npanles = length(notCrashedRuns)
 	nx = ceil(Int, sqrt(npanles))
 	ny = floor(Int, npanles / nx)
@@ -310,21 +315,14 @@ let
 	gcf()
 end
 
+# ╔═╡ 4e9f26c6-001c-4d90-b9b3-ef4f259e0ae9
+
+
 # ╔═╡ 9b659650-b91d-4229-a811-6802f7d56966
 which_gif = "uzplane"
 
 # ╔═╡ 6df1c2d5-850c-4af8-b29d-25d7a0f7666c
 begin
-	# number of modes
-	notCrashedRuns = allRuns[.!crashedModels]
-	notCrashedteff = round.(Int, teffName[.!crashedModels])
-	notCrashedlogg = round.(loggName[.!crashedModels], sigdigits=4)
-
-	mask = sortperm((collect(zip(notCrashedteff, notCrashedlogg))))
-	notCrashedRuns = notCrashedRuns[mask]
-	notCrashedteff = notCrashedteff[mask]
-	notCrashedlogg = notCrashedlogg[mask]
-	
 	vminmax = []
 	
 	for k in 1:length(notCrashedRuns)
@@ -429,6 +427,141 @@ let
 		duration=0.5
 	)=#
 end
+
+# ╔═╡ 8ab32b10-f50a-4fdd-b0b6-dd0c1d154e1f
+
+
+# ╔═╡ 4866dd18-e1f8-4939-83ec-f2e80407f731
+md"## Mass Flux"
+
+# ╔═╡ 73ea53c8-eb56-462c-8612-41c33d379915
+begin
+	runnames = split.(allRuns, "pack_", keepempty=false) .|> first
+	runnames = [r*".nml" for r in runnames]
+	nml = MUST.FreeNamelist.(joinpath.(gridfolder, allRuns, runnames))
+	htop_scale = MUST.nmlValue.(nml, "htop_scale")
+end
+
+# ╔═╡ faba53f3-1a3b-4211-9205-928404525ed4
+mass_flux = zeros(length(allRuns))
+
+# ╔═╡ 9a482623-0e09-419d-b2b6-29edea2dcee1
+let
+	mass_flux .= 0.0
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	for k in 1:length(allRuns)
+		w = MUST.WatchDog(allRuns[k], folder=gridfolder)
+		m = MUST.reload!(w, groups=["geoMassFlux", "atmosphericParameters"])
+		mf = [mi["geoMassFlux"]["massFlux"][end] for mi in m] ./1e5
+		t = [mi["atmosphericParameters"]["time"] for mi in m]
+		istart = max(length(mf) - 30, 1)
+		mass_flux[k] = MUST.mean(mf[istart:end]) 
+
+		ax.plot(t, mf, label="$(teffName[k]) K,"*" $(loggName[k]) dex")
+	end
+
+	#ax.legend(bbox_to_anchor=(1.1, 1.01), loc="upper left")
+	f
+end
+
+# ╔═╡ 391731ff-cef3-459b-9b48-c0f48be1b543
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(6, 6))
+
+	vmin = minimum(mass_flux)
+	vmax = maximum(mass_flux)
+	#vtot = max(abs(vmin), abs(vmax))
+	#vmin = -vtot
+	#vmax = vtot
+	
+	i = ax.scatter(teffName, loggName, c=mass_flux, vmin=vmin, vmax=vmax, cmap="RdYlBu")
+	f.colorbar(i, ax=ax)
+
+	ax.set_xlim(7100, 4000)
+	ax.set_ylim(5, 3.5)
+
+	ax.set_ylabel(L"\rm \log(g)\ [dex]")
+	ax.set_xlabel(L"\rm T_{eff}\ [K]")
+	
+	f
+end
+
+# ╔═╡ 97d8e869-ff30-4cd7-81fa-1c0fafe3ff3f
+logg_vertical_line = 4.15
+
+# ╔═╡ d51f056b-6ef3-430b-aacf-04c14caeb2ea
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(6, 6))
+
+	vmin = minimum(mass_flux)
+	vmax = maximum(mass_flux)
+	#vtot = max(abs(vmin), abs(vmax))
+	#vmin = -vtot
+	#vmax = vtot
+	
+	i = ax.plot(loggName, mass_flux, marker="s", ls="", color="k")
+
+	ax.axvline(logg_vertical_line, color="red")
+	ax.axhline(0.0, color="red")
+	
+	
+	ax.set_xlabel(L"\rm \log(g)\ [dex]")
+	ax.set_ylabel(L"\rm mass\ flux\ [km/s]")
+	
+	f
+end
+
+# ╔═╡ 93e362e6-be03-4e9c-b11d-4002fc60211d
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(6, 6))
+
+	vmin = minimum(mass_flux)
+	vmax = maximum(mass_flux)
+	#vtot = max(abs(vmin), abs(vmax))
+	#vmin = -vtot
+	#vmax = vtot
+
+	b = 2.5
+	c = 4.15
+	d = 0.3
+	a = 2.0 -d
+	func(x) = a * exp(-b*(x-c)) + d
+	#func2(x) = max(exp(-1.15*(x-5.0))-0.6, 0.1)
+	
+	i = ax.plot(loggName, htop_scale, marker="s", ls="", color="k", zorder=0)
+	ax.scatter(
+		[3.5, 4.15, 4.44, 5.0], 
+		[7.5, 2.0, 1.1, 0.5],
+		s=50, 
+		color="red",
+		label="usefull points"
+	)
+
+	x = range(3.4, 5.5, length=100)
+	ax.plot(x, func.(x), color="magenta")
+	#ax.plot(x, func2.(x), color="cyan")
+
+	ax.set_ylim(0, 3.0)
+	ax.set_xlim(3.7, 5.1)
+	
+	ax.legend()
+	ax.axvline(logg_vertical_line, color="red")
+
+	ax.set_xlabel(L"\rm \log(g)\ [dex]")
+	ax.set_ylabel(L"\rm top\ boundary\ scaling\ factor")
+	
+	f
+end
+
+# ╔═╡ b2b24be9-6db7-46c5-a69c-3d790c4d5406
+
 
 # ╔═╡ a901759c-addd-4485-94de-32794f4ae0f0
 md"# Summary"
@@ -571,17 +704,29 @@ CSV.write(joinpath(gridfolder, "stellar_parameters.csv"), finalParameters)
 # ╟─a392c80a-84c4-40f6-a4cd-8e090df26086
 # ╟─de16e1d1-54bd-4ce5-8035-2a33389cdfe5
 # ╟─4ca5a08d-2738-4e48-b84e-eb81250d615b
-# ╟─38273a36-ea28-4bf4-bb36-529d1a619511
+# ╠═38273a36-ea28-4bf4-bb36-529d1a619511
 # ╟─7c39ae82-d34a-4921-9b69-7f8736fcf5dc
 # ╟─6db48ee7-183e-441e-ac66-7a6156df8d9b
 # ╟─0d77142a-d908-4ad9-b32f-a52f00b95b4b
 # ╟─8950923d-e4d9-4517-83d5-95b6dbaa5b19
+# ╠═095d5c29-d828-409c-afd9-2384d1bb3a83
 # ╟─2dd0de7c-028b-43f2-960e-e0839d3fa7b7
 # ╟─c3b9f946-4fae-4aca-9722-a80dc999b95d
+# ╟─4e9f26c6-001c-4d90-b9b3-ef4f259e0ae9
 # ╠═9b659650-b91d-4229-a811-6802f7d56966
 # ╟─6df1c2d5-850c-4af8-b29d-25d7a0f7666c
 # ╟─115b47e6-5153-4940-8499-0b19de8f2e54
 # ╠═53892118-270c-40c7-a12b-99aef4d9e69b
+# ╟─8ab32b10-f50a-4fdd-b0b6-dd0c1d154e1f
+# ╟─4866dd18-e1f8-4939-83ec-f2e80407f731
+# ╟─73ea53c8-eb56-462c-8612-41c33d379915
+# ╟─faba53f3-1a3b-4211-9205-928404525ed4
+# ╟─9a482623-0e09-419d-b2b6-29edea2dcee1
+# ╟─391731ff-cef3-459b-9b48-c0f48be1b543
+# ╠═97d8e869-ff30-4cd7-81fa-1c0fafe3ff3f
+# ╟─d51f056b-6ef3-430b-aacf-04c14caeb2ea
+# ╟─93e362e6-be03-4e9c-b11d-4002fc60211d
+# ╟─b2b24be9-6db7-46c5-a69c-3d790c4d5406
 # ╟─a901759c-addd-4485-94de-32794f4ae0f0
 # ╟─4d74f7b2-953b-4ebd-b658-eef7ce6a4e2d
 # ╟─75a8cac3-a04a-4497-aa45-f303b057f1ec
