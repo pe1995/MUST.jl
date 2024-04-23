@@ -374,19 +374,27 @@ end
 
 
 
-reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {S<:WatchDog} = begin
-    reload(s(name; folder=folder), snap, mmap=mmap)
+reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false, groups=nothing) where {S<:WatchDog} = begin
+    reload(s(name; folder=folder), snap, mmap=mmap, groups=groups)
 end
 
-reload!(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false) where {S<:WatchDog} = begin
-    reload!(s(name; folder=folder), mmap=mmap, asDict=asDict)
+reload!(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false, groups=nothing) where {S<:WatchDog} = begin
+    reload!(s(name; folder=folder), mmap=mmap, asDict=asDict, groups=groups)
 end
 
-reload(w::S, snap; mmap=false) where {S<:WatchDog} = begin
+reload(w::S, snap; mmap=false, groups=nothing) where {S<:WatchDog} = begin
     fid = HDF5.h5open(monitoringPath(w, snap), "r")
     fvals = Dict()
 
     for gname in keys(fid)
+        # check if this group should be loaded
+        if !isnothing(groups)
+            if !(gname in groups)
+                continue
+            end
+        end
+
+        # read from file
         fvals[gname] = Dict()
         group = fid[gname]
         for dname in keys(group)
@@ -399,14 +407,14 @@ reload(w::S, snap; mmap=false) where {S<:WatchDog} = begin
     fvals
 end
 
-reload!(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
+reload!(w::S; mmap=false, asDict=false, groups=nothing) where {S<:WatchDog} = begin
     listOfSnaps = availableSnaps(w)
     w.snapshotsCompleted = []
     if !asDict
         l  = []
         for snap in listOfSnaps
             try
-                si = reload(w, snapshotnumber(snap); mmap=mmap)
+                si = reload(w, snapshotnumber(snap); mmap=mmap, groups=groups)
                 append!(l, [si])
                 append!(w.snapshotsCompleted, [snapshotnumber(snap)])
             catch
@@ -419,7 +427,7 @@ reload!(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
         l = Dict()
         for snap in listOfSnaps
             try
-                l[snap] = reload(w, snapshotnumber(snap); mmap=mmap)
+                l[snap] = reload(w, snapshotnumber(snap); mmap=mmap, groups=groups)
                 append!(w.snapshotsCompleted, [snapshotnumber(snap)])
             catch
                 nothing

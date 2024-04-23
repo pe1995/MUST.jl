@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.19.40
 
 using Markdown
 using InteractiveUtils
@@ -24,6 +24,7 @@ begin
 	using PlutoUI
 	using LaTeXStrings
 	using DataFrames
+	using CSV
 end
 
 # ╔═╡ cadc96a0-b6a8-4e46-8240-d1e72f976428
@@ -309,6 +310,9 @@ let
 	gcf()
 end
 
+# ╔═╡ 9b659650-b91d-4229-a811-6802f7d56966
+which_gif = "uzplane"
+
 # ╔═╡ 6df1c2d5-850c-4af8-b29d-25d7a0f7666c
 begin
 	# number of modes
@@ -329,13 +333,15 @@ begin
 		m = MUST.reload(w, last(ws))["opticalSurfaces"]
 		
 		append!(
-			vminmax, [(minimum(m["uzplane"] ./1e5), maximum(m["uzplane"] ./1e5))]
+			vminmax, [(minimum(m[which_gif]), maximum(m[which_gif]))]
 		)
 	end
+
+	vminmax
 end
 
 # ╔═╡ 115b47e6-5153-4940-8499-0b19de8f2e54
-function uz_optical_surface(notCrashedRuns, teff, logg; which, vminmax=nothing)
+function optical_surface(notCrashedRuns, teff, logg; which, vminmax=nothing, cmap="coolwarm", quantity="Tplane")
 	npanles = length(notCrashedRuns)
 	nx = ceil(Int, sqrt(npanles))
 	ny = floor(Int, npanles / nx)
@@ -362,18 +368,18 @@ function uz_optical_surface(notCrashedRuns, teff, logg; which, vminmax=nothing)
 
 			im = if isnothing(vminmax) 
 				ax[i][j].imshow(
-					m["uzplane"] ./1e5,
+					m[quantity],
 					origin="lower",
 					extent=extent,
-					cmap="coolwarm",
+					cmap=cmap,
 					aspect="auto"
 				)
 			else
 				ax[i][j].imshow(
-					m["uzplane"] ./1e5,
+					m[quantity],
 					origin="lower",
 					extent=extent,
-					cmap="coolwarm",
+					cmap=cmap,
 					aspect="auto",
 					vmin=vminmax[k][1],
 					vmax=vminmax[k][2]
@@ -398,29 +404,31 @@ function uz_optical_surface(notCrashedRuns, teff, logg; which, vminmax=nothing)
 	f.supylabel("Y [Mm]")
 
 	f.savefig(
-		joinpath(gridfolder, "optical_surface_uz_$(which).png"), bbox_inches="tight",
-		dpi=300
+		joinpath(gridfolder, "optical_surface_$(quantity)_$(which).png"), bbox_inches="tight",
+		dpi=72
 	)
 
-	joinpath(gridfolder, "optical_surface_uz_$(which).png")
+	joinpath(gridfolder, "optical_surface_$(quantity)_$(which).png")
 end
 
 # ╔═╡ 53892118-270c-40c7-a12b-99aef4d9e69b
-#=let
-	f = []
+let
+	#=f = []
 	for i in 1:360
-		append!(f, [uz_optical_surface(
+		append!(f, [optical_surface(
 			notCrashedRuns, notCrashedteff, notCrashedlogg; 
 			which=i, 
-			vminmax=vminmax
+			vminmax=vminmax,
+			quantity=which_gif,
+			cmap="coolwarm"
 		)])
 	end
 
 	visual.gifs.gifs_from_png(
 		f, joinpath(gridfolder, "optical_surface_uz.gif");
 		duration=0.5
-	)
-end=#
+	)=#
+end
 
 # ╔═╡ a901759c-addd-4485-94de-32794f4ae0f0
 md"# Summary"
@@ -519,6 +527,19 @@ let
 	gcf()
 end
 
+# ╔═╡ ff92f822-19b1-4c03-b29c-3227bd25de45
+finalParameters = DataFrame(
+	Dict(
+		"model"=>[r for (i, r) in enumerate(allRuns) if !crashedModels[i]],
+		"teff"=>[r for (i, r) in enumerate(teffName) if !crashedModels[i]],
+		"logg"=>[r for (i, r) in enumerate(loggName) if !crashedModels[i]],
+		"feh"=>[r for (i, r) in enumerate(fehName) if !crashedModels[i]]
+	)
+)
+
+# ╔═╡ 7af40fdd-5e66-4802-9a11-bd5e9f50a1bf
+CSV.write(joinpath(gridfolder, "stellar_parameters.csv"), finalParameters)
+
 # ╔═╡ Cell order:
 # ╠═30832d50-dc75-11ee-2e49-5f52349e5e50
 # ╠═cadc96a0-b6a8-4e46-8240-d1e72f976428
@@ -557,6 +578,7 @@ end
 # ╟─8950923d-e4d9-4517-83d5-95b6dbaa5b19
 # ╟─2dd0de7c-028b-43f2-960e-e0839d3fa7b7
 # ╟─c3b9f946-4fae-4aca-9722-a80dc999b95d
+# ╠═9b659650-b91d-4229-a811-6802f7d56966
 # ╟─6df1c2d5-850c-4af8-b29d-25d7a0f7666c
 # ╟─115b47e6-5153-4940-8499-0b19de8f2e54
 # ╠═53892118-270c-40c7-a12b-99aef4d9e69b
@@ -565,3 +587,5 @@ end
 # ╟─75a8cac3-a04a-4497-aa45-f303b057f1ec
 # ╟─11f4dae1-181d-4266-826f-3d6ebc3a7a8c
 # ╟─cd1a8d0b-ea3a-43d5-b2be-c169b35e97ce
+# ╟─ff92f822-19b1-4c03-b29c-3227bd25de45
+# ╠═7af40fdd-5e66-4802-9a11-bd5e9f50a1bf
