@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -19,6 +19,7 @@ end
 begin
 	using Pkg; Pkg.activate(".")
 	using MUST
+	using TSO
 	using PlutoUI
 	using ProgressLogging
 end
@@ -37,7 +38,7 @@ MUST.@import_dispatch "../../../dispatch2"
 datafolder = @in_dispatch "data"
 
 # ╔═╡ 7871f99e-8495-4d27-a3ab-3d56f3846eef
-
+c2m = MUST.ingredients("convert2must.jl")
 
 # ╔═╡ 3c70fb6d-ff6d-4359-af7e-d7a91a7cef75
 md"## Select Simulation"
@@ -70,7 +71,7 @@ requestedAndAvailable(reqModels, availModels) = [m for m in availModels if m in 
 
 # ╔═╡ d45457a4-9e33-4492-9a06-930f41f10fdc
 md"""Select a folder with models (namelists) you want to convert:\
-$(@bind selectedFolder confirm(TextField(default=\"../../../stellar_atmospheres/run_MS\")))"""
+$(@bind selectedFolder confirm(TextField(length(\"../../../stellar_atmospheres/run_MS\"), default=\"../../../stellar_atmospheres/run_MS\")))"""
 
 # ╔═╡ 25d78e43-3f49-4593-851a-1072843e43bb
 
@@ -117,7 +118,6 @@ Convert (if needed) the given snapshots to `MUST.Box` objects, collect the EoS +
 """
 function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="pack_$(name)", datadir=@in_dispatch("data"), packed_folder="packed_models", to_multi=true, kwargs...)
 	!isdir(packed_folder) && mkdir(packed_folder)
-
 	saveat = joinpath(packed_folder, saveat)
 	
 	# make sure output folder exists
@@ -160,17 +160,28 @@ function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="p
 				folder=joinpath(datadir, name), 
 				optical_depth_scale=true, 
 				save_snapshot=true, 
-				add_selection=false, 
 				is_box=true, 
 				to_multi=to_multi,
+				legacy=false,
+				lookup_generator=c2m.lookup_function_generator,
+				eos_reader=c2m.sqeos_reader,
 				kwargs...
 			)
 		else
 			#@info "[$(name)] snapshot $(snap) already converted ($(i)/$(length(snapshots)))"
 			if to_multi
 				b_s, _ = pick_snapshot(joinpath(datadir, name), snap)
-            	b_s.data[:ne] = b_s.data[:Ne]
-            	multiBox(b_s, joinpath(joinpath(datadir, name), "m3dis_$(snap)"))
+				snapshotsresample = MUST.gresample(
+	                b_s, 
+	                nz=size(b_s, 3) * 2 - 1, 
+	                nx=size(b_s, 1), 
+	                ny=size(b_s, 2),
+	            )
+            	snapshotsresample.data[:ne] = snapshotsresample.data[:Ne]
+            	multiBox(
+					snapshotsresample, 
+					joinpath(joinpath(datadir, name), "m3dis_$(snap)")
+				)
 			end
 			nothing
 		end
@@ -241,7 +252,7 @@ end
 # ╟─ac0a2cde-9228-47e8-b6cf-b866d5fd39d7
 # ╠═a7983431-7ccc-4b06-bb00-92052b31065e
 # ╠═9c3bba9f-bed4-41da-b06f-7e58c38ff657
-# ╟─7871f99e-8495-4d27-a3ab-3d56f3846eef
+# ╠═7871f99e-8495-4d27-a3ab-3d56f3846eef
 # ╟─3c70fb6d-ff6d-4359-af7e-d7a91a7cef75
 # ╟─0a0c5350-2b15-46e6-b907-e580e6f2c3a1
 # ╟─44fa2200-f245-4e60-928c-69b7c7a1dd23
@@ -260,7 +271,7 @@ end
 # ╟─547b3e4a-0589-4af3-bd23-bd937600590f
 # ╟─56b402c0-6a44-442d-875d-eebb047ef441
 # ╟─9a08c5ec-bdab-4323-895c-7fec358b5af8
-# ╟─4b782275-ce60-4ca0-ac17-be52d3573925
+# ╠═4b782275-ce60-4ca0-ac17-be52d3573925
 # ╟─27f1e1ac-77cf-459b-820e-b167ee11f391
 # ╟─169240b9-90c2-4a5c-9f37-0ad566993278
 # ╟─5c02c516-3a8e-48a7-8ac5-ebd7380fde43
