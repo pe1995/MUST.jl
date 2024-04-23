@@ -206,8 +206,14 @@ function snapshotBox_jl(
 
         # convert to Multi format and save in the same folder, keep the number of the snapshot!
         if to_multi
-            b_s.data[:ne] = b_s.data[:Ne]
-            multiBox(b_s, joinpath(folder, "m3dis_$(number)"))
+            snapshotsresample = MUST.gresample(
+                b_s, 
+                nz=size(b_s, 3) * 2 - 1, 
+                nx=size(b_s, 1), 
+                ny=size(b_s, 2),
+            )
+            snapshotsresample.data[:ne] = snapshotsresample.data[:Ne]
+            multiBox(snapshotsresample, joinpath(folder, "m3dis_$(number)"))
         end
 
         b_s, b_τ
