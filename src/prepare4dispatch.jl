@@ -338,6 +338,13 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     # or exponentially
     htop_scale = max(exp(-1.15*(logg-5.0))-0.6, 0.1)
 
+    # or with a different exponent (based on random_MS_3)
+    be = 2.5
+	ce = 4.15
+	de = 0.3
+	ae = 2.0 - de
+	htop_scale = ae * exp(-be*(logg-ce)) + de
+
     # size scaling
     dxdz = patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     if dxdz != 2

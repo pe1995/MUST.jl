@@ -233,10 +233,14 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
 
 
     # Set labels and zticks
-    ax_3d.set(
-    ylabel="Y [Mm]",
-    xlabel="X [Mm]",
-    zlabel="Z [Mm]")
+    #ax_3d.set(
+    #ylabel="Y [Mm]",
+    #xlabel="X [Mm]",
+    #zlabel="Z [Mm]", fontsize=fontsize)
+    ax_3d.set_xlabel(xlabel="X [Mm]", fontsize=fontsize)
+    ax_3d.set_ylabel(ylabel="Y [Mm]", fontsize=fontsize)
+    ax_3d.set_zlabel(zlabel="\nZ [Mm]", fontsize=fontsize)
+    ax_3d.tick_params(labelsize=fontsize)
 
     # Set zoom and angle view
     #ax.view_init(40, -30, 0)
@@ -247,7 +251,9 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
     #sm.set_array([]) 
 
     # Colorbar
-    plt.colorbar(sm, ax=ax_3d, label=clabel)
+    c = fig_3d.colorbar(sm, ax=ax_3d, label=clabel, pad=0.1)
+    c.set_label(clabel, fontsize=fontsize)
+    c.ax.tick_params(labelsize=fontsize)
 
     ax_3d.grid(false)
 
@@ -257,12 +263,12 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
     ax_3d.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 
     if show_time
-        ts = @sprintf("%i", m_3d.parameter.time)
+        ts = @sprintf("%.1f", m_3d.parameter.time /(60*60))
         ts_cpu = if !isnothing(cpu_time)
             tc = @sprintf("%i", cpu_time)
-            "stellar time: $(ts) s, CPU time: $tc CPU-h"
+            "stellar time: $(ts) h, CPU time: $tc CPU-h"
         else
-            "stellar time: $(ts) s"
+            "stellar time: $(ts) h"
         end
         ax_3d.set_title(ts_cpu, fontsize=fontsize)
     end

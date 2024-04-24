@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -18,12 +18,24 @@ begin
 	using Polyhedra
 end
 
+# ╔═╡ d3b3d5a1-82ac-494f-ad15-684be62555d3
+using LaTeXStrings
+
 # ╔═╡ a0516377-218a-4260-ae15-acf6ac36f2c1
 md"# Random Models
 The goal is to read an existing grid of average 3D models and interpolate within this grid to obtain new initial conditions."
 
 # ╔═╡ a0e60cf6-7268-11ee-2e25-17dd31433d8f
 md"## Setup"
+
+# ╔═╡ fb5cf860-1fbd-472a-acf1-ad66ea43cddb
+begin
+	gr()
+	default(
+		framestyle=:box, grid=false, minorticks=true, 
+		legendforegroundcolor=nothing,legendbackgroundcolor=nothing
+	)
+end
 
 # ╔═╡ 4e200464-64d6-48d2-9c80-b4e91e5b2d3b
 md"## Interpolation Grid"
@@ -43,42 +55,99 @@ Because this includes MUST and TSO, it is only available as ingredient, to keep 
 modelgrids = MUST.ingredients("modelgrids.jl")
 
 # ╔═╡ 6dffcedb-ae0b-4bb4-9490-94c22ec3e953
-function random_paramters(grid, N; 
-	teff=[minimum(grid["teff"]), maximum(grid["teff"])], 
-	logg=[minimum(grid["logg"]), maximum(grid["logg"])], 
-	feh=[minimum(grid["feh"]), maximum(grid["feh"])])
-	
-	points = [[t, l, f] for (t, l, f) in zip(grid["teff"], grid["logg"], grid["feh"])]
-	hull = convex_hull(points)
-	P = VPolytope(hull)
-	
-	rand_points = zeros(N, 3)
-	found = 0
-	while found < N
-		t = MUST.randrange(teff...)
-		l = MUST.randrange(logg...) 
-		f = MUST.randrange(feh...)
-	
-		if [t, l, f] ∈ P
-			found += 1
-			rand_points[found, 1] = t
-			rand_points[found, 2] = l
-			rand_points[found, 3] = f
+begin
+	function random_paramters(grid, N; 
+		teff=[minimum(grid["teff"]), maximum(grid["teff"])], 
+		logg=[minimum(grid["logg"]), maximum(grid["logg"])], 
+		feh=[minimum(grid["feh"]), maximum(grid["feh"])])
+		
+		points = [[t, l, f] for (t, l, f) in zip(grid["teff"], grid["logg"], grid["feh"])]
+		hull = convex_hull(points)
+		P = VPolytope(hull)
+		
+		rand_points = zeros(N, 3)
+		found = 0
+		while found < N
+			t = MUST.randrange(teff...)
+			l = MUST.randrange(logg...) 
+			f = MUST.randrange(feh...)
+		
+			if [t, l, f] ∈ P
+				found += 1
+				rand_points[found, 1] = t
+				rand_points[found, 2] = l
+				rand_points[found, 3] = f
+			end
 		end
+	
+		rand_points
 	end
+	
+	function random_paramters(grid, N, lowerlimit, upperlimit; 
+		teff=[minimum(grid["teff"]), maximum(grid["teff"])], 
+		logg=[minimum(grid["logg"]), maximum(grid["logg"])], 
+		feh=[minimum(grid["feh"]), maximum(grid["feh"])])
+		
+		points = [[t, l, f] for (t, l, f) in zip(grid["teff"], grid["logg"], grid["feh"])]
+		hull = convex_hull(points)
+		P = VPolytope(hull)
+		
+		rand_points = zeros(N, 3)
+		found = 0
+		while found < N
+			t = MUST.randrange(teff...)
+			l = MUST.randrange(logg...) 
+			f = MUST.randrange(feh...)
+		
+			if [t, l, f] ∈ P
+				# check if it is below the lower or above the upper limit
+				lgLowLim = min(lowerlimit(t), upperlimit(t))
+				lgUpLim = max(lowerlimit(t), upperlimit(t))
+	
+				if (l>=lgLowLim) & (l<=lgUpLim)
+					found += 1
+					rand_points[found, 1] = t
+					rand_points[found, 2] = l
+					rand_points[found, 3] = f
+				end
+			end
+		end
+	
+		rand_points
+	end
+end
 
-	rand_points
+# ╔═╡ 77758e3f-5d6a-4b4d-9239-0b575d78ef76
+begin
+	lineLimit(teff, x1, x2) = begin
+			m = (x2[2] - x1[2]) / (x2[1] - x1[1]) 
+			m* teff + x2[2] - m*x2[1]
+		end
+	
+	lowerLimit(x) = lineLimit(x, (5000.0, 4.5), (7000.0, 4.3))
+	upperLimit(x) = lineLimit(x, (5000.0, 4.0), (7000.0, 3.8))
 end
 
 # ╔═╡ d1415b10-403e-4736-9930-14c451f4f366
 begin
 	paras = random_paramters(
 		grid, 
-		40, 
-		teff=[5000, 6500], 
-		logg=[3.9, 4.7], 
-		feh=[-1.0, -1.0]
+		60, 
+		lowerLimit,
+		upperLimit,
+		teff=[5000, 7000], 
+		logg=[3.8, 4.7], 
+		feh=[0.0, 0.0]
 	)
+
+	# or reload parameters already sampled
+	#=
+	parasList = MUST.StaggerGrid("MainSequence/random_MS_firsttest.csv")
+	paras = zeros(nrow(parasList.info), 3)
+	paras[:, 1] = parasList["teff"]
+	paras[:, 2] = parasList["logg"]
+	paras[:, 3] = parasList["feh"]
+	=#
 end
 
 # ╔═╡ 0bffe69d-50fa-4b1c-adba-de962e8f38cc
@@ -87,24 +156,33 @@ begin
 	paras_extended = zeros(eltype(paras), size(paras, 1)+1, 3)
 	paras_extended[1:end-1, :] .= paras
 	paras_extended[end, :] = [4500.0, 4.8, 0.0]
+	#paras_extended = paras
 end
 
 # ╔═╡ 5fbd389f-9ea5-4b09-839b-59aad0c72a0d
 begin
-	plot(framestyle=:box, grid=false, minorticks=true)
+	plot(xflip=true, yflip=true, legend=:topleft)
 	scatter!(
-		grid["logg"][grid["feh"].==0], grid["teff"][grid["feh"].==-1], 
+		grid["teff"][grid["feh"].==-1], 
+		grid["logg"][grid["feh"].==0], 
 		label="Grid",
 		color="black",
 		markersize=8
 	)
 	scatter!(
-		paras_extended[:, 2], paras_extended[:, 1],
+		paras_extended[:, 1],
+		paras_extended[:, 2],
 		color="red",
 		label="New models",
 		marker=:square,
 		markersize=6
 	)
+
+	x = range(4000, 7000, length=100)
+	plot!(x, lowerLimit.(x), color=:blue, lw=3, label=nothing)
+	plot!(x, upperLimit.(x), color=:blue, lw=3, label=nothing)
+	plot!(ylabel="log g")
+	plot!(xlabel="T"*L"\textrm{\textbf{_{eff}}}")
 end
 
 # ╔═╡ 8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
@@ -112,16 +190,16 @@ md"## EoS
 We can add information about the EoS. This will make the interpolation better because it will use the rosseland optical depth information to interpolate at constant optical depth between models. If not, just position is used for the interpolation. Depending on the chemical composition of the model you need to pick a different EoS here! So it might be best to include the mother table of the respective model in the grid, so that for each metallicity the correct one can be used."
 
 # ╔═╡ e17316a1-a29e-4ce7-b651-65a75881180f
-#mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
 
 # ╔═╡ 5e777d3b-2db8-4e82-a125-564c7db64281
-mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m1_a0_c1_v3.0"
+#=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m1_a0_c1_v3.0"=#
 
 # ╔═╡ 1ca259f3-54b6-4c96-8930-eab6454a2cd2
-#eos_mother_path = "ross_combined_eos_magg_m0_a0.hdf5"
+eos_mother_path = "ross_combined_eos_magg_m0_a0.hdf5"
 
 # ╔═╡ b40c3cee-303b-4a24-9692-fc92a69a9b50
-eos_mother_path = "combined_eos_magg_m1_a0_c1.hdf5"
+#eos_mother_path = "combined_eos_magg_m1_a0_c1.hdf5"
 
 # ╔═╡ af910237-0a7d-4b58-a870-1fbcfd5e883e
 
@@ -197,18 +275,21 @@ begin
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
-MUST.save(ig, "random_CEMP_1.mgrid")
+MUST.save(ig, "random_MS_5.mgrid")
 
 # ╔═╡ Cell order:
 # ╟─a0516377-218a-4260-ae15-acf6ac36f2c1
 # ╟─a0e60cf6-7268-11ee-2e25-17dd31433d8f
 # ╠═f89573bc-8b9b-4897-8ad6-7b10fbdf9b4d
+# ╠═d3b3d5a1-82ac-494f-ad15-684be62555d3
+# ╠═fb5cf860-1fbd-472a-acf1-ad66ea43cddb
 # ╟─4e200464-64d6-48d2-9c80-b4e91e5b2d3b
 # ╠═4ce94434-db5a-4323-81e8-c0c5340bab18
 # ╠═b3b31521-9967-4ab8-9bf0-3bde45e2db6b
 # ╟─5701903e-59f3-4495-9dcc-4e730ed2e15f
 # ╠═c72e1a5a-d13a-481a-b732-3b6be3326326
 # ╟─6dffcedb-ae0b-4bb4-9490-94c22ec3e953
+# ╠═77758e3f-5d6a-4b4d-9239-0b575d78ef76
 # ╠═d1415b10-403e-4736-9930-14c451f4f366
 # ╠═0bffe69d-50fa-4b1c-adba-de962e8f38cc
 # ╟─5fbd389f-9ea5-4b09-839b-59aad0c72a0d

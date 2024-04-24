@@ -183,12 +183,16 @@ end
 
 upperBoundarySurface(w::WatchDog, b, bτ) = begin
     uzplane = b[:uz][:, :, end]
+    uxplane = b[:ux][:, :, end]
+    uyplane = b[:uy][:, :, end]
     Tplane = b[:T][:, :, end]
     Dplane = log.(b[:d][:, :, end])
     dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, end] : nothing
 
     Dict(
         "uzplane" => uzplane[:, :],
+        "uxplane" => uxplane[:, :],
+        "uyplane" => uyplane[:, :],
         "Tplane" => Tplane[:, :],
         "lnDplane" => Dplane[:, :],
         "x" => b.x[:, :, end],
@@ -196,6 +200,31 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
         "dtplane" => dtplane[:, :]
     )
 end
+
+minimumTempSurface(w::WatchDog, b, bτ) = begin
+    # plane of minimum temperature
+    iplane = argmin(b[:T])[3]
+
+    uzplane = b[:uz][:, :, iplane]
+    uxplane = b[:ux][:, :, iplane]
+    uyplane = b[:uy][:, :, iplane]
+
+    Tplane = b[:T][:, :, iplane]
+    Dplane = log.(b[:d][:, :, iplane])
+    dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, iplane] : nothing
+
+    Dict(
+        "uzplane" => uzplane[:, :],
+        "uxplane" => uxplane[:, :],
+        "uyplane" => uyplane[:, :],
+        "Tplane" => Tplane[:, :],
+        "lnDplane" => Dplane[:, :],
+        "x" => b.x[:, :, iplane],
+        "y" => b.y[:, :, iplane],
+        "dtplane" => dtplane[:, :]
+    )
+end
+
 
 
 
@@ -232,17 +261,23 @@ end
 opticalSurfaces(w::WatchDog, b, bτ) = begin
     add!(b, lnd=log.(b[:d]))
     uzplane = interpolate_to(b, :uz; logspace=true, τ_ross=0.0)[:uz]
+    uxplane = interpolate_to(b, :ux; logspace=true, τ_ross=0.0)[:ux]
+    uyplane = interpolate_to(b, :uy; logspace=true, τ_ross=0.0)[:uy]
     Tplane = interpolate_to(b, :T; logspace=true, τ_ross=0.0)[:T]
     Dplane = interpolate_to(b, :lnd; logspace=true, τ_ross=0.0)[:lnd]
 
     Dict(
         "uzplane" => uzplane[:, :, 1],
+        "uxplane" => uxplane[:, :, 1],
+        "uyplane" => uyplane[:, :, 1],
         "Tplane" => Tplane[:, :, 1],
         "lnDplane" => Dplane[:, :, 1],
         "x" => b.x[:, :, 1],
         "y" => b.y[:, :, 1]
     )
 end
+
+
 
 
 
@@ -267,6 +302,7 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     opticalStd = opticalStd,
     optMassFlux = optMassFlux,
     geoMassFlux = geoMassFlux,
+    minimumTempSurface = minimumTempSurface,
     opticalSurfaces = opticalSurfaces,
     opticalMaximum = opticalMaximum,
     opticalMinimum = opticalMinimum,
@@ -338,19 +374,27 @@ end
 
 
 
-reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false) where {S<:WatchDog} = begin
-    reload(s(name; folder=folder), snap, mmap=mmap)
+reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false, groups=nothing) where {S<:WatchDog} = begin
+    reload(s(name; folder=folder), snap, mmap=mmap, groups=groups)
 end
 
-reload!(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false) where {S<:WatchDog} = begin
-    reload!(s(name; folder=folder), mmap=mmap, asDict=asDict)
+reload!(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false, groups=nothing) where {S<:WatchDog} = begin
+    reload!(s(name; folder=folder), mmap=mmap, asDict=asDict, groups=groups)
 end
 
-reload(w::S, snap; mmap=false) where {S<:WatchDog} = begin
+reload(w::S, snap; mmap=false, groups=nothing) where {S<:WatchDog} = begin
     fid = HDF5.h5open(monitoringPath(w, snap), "r")
     fvals = Dict()
 
     for gname in keys(fid)
+        # check if this group should be loaded
+        if !isnothing(groups)
+            if !(gname in groups)
+                continue
+            end
+        end
+
+        # read from file
         fvals[gname] = Dict()
         group = fid[gname]
         for dname in keys(group)
@@ -363,14 +407,14 @@ reload(w::S, snap; mmap=false) where {S<:WatchDog} = begin
     fvals
 end
 
-reload!(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
+reload!(w::S; mmap=false, asDict=false, groups=nothing) where {S<:WatchDog} = begin
     listOfSnaps = availableSnaps(w)
     w.snapshotsCompleted = []
     if !asDict
         l  = []
         for snap in listOfSnaps
             try
-                si = reload(w, snapshotnumber(snap); mmap=mmap)
+                si = reload(w, snapshotnumber(snap); mmap=mmap, groups=groups)
                 append!(l, [si])
                 append!(w.snapshotsCompleted, [snapshotnumber(snap)])
             catch
@@ -383,7 +427,7 @@ reload!(w::S; mmap=false, asDict=false) where {S<:WatchDog} = begin
         l = Dict()
         for snap in listOfSnaps
             try
-                l[snap] = reload(w, snapshotnumber(snap); mmap=mmap)
+                l[snap] = reload(w, snapshotnumber(snap); mmap=mmap, groups=groups)
                 append!(w.snapshotsCompleted, [snapshotnumber(snap)])
             catch
                 nothing

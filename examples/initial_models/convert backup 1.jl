@@ -65,11 +65,10 @@ end
         folder=dir, 
         optical_depth_scale=true, 
         save_snapshot=true, 
-        #add_selection=false, 
+        add_selection=false, 
         to_multi=false,
-        #is_box=true, 
-        #use_mmap=false
-        legacy=false
+        is_box=true, 
+        use_mmap=false
     )
 
     nothing
