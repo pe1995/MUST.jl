@@ -1704,18 +1704,20 @@ end
 
 
 # ╔═╡ 61b3e522-2af4-4413-9c69-ee30b0d4673f
-md"# Movies"
-
-# ╔═╡ 40bf37a4-318b-4263-8705-a566a3321f87
-md"
+md"""
+# Movies
 ## 2D Surface Movie
-You can select any of the 2D plane monitoring results you wish, as well as the image resolution and FPS of the final movie."
-
-# ╔═╡ 362e608f-4765-4f03-85f9-0d4673f6bd2b
-
+You can select any of the 2D plane monitoring results you wish, as well as the image resolution and FPS of the final movie.
+"""
 
 # ╔═╡ 00876598-ab41-4741-9cb8-1538b0bd01a0
 fps = 7
+
+# ╔═╡ 12ff2346-87bd-414b-808e-7094ef86cb3f
+
+
+# ╔═╡ 1e215653-87a5-4166-866f-a2f2b233541e
+md"Select a list of 2D arrays you would like to animate and make a couple of design choices:"
 
 # ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
 begin
@@ -1757,7 +1759,7 @@ end;
 
 # ╔═╡ 2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a
 md"""
-__Click to create GIF__: $(@bind createGifImages CheckBox(default=false))
+__Tick box to generate GIF images__: $(@bind createGifImages CheckBox(default=false))
 """
 
 # ╔═╡ ba5049f0-b015-41ad-907e-b86edbcbf7fb
@@ -1952,9 +1954,9 @@ end
 # ╟─47f967fb-e063-4b23-97e9-02ca76985fa9
 # ╟─f6916a12-cb30-4fa1-8d24-e75d1729ede2
 # ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
-# ╟─40bf37a4-318b-4263-8705-a566a3321f87
-# ╟─362e608f-4765-4f03-85f9-0d4673f6bd2b
 # ╠═00876598-ab41-4741-9cb8-1538b0bd01a0
+# ╟─12ff2346-87bd-414b-808e-7094ef86cb3f
+# ╟─1e215653-87a5-4166-866f-a2f2b233541e
 # ╠═1483a522-8d36-45f3-a7bc-8f8f8076085f
 # ╟─8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
 # ╟─2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a
