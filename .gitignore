@@ -68,6 +68,7 @@ examples/Paper_I/*/*.atmos
 examples/Paper_I/*/*.mesh
 examples/Paper_I/plots
 examples/Paper_I/*/eos_opa*
+examples/Paper_I/transport/
 
 examples/*/core*
 

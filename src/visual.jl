@@ -70,6 +70,7 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
         yoff=15, 
         zoff=10, 
         show_time=false,
+        cpu_time=nothing,
         norm=1e8,
         fontsize="medium")
 
@@ -257,7 +258,13 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
 
     if show_time
         ts = @sprintf("%i", m_3d.parameter.time)
-        ax_3d.set_title("stellar time: $(ts) s", fontsize=fontsize)
+        ts_cpu = if !isnothing(cpu_time)
+            tc = @sprintf("%i", cpu_time)
+            "stellar time: $(ts) s, CPU time: $tc CPU-h"
+        else
+            "stellar time: $(ts) s"
+        end
+        ax_3d.set_title(ts_cpu, fontsize=fontsize)
     end
 
     fig_3d, ax_3d

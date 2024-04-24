@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.30
+# v0.19.40
 
 using Markdown
 using InteractiveUtils
@@ -467,7 +467,7 @@ md"## Conversions"
 must2multi = MUST.ingredients("convert2multi.jl")
 
 # ╔═╡ 84fc6b08-0825-41ab-b214-5fef7e2a2dc0
-res = [] #reshape(collect(Iterators.product((10, 20, 80, 120), (299))), :)
+res = [] #reshape(collect(Iterators.product((150, 300), (299))), :)
 
 # ╔═╡ 35d2d2c5-6b70-4bb9-acdc-216557859282
 # ╠═╡ show_logs = false
@@ -852,6 +852,17 @@ begin
 	fA3.savefig("T-Pg_3D_MARCS.png", bbox_inches="tight", dpi=300)
 	
 	gcf()
+end
+
+# ╔═╡ 13b57468-6d36-4413-95c6-0743e2633924
+let
+	open("average_sun.txt", "w") do f
+		z, t = profile(mean, m3disA, :z, :T)
+		z, r = profile(mean, m3disA, :z, :log10d)
+		z, p = profile(mean, m3disA, :z, :log10pg)
+		
+		MUST.writedlm(f, [z t exp10.(r) exp10.(p)], ',')
+	end
 end
 
 # ╔═╡ 58bb3285-544f-4e8a-a27e-9b7e90804fe8
@@ -1707,14 +1718,15 @@ md"### (F) Radiative Heating (Binning)"
 md"### (G) 2D surface"
 
 # ╔═╡ da45e33e-9013-443e-be60-e0b53d23d305
-surface_optical(snap) = begin
-	MUST.closest(log10.(MUST.axis(snap, :τ_ross, 3)), 0)
+surface_optical_ip(snap, what) = begin
+	#MUST.closest(log10.(MUST.axis(snap, :τ_ross, 3)), 0)
+	MUST.interpolate_to(snap, what, τ_ross=0.0, logspace=true)
 end
 
 # ╔═╡ d59e82db-89f3-46fd-8af4-6bf96fab14cf
 surface_optical(snap, what) = begin
-	isurf = surface_optical(snap)
-	snap[what][:, :, isurf] 
+	isurf = surface_optical_ip(snap, what)
+	isurf[what][:, :, 1] 
 end
 
 # ╔═╡ c9004d63-d6e5-415a-87ef-3db717a3f788
@@ -1722,6 +1734,9 @@ uz_surface_optical(snap) = surface_optical(snap, :uz)
 
 # ╔═╡ b214c18c-58ee-474f-809d-d07582ab5647
 rho_surface_optical(snap) = surface_optical(snap, :d)
+
+# ╔═╡ 4935697c-974b-4de8-8182-b5c33f3628f4
+temp_surface_optical(snap) = surface_optical(snap, :T)
 
 # ╔═╡ acf85ab7-3d8b-4e83-8a73-1ed00598882f
 extent(snap) = begin
@@ -1758,7 +1773,7 @@ begin
 
 	# setup colorbar
 	cG = fG.colorbar(imG, ax=axG, fraction=0.046, pad=0.04)
-	cG.set_label(L"\rm U_z\ [km \times s^{-1}]")
+	cG.set_label(L"\rm v_z\ [km \ s^{-1}]")
 
 	# Other labels
 	axG.set_xlabel("x [Mm]")
@@ -2016,7 +2031,7 @@ begin
 	]
 	teffK   = [5777, 5500, 6000, 6500, 4500]
 	loggK   = [4.44, 4.5, 4.5, 4.5, 4.0]
-	
+	fsK = 12
 
 	for (i, model) in enumerate(modelsK)
 		plt.close()
@@ -2039,7 +2054,7 @@ begin
 			uzK,
 			origin="lower",
 			vmin=vmin, vmax=vmax,
-			cmap="coolwarm",
+			cmap="seismic_r",
 			extent=extent(m3disK)
 		)
 		
@@ -2047,19 +2062,80 @@ begin
 		
 		# setup colorbar
 		cK = fK.colorbar(imK, ax=axK, fraction=0.046, pad=0.04)
-		cK.set_label(L"\rm U_z\ [km \times s^{-1}]")
-		axK.set_ylabel("y [Mm]")	
-		axK.set_xlabel("x [Mm]")
-		axK.text(
+		cK.set_label(L"\rm v_z\ [km\ s^{-1}]", fontsize=fsK)
+		axK.tick_params(axis="both", labelsize=fsK-2)
+		cK.ax.tick_params(axis="both", labelsize=fsK-2)
+		axK.set_ylabel("y [Mm]", fontsize=fsK)	
+		axK.set_xlabel("x [Mm]", fontsize=fsK)
+		
+
+		#=axK.text(
 			0.97, 0.97, 
 			L"\rm T_{eff}"*" $(teffK[i]) K, "*"log(g)"*" $(loggK[i]) dex", 
 			ha="right", va="top", 
 			transform=axK.transAxes,
 			color="white", fontsize="large", backgroundcolor="k"
+		)=#
+		axK.set_title(
+			L"\rm T_{eff}"*" $(teffK[i]) K, "*"log(g)"*" $(loggK[i]) dex",
+			fontsize=fsK
 		)
 
 		fK.savefig("vertical_velocity_surface_$(labels[model]).pdf",) #bbox_inches="tight")
 		fK.savefig("vertical_velocity_surface_$(labels[model]).png",)
+		#bbox_inches="tight", dpi=600)
+	end
+	
+	gcf()
+end
+
+# ╔═╡ 3c3d3319-1e82-4027-8ac4-a460acb15518
+let
+	for (i, model) in enumerate(modelsK)
+		plt.close()
+		
+		fK, axK = plt.subplots(1, 1, figsize=(5, 6))
+		#visual.basic_plot!(axK)
+		
+		m3disK = pick_snapshot(out_folder[model], -2) |> last
+
+		# limits for color bar
+		uzK  = temp_surface_optical(m3disK)
+		vmin = minimum(uzK)
+		vmax = maximum(uzK)
+	
+		# plot the surface in uz
+		imK = axK.imshow(
+			uzK,
+			origin="lower",
+			vmin=vmin, vmax=vmax,
+			cmap="gist_heat",
+			extent=extent(m3disK)
+		)
+		
+		#axK[i-1].set_title(labels[model])
+		
+		# setup colorbar
+		cK = fK.colorbar(imK, ax=axK, fraction=0.046, pad=0.04)
+		cK.set_label(L"\rm T\ [K]", fontsize=fsK)
+		axK.tick_params(axis="both", labelsize=fsK-2)
+		cK.ax.tick_params(axis="both", labelsize=fsK-2)
+		axK.set_ylabel("y [Mm]", fontsize=fsK)	
+		axK.set_xlabel("x [Mm]", fontsize=fsK)
+		#=axK.text(
+			0.97, 0.97, 
+			L"\rm T_{eff}"*" $(teffK[i]) K, "*"log(g)"*" $(loggK[i]) dex", 
+			ha="right", va="top", 
+			transform=axK.transAxes,
+			color="white", fontsize="large", backgroundcolor="k"
+		)=#
+		axK.set_title(
+			L"\rm T_{eff}"*" $(teffK[i]) K, "*"log(g)"*" $(loggK[i]) dex", 
+			fontsize=fsK
+		)
+
+		fK.savefig("temperature_surface_$(labels[model]).pdf")
+		fK.savefig("temperature_surface_$(labels[model]).png")
 		#bbox_inches="tight", dpi=600)
 	end
 	
@@ -2427,11 +2503,14 @@ function vertical_velocity_slice_with_contours(
 
 	labi = labelsN[i]*L"\rm \tau_{c}="*"$(τcN./60) min"=#
 
-	axN.text(
+	#=axN.text(
 		0.97, 0.05, label, 
 		ha="right", va="bottom", 
 		transform=axN.transAxes,
 		color="white", backgroundcolor="k", zorder=150
+	)=#
+	axN.set_title(
+		label
 	)
 
 	axN.set_ylabel("\n\n"*L"\rm Z\ [Mm]")
@@ -2646,11 +2725,14 @@ begin
 		end
 
 
-		axO.text(
+		#=axO.text(
 			0.97, 0.05, labelsO[i], 
 			ha="right", va="bottom", 
 			transform=axO.transAxes,
 			color="white", backgroundcolor="k", zorder=150
+		)=#
+		axO.set_title(
+			labelsO[i]
 		)
 
 		
@@ -2745,12 +2827,13 @@ end
 # ╟─ae765c38-1c13-4914-85a1-41c41bff4f3f
 # ╠═0ef33323-1d6a-484c-9292-3485b4871b38
 # ╟─381be17e-b257-4e51-aa79-941db153f398
-# ╠═e1517fd6-523f-4083-bb74-ebf666813002
+# ╟─e1517fd6-523f-4083-bb74-ebf666813002
 # ╟─e73c5a0e-ae3b-4bbd-b098-d8e6ff215c2e
 # ╟─f6f45939-55f8-42c3-b0d2-79c1cefb645c
 # ╟─d77216a7-038d-491f-b7c2-ba74d627e2a2
 # ╟─518657e8-1865-4ecf-bb57-73cb502b5b19
 # ╟─65a010db-d74f-4326-b909-8586c4d033a7
+# ╠═13b57468-6d36-4413-95c6-0743e2633924
 # ╟─58bb3285-544f-4e8a-a27e-9b7e90804fe8
 # ╟─dd667e0e-e554-4dfe-9493-aa38a505210f
 # ╟─6de3b5df-9766-41ca-8d51-f18023a419a3
@@ -2767,6 +2850,7 @@ end
 # ╠═d59e82db-89f3-46fd-8af4-6bf96fab14cf
 # ╠═c9004d63-d6e5-415a-87ef-3db717a3f788
 # ╠═b214c18c-58ee-474f-809d-d07582ab5647
+# ╠═4935697c-974b-4de8-8182-b5c33f3628f4
 # ╟─acf85ab7-3d8b-4e83-8a73-1ed00598882f
 # ╟─4ae6b55e-952a-4b70-937f-c81a2f790e83
 # ╟─faccedff-2a3a-40b1-ae88-c42a69112d16
@@ -2777,6 +2861,7 @@ end
 # ╟─306dd6bc-c27d-4af4-9188-6e96981541fb
 # ╟─521f69d2-c668-4e95-b422-bc95a858286c
 # ╟─bec4d310-281f-4a74-bd61-cebbfd1872f5
+# ╟─3c3d3319-1e82-4027-8ac4-a460acb15518
 # ╟─04543c5d-d519-4ed2-9d98-050fbd1361a1
 # ╟─6dc706bc-0fbd-4277-948f-df7b4306bf4d
 # ╟─6a2d0807-a437-40db-9ed3-934b4a1018b9
