@@ -154,6 +154,16 @@ snapshots = snapshotnames(monitoring)[2:end]
 # ╔═╡ 0f9a1524-9c47-49d6-a554-66db88663093
 
 
+# ╔═╡ cf85b913-bfd0-4a52-b363-7a70b8675134
+begin
+	logg = last(monitoring)["atmosphericParameters"]["logg"]
+	effective_temperature = last(monitoring)["atmosphericParameters"]["teff"]
+	@info "Current Teff, logg" effective_temperature logg
+end
+
+# ╔═╡ 835470b0-73d6-4c15-8d13-46abe85e2ed3
+
+
 # ╔═╡ 2ebb80e6-1966-4673-bc79-50d17add3969
 md"## Available Statistics"
 
@@ -1668,7 +1678,7 @@ rms(data) = sqrt(mean(data .^2))
 # ╔═╡ 58b167bf-d79d-48e1-8118-ffc1a13ba913
 begin
 	iend_fft = length(time)
-	istart_fft = iend_fft - 200
+	istart_fft = iend_fft - 300
 end
 
 # ╔═╡ 47f967fb-e063-4b23-97e9-02ca76985fa9
@@ -1691,13 +1701,23 @@ let
 	
 		plt.close()
 		f, ax = plt.subplots(1, 1, figsize=(5, 6))
-		x = timeFFT[sortmask]
+		x = timeFFT[sortmask] .* 1e6
 		y = surfaceFFT[sortmask] ./ maximum(surfaceFFT[sortmask])
-		ax.plot(x, y, color="k")
-		ax.set_xlabel(L"\rm frequency\ [Hz]")
+
+		first_half = floor(Int, length(x) /2) 
+		ax.plot(x[first_half:end], y[first_half:end], color="k")
+		ax.set_xlabel(L"\rm frequency\ [\mu Hz]")
 		ax.set_ylabel(L"\rm fft(<v_z^{\tau=1}>)\ [normalized]")
+
+		ax.set_xlim(0, last(x))
 		f
 	end
+end
+
+# ╔═╡ 3d530773-bd52-41d6-a3dd-509f237ae439
+begin
+	νmax_expected = exp10(logg) / exp10(4.44) * (5777.0 / teff(tGeoAv["flux"][itimeSurface2][end]))^0.5 * 3090
+	@info "Expected νmax from parameters [μHz]:" νmax_expected
 end
 
 # ╔═╡ f6916a12-cb30-4fa1-8d24-e75d1729ede2
@@ -1715,7 +1735,7 @@ You can select any of the 2D plane monitoring results you wish, as well as the i
 
 
 # ╔═╡ 00876598-ab41-4741-9cb8-1538b0bd01a0
-fps = 7
+fps = 6
 
 # ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
 begin
@@ -1846,6 +1866,8 @@ end
 # ╟─2c64fcf2-1a0b-49cf-a3f1-890f152d0650
 # ╟─65c9d5ea-45a2-4ab8-99e8-5eee29935589
 # ╟─0f9a1524-9c47-49d6-a554-66db88663093
+# ╟─cf85b913-bfd0-4a52-b363-7a70b8675134
+# ╟─835470b0-73d6-4c15-8d13-46abe85e2ed3
 # ╟─2ebb80e6-1966-4673-bc79-50d17add3969
 # ╟─9265061d-eaa5-4fc1-a7b9-51392a357c91
 # ╟─63b0d9d6-f27a-492e-9018-876db8091914
@@ -1950,6 +1972,7 @@ end
 # ╟─587cd5a6-2117-4a65-b50e-c8d2107adfd9
 # ╠═58b167bf-d79d-48e1-8118-ffc1a13ba913
 # ╟─47f967fb-e063-4b23-97e9-02ca76985fa9
+# ╟─3d530773-bd52-41d6-a3dd-509f237ae439
 # ╟─f6916a12-cb30-4fa1-8d24-e75d1729ede2
 # ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
 # ╟─40bf37a4-318b-4263-8705-a566a3321f87
