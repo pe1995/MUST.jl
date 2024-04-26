@@ -130,6 +130,7 @@ end
 
 # ╔═╡ d1415b10-403e-4736-9930-14c451f4f366
 begin
+	#=
 	paras = random_paramters(
 		grid, 
 		60, 
@@ -139,6 +140,7 @@ begin
 		logg=[3.8, 4.7], 
 		feh=[0.0, 0.0]
 	)
+	=#
 
 	# or reload parameters already sampled
 	#=
@@ -148,15 +150,24 @@ begin
 	paras[:, 2] = parasList["logg"]
 	paras[:, 3] = parasList["feh"]
 	=#
+
+	# select a few sub-giants for CEMP tests
+	paras = random_paramters(
+		grid, 
+		10, 
+		teff=[4500, 5500], 
+		logg=[3.0, 4.0], 
+		feh=[-4.0, -4.0]
+	)
 end
 
 # ╔═╡ 0bffe69d-50fa-4b1c-adba-de962e8f38cc
 begin
 	# add hot Jupyter testcase
-	paras_extended = zeros(eltype(paras), size(paras, 1)+1, 3)
-	paras_extended[1:end-1, :] .= paras
-	paras_extended[end, :] = [4500.0, 4.8, 0.0]
-	#paras_extended = paras
+	#paras_extended = zeros(eltype(paras), size(paras, 1)+1, 3)
+	#paras_extended[1:end-1, :] .= paras
+	#paras_extended[end, :] = [4500.0, 4.8, 0.0]
+	paras_extended = paras
 end
 
 # ╔═╡ 5fbd389f-9ea5-4b09-839b-59aad0c72a0d
@@ -190,16 +201,22 @@ md"## EoS
 We can add information about the EoS. This will make the interpolation better because it will use the rosseland optical depth information to interpolate at constant optical depth between models. If not, just position is used for the interpolation. Depending on the chemical composition of the model you need to pick a different EoS here! So it might be best to include the mother table of the respective model in the grid, so that for each metallicity the correct one can be used."
 
 # ╔═╡ e17316a1-a29e-4ce7-b651-65a75881180f
-mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+#=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"=#
 
 # ╔═╡ 5e777d3b-2db8-4e82-a125-564c7db64281
 #=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m1_a0_c1_v3.0"=#
 
+# ╔═╡ ad7d6660-fea7-4808-bff3-7288c20966b2
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m4_a4_c3_v4.0"
+
 # ╔═╡ 1ca259f3-54b6-4c96-8930-eab6454a2cd2
-eos_mother_path = "ross_combined_eos_magg_m0_a0.hdf5"
+#eos_mother_path = "ross_combined_eos_magg_m0_a0.hdf5"
 
 # ╔═╡ b40c3cee-303b-4a24-9692-fc92a69a9b50
 #eos_mother_path = "combined_eos_magg_m1_a0_c1.hdf5"
+
+# ╔═╡ 03cde4ab-bd80-4476-a27a-750a13935a96
+eos_mother_path = "combined_eos_magg_m4_a4_c3.hdf5"
 
 # ╔═╡ af910237-0a7d-4b58-a870-1fbcfd5e883e
 
@@ -275,7 +292,7 @@ begin
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
-MUST.save(ig, "random_MS_5.mgrid")
+MUST.save(ig, "random_CEMP_2.mgrid")
 
 # ╔═╡ Cell order:
 # ╟─a0516377-218a-4260-ae15-acf6ac36f2c1
@@ -296,8 +313,10 @@ MUST.save(ig, "random_MS_5.mgrid")
 # ╟─8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
 # ╠═e17316a1-a29e-4ce7-b651-65a75881180f
 # ╠═5e777d3b-2db8-4e82-a125-564c7db64281
+# ╠═ad7d6660-fea7-4808-bff3-7288c20966b2
 # ╠═1ca259f3-54b6-4c96-8930-eab6454a2cd2
 # ╠═b40c3cee-303b-4a24-9692-fc92a69a9b50
+# ╠═03cde4ab-bd80-4476-a27a-750a13935a96
 # ╟─af910237-0a7d-4b58-a870-1fbcfd5e883e
 # ╠═2f101c34-f3f7-46d8-b1e3-fb855281c6ac
 # ╟─ee45e7db-2fc3-43f3-83cf-bd2dca6d52e7

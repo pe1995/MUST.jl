@@ -119,7 +119,7 @@ eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10
 			),
 			:composition_params=>(
 				:absdat_file=>"./input_multi3d/TS_absdat.dat",
-                :abund_file=>"./input_multi3d/abund_magg",
+                :abund_file=>"./input_multi3d/abund_magg_c1_a4",
 				:ldtemp=>δlnT,
 				:ldrho=>δlnρ,
 				:tmolim=>10000.0
@@ -145,7 +145,7 @@ if compute
 		δlnρ=(log(maxρ)-log(minρ))/nρ,
 		slurm=false,
 		nν=20,
-		FeH=-1.0
+		FeH=-4.0
 		#=m3dis_kwargs=Dict(
 			:threads=>32,
 			:memMB=>90000
@@ -160,7 +160,7 @@ md"# Read EoS Table"
 md"Decide where to save the table"
 
 # ╔═╡ 270b37a1-d0c9-48b1-bd05-891a8c83cf72
-extension = "magg_m1_a0_c0"
+extension = "magg_m4_a4_c1"
 
 # ╔═╡ e3f7e4bf-17c2-4c7d-b086-8ef846fdff32
 md"EoS Versions:
@@ -179,10 +179,13 @@ md"EoS Versions:
 -------------------------------------------------------
 	v3.X: FeH = -1, still no molecular lines!
 - v3.0:	Carbon enhanced <-> Carbon solar
+-------------------------------------------------------
+	v4.X: FeH = -4, still no molecular lines!
+- v4.0:	Carbon enhanced <-> Carbon solar
 "
 
 # ╔═╡ 934be5d3-a7c5-46f2-870d-8ba7d8c134dc
-eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v3.0"
+eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v4.0"
 
 # ╔═╡ d84c4140-1702-4fa4-8fc5-955a1e9c0d78
 !isdir(eos_folder) && mkdir(eos_folder)
