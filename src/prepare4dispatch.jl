@@ -169,10 +169,10 @@ Compute the needed resolution based on input parameters from other 3D simulation
 Make everything easier and avoid rounding.
 """
 function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf, τ_bottom, hres,
-                                    patch_size=30; scale_resolution=1.0)
+                                    patch_size=30; scale_resolution=1.0, dxdz_max=4.0)
     dx = abs(max_x - min_x)
     dz = abs(max_z - min_z)
-    dxdz = dx / dz
+    dxdz = min(dx / dz, dxdz_max)
 
     # This is the rt resolution we need. In HD we use half the points
     vres = minimum(abs.(diff(av_model.z))) *2.0 
@@ -516,7 +516,7 @@ end
 resolution!(grid::MUST.AbstractMUSTGrid; 
                             patch_size=30, scale_resolution=1.0, 
                             τ_up=-4.5, τ_surf=0.0, τ_down=5.5,
-                            τ_ee0=-1.0, τ_eemin=-1.0, τ_zee0=-1.0, τ_rho0=-2.0, use_inim=false) = begin
+                            τ_ee0=-1.0, τ_eemin=-1.0, τ_zee0=-1.0, τ_rho0=-2.0, dxdz_max=4.0, use_inim=false) = begin
     xr, zr = zeros(Int, nrow(grid.info)), zeros(Int, nrow(grid.info))
     xd, zd = zeros(Float64, nrow(grid.info)), zeros(Float64, nrow(grid.info))
 
@@ -569,7 +569,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
             td,
             grid.info[i, "hres"],
             patch_size, 
-            scale_resolution=scale_resolution
+            scale_resolution=scale_resolution,
+            dxdz_max=dxdz_max
         )
 
         ip_r = MUST.linear_interpolation(

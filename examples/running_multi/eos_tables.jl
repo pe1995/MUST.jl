@@ -55,10 +55,12 @@ begin
 	λs = 1000
 	λe = 200000
 	nλ = 100000
+
+	vmic = 2.0
 end
 
 # ╔═╡ b87b7824-bd8d-43f2-ae88-b454d293acaa
-function eosTableInput(wheretosave; minT=1000., maxT=5.5e5, minρ=1e-30, maxρ=1e-3)
+function eosTableInput(wheretosave; minT=1000., maxT=5.5e5, minρ=1e-30, maxρ=1e-3, vmic=1.0)
 	path = MUST.@in_m3dis(wheretosave)
 
 	if isdir(path)
@@ -72,7 +74,8 @@ function eosTableInput(wheretosave; minT=1000., maxT=5.5e5, minρ=1e-30, maxρ=1
 		joinpath(path, "TSO-M3D"), 
 		z=z, 
 		T=[minT, (maxT-minT)/2, maxT], 
-		ρ=[minρ, (maxρ-minρ)/2, maxρ]
+		ρ=[minρ, (maxρ-minρ)/2, maxρ],
+		vmic=vmic
 	)
 
 	"TSO-M3D"
@@ -82,7 +85,8 @@ end
 model = eosTableInput(
 	modelatmosfolder; 
 	minT=minT, maxT=maxT, 
-	minρ=minρ, maxρ=maxρ
+	minρ=minρ, maxρ=maxρ,
+	vmic=vmic
 )
 
 # ╔═╡ 6e98979c-c748-4272-b4a9-dd7c2dbaeb96
@@ -119,7 +123,7 @@ eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10
 			),
 			:composition_params=>(
 				:absdat_file=>"./input_multi3d/TS_absdat.dat",
-                :abund_file=>"./input_multi3d/abund_magg_c1_a4",
+                :abund_file=>"./input_multi3d/abund_magg_c3_a4",
 				:ldtemp=>δlnT,
 				:ldrho=>δlnρ,
 				:tmolim=>10000.0
@@ -160,7 +164,7 @@ md"# Read EoS Table"
 md"Decide where to save the table"
 
 # ╔═╡ 270b37a1-d0c9-48b1-bd05-891a8c83cf72
-extension = "magg_m4_a4_c1"
+extension = "magg_m4_a4_c3_vmic2"
 
 # ╔═╡ e3f7e4bf-17c2-4c7d-b086-8ef846fdff32
 md"EoS Versions:

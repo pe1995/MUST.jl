@@ -1245,9 +1245,6 @@ if haskey(tOptAv, "flux")
 	end
 end
 
-# ╔═╡ c727a6fe-f09c-4561-8a86-fbd7fdd4f6a8
-
-
 # ╔═╡ 321e3dda-cd15-4787-95e6-f928125535d5
 md"""
 # Time evolution
@@ -1678,7 +1675,7 @@ rms(data) = sqrt(mean(data .^2))
 # ╔═╡ 58b167bf-d79d-48e1-8118-ffc1a13ba913
 begin
 	iend_fft = length(time)
-	istart_fft = iend_fft - 300
+	istart_fft = iend_fft - 500
 end
 
 # ╔═╡ 47f967fb-e063-4b23-97e9-02ca76985fa9
@@ -1724,20 +1721,18 @@ end
 
 
 # ╔═╡ 61b3e522-2af4-4413-9c69-ee30b0d4673f
-md"""
-# Movies
+md"# Movies"
+
+# ╔═╡ 40bf37a4-318b-4263-8705-a566a3321f87
+md"
 ## 2D Surface Movie
-You can select any of the 2D plane monitoring results you wish, as well as the image resolution and FPS of the final movie.
-"""
+You can select any of the 2D plane monitoring results you wish, as well as the image resolution and FPS of the final movie."
+
+# ╔═╡ 362e608f-4765-4f03-85f9-0d4673f6bd2b
+
 
 # ╔═╡ 00876598-ab41-4741-9cb8-1538b0bd01a0
 fps = 6
-
-# ╔═╡ 12ff2346-87bd-414b-808e-7094ef86cb3f
-
-
-# ╔═╡ 1e215653-87a5-4166-866f-a2f2b233541e
-md"Select a list of 2D arrays you would like to animate and make a couple of design choices:"
 
 # ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
 begin
@@ -1779,7 +1774,7 @@ end;
 
 # ╔═╡ 2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a
 md"""
-__Tick box to generate GIF images__: $(@bind createGifImages CheckBox(default=false))
+__Click to create GIF__: $(@bind createGifImages CheckBox(default=false))
 """
 
 # ╔═╡ ba5049f0-b015-41ad-907e-b86edbcbf7fb
@@ -1934,7 +1929,6 @@ end
 # ╠═4c3b9b8a-03a5-494d-a321-7f5c400ed054
 # ╟─dc0315d8-0616-433b-8182-33840afb0b0f
 # ╟─aef86067-68b0-48b8-8bb2-0d410a7521c2
-# ╟─c727a6fe-f09c-4561-8a86-fbd7fdd4f6a8
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─643eaee3-a1f8-4be2-b032-08fcb325fbe8
 # ╟─aae74666-7fdd-4db9-8869-68e4597f6940
@@ -1977,9 +1971,9 @@ end
 # ╟─3d530773-bd52-41d6-a3dd-509f237ae439
 # ╟─f6916a12-cb30-4fa1-8d24-e75d1729ede2
 # ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
+# ╟─40bf37a4-318b-4263-8705-a566a3321f87
+# ╟─362e608f-4765-4f03-85f9-0d4673f6bd2b
 # ╠═00876598-ab41-4741-9cb8-1538b0bd01a0
-# ╟─12ff2346-87bd-414b-808e-7094ef86cb3f
-# ╟─1e215653-87a5-4166-866f-a2f2b233541e
 # ╠═1483a522-8d36-45f3-a7bc-8f8f8076085f
 # ╟─8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
 # ╟─2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a

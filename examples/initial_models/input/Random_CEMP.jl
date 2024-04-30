@@ -4,13 +4,13 @@ begin
     dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
     # Under what name should the binned opacities be saved
-    name_extension    = "CEMP/R2"
+    name_extension    = "CEMP/R2c3v2"
 
     # PLATO models
-    initial_grid_path = "CEMP/random_CEMP_2.mgrid"
-    initial_cl_path   = "CEMP/R2_CEMP_avail.mgrid"
-    initial_mod_path  = "CEMP/R2_CEMP_avail.mgrid"
-    final_grid_path   = "CEMP/R2_CEMP_260424.mgrid"
+    initial_grid_path = "CEMP/random_CEMP_2_magg_m4_a4_c3_vmic2.mgrid"
+    initial_cl_path   = "CEMP/R2c3v2_CEMP_avail.mgrid"
+    initial_mod_path  = "CEMP/R2c3v2_CEMP_avail.mgrid"
+    final_grid_path   = "CEMP/R2c3v2_CEMP_290424.mgrid"
 
     # clean namelists in dispatch folder (other than new ones)
     clean_namelists = false
@@ -26,15 +26,16 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 14                 # Points per patch
+    patch_size = 15                 # Points per patch
     τ_up = -4.5                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 8.0                    # Lower limit of simulation domain
-    τ_ee0 = -0.6                    # Newton cooling placement (energy)
+    τ_down = 7.0                    # Lower limit of simulation domain
+    τ_ee0 = -1.0                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -0.3                   # Newton cooling placement (height)
+    τ_zee0 = -0.7                   # Newton cooling placement (height)
     τ_rho0 = -0.1                   # Density normaliztion height
-    scale_resolution = 0.6         # Down or upsampling of simulation domain
+    scale_resolution = 0.75         # Down or upsampling of simulation domain
+    dxdz_max = 3.0                  # how much bigger is box in x than z (max)
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement
@@ -73,7 +74,7 @@ end
 #= Opacities =#
 begin
     # Location of the opacity table
-    extension = "magg_m4_a4_c3"
+    extension = "magg_m4_a4_c3_vmic2"
     mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v4.0"
     eos_path = "combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
