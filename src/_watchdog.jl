@@ -188,17 +188,26 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     Tplane = b[:T][:, :, end]
     Dplane = log.(b[:d][:, :, end])
     dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, end] : nothing
+    fluxplane = haskey(b.data, :flux) ? b[:flux][:, :, end] : nothing
 
-    Dict(
-        "uzplane" => uzplane[:, :],
-        "uxplane" => uxplane[:, :],
-        "uyplane" => uyplane[:, :],
-        "Tplane" => Tplane[:, :],
-        "lnDplane" => Dplane[:, :],
+    d = Dict(
+        "uzplane" => uzplane,
+        "uxplane" => uxplane,
+        "uyplane" => uyplane,
+        "Tplane" => Tplane,
+        "lnDplane" => Dplane,
         "x" => b.x[:, :, end],
-        "y" => b.y[:, :, end],
-        "dtplane" => dtplane[:, :]
+        "y" => b.y[:, :, end]
     )
+
+    if !isnothing(dtplane)
+        d["dtplane"] = dtplane[:, :]
+    end
+    if !isnothing(fluxplane)
+        d["fluxplane"] = fluxplane[:, :]
+    end
+
+    d
 end
 
 minimumTempSurface(w::WatchDog, b, bτ) = begin
@@ -212,17 +221,25 @@ minimumTempSurface(w::WatchDog, b, bτ) = begin
     Tplane = b[:T][:, :, iplane]
     Dplane = log.(b[:d][:, :, iplane])
     dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, iplane] : nothing
+    fluxplane = haskey(b.data, :flux) ? b[:flux][:, :, iplane] : nothing
 
-    Dict(
-        "uzplane" => uzplane[:, :],
-        "uxplane" => uxplane[:, :],
-        "uyplane" => uyplane[:, :],
-        "Tplane" => Tplane[:, :],
-        "lnDplane" => Dplane[:, :],
+    d = Dict(
+        "uzplane" => uzplane,
+        "uxplane" => uxplane,
+        "uyplane" => uyplane,
+        "Tplane" => Tplane,
+        "lnDplane" => Dplane,
         "x" => b.x[:, :, iplane],
-        "y" => b.y[:, :, iplane],
-        "dtplane" => dtplane[:, :]
+        "y" => b.y[:, :, iplane]
     )
+    if !isnothing(dtplane)
+        d["dtplane"] = dtplane
+    end
+    if !isnothing(fluxplane)
+        d["fluxplane"] = fluxplane
+    end
+
+    d
 end
 
 
@@ -265,8 +282,10 @@ opticalSurfaces(w::WatchDog, b, bτ) = begin
     uyplane = interpolate_to(b, :uy; logspace=true, τ_ross=0.0)[:uy]
     Tplane = interpolate_to(b, :T; logspace=true, τ_ross=0.0)[:T]
     Dplane = interpolate_to(b, :lnd; logspace=true, τ_ross=0.0)[:lnd]
+    dtplane = haskey(b.data, :dt_rt) ? interpolate_to(b, :dt_rt; logspace=true, τ_ross=0.0)[:dt_rt] : nothing
+    fluxplane = haskey(b.data, :flux) ? interpolate_to(b, :flux; logspace=true, τ_ross=0.0)[:flux] : nothing
 
-    Dict(
+    d = Dict(
         "uzplane" => uzplane[:, :, 1],
         "uxplane" => uxplane[:, :, 1],
         "uyplane" => uyplane[:, :, 1],
@@ -275,6 +294,15 @@ opticalSurfaces(w::WatchDog, b, bτ) = begin
         "x" => b.x[:, :, 1],
         "y" => b.y[:, :, 1]
     )
+
+    if !isnothing(dtplane)
+        d["dtplane"] = dtplane[:, :, 1]
+    end
+    if !isnothing(fluxplane)
+        d["fluxplane"] = fluxplane[:, :, 1]
+    end
+
+    d
 end
 
 
@@ -407,12 +435,20 @@ reload(w::S, snap; mmap=false, groups=nothing) where {S<:WatchDog} = begin
     fvals
 end
 
-reload!(w::S; mmap=false, asDict=false, groups=nothing) where {S<:WatchDog} = begin
+"""
+    reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all)
+
+Load the monitoring of the given WatchDog. Optionally specify a list of groups you
+want to load, or how many snapshots you want to read from the end. This is 
+usefull when you only need a specific field of the last couple of snapshots.
+"""
+reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all) where {S<:WatchDog} = begin
     listOfSnaps = availableSnaps(w)
     w.snapshotsCompleted = []
+    firstSnap = lastN == :all ? 1 : length(listOfSnaps) - (lastN-1)
     if !asDict
         l  = []
-        for snap in listOfSnaps
+        for snap in listOfSnaps[firstSnap:end]
             try
                 si = reload(w, snapshotnumber(snap); mmap=mmap, groups=groups)
                 append!(l, [si])
@@ -425,7 +461,7 @@ reload!(w::S; mmap=false, asDict=false, groups=nothing) where {S<:WatchDog} = be
         l
     else
         l = Dict()
-        for snap in listOfSnaps
+        for snap in listOfSnaps[firstSnap:end]
             try
                 l[snap] = reload(w, snapshotnumber(snap); mmap=mmap, groups=groups)
                 append!(w.snapshotsCompleted, [snapshotnumber(snap)])
@@ -436,4 +472,37 @@ reload!(w::S; mmap=false, asDict=false, groups=nothing) where {S<:WatchDog} = be
 
         l
     end
+end
+
+
+
+
+
+
+
+#= Convenience functions =#
+
+"""
+    timeevolution(m, group, field) 
+
+Return an array containing the time evolution from all available snapshots in `m` 
+for the given topic `group` and variable `field` in that topic.
+"""
+timeevolution(m, group, field) = [
+    moni[group][field] 
+    for moni in m
+]
+
+"""
+    timeevolution(m, group) 
+
+Return an Dictionary containing arrays of the time evolution from all available 
+snapshots in `m` for the given topic `group` with all variables in that topic as dictionary entried.
+"""
+timeevolution(m, group) = begin
+    mg = m[1][group]
+    Dict(
+        k => [moni[group][k] for moni in m]
+        for k in keys(mg)
+    )
 end
