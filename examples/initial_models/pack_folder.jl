@@ -73,9 +73,6 @@ requestedAndAvailable(reqModels, availModels) = [m for m in availModels if m in 
 md"""Select a folder with models (namelists) you want to convert:\
 $(@bind selectedFolder confirm(TextField(length(\"../../../stellar_atmospheres/run_MS\"), default=\"../../../stellar_atmospheres/run_MS\")))"""
 
-# ╔═╡ 25d78e43-3f49-4593-851a-1072843e43bb
-
-
 # ╔═╡ 67814fa0-e558-4188-90cd-ca7246124912
 modelsToPack = requestedAndAvailable(requestedModels(selectedFolder), availableRuns(datafolder));
 
@@ -260,7 +257,6 @@ end
 # ╟─e595f80f-5ab4-421e-a47e-8b80d1612b29
 # ╟─6c53860f-c977-47fb-8c66-e240b1ec2efc
 # ╟─d45457a4-9e33-4492-9a06-930f41f10fdc
-# ╟─25d78e43-3f49-4593-851a-1072843e43bb
 # ╟─67814fa0-e558-4188-90cd-ca7246124912
 # ╟─cbbe908e-01f2-485c-a6f1-a915c841838b
 # ╟─b8a9a5ce-be8c-4ded-8914-96a9670b7f0e
@@ -271,7 +267,7 @@ end
 # ╟─547b3e4a-0589-4af3-bd23-bd937600590f
 # ╟─56b402c0-6a44-442d-875d-eebb047ef441
 # ╟─9a08c5ec-bdab-4323-895c-7fec358b5af8
-# ╠═4b782275-ce60-4ca0-ac17-be52d3573925
+# ╟─4b782275-ce60-4ca0-ac17-be52d3573925
 # ╟─27f1e1ac-77cf-459b-820e-b167ee11f391
 # ╟─169240b9-90c2-4a5c-9f37-0ad566993278
 # ╟─5c02c516-3a8e-48a7-8ac5-ebd7380fde43

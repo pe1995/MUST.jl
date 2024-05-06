@@ -1711,7 +1711,7 @@ You can select any of the 2D plane monitoring results you wish, as well as the i
 """
 
 # ╔═╡ 00876598-ab41-4741-9cb8-1538b0bd01a0
-fps = 7
+fps = 5
 
 # ╔═╡ 12ff2346-87bd-414b-808e-7094ef86cb3f
 
@@ -1730,7 +1730,7 @@ begin
 	surfacesMovie = tuppersurfaces["dtplane"]
 	surfacesMovie = timeevolution(monitoring, "minimumTempSurface")["uzplane"]
 	=#
-	surfacesMovie = tuppersurfaces["uzplane"] ./1e5
+	surfacesMovie = tuppersurfaces["Tplane"] 
 
 	#=
 	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
@@ -1912,6 +1912,7 @@ end
 # ╠═4c3b9b8a-03a5-494d-a321-7f5c400ed054
 # ╟─dc0315d8-0616-433b-8182-33840afb0b0f
 # ╟─aef86067-68b0-48b8-8bb2-0d410a7521c2
+# ╠═c896b813-da94-4d3f-a383-53c70fc8fbfb
 # ╟─c727a6fe-f09c-4561-8a86-fbd7fdd4f6a8
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─643eaee3-a1f8-4be2-b032-08fcb325fbe8

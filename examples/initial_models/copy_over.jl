@@ -3,6 +3,7 @@ using Glob
 
 path_dispatch = "../../../stellar_atmospheres"
 folder_to_copy = glob(ARGS[2], ARGS[1])
+folder_to_copy = folder_to_copy[isdir.(folder_to_copy)]
 
 nml = joinpath.(folder_to_copy, "ininml.dat")
 name = [f[end] == '/' ? f[1:end-1] : f for f in folder_to_copy]
