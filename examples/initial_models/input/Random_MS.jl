@@ -35,6 +35,7 @@ begin
     τ_zee0 = -0.3                   # Newton cooling placement (height)
     τ_rho0 = -0.1                   # Density normaliztion height
     scale_resolution = 0.75         # Down or upsampling of simulation domain
+    dxdz_max = 3.0                  # how much bigger is box in x than z (max)
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
         :newton_decay_scale=>20.0,  #   for direct namelist replacement

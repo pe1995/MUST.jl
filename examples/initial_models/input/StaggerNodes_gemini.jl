@@ -29,30 +29,47 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 20                 # Points per patch
-    τ_up = -3.75                    # Upper limit of simulation domain
+    patch_size = 15                 # Points per patch
+    τ_up = -5.75                    # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 7.0                    # Lower limit of simulation domain
-    τ_ee0 = -0.5                    # Newton cooling placement (energy)
+    τ_down = 6.0                    # Lower limit of simulation domain
+    τ_ee0 = -2.0                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -0.25                  # Newton cooling placement (height)
+    τ_zee0 = -1.75                  # Newton cooling placement (height)
     τ_rho0 =  0.0                   # Density normaliztion height
-    scale_resolution = 0.50         # Down or upsampling of simulation domain
+    dxdz_max = 3.0                  # how much bigger is box in x than z (max)
+    scale_resolution = 0.75         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
-        :newton_decay_scale=>50.0,  #   for direct namelist replacement
-        :courant_target=>0.3,
-        :courant_rt=>0.8,
-        :duration=>600,
+        :newton_decay_scale=>20.0,  #   for direct namelist replacement
+        :courant_target=>0.28,
+        :courant_rt=>0.4,
         :newton_params=>(
             :on=>true,
             :delay_rt=>true
         ),
-        :sc_rt_params=>(
-            :rt_freq=>2.0,
+        :io_params=>(
+            :out_time=>1.0,
         ),
         :aux_params=>(
             :select=>["dt_rt", "flux"],
+        ),
+        :boundary_params=>(
+            :upper_bc=>2,
+            :smallr=>1e-16
+        ),
+        :an_params=>(
+            :smallr=>1e-8,
+            :smallc=>0.1, 
+            :dlnr_limit=>0.5
+        ),
+        :patch_params=>(
+            :grace=>0.01,
+            :nt=>5
+        ),
+        :sc_rt_params=>(
+            :rt_grace=>0.01,
+            :rt_freq=>2.0 
         )
     )
 end

@@ -169,10 +169,10 @@ Compute the needed resolution based on input parameters from other 3D simulation
 Make everything easier and avoid rounding.
 """
 function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf, τ_bottom, hres,
-                                    patch_size=30; scale_resolution=1.0)
+                                    patch_size=30; scale_resolution=1.0, dxdz_max=4.0)
     dx = abs(max_x - min_x)
     dz = abs(max_z - min_z)
-    dxdz = dx / dz
+    dxdz = min(dx / dz, dxdz_max)
 
     # This is the rt resolution we need. In HD we use half the points
     vres = minimum(abs.(diff(av_model.z))) *2.0 
@@ -345,6 +345,11 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
 	ae = 2.0 - de
 	htop_scale = ae * exp(-be*(logg-ce)) + de
 
+    # the duration should be 10h for the sun, this means that we want that
+    # times the t_scaling as a desired end-point
+    duration_hours = duration*tscale*t_scaling / (60*60)
+    duration_scaling = 1.0 #max(1.0, 10.0 / duration_hours)
+
     # size scaling
     dxdz = patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     if dxdz != 2
@@ -369,7 +374,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
             :t_cgs=>tscale
         ),
         experiment_params=(
-            :t_bot=>tbot,
+            :t_bot=>tbot*t_scaling,
         ),
         stellar_params=(
             :g_cgs=>round(exp10(logg), digits=3), 
@@ -379,9 +384,9 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
             :initial_path=>initial_path
         ),
         friction_params=(
-            :end_time=>round(friction_time*t_scaling, sigdigits=4), 
-            :decay_scale=>round(friction_decay_scale*t_scaling, sigdigits=4), 
-            :time=>0.1,
+            :end_time=>round(friction_time*t_scaling*duration_scaling, sigdigits=4), 
+            :decay_scale=>round(friction_decay_scale*t_scaling*duration_scaling, sigdigits=4), 
+            :time=>0.1*t_scaling,
         ),
         gravity_params=(
             :constant=>-round(exp10(logg), digits=3),
@@ -389,9 +394,9 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         newton_params=(
             :ee0_cgs=>round(log(ee0), sigdigits=7), 
             :position=>round(zee0/l_cgs_raw, sigdigits=3),#round((z_size/2 - 1.2*dup)/l_cgs_raw, sigdigits=3), 
-            :end_time=>round(newton_time*t_scaling, sigdigits=4), 
-            :decay_scale=>round(newton_decay_scale*t_scaling, sigdigits=4),
-            :time=>strength,
+            :end_time=>round(newton_time*t_scaling*duration_scaling, sigdigits=4), 
+            :decay_scale=>round(newton_decay_scale*t_scaling*duration_scaling, sigdigits=4),
+            :time=>strength*t_scaling,
             :scale=>newton_scale
         ),
         sc_rt_params=(  
@@ -405,7 +410,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         ),
         io_params=(
             :out_time=>1.0,
-            :end_time=>round(duration*t_scaling)
+            :end_time=>round(duration*t_scaling*duration_scaling)
         ),
         boundary_params=(
             :upper_bc=>2, 
@@ -511,7 +516,7 @@ end
 resolution!(grid::MUST.AbstractMUSTGrid; 
                             patch_size=30, scale_resolution=1.0, 
                             τ_up=-4.5, τ_surf=0.0, τ_down=5.5,
-                            τ_ee0=-1.0, τ_eemin=-1.0, τ_zee0=-1.0, τ_rho0=-2.0, use_inim=false) = begin
+                            τ_ee0=-1.0, τ_eemin=-1.0, τ_zee0=-1.0, τ_rho0=-2.0, dxdz_max=4.0, use_inim=false) = begin
     xr, zr = zeros(Int, nrow(grid.info)), zeros(Int, nrow(grid.info))
     xd, zd = zeros(Float64, nrow(grid.info)), zeros(Float64, nrow(grid.info))
 
@@ -564,7 +569,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
             td,
             grid.info[i, "hres"],
             patch_size, 
-            scale_resolution=scale_resolution
+            scale_resolution=scale_resolution,
+            dxdz_max=dxdz_max
         )
 
         ip_r = MUST.linear_interpolation(

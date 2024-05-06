@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -19,7 +19,7 @@ end
 ext1 = "magg_m1_a0_c0"
 
 # ╔═╡ 6e6d4927-afd1-450c-ad02-a62802d143c3
-ext2 = "magg_m1_a0_c1"
+ext2 = "magg_m4_a4_c3"
 
 # ╔═╡ 789f821a-be1c-4fa3-8b75-b888f9eeed1f
 eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext1)_v3.0/combined_eos_$(ext1).hdf5")
@@ -31,13 +31,13 @@ scat1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/stor
 opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext1)_v3.0/combined_opacities_$(ext1).hdf5", mmap=true)
 
 # ╔═╡ bdf0a7ba-d30d-40f2-92f4-b9dd791a9ba9
-eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v3.0/combined_eos_$(ext2).hdf5")
+eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v4.0/combined_eos_$(ext2).hdf5")
 
 # ╔═╡ 7cd8df75-c5e5-4ce3-b3af-cb54a7ec8cce
-opa2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v3.0/combined_opacities_$(ext2).hdf5", mmap=true)
+opa2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v4.0/combined_opacities_$(ext2).hdf5", mmap=true)
 
 # ╔═╡ 91c07140-e22f-4522-b2c2-8e2362946ddc
-scat2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v3.0/combined_sopacities_$(ext2).hdf5", mmap=true)
+scat2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v4.0/combined_sopacities_$(ext2).hdf5", mmap=true)
 
 # ╔═╡ dc956c31-3c2c-4ee9-8b21-11a3411cf18b
 let
@@ -56,7 +56,7 @@ let
 	vmax = maximum(eos1.lnEi)#40 #max(maximum(c1), maximum(c2))
 	
 	im = ax[0].scatter(tt1, rr1, label="FeH=-1, CFe=0", c=c1, vmin=vmin, vmax=vmax)
-	ax[1].scatter(tt2, rr2, label="FeH=-1, CFe=1", c=c2, vmin=vmin, vmax=vmax)
+	ax[1].scatter(tt2, rr2, label="FeH=-4, CFe=4", c=c2, vmin=vmin, vmax=vmax)
 
 	f.colorbar(im, ax=ax)
 
@@ -132,14 +132,14 @@ let
 	y1 = log10.(κ1)
 	x2 = log10.(opa2.λ)
 	y2 = log10.(κ2)
-	plt.plot(x2, y2, label="FeH=-1, CFe=1")
+	plt.plot(x2, y2, label="FeH=-4, CFe=3")
 	plt.plot(x1, y1, label="FeH=-1, CFe=0")
 	
 	x1 = log10.(opa1.λ)
 	y1 = log10.(s1)
 	x2 = log10.(opa2.λ)
 	y2 = log10.(s2)
-	plt.plot(x2, y2, label="FeH=-1, CFe=1")
+	plt.plot(x2, y2, label="FeH=-4, CFe=3")
 	plt.plot(x1, y1, label="FeH=-1, CFe=0")
 
 	#plt.xlim(4, 4.1)

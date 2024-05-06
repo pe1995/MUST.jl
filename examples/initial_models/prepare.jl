@@ -218,7 +218,8 @@ begin
         τ_ee0=τ_ee0, 
         τ_eemin=τ_eemin, 
         τ_zee0=τ_zee0, 
-        τ_rho0=τ_rho0
+        τ_rho0=τ_rho0,
+        dxdz_max=dxdz_max
     )
 end
 
@@ -265,6 +266,7 @@ begin
             τ_eemin=τ_eemin, 
             τ_zee0=τ_zee0, 
             τ_rho0=τ_rho0,
+            dxdz_max=dxdz_max,
             use_inim=true
         )
     end
