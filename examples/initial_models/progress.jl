@@ -368,6 +368,52 @@ let
 	gcf()
 end
 
+# ╔═╡ 9758eaf6-9d57-4847-a608-2ba81e1192d0
+let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = topticalsurfaces["x"][itimeSurface] ./1e8
+	y = topticalsurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		topticalsurfaces["fluxplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = topticalsurfaces["x"][itimeSurface2] ./1e8
+	y = topticalsurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		topticalsurfaces["fluxplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
 # ╔═╡ 5817821d-67f5-4e41-a0d3-7ca12961b0c7
 
 
@@ -507,6 +553,53 @@ let
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm T\ [K]")
 
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ ef776fe2-5f0f-49a8-b2d5-2e1235d41ec1
+let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		tuppersurfaces["fluxplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		tuppersurfaces["fluxplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+	
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
 
@@ -1675,7 +1768,7 @@ rms(data) = sqrt(mean(data .^2))
 # ╔═╡ 58b167bf-d79d-48e1-8118-ffc1a13ba913
 begin
 	iend_fft = length(time)
-	istart_fft = iend_fft - 500
+	istart_fft = iend_fft - 100
 end
 
 # ╔═╡ 47f967fb-e063-4b23-97e9-02ca76985fa9
@@ -1732,36 +1825,51 @@ You can select any of the 2D plane monitoring results you wish, as well as the i
 
 
 # ╔═╡ 00876598-ab41-4741-9cb8-1538b0bd01a0
-fps = 6
+fps = 3
 
 # ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
 begin
 	#=
 	surfacesMovie = topticalsurfaces["Tplane"]
+	surfacesMovie = topticalsurfaces["fluxplane"]
 	surfacesMovie = topticalsurfaces["uzplane"] ./1e5
 	surfacesMovie = tuppersurfaces["lnDplane"]
 	surfacesMovie = tuppersurfaces["uzplane"] ./1e5
 	surfacesMovie = tuppersurfaces["Tplane"] 
 	surfacesMovie = tuppersurfaces["dtplane"]
+	surfacesMovie = tuppersurfaces["fluxplane"] 
 	surfacesMovie = timeevolution(monitoring, "minimumTempSurface")["uzplane"]
 	=#
-	surfacesMovie = tuppersurfaces["Tplane"] 
+	surfacesMovie = tuppersurfaces["fluxplane"] 
 
 	#=
 	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
 	labelsurfaceMovie = L"\rm temperature\ [K]"
 	labelsurfaceMovie = L"\rm density\ [g\ cm^{-3}]"
 	=#
-	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
+	labelsurfaceMovie = L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]"
 	
 	dpi = 72
-	cmap = "gist_heat"
+	cmap = "jet"
 end;
 
-# ╔═╡ 8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
+# ╔═╡ a84007ca-49d0-4558-ace3-cc42da9cb8eb
+
+
+# ╔═╡ 98cfdafa-9078-4d0e-84d5-fcf97ab53a55
+md"Pick the snapshot from which you want to start: $(@bind startTimeMovie Slider(snapshots, show_value=true, default=first(snapshots)))
+"
+
+# ╔═╡ 20feed40-879d-4786-93d3-e6d05b72fefc
+md"Pick the snapshot on which you want to end: $(@bind endTimeMovie Slider(snapshots, show_value=true, default=last(snapshots)))
+"
+
+# ╔═╡ 8945b7b7-f3e5-4846-b76e-49d9c864391e
 begin		
-	v_min_movie = minimum(minimum, surfacesMovie)
-	v_max_movie = maximum(maximum, surfacesMovie)	
+	i_start = findfirst(i->i==startTimeMovie, snapshots)
+	i_end = findfirst(i->i==endTimeMovie, snapshots)
+	v_min_movie = minimum(minimum, surfacesMovie[i_start:i_end])
+	v_max_movie = maximum(maximum, surfacesMovie[i_start:i_end])	
 	v_opt_folder_name = "v_opt"
 	
 	if isdir(v_opt_folder_name)
@@ -1789,6 +1897,10 @@ begin
 		end
 		let 
 			@progress for i in eachindex(snapshots)
+				if (snapshots[i] > endTimeMovie) | (snapshots[i] < startTimeMovie)
+					continue
+				end
+				
 				plt.close()
 				f, ax = plt.subplots(1, 1, figsize=(5, 6))
 				
@@ -1809,7 +1921,7 @@ begin
 				cb.set_label(labelsurfaceMovie)
 			
 				
-				ax.set_title("t = $(MUST.@sprintf("%i", time[i])) s")
+				ax.set_title("t = $(MUST.@sprintf("%.2f", time[i]/(60*60))) h")
 				
 				ax.set_xlabel("x [Mm]")
 				ax.set_ylabel("y [Mm]")
@@ -1885,12 +1997,14 @@ end
 # ╟─0639ce7d-955d-448f-84a0-353dfd4e93a3
 # ╟─c24a3b12-c7c0-449b-9a76-6e9c5d475344
 # ╟─3d371088-2322-462b-ab93-7cb49fcdf75f
+# ╟─9758eaf6-9d57-4847-a608-2ba81e1192d0
 # ╟─5817821d-67f5-4e41-a0d3-7ca12961b0c7
 # ╟─7f77f259-505d-4344-8ee4-8628387f2401
 # ╟─cc5fbd5a-c8a0-471a-a56b-0512e4c3989b
 # ╟─495e3733-d290-40ab-af63-0eb10a033b53
 # ╟─ed29d53f-00bc-4295-93f6-864a44f92ccb
 # ╟─fa8161aa-0e1c-404f-8c7e-0e3914917df4
+# ╟─ef776fe2-5f0f-49a8-b2d5-2e1235d41ec1
 # ╟─0e3d2723-1ecb-4e5a-8125-78f6f27407e2
 # ╟─3403a014-2441-4ad2-95f6-2e686ae99ba8
 # ╟─b0c40c50-3361-4b01-ae87-45ae30387526
@@ -1975,7 +2089,10 @@ end
 # ╟─362e608f-4765-4f03-85f9-0d4673f6bd2b
 # ╠═00876598-ab41-4741-9cb8-1538b0bd01a0
 # ╠═1483a522-8d36-45f3-a7bc-8f8f8076085f
-# ╟─8e3939cb-db06-4deb-a1c0-5aa60c2c67d9
+# ╟─a84007ca-49d0-4558-ace3-cc42da9cb8eb
+# ╟─98cfdafa-9078-4d0e-84d5-fcf97ab53a55
+# ╟─20feed40-879d-4786-93d3-e6d05b72fefc
+# ╟─8945b7b7-f3e5-4846-b76e-49d9c864391e
 # ╟─2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a
 # ╟─ba5049f0-b015-41ad-907e-b86edbcbf7fb
 # ╟─7308fc51-5236-4b07-b773-df5451852fbb
