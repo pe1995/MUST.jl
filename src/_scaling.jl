@@ -3,6 +3,7 @@ struct AtmosUnits
     l      ::Float64
     d      ::Float64
     t      ::Float64
+    n      ::Float64
     u      ::Float64
     m      ::Float64
     p      ::Float64
@@ -28,7 +29,8 @@ StandardUnits units (dispatch code units).
 function StandardUnits(;system = "cgs",                                   
                     l  = 1e8,                                        
                     d  = 1e-7,                                        
-                    t  = 1e2,                                       
+                    t  = 1e2,   
+                    n  = 1/l^3,                                    
                     u  = l/t,                               
                     m  = d*l^3,                            
                     p  = d*u^2, 
@@ -44,7 +46,7 @@ function StandardUnits(;system = "cgs",
                     k_B  = 1.380658E-16,
                     m_H  = 1.6726219E-24,
                     m_He = 6.65e-24)
-    AtmosUnits(system,l,d,t,u,m,p,pm,ee,e,flux,qr,k,rk,mu,b,k_B,m_H,m_He)
+    AtmosUnits(system,l,d,t,n,u,m,p,pm,ee,e,flux,qr,k,rk,mu,b,k_B,m_H,m_He)
 end
 
 """

@@ -133,7 +133,7 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
     convert!(b, units;  d=:d, pp=:p, ross=:k,
                         px=:pm, py=:pm, pz=:pm,
                         ux=:u, uy=:u, uz=:u, 
-                        ee=:ee, e=:e,
+                        ee=:ee, e=:e, ne=:n,
                         x=:l, y=:l, z=:l)
 
     if !isnothing(eos)

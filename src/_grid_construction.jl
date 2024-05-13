@@ -104,7 +104,7 @@ end
 #= Scaling a box in resolution =#
 
 """
-    gresample(b, b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), method=:linear, order=[1, 2, 3], dont_log=[:T, :ux, :uy, :uz, :ee, :e])
+    gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), method=:linear, order=[1, 2, 3], dont_log=[:T, :ux, :uy, :uz, :ee, :e])
 
 Resample the given cube to the given resolution. Specify the variables that you don't want to interpolate
 in the log (maybe due to negative/positive values) in `dont_log`.
