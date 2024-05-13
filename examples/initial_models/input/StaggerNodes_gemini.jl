@@ -32,20 +32,22 @@ begin
     patch_size = 15                 # Points per patch
     τ_up = -5.75                    # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 6.0                    # Lower limit of simulation domain
-    τ_ee0 = -2.0                    # Newton cooling placement (energy)
+    τ_down = 7.0                    # Lower limit of simulation domain
+    τ_ee0 = -2.25                   # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
     τ_zee0 = -1.75                  # Newton cooling placement (height)
     τ_rho0 =  0.0                   # Density normaliztion height
     dxdz_max = 3.0                  # how much bigger is box in x than z (max)
     scale_resolution = 0.75         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
-        :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
-        :newton_decay_scale=>20.0,  #   for direct namelist replacement
-        :courant_target=>0.28,
-        :courant_rt=>0.4,
-        :newton_params=>(
-            :on=>true,
+        :newton_time=>120.0,        
+        :friction_time=>120.0,     
+        :newton_decay_scale=>30.0,  
+        :friction_decay_scale=>30.0,  
+        :courant_target=>0.4,
+        :courant_rt=>0.3,
+        :newton_params=>(           #   Optional: Give namelist field = NamedTuple 
+            :on=>true,              #   for direct namelist replacement
             :delay_rt=>true
         ),
         :io_params=>(
@@ -56,7 +58,7 @@ begin
         ),
         :boundary_params=>(
             :upper_bc=>2,
-            :smallr=>1e-16
+            :smallr=>1e-10
         ),
         :an_params=>(
             :smallr=>1e-8,

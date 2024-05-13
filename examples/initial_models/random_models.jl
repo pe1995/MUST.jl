@@ -125,30 +125,36 @@ begin
 		end
 	
 	lowerLimit(x) = lineLimit(x, (5000.0, 4.5), (7000.0, 4.3))
-	upperLimit(x) = lineLimit(x, (5000.0, 4.0), (7000.0, 3.8))
+	upperLimit(x) = lineLimit(x, (5000.0, 3.6), (7000.0, 3.4))
 end
 
 # ╔═╡ d1415b10-403e-4736-9930-14c451f4f366
 begin
-	#=
+	
 	paras = random_paramters(
 		grid, 
 		60, 
 		lowerLimit,
 		upperLimit,
-		teff=[5000, 7000], 
-		logg=[3.8, 4.7], 
+		teff=[4500, 7000], 
+		logg=[3.0, 4.7], 
 		feh=[0.0, 0.0]
 	)
-	=#
+	
 
 	# or reload parameters already sampled
 	
-	parasList = MUST.StaggerGrid("CEMP/random_CEMP_2.mgrid")
+	#=parasList = MUST.StaggerGrid("CEMP/random_CEMP_2.mgrid")
 	paras = zeros(nrow(parasList.info), 3)
 	paras[:, 1] = parasList["teff"]
 	paras[:, 2] = parasList["logg"]
-	paras[:, 3] = parasList["feh"]
+	paras[:, 3] = parasList["feh"]=#
+
+	#=parasList = MUST.StaggerGrid("random_MS_5.mgrid")
+	paras = zeros(nrow(parasList.info), 3)
+	paras[:, 1] = parasList["teff"]
+	paras[:, 2] = parasList["logg"]
+	paras[:, 3] = parasList["feh"]=#
 	
 	# select a few sub-giants for CEMP tests
 	#=paras = random_paramters(
@@ -200,25 +206,28 @@ md"## EoS
 We can add information about the EoS. This will make the interpolation better because it will use the rosseland optical depth information to interpolate at constant optical depth between models. If not, just position is used for the interpolation. Depending on the chemical composition of the model you need to pick a different EoS here! So it might be best to include the mother table of the respective model in the grid, so that for each metallicity the correct one can be used."
 
 # ╔═╡ 78e843fc-42c1-49ba-8d8b-0a8ada2b2a3a
-extension="magg_m4_a4_c3_vmic2"
+#extension="magg_m4_a4_c3_vmic2"
+
+# ╔═╡ 6dd1a861-7654-4f5a-b871-3f2526154d26
+extension="magg_m0_a0"
 
 # ╔═╡ e17316a1-a29e-4ce7-b651-65a75881180f
-#=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"=#
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(extension)_v1.8"
 
 # ╔═╡ 5e777d3b-2db8-4e82-a125-564c7db64281
 #=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m1_a0_c1_v3.0"=#
 
 # ╔═╡ ad7d6660-fea7-4808-bff3-7288c20966b2
-mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v4.0"
+#=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v4.0"=#
 
 # ╔═╡ 1ca259f3-54b6-4c96-8930-eab6454a2cd2
-#eos_mother_path = "ross_combined_eos_magg_m0_a0.hdf5"
+eos_mother_path = "ross_combined_eos_$(extension).hdf5"
 
 # ╔═╡ b40c3cee-303b-4a24-9692-fc92a69a9b50
 #eos_mother_path = "combined_eos_magg_m1_a0_c1.hdf5"
 
 # ╔═╡ 03cde4ab-bd80-4476-a27a-750a13935a96
-eos_mother_path = "combined_eos_$(extension).hdf5"
+#eos_mother_path = "combined_eos_$(extension).hdf5"
 
 # ╔═╡ af910237-0a7d-4b58-a870-1fbcfd5e883e
 
@@ -242,8 +251,8 @@ grid.info[!, "matching_eos"] = [
 ]
 
 # ╔═╡ 4aedcbe9-ee05-48d7-8919-51514b09f018
-if !isdir("CEMP/av_$(extension)/")
-	mkdir("CEMP/av_$(extension)/")
+if !isdir("MainSequence/av_$(extension)/")
+	mkdir("MainSequence/av_$(extension)/")
 end
 
 # ╔═╡ 27f3dc38-c32c-4e35-b5a6-cce2443e64d3
@@ -300,7 +309,7 @@ begin
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
-MUST.save(ig, "CEMP/random_CEMP_2_$(extension).mgrid")
+MUST.save(ig, "MainSequence/random_MS6_$(extension).mgrid")
 
 # ╔═╡ Cell order:
 # ╟─a0516377-218a-4260-ae15-acf6ac36f2c1
@@ -320,6 +329,7 @@ MUST.save(ig, "CEMP/random_CEMP_2_$(extension).mgrid")
 # ╟─5fbd389f-9ea5-4b09-839b-59aad0c72a0d
 # ╟─8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
 # ╠═78e843fc-42c1-49ba-8d8b-0a8ada2b2a3a
+# ╠═6dd1a861-7654-4f5a-b871-3f2526154d26
 # ╠═e17316a1-a29e-4ce7-b651-65a75881180f
 # ╠═5e777d3b-2db8-4e82-a125-564c7db64281
 # ╠═ad7d6660-fea7-4808-bff3-7288c20966b2

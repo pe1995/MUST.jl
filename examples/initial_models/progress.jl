@@ -369,7 +369,7 @@ let
 end
 
 # ╔═╡ 9758eaf6-9d57-4847-a608-2ba81e1192d0
-let 
+haskey(topticalsurfaces, "fluxplane") && let 
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(10, 6))
 
@@ -562,7 +562,7 @@ let
 end
 
 # ╔═╡ ef776fe2-5f0f-49a8-b2d5-2e1235d41ec1
-let 
+haskey(topticalsurfaces, "fluxplane") && let 
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(10, 6))
 
@@ -1840,12 +1840,13 @@ begin
 	surfacesMovie = tuppersurfaces["fluxplane"] 
 	surfacesMovie = timeevolution(monitoring, "minimumTempSurface")["uzplane"]
 	=#
-	surfacesMovie = tuppersurfaces["fluxplane"] 
+	surfacesMovie = topticalsurfaces["fluxplane"]
 
 	#=
 	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
 	labelsurfaceMovie = L"\rm temperature\ [K]"
 	labelsurfaceMovie = L"\rm density\ [g\ cm^{-3}]"
+	labelsurfaceMovie = L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]"
 	=#
 	labelsurfaceMovie = L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]"
 	
