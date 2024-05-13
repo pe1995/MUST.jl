@@ -115,6 +115,7 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
     uz = -1 .* stagger_box[:pz] ./ d
     
     data = Dict{Symbol, Array{Float32, 3}}( :d=>d, :pp=>stagger_box[:pp],   :T=>stagger_box[:temp], :ne=>stagger_box[:ne],
+                                            :lne=>stagger_box[:lne],
                                             :ross=>stagger_box[:ross] ./ d, :τ=>stagger_box[:tau],
                                             :px=>stagger_box[:px],          :py=>stagger_box[:py], :pz=>-1 .*stagger_box[:pz],
                                             :ux=>ux,                        :uy=>uy,               :uz=>uz,
@@ -136,6 +137,7 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
                         ee=:ee, e=:e, ne=:n,
                         x=:l, y=:l, z=:l)
 
+    b[:lne] .= b[:lne] .+ units.n
     if !isnothing(eos)
         @info "Recomputing Energy from EoS."
         # We compute the energy cube, which is needed to get the gas pressure from the EOS
