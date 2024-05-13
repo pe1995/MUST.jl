@@ -137,7 +137,7 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
                         ee=:ee, e=:e, ne=:n,
                         x=:l, y=:l, z=:l)
 
-    b[:lne] .= b[:lne] .+ units.n
+    b[:lne] .= b[:lne] .+ log(units.n)
     if !isnothing(eos)
         @info "Recomputing Energy from EoS."
         # We compute the energy cube, which is needed to get the gas pressure from the EOS
