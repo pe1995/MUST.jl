@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.41
+# v0.19.42
 
 using Markdown
 using InteractiveUtils
@@ -667,6 +667,9 @@ plot_given && let
 	gcf()
 end
 
+# ╔═╡ 434e3e6e-94d0-4e3f-ba04-59029a39c85d
+
+
 # ╔═╡ 292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 md"# Optical surface"
 
@@ -702,50 +705,191 @@ begin
 end
 
 # ╔═╡ 1ffcf11f-58dd-41dd-921f-995d0a84f0d0
-if (nmodels > 0) && plot_given
-	fDs, axDs = [], []
-
-	vmin = minimum([minimum(u) for name in keys(uz) for u in uz[name]]) ./1e5
-	vmax = maximum([maximum(u) for name in keys(uz) for u in uz[name]]) ./1e5
-
-	#vmax = vmax*1.2
-	vmax = min(abs.([vmin, vmax])...)
-	vmin = -vmax
-
-	for name in keys(snapshots)
-		for (j, snap) in enumerate(snapshots[name])
-			plt.close()
-			
-			fD, axD = plt.subplots(1, 1, figsize=(5, 6))
-			
-			i = axD.imshow(
-				uz[name][j] ./1e5,
-				origin="lower",
-				vmin=vmin, vmax=vmax,
-				extent=extent(snap),
-				cmap="seismic_r"
-			)
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
 	
-			cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
-			cb.set_label(L"\rm U_z\ [km\ \times\ s^{-1}]")
-			#cb.set_label(L"\rm T\ [K]")
+		vmin = minimum([minimum(u) for name in keys(uz) for u in uz[name]]) ./1e5
+		vmax = maximum([maximum(u) for name in keys(uz) for u in uz[name]]) ./1e5
 	
-			axD.set_xlabel("x [cm]")
-			axD.set_ylabel("y [cm]")	
+		#vmax = vmax*1.2
+		vmax = min(abs.([vmin, vmax])...)
+		vmin = -vmax
 	
-			append!(fDs, [fD])
-			append!(axDs, [axD])
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					uz[name][j] ./1e5,
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="seismic_r"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm U_z\ [km\ \times\ s^{-1}]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
+end
+
+# ╔═╡ ec661368-fe4a-4f55-b5c0-6bb2daaee768
+
+
+# ╔═╡ aebafb44-5cef-4c74-94e5-63fd7d37a933
+md"## Flux"
+
+# ╔═╡ cc005b8f-092a-4096-8ba8-45b8e45eb8ae
+begin
+	flux = Dict(name=>[] for name in keys(snapshots_τ))
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots_τ[name])
+			flux_τ_surf = if !isnothing(snap)
+				isurf = MUST.closest(log10.(MUST.axis(snap, :τ_ross, 3)), 0)
+				snap[:flux][:, :, isurf]
+			else
+				@info "Interpolating flux..."
+				flux_τ_surf = MUST.interpolate_to(snapshots[name][j], :flux, τ_ross=1)
+				MUST.axis(uz_τ_surf, :flux, 3)
+			end
+	
+			append!(flux[name], [flux_τ_surf])
 		end
 	end
+	flux
+end
+
+# ╔═╡ d5043824-d083-4b71-97bd-ca4079594e09
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
 	
-	gcf()
+		vmin = minimum([minimum(u) for name in keys(flux) for u in flux[name]]) ./1e5
+		vmax = maximum([maximum(u) for name in keys(flux) for u in flux[name]]) ./1e5
+	
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					flux[name][j] ./1e5,
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="seismic_r"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
+end
+
+# ╔═╡ 359bc89f-0077-4b44-9330-305856dd1fb3
+
+
+# ╔═╡ b881f838-86bd-4948-a940-be3204264974
+md"# 3D analysis"
+
+# ╔═╡ 3948852a-e40c-4851-880b-36c0cb5893f0
+md"## Flux"
+
+# ╔═╡ 737fe8bd-65d3-4b3b-9d67-f7e61b93d238
+begin
+	fluxSurf = Dict(name=>[] for name in keys(snapshots_τ))
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots[name])
+			flux_i_surf = snap[:flux][:, :, end]
+			append!(fluxSurf[name], [flux_i_surf])
+		end
+	end
+	fluxSurf
+end
+
+# ╔═╡ 9dcc79e0-afee-40d0-a3a7-17381bca0252
+begin
+	flux_xslice = Dict(name=>[] for name in keys(snapshots))
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots[name])
+			if :flux in keys(snap.data)
+				flux_snap = snap[:flux]
+				ixflux = floor(Int, size(flux_snap, 1) /2)
+				append!(flux_xslice[name], [flux_snap[ixflux, :, :]])
+			end
+		end
+	end
+
+	flux_xslice
+end
+
+# ╔═╡ f50a0387-40c3-440a-b439-8448822bf47c
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
+	
+		vmin = minimum([minimum(u) for name in keys(fluxSurf) for u in fluxSurf[name]]) ./1e5
+		vmax = maximum([maximum(u) for name in keys(fluxSurf) for u in fluxSurf[name]]) ./1e5
+	
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					fluxSurf[name][j] ./1e5,
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="jet"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
 end
 
 # ╔═╡ 11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
 
 
 # ╔═╡ 6d360e73-736e-41e3-a9f3-86e7d53db58a
-md"# Time steps
+md"## Time steps
 Optionally, it is possible to save the radiative timestep in addition. If it is available, we can plot e.g. where the timestep is smallest. We can for example cut through the atmosphere at a given x value or compute the plane mean."
 
 # ╔═╡ dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
@@ -754,6 +898,51 @@ zextent(snap) = begin
 	z = MUST.axis(snap, :z) ./1e8
 
 	[minimum(y), maximum(y), minimum(z), maximum(z)]
+end
+
+# ╔═╡ d00fd506-3847-4deb-898c-cf29b765fd7e
+let
+	if (nmodels > 0) && plot_given && any([length(flux_xslice[d]) for d in keys(flux_xslice)] .> 0)
+		let		
+			vmin = minimum(
+				[minimum(u) for name in keys(flux_xslice) for u in flux_xslice[name]]
+			) 
+			vmax = maximum(
+				[maximum(u) for name in keys(flux_xslice) for u in flux_xslice[name]]
+			)
+		
+			figs = []
+			axs = []
+			
+			for name in keys(snapshots)
+				for (j, snap) in enumerate(snapshots[name])
+					if :dt_rt in keys(snap.data)
+						plt.close()			
+						f, ax = plt.subplots(1, 1, figsize=(5, 6))
+					
+						i = ax.imshow(
+							flux_xslice[name][j]',
+							origin="lower",
+							#vmin=vmin, vmax=vmax,
+							extent=zextent(snap),
+							cmap="coolwarm",
+							aspect="auto"
+						)
+		
+						cb = f.colorbar(i, ax=ax, fraction=0.1, pad=0.04)
+						cb.set_label(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+			
+						ax.set_xlabel("y [cm]")
+						ax.set_ylabel("z [cm]")
+						
+						append!(figs, [f])
+						append!(axs, [ax])
+					end
+				end
+			end
+			gcf()
+		end
+	end
 end
 
 # ╔═╡ 48d19c84-a203-4b58-aeae-52d99dc49387
@@ -798,7 +987,7 @@ if (nmodels > 0) && plot_given && any([length(dt_xslice[d]) for d in keys(dt_xsl
 						aspect="auto"
 					)
 	
-					cb = f.colorbar(i, ax=ax, fraction=0.046, pad=0.04)
+					cb = f.colorbar(i, ax=ax, fraction=0.1, pad=0.04)
 					cb.set_label(L"\rm dt\ [s]")
 		
 					ax.set_xlabel("y [cm]")
@@ -1169,11 +1358,23 @@ end
 # ╟─6c4f5ac6-a03b-4237-aa8f-fe50f77bde6f
 # ╟─4d623d6f-7366-468b-930e-71878b72aa5f
 # ╟─3bf11523-ad8f-49c9-84dc-5554364a8b3b
+# ╟─434e3e6e-94d0-4e3f-ba04-59029a39c85d
 # ╟─292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 # ╟─795357b7-4d73-4bb6-899a-574183fc97e1
 # ╟─12446032-6cc4-4eac-94cc-6ccb8de46c5d
 # ╟─488b2eec-daf8-4920-9140-7d67c6ca3de1
 # ╟─1ffcf11f-58dd-41dd-921f-995d0a84f0d0
+# ╟─ec661368-fe4a-4f55-b5c0-6bb2daaee768
+# ╟─aebafb44-5cef-4c74-94e5-63fd7d37a933
+# ╟─cc005b8f-092a-4096-8ba8-45b8e45eb8ae
+# ╟─d5043824-d083-4b71-97bd-ca4079594e09
+# ╟─359bc89f-0077-4b44-9330-305856dd1fb3
+# ╟─b881f838-86bd-4948-a940-be3204264974
+# ╟─3948852a-e40c-4851-880b-36c0cb5893f0
+# ╟─737fe8bd-65d3-4b3b-9d67-f7e61b93d238
+# ╟─9dcc79e0-afee-40d0-a3a7-17381bca0252
+# ╟─f50a0387-40c3-440a-b439-8448822bf47c
+# ╟─d00fd506-3847-4deb-898c-cf29b765fd7e
 # ╟─11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
 # ╟─6d360e73-736e-41e3-a9f3-86e7d53db58a
 # ╟─dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
