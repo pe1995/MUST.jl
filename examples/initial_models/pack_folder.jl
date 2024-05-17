@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.41
+# v0.19.42
 
 using Markdown
 using InteractiveUtils
@@ -186,26 +186,34 @@ function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="p
 		# after conversion, move (or copy) the snapshot
 		snappath = joinpath(datadir, name, "box_sn$(snap).hdf5")
 		snaptpath = joinpath(datadir, name, "box_tau_sn$(snap).hdf5")
-		if isfile(snappath)
-			if copysnaps
-				cp(snappath, joinpath(saveat, "box_sn$(snap).hdf5"), force=true)
-				cp(snaptpath, joinpath(saveat, "box_tau_sn$(snap).hdf5"), force=true)
-			else
-				mv(snappath, joinpath(saveat, "box_sn$(snap).hdf5"), force=true)
-				mv(snaptpath, joinpath(saveat, "box_tau_sn$(snap).hdf5"), force=true)
+		try
+			if isfile(snappath) & !isfile(joinpath(saveat, "box_sn$(snap).hdf5"))
+				if copysnaps
+					cp(snappath, joinpath(saveat, "box_sn$(snap).hdf5"), force=true)
+					cp(snaptpath, joinpath(saveat, "box_tau_sn$(snap).hdf5"), force=true)
+				else
+					mv(snappath, joinpath(saveat, "box_sn$(snap).hdf5"), force=true)
+					mv(snaptpath, joinpath(saveat, "box_tau_sn$(snap).hdf5"), force=true)
+				end
 			end
+		catch
+			nothing
 		end
 
 		snappath = joinpath(datadir, name, "m3dis_$(snap).mesh")
 		snaptpath = joinpath(datadir, name, "m3dis_$(snap).atmos")
-		if isfile(snappath)
-			if copysnaps
-				cp(snappath, joinpath(saveat, "m3dis_$(snap).mesh"), force=true)
-				cp(snaptpath, joinpath(saveat, "m3dis_$(snap).atmos"), force=true)
-			else
-				mv(snappath, joinpath(saveat, "m3dis_$(snap).mesh"), force=true)
-				mv(snaptpath, joinpath(saveat, "m3dis_$(snap).atmos"), force=true)
+		try
+			if isfile(snappath) & !isfile(joinpath(saveat, "m3dis_$(snap).mesh"))
+				if copysnaps
+					cp(snappath, joinpath(saveat, "m3dis_$(snap).mesh"), force=true)
+					cp(snaptpath, joinpath(saveat, "m3dis_$(snap).atmos"), force=true)
+				else
+					mv(snappath, joinpath(saveat, "m3dis_$(snap).mesh"), force=true)
+					mv(snaptpath, joinpath(saveat, "m3dis_$(snap).atmos"), force=true)
+				end
 			end
+		catch
+			nothing
 		end
 	end
 
