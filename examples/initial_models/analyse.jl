@@ -51,7 +51,7 @@ end;
 matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
 
 # ╔═╡ 64363bbf-ae10-46e6-99a8-c43ff26fde12
-#matplotlib.style.use("dark_background")
+matplotlib.style.use("dark_background")
 
 # ╔═╡ 25234aa1-7c1c-4f2e-ae55-17c82428c4c3
 MUST.@import_dispatch "../../../dispatch2"
@@ -292,7 +292,7 @@ md"Pick what initial models to include in the figures"
 # ╔═╡ d55bae1d-1ca1-4537-8af1-c025a966c3b3
 initial_model = NamedTuple(
 	name=>@optical(
-		Average3D(eos[name], joinpath(eos_folders[name], "inim.dat"), logg=loggs[name]), eos[name],
+		Average3D(eos[name], joinpath(eos_folders[name], "inim.dat"), logg=convert(Float64, loggs[name])), eos[name],
 		opa[name]
 	) for name in pick_initial_models
 )
@@ -364,7 +364,7 @@ md"### Colors"
 cmap = plt.get_cmap("rainbow")
 
 # ╔═╡ c4015f47-d670-4c5d-885c-cf32b6f15829
-cmap_initial = plt.get_cmap("tab20_r")
+cmap_initial = plt.get_cmap("hsv")
 
 # ╔═╡ 13a647a4-3d71-4afb-ba31-867e108a8154
 nmodels = length(snapshots_picks) == 0 ? 0 : sum([length(snapshots_picks[name])
@@ -375,7 +375,7 @@ nmodels = length(snapshots_picks) == 0 ? 0 : sum([length(snapshots_picks[name])
 begin
 	colors = Dict(name=>[] for name in keys(snapshots_picks))
 	colors_initial = Dict()
-	ic = 1
+	ic = 0
 	for name in keys(snapshots_picks)
 		for j in snapshots_picks[name]
 			append!(colors[name], [cmap(ic/nmodels)])
@@ -781,8 +781,8 @@ let
 	if (nmodels > 0) && plot_given
 		fDs, axDs = [], []
 	
-		vmin = minimum([minimum(u) for name in keys(flux) for u in flux[name]]) ./1e5
-		vmax = maximum([maximum(u) for name in keys(flux) for u in flux[name]]) ./1e5
+		vmin = minimum([minimum(u) for name in keys(flux) for u in flux[name]])
+		vmax = maximum([maximum(u) for name in keys(flux) for u in flux[name]])
 	
 		for name in keys(snapshots)
 			for (j, snap) in enumerate(snapshots[name])
@@ -791,7 +791,7 @@ let
 				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
 				
 				i = axD.imshow(
-					flux[name][j] ./1e5,
+					flux[name][j],
 					origin="lower",
 					vmin=vmin, vmax=vmax,
 					extent=extent(snap),
@@ -919,7 +919,7 @@ begin
 	for name in keys(snapshots)
 		for (j, snap) in enumerate(snapshots[name])
 			if :flux in keys(snap.data)
-				d_snap = snap[:flux]
+				d_snap = snap[:d]
 				ixd = floor(Int, size(d_snap, 1) /2)
 				mean_plane = mean(d_snap, dims=(1, 2))
 				mv = d_snap[ixd, :, :]
@@ -1236,11 +1236,14 @@ plot_given && any([length(dt_xslice[d]) for d in keys(dt_xslice)] .> 0) && let
 	gcf()
 end
 
+# ╔═╡ c06cfe0b-88fd-4939-9953-d286c7fff041
+
+
 # ╔═╡ c46c5b32-a1cd-43d3-b087-7f6af7adb88d
 md"# Time evolution"
 
 # ╔═╡ 440097e4-f518-46fe-aa1f-3d446e4cbd25
-md"## Pick models"
+md"## Averaged"
 
 # ╔═╡ 296cbac2-97da-401c-a038-ff2fc8770dd3
 md"Pick models for time evolution:"
@@ -1282,6 +1285,9 @@ begin
 		-m.z, exp.(m.lnT)
 	end
 end;
+
+# ╔═╡ 0960ab92-76a2-49a7-813b-e3d9f5bc9ab7
+
 
 # ╔═╡ 7d10a077-75c1-4aee-b732-35a7ff71d109
 md"## Evolution from Newton to RT"
@@ -1380,7 +1386,7 @@ begin
 	velCube_var = :dt_rt
 	velCube_clabel = "timestep [s]"
 	velCube_vmin_3d = 0.1
-	velCube_vmax_3d = 1.5
+	velCube_vmax_3d = 4
 	velCube_s_3d = 12
 	velCube_arrow_length_ratio = 0.2
 	velCube_skipv = 3
@@ -1521,7 +1527,7 @@ end
 # ╟─bb0cb1ab-7e03-4a5e-bfd8-60bf17e007d5
 # ╟─b7c0a489-b7f7-4105-bce3-ae0c1074c650
 # ╟─9ea4e08e-62aa-44c3-bbf0-78b1954a9c4f
-# ╟─c4015f47-d670-4c5d-885c-cf32b6f15829
+# ╠═c4015f47-d670-4c5d-885c-cf32b6f15829
 # ╟─13a647a4-3d71-4afb-ba31-867e108a8154
 # ╟─17ca4c8c-9563-4be4-8ab7-a7446ba28dec
 # ╟─1be872a8-eef5-422d-b3a6-13d581a999c0
@@ -1576,6 +1582,7 @@ end
 # ╟─122b9c94-3e14-4dab-8432-d6ef174e6085
 # ╟─febe3153-2478-443b-80d8-04a15eeb8b51
 # ╟─5e57c740-4090-4e39-9104-04e6b025d855
+# ╟─c06cfe0b-88fd-4939-9953-d286c7fff041
 # ╟─c46c5b32-a1cd-43d3-b087-7f6af7adb88d
 # ╟─440097e4-f518-46fe-aa1f-3d446e4cbd25
 # ╟─296cbac2-97da-401c-a038-ff2fc8770dd3
@@ -1583,7 +1590,8 @@ end
 # ╟─38767bff-5a3b-4085-b313-ddacb941da71
 # ╟─3225b57c-be7a-438c-83d0-e9b67303b23a
 # ╟─873c07cd-7f02-4144-99fd-842a0aacc6d9
-# ╟─f2f27ccc-358b-4bec-9506-b31c27d6f759
+# ╠═f2f27ccc-358b-4bec-9506-b31c27d6f759
+# ╟─0960ab92-76a2-49a7-813b-e3d9f5bc9ab7
 # ╟─7d10a077-75c1-4aee-b732-35a7ff71d109
 # ╠═5b856c06-da72-41be-adc7-6d4e4570ad45
 # ╟─34fecdab-ed33-4685-92f2-70c0e763e893
