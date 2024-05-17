@@ -51,6 +51,7 @@ uzQ = Quantity(:uz, (; d, pz, kwargs...)->(pz ./ d), standardConversion(:u))
 eeQ = Quantity(:ee, (; d, e, kwargs...)->(e ./ d), standardConversion(:ee))
 dtQ = Quantity(:dt_rt, nothing, standardConversion(:t))
 fluxQ = Quantity(:flux, nothing, standardConversion(:flux))
+heatingQ = Quantity(:qr, nothing, standardConversion(:qr))
 
 defaultQuantities = [
     dQ,
@@ -60,5 +61,6 @@ defaultQuantities = [
     uzQ,
     eeQ,
     dtQ,
-    fluxQ
+    fluxQ,
+    heatingQ
 ]

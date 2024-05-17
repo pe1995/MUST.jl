@@ -170,7 +170,8 @@ function snapshotBox_jl(
     use_mmap=false,
     save_snapshot=true,
     quantites=defaultQuantities,
-    eos_reader=_squaregaseos, 
+    eos_path=nothing,
+    eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), 
     lookup_generator=nothing,
     kwargs...)
     folder = if !isdir(folder)
@@ -178,7 +179,7 @@ function snapshotBox_jl(
     else
         folder
     end
-    try
+    b_s, b_τ = try
         # read patch data, collect to data cube
         b_s = MUST.Box(
             number, 
@@ -204,23 +205,32 @@ function snapshotBox_jl(
             nothing
         end
 
-        # convert to Multi format and save in the same folder, keep the number of the snapshot!
-        if to_multi
-            snapshotsresample = MUST.gresample(
-                b_s, 
-                nz=size(b_s, 3) * 2 - 1, 
-                nx=size(b_s, 1), 
-                ny=size(b_s, 2),
-            )
-            snapshotsresample.data[:ne] = snapshotsresample.data[:Ne]
-            multiBox(snapshotsresample, joinpath(folder, "m3dis_$(number)"))
-        end
-
         b_s, b_τ
     catch
-        @warn "snapshot $(number) could not be loaded."
+        @warn "snapshot $(number) could not be converted."
         nothing, nothing
     end
+
+    # convert to Multi format and save in the same folder, keep the number of the snapshot!
+    if !isnothing(b_s)
+        if to_multi
+            try
+                snapshotsresample = MUST.gresample(
+                    b_s, 
+                    nz=size(b_s, 3) * 2 - 1, 
+                    nx=size(b_s, 1), 
+                    ny=size(b_s, 2),
+                )
+                snapshotsresample.data[:ne] = snapshotsresample.data[:Ne]
+                multiBox(snapshotsresample, joinpath(folder, "m3dis_$(number)"))
+            catch
+                @warn "snapshot $(number) could not be converted to M3D format."
+                nothing
+            end
+        end
+    end
+
+    b_s, b_τ
 end
 
 """

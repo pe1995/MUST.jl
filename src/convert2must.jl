@@ -4,11 +4,11 @@ using TSO
 import MUST.Box
 dispatch = MUST.dispatch
 
-MUST.Box(simulation, snapshot; data=MUST.@in_dispatch("data"), legacy=false, kwargs...) = begin
+MUST.Box(simulation, snapshot; data=MUST.@in_dispatch("data"), legacy=false, eos_path=nothing, kwargs...) = begin
 	if legacy
 		_Box_py(simulation, snapshot; data=data, kwargs...)
 	else
-		_Box_jl(simulation, snapshot; data=data, kwargs...)
+		_Box_jl(simulation, snapshot; data=data, eos_path=eos_path, kwargs...)
 	end
 end
 
@@ -80,11 +80,12 @@ end
 Julia version:
 Convert a snapshot with number `snapshot` from the simulation output `simulation` to a ```MUST.jl``` ```Box```. EoS and opacity tables in the ```TSO.jl``` format are used to add T and κ-ross.
 """
-function _Box_jl(simulation, snapshot; data, mmap=false)
+function _Box_jl(simulation, snapshot; data, mmap=false, eos_path=nothing)
 	MUST.snapshotBox(
 		snapshot, 
+		eos_path=eos_path,
 		folder=joinpath(data, simulation), 
-		eos_reader=sqeos_reader,
+		eos_reader=(x)->sqeos_reader(x, eos_path=eos_path),
 		lookup_generator=lookup_function_generator, 
 		use_mmap=mmap,
 		legacy=false
@@ -100,20 +101,23 @@ Return the names that should be saved to the cube.
 Either give e.g. :T or :lnT, in agreement with the 
 `lookup_function_generator`.
 """
-function sqeos_reader(run)
-	inputNamelist = MUST.@in_dispatch run
-	eos_path = if isfile(inputNamelist*".nml")
-    	inputNamelist = MUST.StellarNamelist(inputNamelist*".nml")    
-		p = replace(
-			MUST.nmlField(inputNamelist, :eos_params)["table_loc"], 
-			"'"=>""
-		)
-		joinpath(p, "eos.hdf5")
+function sqeos_reader(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
+	eos_path = if isnothing(eos_path)
+		if isfile(inputNamelist*".nml")
+			inputNamelist = MUST.StellarNamelist(inputNamelist*".nml")    
+			p = replace(
+				MUST.nmlField(inputNamelist, :eos_params)["table_loc"], 
+				"'"=>""
+			)
+			MUST.@in_dispatch(joinpath(p, "eos.hdf5"))
+		else
+			nothing
+		end
 	else
-		nothing
+		eos_path
 	end
-	if (!isnothing(eos_path)) && isfile(MUST.@in_dispatch(eos_path))
-		TSO.reload(SqEoS, MUST.@in_dispatch(eos_path)), [:T, :kr, :Pg, :Ne]
+	if (!isnothing(eos_path)) && isfile(eos_path)
+		TSO.reload(SqEoS, eos_path), [:T, :kr, :Pg, :Ne]
 	else
 		@warn "No EoS found!"
 		nothing, []
