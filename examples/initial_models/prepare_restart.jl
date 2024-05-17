@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.41
+# v0.19.42
 
 using Markdown
 using InteractiveUtils
@@ -67,16 +67,92 @@ $(@bind selectedRun confirm(Select(availableRuns(datafolder))))"""
 # ╔═╡ cbbe908e-01f2-485c-a6f1-a915c841838b
 runfolder = joinpath(datafolder, selectedRun);
 
+# ╔═╡ 263c6c0f-9310-4373-901e-ec0a74fc870c
+md"""
+Alternatively, you can select a list of run paths that should be restarted. Note that in this case, the namelist will be searched in the same folder as the data. This is convenient if you want to restart packed models. It will always restart from the second-to-last snapshot that is available.
+
+	Enter path to the list you want to restart
+$(@bind selectedRunList confirm(TextField(35)))
+"""
+
+# ╔═╡ 994d81c3-454f-4145-a32c-00d16dba6b05
+if length(selectedRunList) > 0
+	runNamesList = open(selectedRunList, "r") do f
+		strip.(readlines(f))
+	end
+end;
+
+# ╔═╡ 12653e83-2724-400f-b70e-ca9112e2e94a
+findEoS(folder) = begin
+	allfolders = MUST.glob("*/", folder)
+	found = false
+	fol = Ref("")
+	for fo in allfolders
+		allfiles = MUST.glob("*", fo)
+		for f in allfiles
+			if occursin("eos.hdf5", f)
+				found=true
+				fol[] = fo
+				break
+			end
+		end
+
+		found && break
+	end
+
+	if !found
+		nothing
+	else	
+		abspath(fol[])
+	end
+end
+
+# ╔═╡ f96bbc8a-ebae-4a50-b6b0-01e3d211fa7b
+if length(selectedRunList) > 0
+	eosNamesList = []
+	folderNamesList = []
+	runnameList = []
+	for d in runNamesList
+		eosfolder = findEoS(d)
+		runname = last(split(eosfolder, '/', keepempty=false))
+		
+		if !isnothing(eosfolder)
+			append!(eosNamesList, [String(eosfolder)])
+			append!(folderNamesList, [String(d)])
+			append!(runnameList, [String(runname)])
+		end
+	end
+
+	runnameList
+end
+
+# ╔═╡ 1d51c950-69cb-4fa7-aa5e-8d4cce225516
+
+
 # ╔═╡ b8a9a5ce-be8c-4ded-8914-96a9670b7f0e
 md"## Select Snapshots"
 
 # ╔═╡ 14aa40eb-cfa3-4d8e-b21e-ed9cb4e85b20
-allsnaps = sort(MUST.list_of_snapshots(runfolder));
+allsnaps = if length(selectedRunList) > 0
+	sn = MUST.list_snapshots.(MUST.converted_snapshots.(folderNamesList))
+	i = maximum(length.(sn))
+	0:-1:-i+1 |> collect
+else
+	sort(MUST.list_of_snapshots(runfolder))
+end;
 
-# ╔═╡ 288fb1ad-529e-40e1-ae8e-5994d438157d
-md"__Pick the snapshot from which you want to start__\
-$(@bind firstSnap Slider(allsnaps, show_value=true, default=allsnaps[end-11]))
-"
+# ╔═╡ 3f76e640-40a5-45a6-b46e-4b5a119fb180
+if length(selectedRunList) > 0
+	md"""
+		Pick the snapshot (from the end of each run) from which you want to start
+	$(@bind firstSnap Slider(allsnaps, show_value=true, default=allsnaps[1]))
+	"""
+else
+	md"""
+		Pick the snapshot from which you want to start
+	$(@bind firstSnap Slider(allsnaps, show_value=true, default=allsnaps[end-11]))
+	"""
+end
 
 # ╔═╡ a1c18af7-0d55-4c6c-b503-3950e13b6b17
 
@@ -118,29 +194,33 @@ end
 
 Prepare the restart of a DISPATCH simulation by creating the new namelist and converting the chosen snapshot to the M3D format (if not already done). Kwargs can be used to modify the namelist. If `decay_timescales` is set, the newton and friction timescales are decaying even after the restart.
 """
-function prepare_restart(name, snapshot; decay_timescales=false, datadir=@in_dispatch("data"), extend=0.0, kwargs...)
+function prepare_restart(name, snapshot; decay_timescales=false, datadir=joinpath(@in_dispatch("data"), name), eos_path=nothing, nml_name=@in_dispatch(name)*".nml", extend=0.0, kwargs...)
 	# already converted snapshots
-	snappath = joinpath(datadir, name, "m3dis_$(snapshot).mesh")
-	snaptpath = joinpath(datadir, name, "m3dis_$(snapshot).atmos")
+	snappath = joinpath(datadir, "m3dis_$(snapshot).mesh")
+	snaptpath = joinpath(datadir, "m3dis_$(snapshot).atmos")
 	csnap = isfile(snappath) &isfile(snaptpath)
-	
+
 	# first load the snapshot to get its time
 	b = if !csnap
 		@info "[$(name)] Converting snapshot $(snapshot)."
 		b, _ = snapshotBox(
 			snapshot; 
-			folder=joinpath(datadir, name), 
+			folder=datadir, 
 			optical_depth_scale=false, 
 			save_snapshot=true, 
-			add_selection=false, 
-			is_box=true, 
-			to_multi=true
+			#add_selection=false, 
+			#is_box=true, 
+			to_multi=true,
+			legacy=false,
+			eos_path=eos_path
 		)
 
-		b
+		if isnothing(b)
+			Box("box_sn$(snapshot)", folder=datadir)
+		end
 	else
 		@info "[$(name)] Loading snapshot $(snapshot)."
-		Box("box_sn$(snapshot)", folder=joinpath(datadir, name))
+		Box("box_sn$(snapshot)", folder=datadir)
 	end
 
 	t = b.parameter.time
@@ -151,23 +231,33 @@ function prepare_restart(name, snapshot; decay_timescales=false, datadir=@in_dis
 	# the new namelist
 	saveat = @in_dispatch("$(name)_t$(t).nml")
 
-	# Name of the namelist of the current folder
-    nml_name = @in_dispatch name
-
     # Init namelist
-    nml = MUST.StellarNamelist(nml_name*".nml")
+    nml = MUST.StellarNamelist(nml_name)
 
 	# data folder without StAt
-	datawithoutstat = last(split(datadir, "stellar_atmospheres/", keepempty=false))
+	datawithoutstat = if occursin("stellar_atmospheres/", datadir)
+		last(split(datadir, "stellar_atmospheres/", keepempty=false))
+	else
+		datadir
+	end
 
     # change the relevant fields
 	MUST.set!(
 		nml, 
 		stellar_params=(
-			:initial_path=>joinpath(datawithoutstat, name, "m3dis_$(snapshot)"),
+			:initial_path=>joinpath(datadir, "m3dis_$(snapshot)"),
 			:initial_model=>"must"
 		)
 	)
+
+	if !isnothing(eos_path)
+		MUST.set!(
+			nml,
+			eos_params=(
+			:table_loc=>eos_path,
+			)
+		)
+	end
 
 	# Adjust the cube size if one wants to extend the cube
 	if extend>0
@@ -234,15 +324,15 @@ begin
 		#:boundary_params=>(
 		#	:htop_scale=>7.0,
 		#),
-		:cartesian_params=>(
-			:dims=>[12,12,6],
-		),
-		:patch_params=>(
-			:n=>[20,20,20],
-		),
-		:sc_rt_params=>(
-			:rt_res=>[-1,-1,40],
-		)
+		#:cartesian_params=>(
+		#	:dims=>[12,12,6],
+		#),
+		#:patch_params=>(
+		#	:n=>[20,20,20],
+		#),
+		#:sc_rt_params=>(
+		#	:rt_res=>[-1,-1,40],
+		#)
 	)
 end
 
@@ -260,15 +350,45 @@ md"__Click to start preparations:__ $(@bind convert_given CheckBox(default=false
 
 # ╔═╡ 4c7c7f16-cfa4-4547-8355-72744211219a
 begin
-	if convert_given
-		b = prepare_restart(
-			selectedRun, 
-			firstSnap; 
-			datadir=datafolder, 
-			decay_timescales=decay,
-			extend=parse(Float64, exAt)/100.0,
-			new_namelist_params...
-		)
+	restartModels = []
+	if length(selectedRunList) > 0
+		if convert_given
+			for (i, run) in enumerate(runnameList)
+				snaps = MUST.list_snapshots(
+					MUST.converted_snapshots(folderNamesList[i])
+				)
+				isnap = if length(snaps) == 0
+					@warn "There are no snaps for $(run)."
+					continue
+				elseif length(snaps) < abs(firstSnap)
+					1
+				end
+				nmlName = joinpath(folderNamesList[i], run*".nml")
+				prepare_restart(
+					run, 
+					snaps[end+firstSnap]; 
+					datadir=abspath(folderNamesList[i]), 
+					decay_timescales=decay,
+					extend=parse(Float64, exAt)/100.0,
+					nml_name=nmlName,
+					eos_path=eosNamesList[i],
+					new_namelist_params...
+				)
+
+				append!(restartModels, [nmlName])
+			end
+		end
+	else
+		if convert_given
+			prepare_restart(
+				selectedRun, 
+				firstSnap; 
+				datadir=joinpath(datafolder, selectedRun),
+				decay_timescales=decay,
+				extend=parse(Float64, exAt)/100.0,
+				new_namelist_params...
+			)
+		end
 	end
 end
 
@@ -285,9 +405,14 @@ end
 # ╟─e595f80f-5ab4-421e-a47e-8b80d1612b29
 # ╟─d45457a4-9e33-4492-9a06-930f41f10fdc
 # ╟─cbbe908e-01f2-485c-a6f1-a915c841838b
+# ╟─263c6c0f-9310-4373-901e-ec0a74fc870c
+# ╟─994d81c3-454f-4145-a32c-00d16dba6b05
+# ╟─12653e83-2724-400f-b70e-ca9112e2e94a
+# ╟─f96bbc8a-ebae-4a50-b6b0-01e3d211fa7b
+# ╟─1d51c950-69cb-4fa7-aa5e-8d4cce225516
 # ╟─b8a9a5ce-be8c-4ded-8914-96a9670b7f0e
 # ╟─14aa40eb-cfa3-4d8e-b21e-ed9cb4e85b20
-# ╟─288fb1ad-529e-40e1-ae8e-5994d438157d
+# ╟─3f76e640-40a5-45a6-b46e-4b5a119fb180
 # ╟─a1c18af7-0d55-4c6c-b503-3950e13b6b17
 # ╟─9a08c5ec-bdab-4323-895c-7fec358b5af8
 # ╟─f27c5eb0-6a6e-42bc-bf2e-f0aab0be2368
