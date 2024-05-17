@@ -303,7 +303,7 @@ function prepare_restart(name, snapshot; decay_timescales=false, datadir=joinpat
 	@info "[$(name)] Preparing restart complete."
 	@info "[$(name)] Saved at $(saveat)."
 	
-	b
+	saveat
 end
 
 # ╔═╡ 27f1e1ac-77cf-459b-820e-b167ee11f391
@@ -364,7 +364,7 @@ begin
 					1
 				end
 				nmlName = joinpath(folderNamesList[i], run*".nml")
-				prepare_restart(
+				s = prepare_restart(
 					run, 
 					snaps[end+firstSnap]; 
 					datadir=abspath(folderNamesList[i]), 
@@ -375,7 +375,7 @@ begin
 					new_namelist_params...
 				)
 
-				append!(restartModels, [nmlName])
+				append!(restartModels, [s])
 			end
 		end
 	else
@@ -389,6 +389,30 @@ begin
 				new_namelist_params...
 			)
 		end
+	end
+end
+
+# ╔═╡ 18941dbb-1eed-4836-82a8-68350208ffeb
+
+
+# ╔═╡ 184e5c6a-6629-499b-a1af-b7a0542b2120
+if length(selectedRunList) > 0
+	md"""
+		Pick a name for the new models submission
+	
+	$(@bind newModelsName confirm(TextField(35, default="failed_runsX")))
+	"""
+end
+
+# ╔═╡ 8b17e383-2bc1-4362-9f60-ca9cf55ebc8b
+if length(selectedRunList) > 0
+	if length(newModelsName) > 0
+		!isdir(@in_dispatch(newModelsName)) && mkdir(@in_dispatch(newModelsName))
+		for model in restartModels
+			nml_name = split(model, "/", keepempty=false) |> last
+			cp(model, @in_dispatch(joinpath(newModelsName, nml_name)), force=true)
+		end
+		@info "Model namelists collected in $(@in_dispatch(newModelsName))."
 	end
 end
 
@@ -416,7 +440,7 @@ end
 # ╟─a1c18af7-0d55-4c6c-b503-3950e13b6b17
 # ╟─9a08c5ec-bdab-4323-895c-7fec358b5af8
 # ╟─f27c5eb0-6a6e-42bc-bf2e-f0aab0be2368
-# ╟─4b782275-ce60-4ca0-ac17-be52d3573925
+# ╠═4b782275-ce60-4ca0-ac17-be52d3573925
 # ╟─27f1e1ac-77cf-459b-820e-b167ee11f391
 # ╟─0f2b46ac-9317-4d23-be32-e7d0265f6258
 # ╠═3efea52b-cafa-4440-90fe-d6b226847a2d
@@ -424,4 +448,7 @@ end
 # ╟─28d04061-0040-45b5-9490-54c4cdb943f4
 # ╟─1e1e380f-9684-496c-8bf4-158f281a679b
 # ╟─946b586e-5c04-44c8-9300-0f2b7a8babf8
-# ╟─4c7c7f16-cfa4-4547-8355-72744211219a
+# ╠═4c7c7f16-cfa4-4547-8355-72744211219a
+# ╟─18941dbb-1eed-4836-82a8-68350208ffeb
+# ╟─184e5c6a-6629-499b-a1af-b7a0542b2120
+# ╟─8b17e383-2bc1-4362-9f60-ca9cf55ebc8b
