@@ -189,6 +189,7 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     Dplane = log.(b[:d][:, :, end])
     dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, end] : nothing
     fluxplane = haskey(b.data, :flux) ? b[:flux][:, :, end] : nothing
+    qrplane = haskey(b.data, :qr) ? b[:qr][:, :, end] : nothing
 
     d = Dict(
         "uzplane" => uzplane,
@@ -205,6 +206,9 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     end
     if !isnothing(fluxplane)
         d["fluxplane"] = fluxplane[:, :]
+    end
+    if !isnothing(qrplane)
+        d["qrplane"] = qrplane[:, :]
     end
 
     d
@@ -284,6 +288,7 @@ opticalSurfaces(w::WatchDog, b, bτ) = begin
     Dplane = interpolate_to(b, :lnd; logspace=true, τ_ross=0.0)[:lnd]
     dtplane = haskey(b.data, :dt_rt) ? interpolate_to(b, :dt_rt; logspace=true, τ_ross=0.0)[:dt_rt] : nothing
     fluxplane = haskey(b.data, :flux) ? interpolate_to(b, :flux; logspace=true, τ_ross=0.0)[:flux] : nothing
+    qrplane = haskey(b.data, :qr) ? interpolate_to(b, :qr; logspace=true, τ_ross=0.0)[:qr] : nothing
 
     d = Dict(
         "uzplane" => uzplane[:, :, 1],
@@ -300,6 +305,9 @@ opticalSurfaces(w::WatchDog, b, bτ) = begin
     end
     if !isnothing(fluxplane)
         d["fluxplane"] = fluxplane[:, :, 1]
+    end
+    if !isnothing(qrplane)
+        d["qrplane"] = qrplane[:, :, 1]
     end
 
     d
@@ -445,7 +453,7 @@ usefull when you only need a specific field of the last couple of snapshots.
 reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all) where {S<:WatchDog} = begin
     listOfSnaps = availableSnaps(w)
     w.snapshotsCompleted = []
-    firstSnap = lastN == :all ? 1 : length(listOfSnaps) - (lastN-1)
+    firstSnap = lastN == :all ? 1 : max(length(listOfSnaps) - (lastN-1), 1)
     if !asDict
         l  = []
         for snap in listOfSnaps[firstSnap:end]

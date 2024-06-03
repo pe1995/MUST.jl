@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.41
+# v0.19.42
 
 using Markdown
 using InteractiveUtils
@@ -401,7 +401,7 @@ haskey(topticalsurfaces, "fluxplane") && let
 		topticalsurfaces["fluxplane"][itimeSurface2],
 		origin="lower",
 		extent=extent,
-		cmap="gist_heat"
+		cmap="jet"
 	)
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
@@ -594,7 +594,7 @@ haskey(topticalsurfaces, "fluxplane") && let
 		tuppersurfaces["fluxplane"][itimeSurface2],
 		origin="lower",
 		extent=extent,
-		cmap="gist_heat"
+		cmap="jet"
 	)
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
@@ -1840,18 +1840,19 @@ begin
 	surfacesMovie = tuppersurfaces["fluxplane"] 
 	surfacesMovie = timeevolution(monitoring, "minimumTempSurface")["uzplane"]
 	=#
-	surfacesMovie = topticalsurfaces["fluxplane"]
+	surfacesMovie = tuppersurfaces["fluxplane"] 
 
 	#=
 	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
 	labelsurfaceMovie = L"\rm temperature\ [K]"
 	labelsurfaceMovie = L"\rm density\ [g\ cm^{-3}]"
 	labelsurfaceMovie = L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]"
+	labelsurfaceMovie = L"\rm timestep\ [s]"
 	=#
 	labelsurfaceMovie = L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]"
 	
 	dpi = 72
-	cmap = "jet"
+	cmap = "gist_heat"
 end;
 
 # ╔═╡ a84007ca-49d0-4558-ace3-cc42da9cb8eb

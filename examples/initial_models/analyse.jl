@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.41
+# v0.19.42
 
 using Markdown
 using InteractiveUtils
@@ -49,6 +49,9 @@ end;
 
 # ╔═╡ 123d3deb-a412-4408-a0cf-92271b7e4ab3
 matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
+
+# ╔═╡ 64363bbf-ae10-46e6-99a8-c43ff26fde12
+matplotlib.style.use("dark_background")
 
 # ╔═╡ 25234aa1-7c1c-4f2e-ae55-17c82428c4c3
 MUST.@import_dispatch "../../../dispatch2"
@@ -163,7 +166,8 @@ if convert_given
 	for name in keys(snapshots_convert)
 		@info "Converting snapshot $(name), Number: $(snapshots_convert[name])"
 		p = @in_dispatch(joinpath(datafolder, "$(name)"))
-		snapshotBox(snapshots_convert[name], folder=p, to_multi=alsom3d)
+		snapshotBox(snapshots_convert[name], folder=p, to_multi=alsom3d, legacy=false)
+		@info "Snapshot $(name), Number: $(snapshots_convert[name]) converted."
 	end
 end
 
@@ -288,7 +292,7 @@ md"Pick what initial models to include in the figures"
 # ╔═╡ d55bae1d-1ca1-4537-8af1-c025a966c3b3
 initial_model = NamedTuple(
 	name=>@optical(
-		Average3D(eos[name], joinpath(eos_folders[name], "inim.dat"), logg=loggs[name]), eos[name],
+		Average3D(eos[name], joinpath(eos_folders[name], "inim.dat"), logg=convert(Float64, loggs[name])), eos[name],
 		opa[name]
 	) for name in pick_initial_models
 )
@@ -360,7 +364,7 @@ md"### Colors"
 cmap = plt.get_cmap("rainbow")
 
 # ╔═╡ c4015f47-d670-4c5d-885c-cf32b6f15829
-cmap_initial = plt.get_cmap("tab20_r")
+cmap_initial = plt.get_cmap("hsv")
 
 # ╔═╡ 13a647a4-3d71-4afb-ba31-867e108a8154
 nmodels = length(snapshots_picks) == 0 ? 0 : sum([length(snapshots_picks[name])
@@ -371,7 +375,7 @@ nmodels = length(snapshots_picks) == 0 ? 0 : sum([length(snapshots_picks[name])
 begin
 	colors = Dict(name=>[] for name in keys(snapshots_picks))
 	colors_initial = Dict()
-	ic = 1
+	ic = 0
 	for name in keys(snapshots_picks)
 		for j in snapshots_picks[name]
 			append!(colors[name], [cmap(ic/nmodels)])
@@ -667,6 +671,9 @@ plot_given && let
 	gcf()
 end
 
+# ╔═╡ 434e3e6e-94d0-4e3f-ba04-59029a39c85d
+
+
 # ╔═╡ 292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 md"# Optical surface"
 
@@ -702,50 +709,275 @@ begin
 end
 
 # ╔═╡ 1ffcf11f-58dd-41dd-921f-995d0a84f0d0
-if (nmodels > 0) && plot_given
-	fDs, axDs = [], []
-
-	vmin = minimum([minimum(u) for name in keys(uz) for u in uz[name]]) ./1e5
-	vmax = maximum([maximum(u) for name in keys(uz) for u in uz[name]]) ./1e5
-
-	#vmax = vmax*1.2
-	vmax = min(abs.([vmin, vmax])...)
-	vmin = -vmax
-
-	for name in keys(snapshots)
-		for (j, snap) in enumerate(snapshots[name])
-			plt.close()
-			
-			fD, axD = plt.subplots(1, 1, figsize=(5, 6))
-			
-			i = axD.imshow(
-				uz[name][j] ./1e5,
-				origin="lower",
-				vmin=vmin, vmax=vmax,
-				extent=extent(snap),
-				cmap="seismic_r"
-			)
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
 	
-			cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
-			cb.set_label(L"\rm U_z\ [km\ \times\ s^{-1}]")
-			#cb.set_label(L"\rm T\ [K]")
+		vmin = minimum([minimum(u) for name in keys(uz) for u in uz[name]]) ./1e5
+		vmax = maximum([maximum(u) for name in keys(uz) for u in uz[name]]) ./1e5
 	
-			axD.set_xlabel("x [cm]")
-			axD.set_ylabel("y [cm]")	
+		#vmax = vmax*1.2
+		vmax = min(abs.([vmin, vmax])...)
+		vmin = -vmax
 	
-			append!(fDs, [fD])
-			append!(axDs, [axD])
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					uz[name][j] ./1e5,
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="seismic_r"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm U_z\ [km\ \times\ s^{-1}]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
+end
+
+# ╔═╡ ec661368-fe4a-4f55-b5c0-6bb2daaee768
+
+
+# ╔═╡ aebafb44-5cef-4c74-94e5-63fd7d37a933
+md"## Flux"
+
+# ╔═╡ cc005b8f-092a-4096-8ba8-45b8e45eb8ae
+begin
+	flux = Dict(name=>[] for name in keys(snapshots_τ))
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots_τ[name])
+			flux_τ_surf = if !isnothing(snap)
+				isurf = MUST.closest(log10.(MUST.axis(snap, :τ_ross, 3)), 0)
+				snap[:flux][:, :, isurf]
+			else
+				@info "Interpolating flux..."
+				flux_τ_surf = MUST.interpolate_to(snapshots[name][j], :flux, τ_ross=1)
+				MUST.axis(uz_τ_surf, :flux, 3)
+			end
+	
+			append!(flux[name], [flux_τ_surf])
 		end
 	end
+	flux
+end
+
+# ╔═╡ d5043824-d083-4b71-97bd-ca4079594e09
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
 	
-	gcf()
+		vmin = minimum([minimum(u) for name in keys(flux) for u in flux[name]])
+		vmax = maximum([maximum(u) for name in keys(flux) for u in flux[name]])
+	
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					flux[name][j],
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="seismic_r"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
+end
+
+# ╔═╡ 359bc89f-0077-4b44-9330-305856dd1fb3
+
+
+# ╔═╡ b881f838-86bd-4948-a940-be3204264974
+md"# 3D analysis"
+
+# ╔═╡ 3948852a-e40c-4851-880b-36c0cb5893f0
+md"## Flux"
+
+# ╔═╡ 737fe8bd-65d3-4b3b-9d67-f7e61b93d238
+begin
+	fluxSurf = Dict(name=>[] for name in keys(snapshots_τ))
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots[name])
+			flux_i_surf = snap[:flux][:, :, end]
+			append!(fluxSurf[name], [flux_i_surf])
+		end
+	end
+	fluxSurf
+end
+
+# ╔═╡ 9dcc79e0-afee-40d0-a3a7-17381bca0252
+begin
+	flux_xslice = Dict(name=>[] for name in keys(snapshots))
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots[name])
+			if :flux in keys(snap.data)
+				flux_snap = snap[:flux]
+				ixflux = floor(Int, size(flux_snap, 1) /2)
+				mean_plane = mean(flux_snap, dims=(1, 2))
+				mv = flux_snap[ixflux, :, :]
+				for i in eachindex(mean_plane)
+					mv[:, i] .= log10.(abs.(mv[:, i] .- mean_plane[i]))
+				end
+				#append!(flux_xslice[name], [mv])
+				append!(flux_xslice[name], [flux_snap[ixflux, :, :]])
+			end
+		end
+	end
+
+	flux_xslice
+end
+
+# ╔═╡ f50a0387-40c3-440a-b439-8448822bf47c
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
+	
+		vmin = minimum([minimum(u) for name in keys(fluxSurf) for u in fluxSurf[name]]) 
+		vmax = maximum([maximum(u) for name in keys(fluxSurf) for u in fluxSurf[name]]) 
+	
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					fluxSurf[name][j],
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="jet"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
 end
 
 # ╔═╡ 11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
 
 
+# ╔═╡ 4d0ce543-d551-481b-97c4-2585d3befd0a
+md"## Density"
+
+# ╔═╡ 99f5fdef-8c58-4ac5-a00c-2d5af409284d
+begin
+	dSurf = Dict(name=>[] for name in keys(snapshots_τ))
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots[name])
+			d_i_surf = snap[:d][:, :, end]
+			append!(dSurf[name], [d_i_surf])
+		end
+	end
+	dSurf
+end
+
+# ╔═╡ 2783c9a7-8e39-45ce-b823-8d26e94b99d9
+begin
+	d_xslice = Dict(name=>[] for name in keys(snapshots))
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots[name])
+			if :flux in keys(snap.data)
+				d_snap = snap[:d]
+				ixd = floor(Int, size(d_snap, 1) /2)
+				mean_plane = mean(d_snap, dims=(1, 2))
+				mv = d_snap[ixd, :, :]
+				for i in eachindex(mean_plane)
+					mv[:, i] .= log10.(abs.(mv[:, i] .- mean_plane[i]))
+				end
+				#append!(flux_xslice[name], [mv])
+				append!(d_xslice[name], [d_snap[ixd, :, :]])
+			end
+		end
+	end
+
+	d_xslice
+end
+
+# ╔═╡ e9f71534-e9a2-47ac-95a4-10717c1a38f8
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
+	
+		vmin = minimum([log10(minimum(u)) for name in keys(dSurf) for u in dSurf[name]]) 
+		vmax = maximum([log10(maximum(u)) for name in keys(dSurf) for u in dSurf[name]]) 
+	
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					log10.(dSurf[name][j]),
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="jet"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm density\ [g\ cm^{-3}]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
+end
+
+# ╔═╡ c4a4e8e9-e14b-4ce7-b574-1e4547c31a41
+
+
 # ╔═╡ 6d360e73-736e-41e3-a9f3-86e7d53db58a
-md"# Time steps
+md"## Time steps
 Optionally, it is possible to save the radiative timestep in addition. If it is available, we can plot e.g. where the timestep is smallest. We can for example cut through the atmosphere at a given x value or compute the plane mean."
 
 # ╔═╡ dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
@@ -754,6 +986,108 @@ zextent(snap) = begin
 	z = MUST.axis(snap, :z) ./1e8
 
 	[minimum(y), maximum(y), minimum(z), maximum(z)]
+end
+
+# ╔═╡ d00fd506-3847-4deb-898c-cf29b765fd7e
+let
+	if (nmodels > 0) && plot_given && any([length(flux_xslice[d]) for d in keys(flux_xslice)] .> 0)
+		let		
+			vmin = minimum(
+				[minimum(u) for name in keys(flux_xslice) for u in flux_xslice[name]]
+			) 
+			vmax = maximum(
+				[maximum(u) for name in keys(flux_xslice) for u in flux_xslice[name]]
+			)
+		
+			figs = []
+			axs = []
+			
+			for name in keys(snapshots)
+				for (j, snap) in enumerate(snapshots[name])
+					if :dt_rt in keys(snap.data)
+						plt.close()			
+						f, ax = plt.subplots(1, 1, figsize=(5, 6))
+					
+						i = ax.imshow(
+							flux_xslice[name][j]',
+							origin="lower",
+							#vmin=vmin, vmax=vmax,
+							extent=zextent(snap),
+							cmap="coolwarm",
+							aspect="auto"
+						)
+		
+						cb = f.colorbar(i, ax=ax, fraction=0.1, pad=0.04)
+						cb.set_label(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+			
+						ax.set_xlabel("y [cm]")
+						ax.set_ylabel("z [cm]")
+						
+						append!(figs, [f])
+						append!(axs, [ax])
+					end
+				end
+			end
+			gcf()
+		end
+	end
+end
+
+# ╔═╡ b3b13fff-3006-4b2c-90cc-b4c793dc30a0
+let
+	if (nmodels > 0) && plot_given && any([length(d_xslice[d]) for d in keys(d_xslice)] .> 0)
+		let		
+			vmin = minimum(
+				[log10.(minimum(u)) for name in keys(d_xslice) for u in d_xslice[name]]
+			) 
+			vmax = maximum(
+				[log10.(maximum(u)) for name in keys(d_xslice) for u in d_xslice[name]]
+			)
+		
+			figs = []
+			axs = []
+			
+			for name in keys(snapshots)
+				for (j, snap) in enumerate(snapshots[name])
+					if :dt_rt in keys(snap.data)
+						plt.close()			
+						f, ax = plt.subplots(1, 1, figsize=(5, 6))
+					
+						i = ax.imshow(
+							log10.(d_xslice[name][j]'),
+							origin="lower",
+							#vmin=vmin, vmax=vmax,
+							extent=zextent(snap),
+							cmap="coolwarm",
+							aspect="auto"
+						)
+		
+						cb = f.colorbar(i, ax=ax, fraction=0.1, pad=0.04)
+						cb.set_label(L"\rm density\ [g\ cm^{-3}]")
+			
+						ax.set_xlabel("y [cm]")
+						ax.set_ylabel("z [cm]")
+						
+						append!(figs, [f])
+						append!(axs, [ax])
+					end
+				end
+			end
+			gcf()
+		end
+	end
+end
+
+# ╔═╡ b4a8ed35-ba43-4235-b18d-d0a947322fd6
+begin
+	dtSurf = Dict(name=>[] for name in keys(snapshots_τ))
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots[name])
+			dt_i_surf = snap[:dt_rt][:, :, end]
+			append!(dtSurf[name], [dt_i_surf])
+		end
+	end
+	dtSurf
 end
 
 # ╔═╡ 48d19c84-a203-4b58-aeae-52d99dc49387
@@ -767,6 +1101,45 @@ begin
 				append!(dt_xslice[name], [dt[ix, :, :]])
 			end
 		end
+	end
+
+	dt_xslice
+end
+
+# ╔═╡ ec383d75-7ab0-41e5-9676-68570a7ed945
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
+	
+		vmin = minimum([minimum(u) for name in keys(dtSurf) for u in dtSurf[name]]) 
+		vmax = maximum([maximum(u) for name in keys(dtSurf) for u in dtSurf[name]]) 
+	
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					dtSurf[name][j],
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="coolwarm_r"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm dt\ [s]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
 	end
 end
 
@@ -794,11 +1167,11 @@ if (nmodels > 0) && plot_given && any([length(dt_xslice[d]) for d in keys(dt_xsl
 						origin="lower",
 						#vmin=vmin, vmax=vmax,
 						extent=zextent(snap),
-						cmap="coolwarm",
+						cmap="coolwarm_r",
 						aspect="auto"
 					)
 	
-					cb = f.colorbar(i, ax=ax, fraction=0.046, pad=0.04)
+					cb = f.colorbar(i, ax=ax, fraction=0.1, pad=0.04)
 					cb.set_label(L"\rm dt\ [s]")
 		
 					ax.set_xlabel("y [cm]")
@@ -863,11 +1236,14 @@ plot_given && any([length(dt_xslice[d]) for d in keys(dt_xslice)] .> 0) && let
 	gcf()
 end
 
+# ╔═╡ c06cfe0b-88fd-4939-9953-d286c7fff041
+
+
 # ╔═╡ c46c5b32-a1cd-43d3-b087-7f6af7adb88d
 md"# Time evolution"
 
 # ╔═╡ 440097e4-f518-46fe-aa1f-3d446e4cbd25
-md"## Pick models"
+md"## Averaged"
 
 # ╔═╡ 296cbac2-97da-401c-a038-ff2fc8770dd3
 md"Pick models for time evolution:"
@@ -909,6 +1285,9 @@ begin
 		-m.z, exp.(m.lnT)
 	end
 end;
+
+# ╔═╡ 0960ab92-76a2-49a7-813b-e3d9f5bc9ab7
+
 
 # ╔═╡ 7d10a077-75c1-4aee-b732-35a7ff71d109
 md"## Evolution from Newton to RT"
@@ -997,16 +1376,17 @@ end
 
 
 # ╔═╡ 4eca4f1c-c2e2-41ba-9e2e-10b3591f0f6a
-md"## 3D velocity cube animation"
+md"## 3D cube animation with velocity cut"
 
 # ╔═╡ bfe41f19-ab35-43e4-b497-335cbc1071eb
 visual = MUST.ingredients("visual.jl")
 
 # ╔═╡ 40339dd0-acc2-4df0-92fc-bdec12c9a80a
 begin
-	velCube_var = :T
-	velCube_vmin_3d = 3000
-	velCube_vmax_3d = 15500
+	velCube_var = :dt_rt
+	velCube_clabel = "timestep [s]"
+	velCube_vmin_3d = 0.1
+	velCube_vmax_3d = 4
 	velCube_s_3d = 12
 	velCube_arrow_length_ratio = 0.2
 	velCube_skipv = 3
@@ -1020,7 +1400,7 @@ begin
 	velCube_name = "$(models)_vel3D.gif"
 	cpu_time(i, N) = i/N * 24.0*72*4
 	dpi=150
-	fps=8
+	fps=1
 end;
 
 # ╔═╡ 67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
@@ -1034,7 +1414,6 @@ let
 	if start_vel_cube
 		@info "[$(models)] Building Animation..."
 		
-		matplotlib.style.use("dark_background")
 		!isdir("gifs") && mkdir("gifs")
 		
 		model_path = joinpath(MUST.@in_dispatch(datafolder), "$(models)")
@@ -1065,6 +1444,7 @@ let
 				cmap=velCube_cmap,
 				show_time=velCube_show_time,
 				fontsize="x-large",
+				clabel=velCube_clabel,
 				cpu_time=cpu_time(i, length(snaplist))
 			)
 			f.savefig("gifs/cube_$(i).png", bbox_inches="tight", dpi=dpi)
@@ -1095,6 +1475,7 @@ end
 # ╟─d9b5bbbd-6229-47c3-9738-dbe9087016d8
 # ╟─9e9c5903-762d-43d7-adf2-0eccee134974
 # ╠═123d3deb-a412-4408-a0cf-92271b7e4ab3
+# ╠═64363bbf-ae10-46e6-99a8-c43ff26fde12
 # ╠═25234aa1-7c1c-4f2e-ae55-17c82428c4c3
 # ╟─9edfd60d-05a3-4141-8cb0-ae202716aa27
 # ╟─9ac91858-17d8-4934-8d47-fed1519efe42
@@ -1146,7 +1527,7 @@ end
 # ╟─bb0cb1ab-7e03-4a5e-bfd8-60bf17e007d5
 # ╟─b7c0a489-b7f7-4105-bce3-ae0c1074c650
 # ╟─9ea4e08e-62aa-44c3-bbf0-78b1954a9c4f
-# ╟─c4015f47-d670-4c5d-885c-cf32b6f15829
+# ╠═c4015f47-d670-4c5d-885c-cf32b6f15829
 # ╟─13a647a4-3d71-4afb-ba31-867e108a8154
 # ╟─17ca4c8c-9563-4be4-8ab7-a7446ba28dec
 # ╟─1be872a8-eef5-422d-b3a6-13d581a999c0
@@ -1169,18 +1550,39 @@ end
 # ╟─6c4f5ac6-a03b-4237-aa8f-fe50f77bde6f
 # ╟─4d623d6f-7366-468b-930e-71878b72aa5f
 # ╟─3bf11523-ad8f-49c9-84dc-5554364a8b3b
+# ╟─434e3e6e-94d0-4e3f-ba04-59029a39c85d
 # ╟─292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 # ╟─795357b7-4d73-4bb6-899a-574183fc97e1
 # ╟─12446032-6cc4-4eac-94cc-6ccb8de46c5d
 # ╟─488b2eec-daf8-4920-9140-7d67c6ca3de1
 # ╟─1ffcf11f-58dd-41dd-921f-995d0a84f0d0
+# ╟─ec661368-fe4a-4f55-b5c0-6bb2daaee768
+# ╟─aebafb44-5cef-4c74-94e5-63fd7d37a933
+# ╟─cc005b8f-092a-4096-8ba8-45b8e45eb8ae
+# ╟─d5043824-d083-4b71-97bd-ca4079594e09
+# ╟─359bc89f-0077-4b44-9330-305856dd1fb3
+# ╟─b881f838-86bd-4948-a940-be3204264974
+# ╟─3948852a-e40c-4851-880b-36c0cb5893f0
+# ╟─737fe8bd-65d3-4b3b-9d67-f7e61b93d238
+# ╟─9dcc79e0-afee-40d0-a3a7-17381bca0252
+# ╟─f50a0387-40c3-440a-b439-8448822bf47c
+# ╟─d00fd506-3847-4deb-898c-cf29b765fd7e
 # ╟─11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
+# ╟─4d0ce543-d551-481b-97c4-2585d3befd0a
+# ╟─99f5fdef-8c58-4ac5-a00c-2d5af409284d
+# ╟─2783c9a7-8e39-45ce-b823-8d26e94b99d9
+# ╟─e9f71534-e9a2-47ac-95a4-10717c1a38f8
+# ╟─b3b13fff-3006-4b2c-90cc-b4c793dc30a0
+# ╟─c4a4e8e9-e14b-4ce7-b574-1e4547c31a41
 # ╟─6d360e73-736e-41e3-a9f3-86e7d53db58a
 # ╟─dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
+# ╟─b4a8ed35-ba43-4235-b18d-d0a947322fd6
 # ╟─48d19c84-a203-4b58-aeae-52d99dc49387
+# ╟─ec383d75-7ab0-41e5-9676-68570a7ed945
 # ╟─122b9c94-3e14-4dab-8432-d6ef174e6085
 # ╟─febe3153-2478-443b-80d8-04a15eeb8b51
 # ╟─5e57c740-4090-4e39-9104-04e6b025d855
+# ╟─c06cfe0b-88fd-4939-9953-d286c7fff041
 # ╟─c46c5b32-a1cd-43d3-b087-7f6af7adb88d
 # ╟─440097e4-f518-46fe-aa1f-3d446e4cbd25
 # ╟─296cbac2-97da-401c-a038-ff2fc8770dd3
@@ -1188,7 +1590,8 @@ end
 # ╟─38767bff-5a3b-4085-b313-ddacb941da71
 # ╟─3225b57c-be7a-438c-83d0-e9b67303b23a
 # ╟─873c07cd-7f02-4144-99fd-842a0aacc6d9
-# ╟─f2f27ccc-358b-4bec-9506-b31c27d6f759
+# ╠═f2f27ccc-358b-4bec-9506-b31c27d6f759
+# ╟─0960ab92-76a2-49a7-813b-e3d9f5bc9ab7
 # ╟─7d10a077-75c1-4aee-b732-35a7ff71d109
 # ╠═5b856c06-da72-41be-adc7-6d4e4570ad45
 # ╟─34fecdab-ed33-4685-92f2-70c0e763e893

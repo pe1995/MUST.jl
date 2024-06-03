@@ -332,18 +332,28 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     strength = 0.1 #round(0.1 * velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
     tbot = 0.01 #round(0.01 * velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
 
-    # htop_scale can be estimated via logg linearly (set it limits for now at 3 and 0.1)
-    htop_scale = min(max(-2 * logg + 10.1, 0.1), 4.0)
-    
-    # or exponentially
-    htop_scale = max(exp(-1.15*(logg-5.0))-0.6, 0.1)
+    begin
+        # htop_scale can be estimated via logg linearly (set it limits for now at 3 and 0.1)
+        htop_scale = min(max(-2 * logg + 10.1, 0.1), 4.0)
+        
+        # or exponentially
+        htop_scale = max(exp(-1.15*(logg-5.0))-0.6, 0.1)
 
-    # or with a different exponent (based on random_MS_3)
-    be = 2.5
-	ce = 4.15
-	de = 0.3
-	ae = 2.0 - de
-	htop_scale = ae * exp(-be*(logg-ce)) + de
+        # or with a different exponent (based on random_MS_3)
+        be = 2.5
+        ce = 4.15
+        de = 0.3
+        ae = 2.0 - de
+        htop_scale = ae * exp(-be*(logg-ce)) + de
+
+        # or using Teff + logg (because scale height ~ T/g)
+        x0 = 5777.0 / exp10(4.44)
+        y0 = 1.1
+        x1 = 0.29
+        y1 = 1.5
+        m = (y1 - y0) / (x1 - x0)
+        htop_scale = m * (teff/exp10(logg)) + (y1-m*x1)
+    end
 
     # the duration should be 10h for the sun, this means that we want that
     # times the t_scaling as a desired end-point

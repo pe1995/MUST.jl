@@ -211,19 +211,22 @@ end
 Load the MUST EoS from the given run. If applicabale, please
 consider using the TSO EoS instead, which is faster and more convenient.
 """
-function _squaregaseos(run)
-	inputNamelist = @in_dispatch run
-	eos_path = if isfile(inputNamelist*".nml")
-    	inputNamelist = StellarNamelist(inputNamelist*".nml")    
-		replace(
-			nmlField(inputNamelist, :eos_params)["table_loc"], 
-			"'"=>""
-		)
+function _squaregaseos(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
+	eos_path = if isnothing(eos_path)
+		if isfile(inputNamelist*".nml")
+			inputNamelist = StellarNamelist(inputNamelist*".nml")    
+			@in_dispatch(replace(
+				nmlField(inputNamelist, :eos_params)["table_loc"], 
+				"'"=>""
+			))
+		else
+			nothing
+		end
 	else
-		nothing
+		eos_path
 	end
-	if (!isnothing(eos_path)) && isdir(@in_dispatch(eos_path))
-		SquareGasEOS(@in_dispatch(eos_path)), [:T, :kr, :Pg, :Ne]
+	if (!isnothing(eos_path)) && isdir(eos_path)
+		SquareGasEOS(eos_path), [:T, :kr, :Pg, :Ne]
 	else
 		@warn "No EoS found!"
 		nothing, []
@@ -474,7 +477,7 @@ __Note__: TSO hooks are included to use the TSO EoS interface directly by passin
 This is implemented for you and ready to be used in the ingredient `convert2must.jl`. Without using this ingredient, the dafault setup will be used,
 which is the `MUST` EoS reader.
 """
-function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_reader=_squaregaseos, lookup_generator=nothing, mmap=false, save_snapshot=false)	
+function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing, mmap=false, save_snapshot=false)	
 	# check the inputs
     run, rundir, datadir, params_list, files = _check_files(iout, data, run, rundir)
 
