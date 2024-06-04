@@ -414,6 +414,52 @@ haskey(topticalsurfaces, "fluxplane") && let
 	gcf()
 end
 
+# ╔═╡ 80cf7a65-87c6-48d1-89d9-90f07ec25d51
+haskey(topticalsurfaces, "qrplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = topticalsurfaces["x"][itimeSurface] ./1e8
+	y = topticalsurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		topticalsurfaces["qrplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = topticalsurfaces["x"][itimeSurface2] ./1e8
+	y = topticalsurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		topticalsurfaces["qrplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
 # ╔═╡ 5817821d-67f5-4e41-a0d3-7ca12961b0c7
 
 
@@ -599,6 +645,53 @@ haskey(topticalsurfaces, "fluxplane") && let
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+	
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ ff3d827b-a0dd-4d86-bfd4-d25fc5f4ab3e
+haskey(topticalsurfaces, "qrplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		tuppersurfaces["qrplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		tuppersurfaces["qrplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]")
 	
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
@@ -1825,7 +1918,7 @@ You can select any of the 2D plane monitoring results you wish, as well as the i
 
 
 # ╔═╡ 00876598-ab41-4741-9cb8-1538b0bd01a0
-fps = 3
+fps = 4
 
 # ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
 begin
@@ -1838,9 +1931,10 @@ begin
 	surfacesMovie = tuppersurfaces["Tplane"] 
 	surfacesMovie = tuppersurfaces["dtplane"]
 	surfacesMovie = tuppersurfaces["fluxplane"] 
+	surfacesMovie = tuppersurfaces["qrplane"] 
 	surfacesMovie = timeevolution(monitoring, "minimumTempSurface")["uzplane"]
 	=#
-	surfacesMovie = tuppersurfaces["fluxplane"] 
+	surfacesMovie = tuppersurfaces["Tplane"] 
 
 	#=
 	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
@@ -1848,10 +1942,11 @@ begin
 	labelsurfaceMovie = L"\rm density\ [g\ cm^{-3}]"
 	labelsurfaceMovie = L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]"
 	labelsurfaceMovie = L"\rm timestep\ [s]"
+	labelsurfaceMovie = L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]"
 	=#
-	labelsurfaceMovie = L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]"
+	labelsurfaceMovie = L"\rm temperature\ [K]"
 	
-	dpi = 72
+	dpi = 150
 	cmap = "gist_heat"
 end;
 
@@ -2000,6 +2095,7 @@ end
 # ╟─c24a3b12-c7c0-449b-9a76-6e9c5d475344
 # ╟─3d371088-2322-462b-ab93-7cb49fcdf75f
 # ╟─9758eaf6-9d57-4847-a608-2ba81e1192d0
+# ╟─80cf7a65-87c6-48d1-89d9-90f07ec25d51
 # ╟─5817821d-67f5-4e41-a0d3-7ca12961b0c7
 # ╟─7f77f259-505d-4344-8ee4-8628387f2401
 # ╟─cc5fbd5a-c8a0-471a-a56b-0512e4c3989b
@@ -2007,6 +2103,7 @@ end
 # ╟─ed29d53f-00bc-4295-93f6-864a44f92ccb
 # ╟─fa8161aa-0e1c-404f-8c7e-0e3914917df4
 # ╟─ef776fe2-5f0f-49a8-b2d5-2e1235d41ec1
+# ╟─ff3d827b-a0dd-4d86-bfd4-d25fc5f4ab3e
 # ╟─0e3d2723-1ecb-4e5a-8125-78f6f27407e2
 # ╟─3403a014-2441-4ad2-95f6-2e686ae99ba8
 # ╟─b0c40c50-3361-4b01-ae87-45ae30387526

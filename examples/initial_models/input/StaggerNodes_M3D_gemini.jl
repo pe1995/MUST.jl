@@ -29,26 +29,26 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 20                 # Points per patch
+    patch_size = 18                 # Points per patch
     τ_up = -6.0                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
-    τ_down = 7.0                    # Lower limit of simulation domain
-    τ_ee0 = -1.5                    # Newton cooling placement (energy)
+    τ_down = 8.0                    # Lower limit of simulation domain
+    τ_ee0 = -2.25                   # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -1.25                  # Newton cooling placement (height)
-    τ_rho0 = -1.0                   # Density normaliztion height
-    scale_resolution = 0.60         # Down or upsampling of simulation domain
+    τ_zee0 = -1.75                  # Newton cooling placement (height)
+    τ_rho0 =  0.0                   # Density normaliztion height
+    dxdz_max = 3.0                  # how much bigger is box in x than z (max)
+    scale_resolution = 0.65         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
-        :newton_time=>100.0,        #   Optional: Give namelist field = NamedTuple 
-        :newton_decay_scale=>30.0,  #   for direct namelist replacement
-        :courant_target=>0.3,
-        :courant_rt=>0.8,
-        :newton_params=>(
-            :on=>true,
+        :newton_time=>80.0,        
+        :friction_time=>100.0,     
+        :newton_decay_scale=>30.0,  
+        :friction_decay_scale=>30.0,  
+        :courant_target=>0.4,
+        :courant_rt=>0.3,
+        :newton_params=>(           #   Optional: Give namelist field = NamedTuple 
+            :on=>true,              #   for direct namelist replacement
             :delay_rt=>true
-        ),
-        :sc_rt_params=>(
-            :rt_freq=>2.0,
         ),
         :io_params=>(
             :out_time=>1.0,
@@ -58,8 +58,21 @@ begin
         ),
         :boundary_params=>(
             :upper_bc=>2,
-            :smallr=>1e-8
-        )     
+            :smallr=>1e-10
+        ),
+        :an_params=>(
+            :smallr=>1e-8,
+            :smallc=>0.1, 
+            :dlnr_limit=>0.5
+        ),
+        :patch_params=>(
+            :grace=>0.01,
+            :nt=>5
+        ),
+        :sc_rt_params=>(
+            :rt_grace=>0.01,
+            :rt_freq=>2.0 
+        )
     )
 end
 
@@ -70,7 +83,8 @@ begin
 
     # Location of the opacity table
     # for M3D EoS
-    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v2.1"
+    #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_v2.1"
+    mother_table_path = "../../../opacity_tables/TSO_M3D_magg_m0_a0_v2.1"
     extension = "magg_m0_a0"
     eos_path = "combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"

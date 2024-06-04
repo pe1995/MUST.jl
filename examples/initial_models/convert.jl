@@ -13,8 +13,8 @@ if "SLURM_NTASKS" in keys(ENV)
         @info "Worker $(i) is running on $(host) with ID $(pid)" 
     end
 else
-    @warn "No Slurm environment detected. Using default addprocs."
-    addprocs(3)
+    @warn "No Slurm environment detected."
+    #addprocs(3)
 end
 
 @everywhere begin

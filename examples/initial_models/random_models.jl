@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.41
+# v0.19.42
 
 using Markdown
 using InteractiveUtils
@@ -45,6 +45,9 @@ grid = MUST.StaggerGrid("stagger_grid_full.mgrid")
 
 # ╔═╡ b3b31521-9967-4ab8-9bf0-3bde45e2db6b
 deleteat!(grid.info, .!isfile.(grid["av_path"]))
+
+# ╔═╡ d3dd31b5-237e-4b51-9706-8b33269ce5dd
+deleteat!(grid.info, grid["logg"] .<= 2.0)
 
 # ╔═╡ 5701903e-59f3-4495-9dcc-4e730ed2e15f
 md"## Get any model within
@@ -169,22 +172,16 @@ end
 # ╔═╡ 0bffe69d-50fa-4b1c-adba-de962e8f38cc
 begin
 	# add hot Jupyter testcase
-	#paras_extended = zeros(eltype(paras), size(paras, 1)+1, 3)
-	#paras_extended[1:end-1, :] .= paras
-	#paras_extended[end, :] = [4500.0, 4.8, 0.0]
-	paras_extended = paras
+	paras_extended = zeros(eltype(paras), size(paras, 1)+1, 3)
+	paras_extended[1:end-1, :] .= paras
+	paras_extended[end, :] = [4500.0, 4.8, 0.0]
+	#paras_extended = paras
 end
 
 # ╔═╡ 5fbd389f-9ea5-4b09-839b-59aad0c72a0d
 begin
 	plot(xflip=true, yflip=true, legend=:topleft)
-	scatter!(
-		grid["teff"][grid["feh"].==-1], 
-		grid["logg"][grid["feh"].==0], 
-		label="Grid",
-		color="black",
-		markersize=8
-	)
+	
 	scatter!(
 		paras_extended[:, 1],
 		paras_extended[:, 2],
@@ -192,6 +189,13 @@ begin
 		label="New models",
 		marker=:square,
 		markersize=6
+	)
+	scatter!(
+		grid["teff"][grid["feh"].==-1], 
+		grid["logg"][grid["feh"].==0], 
+		label="Grid",
+		color="black",
+		markersize=8
 	)
 
 	x = range(4000, 7000, length=100)
@@ -212,7 +216,10 @@ We can add information about the EoS. This will make the interpolation better be
 extension="magg_m0_a0"
 
 # ╔═╡ e17316a1-a29e-4ce7-b651-65a75881180f
-mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(extension)_v1.8"
+#=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(extension)_v1.8"=#
+
+# ╔═╡ 1191c34a-c27e-4eff-875a-57f7fc043ee9
+mother_table_path = "../../../opacity_tables/TSO_MARCS_$(extension)_v1.8"
 
 # ╔═╡ 5e777d3b-2db8-4e82-a125-564c7db64281
 #=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m1_a0_c1_v3.0"=#
@@ -251,9 +258,21 @@ grid.info[!, "matching_eos"] = [
 ]
 
 # ╔═╡ 4aedcbe9-ee05-48d7-8919-51514b09f018
-if !isdir("MainSequence/av_$(extension)/")
-	mkdir("MainSequence/av_$(extension)/")
+begin
+	newModelCollection = "MainSequence"
+	newdir = "MainSequence/av_$(extension)/"
+	newSet = "random_MS7"
 end
+
+# ╔═╡ 268b93aa-b610-467e-be1c-0306ca8ac31e
+begin
+	if !isdir(newModelCollection)
+		mkdir(newModelCollection)
+	end
+	if !isdir(newdir)
+		mkdir(newdir)
+	end
+end;
 
 # ╔═╡ 27f3dc38-c32c-4e35-b5a6-cce2443e64d3
 ig = modelgrids.interpolate_from_grid(
@@ -262,7 +281,7 @@ ig = modelgrids.interpolate_from_grid(
 	logg=round.(paras_extended[:, 2], sigdigits=4), 
 	feh=paras_extended[:, 3],
 	eos=eos,
-	folder="CEMP/av_$(extension)/"
+	folder=newdir
 )
 
 # ╔═╡ a47fa3e9-bd97-45e4-bf55-8de2e0d75c64
@@ -309,7 +328,7 @@ begin
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
-MUST.save(ig, "MainSequence/random_MS6_$(extension).mgrid")
+MUST.save(ig, joinpath(newModelCollection, "$(newSet)_$(extension).mgrid"))
 
 # ╔═╡ Cell order:
 # ╟─a0516377-218a-4260-ae15-acf6ac36f2c1
@@ -320,6 +339,7 @@ MUST.save(ig, "MainSequence/random_MS6_$(extension).mgrid")
 # ╟─4e200464-64d6-48d2-9c80-b4e91e5b2d3b
 # ╠═4ce94434-db5a-4323-81e8-c0c5340bab18
 # ╠═b3b31521-9967-4ab8-9bf0-3bde45e2db6b
+# ╠═d3dd31b5-237e-4b51-9706-8b33269ce5dd
 # ╟─5701903e-59f3-4495-9dcc-4e730ed2e15f
 # ╠═c72e1a5a-d13a-481a-b732-3b6be3326326
 # ╟─6dffcedb-ae0b-4bb4-9490-94c22ec3e953
@@ -331,6 +351,7 @@ MUST.save(ig, "MainSequence/random_MS6_$(extension).mgrid")
 # ╠═78e843fc-42c1-49ba-8d8b-0a8ada2b2a3a
 # ╠═6dd1a861-7654-4f5a-b871-3f2526154d26
 # ╠═e17316a1-a29e-4ce7-b651-65a75881180f
+# ╠═1191c34a-c27e-4eff-875a-57f7fc043ee9
 # ╠═5e777d3b-2db8-4e82-a125-564c7db64281
 # ╠═ad7d6660-fea7-4808-bff3-7288c20966b2
 # ╠═1ca259f3-54b6-4c96-8930-eab6454a2cd2
@@ -342,6 +363,7 @@ MUST.save(ig, "MainSequence/random_MS6_$(extension).mgrid")
 # ╟─0364f91e-e768-4126-b347-ec6684b9c033
 # ╠═2dee306a-531f-4eb2-bac7-e4a5c8a219a7
 # ╠═4aedcbe9-ee05-48d7-8919-51514b09f018
+# ╟─268b93aa-b610-467e-be1c-0306ca8ac31e
 # ╠═27f3dc38-c32c-4e35-b5a6-cce2443e64d3
 # ╠═a47fa3e9-bd97-45e4-bf55-8de2e0d75c64
 # ╟─47f9397e-a5fc-4c7a-a2f6-cf2eb45653e0

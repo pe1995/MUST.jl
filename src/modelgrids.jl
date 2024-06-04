@@ -395,7 +395,8 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 			"vmax"     => vmax,
 			"tscale"   => tscale,
 			"hres"     => hres,
-			"av_path"  => av_path,
+			"av_path"  => joinpath(folder, "$(name)_99999_av.dat"),
+			"abs_av_path" => av_path,
 			"teff"     => teff,
 			"logg"     => logg,
 			"feh"      => feh

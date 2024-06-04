@@ -10,7 +10,9 @@ begin
     #initial_grid_path = "stagger_grid_full_o.mgrid"
     #initial_grid_path = "stagger_grid_sun.mgrid"
     #initial_grid_path = "stagger_grid_full_subgiant.mgrid"
-    initial_grid_path = "stagger_grid_full_solar.mgrid"
+    #initial_grid_path = "stagger_grid_full_solar.mgrid"
+    initial_grid_path = "stagger_grid_red.mgrid"
+    #initial_grid_path = "stagger_grid_solar.mgrid"
 
     initial_cl_path   = "stagger_grid_avail.mgrid"
     initial_mod_path  = "stagger_grid_solar.mgrid"
@@ -30,22 +32,23 @@ end
 #= Dispatch setup =#
 begin
     patch_size = 15                 # Points per patch
-    τ_up = -5.75                    # Upper limit of simulation domain
+    τ_up = -6.0                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 7.0                    # Lower limit of simulation domain
-    τ_ee0 = -2.25                   # Newton cooling placement (energy)
+    τ_ee0 = -5.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -1.75                  # Newton cooling placement (height)
+    τ_zee0 = -3.0                   # Newton cooling placement (height)
     τ_rho0 =  0.0                   # Density normaliztion height
     dxdz_max = 3.0                  # how much bigger is box in x than z (max)
-    scale_resolution = 0.75         # Down or upsampling of simulation domain
+    scale_resolution = 0.50         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
-        :newton_time=>120.0,        
-        :friction_time=>120.0,     
-        :newton_decay_scale=>30.0,  
-        :friction_decay_scale=>30.0,  
-        :courant_target=>0.4,
-        :courant_rt=>0.3,
+        :newton_time=>80.0,        
+        :friction_time=>100.0,     
+        :newton_decay_scale=>20.0,  
+        :friction_decay_scale=>20.0,  
+        :courant_target=>0.3,
+        :courant_hd=>0.3,
+        :courant_rt=>1.0,
         :newton_params=>(           #   Optional: Give namelist field = NamedTuple 
             :on=>true,              #   for direct namelist replacement
             :delay_rt=>true
@@ -57,12 +60,12 @@ begin
             :select=>["dt_rt", "flux"],
         ),
         :boundary_params=>(
-            :upper_bc=>2,
-            :smallr=>1e-10
+            :upper_bc=>7,
+            :smallr=>1e-8
         ),
         :an_params=>(
             :smallr=>1e-8,
-            :smallc=>0.1, 
+            :smallc=>1e-8, 
             :dlnr_limit=>0.5
         ),
         :patch_params=>(
@@ -71,7 +74,12 @@ begin
         ),
         :sc_rt_params=>(
             :rt_grace=>0.01,
-            :rt_freq=>2.0 
+            :rt_freq=>2.0,
+            #:timestep_limiter=>1.1 
+        ),
+        :friction_params=>(
+            :slope_factor=>0.7,
+            :slope_decay_scale=>55.0
         )
     )
 end
@@ -84,6 +92,7 @@ begin
     # Location of the opacity table
     # for MARCS EoS
     mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+    mother_table_path = "../../../opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
     extension = "magg_m0_a0"
     eos_path = "ross_combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
@@ -99,7 +108,7 @@ begin
     # v0.5.5 -> 12 bins in paper-setup
     # v0.5.6 -> 7 bins in paper-setup
     # v0.5.7 -> 12 bins in Co5bold setup
-    version = "v0.5+1"
+    version = "v0.5+2"
 
     # Number of bins in the opacity table (output)
     Nbins = 8

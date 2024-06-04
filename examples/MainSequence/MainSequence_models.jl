@@ -64,7 +64,7 @@ end
 
 
 # ╔═╡ 0f4989c9-2c2b-4733-8f35-324e74749b11
-allRuns = availableRuns(gridfolder, "R6")
+allRuns = availableRuns(gridfolder, "R5", "R6")
 
 # ╔═╡ 6ce10bb3-1fbb-4d25-a1b9-cd25eea974de
 
@@ -359,7 +359,7 @@ md"## Optical Surface"
 # ╔═╡ 720ff7c3-66d5-4dfc-89fb-4a385e7bfd9e
 md"""
 	Tick models to show optical suface
-$(@bind selectForSurface MultiCheckBox(notCrashedRuns, default=sample(notCrashedRuns, 20)))
+$(@bind selectForSurface MultiCheckBox(notCrashedRuns, default=sample(notCrashedRuns, 25)))
 """
 
 # ╔═╡ c3b9f946-4fae-4aca-9722-a80dc999b95d
@@ -378,6 +378,7 @@ let
 				ax[i][j].axis("off")
 				continue
 			end
+			iselectForSurface = findfirst(notCrashedRuns .== selectForSurface[k])
 			w = MUST.WatchDog(selectForSurface[k], folder=gridfolder)
 			ws = MUST.snapshotnumber.(MUST.availableSnaps(w))
 			m = MUST.reload(w, last(ws))["opticalSurfaces"]
@@ -397,7 +398,7 @@ let
 
 			ax[i][j].text(
 				0.97, 0.97, 
-				"$(teff[k]) K,"*" $(logg[k]) dex", 
+				"$(teff[iselectForSurface]) K,"*" $(logg[iselectForSurface]) dex", 
 				ha="right", va="top", 
 				transform=ax[i][j].transAxes,
 				fontsize="small",
@@ -422,14 +423,14 @@ end
 
 
 # ╔═╡ 9b659650-b91d-4229-a811-6802f7d56966
-which_gif = "uzplane"
+which_gif = "Tplane" 
 
 # ╔═╡ 6df1c2d5-850c-4af8-b29d-25d7a0f7666c
 begin
 	vminmax = []
 	
-	for k in 1:length(notCrashedRuns)
-		w = MUST.WatchDog(notCrashedRuns[k], folder=gridfolder)
+	for k in 1:length(selectForSurface)
+		w = MUST.WatchDog(selectForSurface[k], folder=gridfolder)
 		ws = MUST.snapshotnumber.(MUST.availableSnaps(w))
 		m = MUST.reload(w, last(ws))["opticalSurfaces"]
 		
@@ -442,10 +443,10 @@ begin
 end
 
 # ╔═╡ 115b47e6-5153-4940-8499-0b19de8f2e54
-function optical_surface(notCrashedRuns, teff, logg; which, vminmax=nothing, cmap="coolwarm", quantity="Tplane")
-	npanles = length(notCrashedRuns)
+function optical_surface(notCrashedRuns, teff, logg, selectForSurface; which, vminmax=nothing, cmap="coolwarm", quantity="Tplane")
+	npanles = length(selectForSurface)
 	nx = ceil(Int, sqrt(npanles))
-	ny = floor(Int, npanles / nx)
+	ny = ceil(Int, npanles / nx)
 
 	plt.close()
 	f, ax = plt.subplots(nx, ny, figsize=(10, 10))
@@ -457,16 +458,17 @@ function optical_surface(notCrashedRuns, teff, logg; which, vminmax=nothing, cma
 				ax[i][j].axis("off")
 				continue
 			end
-			w = MUST.WatchDog(notCrashedRuns[k], folder=gridfolder)
+			iselectForSurface = findfirst(notCrashedRuns .== selectForSurface[k])
+			w = MUST.WatchDog(selectForSurface[k], folder=gridfolder)
 			ws = MUST.snapshotnumber.(MUST.availableSnaps(w))
-			whichRed = min(which, length(ws))
-			m = MUST.reload(w, ws[whichRed])["opticalSurfaces"]
+			which = min(which, length(ws))
+			m = MUST.reload(w, ws[which])["opticalSurfaces"]
 		
 			x = m["x"] ./1e8
 			y = m["y"] ./1e8
 		
 			extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
-
+		
 			im = if isnothing(vminmax) 
 				ax[i][j].imshow(
 					m[quantity],
@@ -489,16 +491,18 @@ function optical_surface(notCrashedRuns, teff, logg; which, vminmax=nothing, cma
 
 			ax[i][j].text(
 				0.97, 0.97, 
-				"$(teff[k]) K,"*" $(logg[k]) dex", 
+				"$(teff[iselectForSurface]) K,"*" $(logg[iselectForSurface]) dex", 
 				ha="right", va="top", 
 				transform=ax[i][j].transAxes,
 				fontsize="small",
 				color="white", backgroundcolor="k"
 			)
 			
+			#cb = f.colorbar(i, ax=ax[i][j], fraction=0.046, pad=0.04)
 			k += 1
 		end
 	end
+	#plt.set_aspect("equal")
 
 	plt.subplots_adjust(wspace=0, hspace=0)
 	f.supxlabel("X [Mm]")
@@ -514,21 +518,21 @@ end
 
 # ╔═╡ 53892118-270c-40c7-a12b-99aef4d9e69b
 let
-	#=f = []
+	f = []
 	for i in 1:360
 		append!(f, [optical_surface(
-			notCrashedRuns, notCrashedteff, notCrashedlogg; 
+			notCrashedRuns, notCrashedteff, notCrashedlogg, selectForSurface; 
 			which=i, 
 			vminmax=vminmax,
 			quantity=which_gif,
-			cmap="coolwarm"
+			cmap="gist_heat"
 		)])
 	end
 
 	visual.gifs.gifs_from_png(
-		f, joinpath(gridfolder, "optical_surface_uz.gif");
+		f, joinpath(gridfolder, "optical_surface_T.gif");
 		duration=0.5
-	)=#
+	)
 end
 
 # ╔═╡ 8ab32b10-f50a-4fdd-b0b6-dd0c1d154e1f
@@ -824,13 +828,13 @@ let
 
 	dteff = abs(maximum(teffU)-minimum(teffU))
 	dlogg = abs(maximum(loggU)-minimum(loggU))
-	upperLogg = 5.3 #maximum(loggU)+0.1*dlogg
+	upperLogg = 5.1 #maximum(loggU)+0.1*dlogg
 	lowerLogg = 2.8 #minimum(loggU)-0.1*dlogg
 	upperTeff = 7500 #maximum(teffU)+0.1*dteff
 	lowerTeff = 4000 #minimum(teffU)-0.1*dteff
 
-	square_logg_length=0.035*(upperLogg-lowerLogg)
-	square_teff_length=0.035*(upperTeff-lowerTeff)
+	square_logg_length=0.028*(upperLogg-lowerLogg)
+	square_teff_length=0.028*(upperTeff-lowerTeff)
 
 	# PLATO targets
 	ax.hist2d(
@@ -849,6 +853,7 @@ let
 			fehs[i] in segs ? colors[findfirst(fehs[i].==segs)] : "w" 
 			for i in eachindex(fehs)
 		]
+		#first(crashed) && continue
 		add_point!(
 			f, ax, teffU[i], loggU[i], fehs, colors, 
 			square_logg_length=square_logg_length,
@@ -888,7 +893,7 @@ let
 		f, ax, -100, -100, [1], ["magenta"], 
 		square_logg_length=square_logg_length*2.9,
 		square_teff_length=square_teff_length*2.9,
-		alpha=0.8, labels=["failed"]
+		alpha=0.8, labels=["in progress"]
 	)
 	ax.plot([-100], [-100], color="0.5", label="PLATO targets", ls="", marker="s")
 
@@ -900,9 +905,11 @@ let
 		color="k", marker="X", s=70, label="Stagger grid"
 	)
 
-	ax.legend(loc="best")
+	ax.legend(loc="upper left")
 	ax.set_ylabel(L"\rm \log(g)\ [dex]")
 	ax.set_xlabel(L"\rm T_{eff}\ [K]")
+	f.savefig("DISPATCH_models_PLATO_status_overview.pdf")
+	f.savefig("DISPATCH_models_PLATO_status_overview.png", dpi=300)
 	
 	gcf()
 end
@@ -980,7 +987,7 @@ end
 # ╟─c3b9f946-4fae-4aca-9722-a80dc999b95d
 # ╟─4e9f26c6-001c-4d90-b9b3-ef4f259e0ae9
 # ╠═9b659650-b91d-4229-a811-6802f7d56966
-# ╟─6df1c2d5-850c-4af8-b29d-25d7a0f7666c
+# ╠═6df1c2d5-850c-4af8-b29d-25d7a0f7666c
 # ╟─115b47e6-5153-4940-8499-0b19de8f2e54
 # ╠═53892118-270c-40c7-a12b-99aef4d9e69b
 # ╟─8ab32b10-f50a-4fdd-b0b6-dd0c1d154e1f

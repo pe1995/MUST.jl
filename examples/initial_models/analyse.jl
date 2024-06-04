@@ -1383,10 +1383,10 @@ visual = MUST.ingredients("visual.jl")
 
 # ╔═╡ 40339dd0-acc2-4df0-92fc-bdec12c9a80a
 begin
-	velCube_var = :dt_rt
-	velCube_clabel = "timestep [s]"
-	velCube_vmin_3d = 0.1
-	velCube_vmax_3d = 4
+	velCube_var = :T
+	velCube_clabel = "temperature [K]"
+	velCube_vmin_3d = 3000
+	velCube_vmax_3d = 15000
 	velCube_s_3d = 12
 	velCube_arrow_length_ratio = 0.2
 	velCube_skipv = 3
@@ -1399,8 +1399,8 @@ begin
 	gif_duration=0.8
 	velCube_name = "$(models)_vel3D.gif"
 	cpu_time(i, N) = i/N * 24.0*72*4
-	dpi=150
-	fps=1
+	dpi=350
+	fps=8
 end;
 
 # ╔═╡ 67f1f284-2ef0-4ed6-8dd5-ddd4089ade17
@@ -1451,8 +1451,13 @@ let
 			append!(fls, ["gifs/cube_$(i).png"])
 		end
 
-		#visual.gifs.gifs_from_png(fls, "gifs/$(velCube_name)", gif_duration);
-		#@info "[$(models)] GIF saved at gifs/$(velCube_name)."
+		visual.gifs.gifs_from_png(
+			fls, "gifs/py_$(velCube_name)", 
+			gif_duration, 
+			remove=false
+		);
+		@info "[$(models)] GIF saved at gifs/$(velCube_name)."
+		
 		v_images = Images.load.(fls)
 		anim = @animate for i ∈ eachindex(v_images)
 			Plots.plot(

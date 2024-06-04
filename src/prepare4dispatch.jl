@@ -32,11 +32,19 @@ find_integer(f, dxz_frac, n_patches, to_y = 0.1; digits=1) = begin
 end
 
 find_integer_simple(f, dxdz_approx, desired_n_patches; step=0.1) = begin
+    dxdz_approx1=dxdz_approx
     actual_x_patches = desired_n_patches * dxdz_approx
+    n=0
     while !isinteger(actual_x_patches) | !(actual_x_patches % 2 == 0)
         dxdz_approx = f(dxdz_approx, step)
         dxdz_approx = round(dxdz_approx, sigdigits=2)
         actual_x_patches = desired_n_patches * dxdz_approx
+        n+=1
+        if n>10000
+            @warn n actual_x_patches desired_n_patches dxdz_approx1
+            actual_x_patches = ceil(desired_n_patches * dxdz_approx1)
+            break
+        end
     end
 
     actual_x_patches
@@ -363,7 +371,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     # size scaling
     dxdz = patches(x_resolution, patch_size) / patches(z_resolution, patch_size)
     if dxdz != 2
-        @warn "$(name) more than twice the number of patches in x and y."
+        @warn "$(name) more than twice the number of patches in x and y. $(dxdz)"
     end
 
     x = round(z_size/l_cgs_raw, sigdigits=3) * patches(x_resolution, patch_size) / patches(z_resolution, patch_size)

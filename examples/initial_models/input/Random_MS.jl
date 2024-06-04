@@ -1,16 +1,16 @@
 #= General =#
 begin
     # Path of the dispatch installation
-    dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
+    dispatch_location = "../../../dispatch2"
 
     # Under what name should the binned opacities be saved
-    name_extension    = "MainSequence/R6"
+    name_extension    = "MainSequence/R7"
 
     # PLATO models
-    initial_grid_path = "MainSequence/random_MS6_magg_m0_a0.mgrid"
-    initial_cl_path   = "MainSequence/random_MS6_avail.mgrid"
-    initial_mod_path  = "MainSequence/random_MS6_solar.mgrid"
-    final_grid_path   = "MainSequence/random_MS6_030524.mgrid"
+    initial_grid_path = "MainSequence/random_MS7_magg_m0_a0.mgrid"
+    initial_cl_path   = "MainSequence/random_MS7_avail.mgrid"
+    initial_mod_path  = "MainSequence/random_MS7_solar.mgrid"
+    final_grid_path   = "MainSequence/random_MS7_180524.mgrid"
 
     # clean namelists in dispatch folder (other than new ones)
     clean_namelists = false
@@ -26,7 +26,7 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 15                 # Points per patch
+    patch_size = 18                 # Points per patch
     τ_up = -5.75                    # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 6.0                    # Lower limit of simulation domain
@@ -35,14 +35,15 @@ begin
     τ_zee0 = -1.75                  # Newton cooling placement (height)
     τ_rho0 =  0.0                   # Density normaliztion height
     dxdz_max = 3.0                  # how much bigger is box in x than z (max)
-    scale_resolution = 0.70         # Down or upsampling of simulation domain
+    scale_resolution = 0.65         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
-        :newton_time=>100.0,        
+        :newton_time=>80.0,        
         :friction_time=>100.0,     
         :newton_decay_scale=>20.0,  
         :friction_decay_scale=>20.0,  
         :courant_target=>0.26,
-        :courant_rt=>0.4,
+        :courant_rt=>0.3,
+        :courant_hd=>0.1,
         :newton_params=>(           #   Optional: Give namelist field = NamedTuple 
             :on=>true,              #   for direct namelist replacement
             :delay_rt=>true
@@ -54,8 +55,8 @@ begin
             :select=>["dt_rt", "flux"],
         ),
         :boundary_params=>(
-            :upper_bc=>2,
-            :smallr=>1e-10
+            :upper_bc=>7,
+            :smallr=>1e-7
         ),
         :an_params=>(
             :smallr=>1e-7,
@@ -68,7 +69,12 @@ begin
         ),
         :sc_rt_params=>(
             :rt_grace=>0.01,
-            :rt_freq=>2.0 
+            :rt_freq=>2.0,
+            :timestep_limiter=>1.5
+        ),
+        :friction_params=>(
+            :slope_factor=>0.7,
+            :slope_decay_scale=>30.0
         )
     )
 end
@@ -76,7 +82,8 @@ end
 #= Opacities =#
 begin
     # Location of the opacity table
-    mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+    #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+    mother_table_path = "../../../opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
     extension = "magg_m0_a0"
     eos_path = "ross_combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
@@ -90,10 +97,10 @@ begin
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = false
+    skip_binning = true
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = false
+    skip_formation = true
 
     # recompute the rosseland optical depth for the first model in the grid
     recompute_ross = false

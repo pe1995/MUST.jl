@@ -23,7 +23,7 @@ begin
 	using PythonPlot
 
 	plt = matplotlib.pyplot
-end
+end;
 
 # ╔═╡ 2189049a-20e6-43fb-96cb-20ae7994f96b
 TableOfContents()
@@ -307,6 +307,62 @@ function prepare_restart(name, snapshot; decay_timescales=false, datadir=joinpat
 end
 
 # ╔═╡ 27f1e1ac-77cf-459b-820e-b167ee11f391
+function parametersFromName(path; carbon=false, vmic=false)
+	datadir = if occursin('/', path)
+		split(path, '/', keepempty=false) .|> last
+	else
+		path
+	end
+	
+	parts = split(datadir, '_', keepempty=false)
+	irelevantPart = findfirst(
+		x->(occursin("t", x)&occursin("g", x)&occursin("m", x)),
+		parts
+	)
+	relevantPart = parts[irelevantPart]
+	t1 = findfirst(x->x=='t', relevantPart) + 1
+	t2 = findfirst(x->x=='g', relevantPart) - 1
+	t3 = findfirst(x->x=='m', relevantPart) - 1
+
+	t = parse(Float64, relevantPart[t1:t2]) .* 100
+	g = parse(Float64, relevantPart[t2+2:t3]) ./10
+	m = parse(Float64, relevantPart[t3+2:end])
+
+	d = Dict("teff"=>t, "logg"=>g, "feh"=>m)
+	
+	# find other stuff
+	if carbon
+		relevantPart = parts[2]
+		t1 = findfirst(x->x=='c', relevantPart) + 1
+		t2 = findfirst(x->x=='v', relevantPart) - 1
+		c = parse(Float64, relevantPart[t1:t2])
+		d["cfe"] = c
+	end
+
+	if vmic
+		relevantPart = parts[2]
+		t1 = findfirst(x->x=='v', relevantPart) + 1
+		t2 = length(relevantPart)
+		c = parse(Float64, relevantPart[t1:t2])
+
+		d["vmic"] = c
+	end
+
+	d
+end
+
+# ╔═╡ cf03da3f-8a94-4697-a4e4-0e0f9c13b803
+begin
+	 #  using Teff + logg (because scale height ~ T/g) for htop scale
+	x0 = 5777.0 / exp10(4.44)
+	y0 = 1.1
+	x1 = 0.29
+	y1 = 1.5
+	m = (y1 - y0) / (x1 - x0)
+	htop_scale(teff, logg) = m * (teff/exp10(logg)) + (y1-m*x1)
+end
+
+# ╔═╡ b64ad2d7-78d4-49dd-9998-4d58166a649d
 
 
 # ╔═╡ 0f2b46ac-9317-4d23-be32-e7d0265f6258
@@ -314,13 +370,28 @@ md"You can modify parameters of the new namelist by giving them specifically her
 For example: Set some new htop_scale at the upper boundary with some initial damping of the velocity field."
 
 # ╔═╡ 3efea52b-cafa-4440-90fe-d6b226847a2d
-begin
-	new_namelist_params = Dict(
+new_namelist_params = if length(selectedRunList) > 0
+	# get teff logg from name
+	paras = parametersFromName.(runnameList)
+	htop = [htop_scale(d["teff"], d["logg"]) for d in paras]
+	
+	 [Dict(
 		:friction_params=>(
 			:on=>true,
 			:end_time=>50,
 			:decay_scale=>20
 		),
+		:boundary_params=>(
+			:htop_scale=>htop[i],
+		),
+	) for i in eachindex(runnameList)]
+else
+	new_namelist_params = Dict(
+		#:friction_params=>(
+		#	:on=>true,
+		#	:end_time=>50,
+		#	:decay_scale=>20
+		#),
 		#:boundary_params=>(
 		#	:htop_scale=>7.0,
 		#),
@@ -372,7 +443,7 @@ begin
 					extend=parse(Float64, exAt)/100.0,
 					nml_name=nmlName,
 					eos_path=eosNamesList[i],
-					new_namelist_params...
+					new_namelist_params[i]...
 				)
 
 				append!(restartModels, [s])
@@ -440,15 +511,17 @@ end
 # ╟─a1c18af7-0d55-4c6c-b503-3950e13b6b17
 # ╟─9a08c5ec-bdab-4323-895c-7fec358b5af8
 # ╟─f27c5eb0-6a6e-42bc-bf2e-f0aab0be2368
-# ╠═4b782275-ce60-4ca0-ac17-be52d3573925
+# ╟─4b782275-ce60-4ca0-ac17-be52d3573925
 # ╟─27f1e1ac-77cf-459b-820e-b167ee11f391
+# ╟─cf03da3f-8a94-4697-a4e4-0e0f9c13b803
+# ╟─b64ad2d7-78d4-49dd-9998-4d58166a649d
 # ╟─0f2b46ac-9317-4d23-be32-e7d0265f6258
 # ╠═3efea52b-cafa-4440-90fe-d6b226847a2d
 # ╟─ac0f2184-e817-432a-860b-36cd2a03af3e
 # ╟─28d04061-0040-45b5-9490-54c4cdb943f4
 # ╟─1e1e380f-9684-496c-8bf4-158f281a679b
 # ╟─946b586e-5c04-44c8-9300-0f2b7a8babf8
-# ╠═4c7c7f16-cfa4-4547-8355-72744211219a
+# ╟─4c7c7f16-cfa4-4547-8355-72744211219a
 # ╟─18941dbb-1eed-4836-82a8-68350208ffeb
 # ╟─184e5c6a-6629-499b-a1af-b7a0542b2120
 # ╟─8b17e383-2bc1-4362-9f60-ca9cf55ebc8b
