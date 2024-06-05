@@ -2061,8 +2061,8 @@ begin
 		surfacesMovie_vert = timeevolution(monitoring, "centerVerticalCut")["Tplane"]
 		labelsurfaceMovie_vert = L"\rm temperature\ [K]"
 	
-		xAxis_vert = timeevolution(monitoring, "centerVerticalCut")["x"][1] ./1e8
-		yAxis_vert = timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8
+		xAxis_vert = timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8
+		yAxis_vert = timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
 	end
 
 	dpi_vert = 150
@@ -2070,21 +2070,21 @@ begin
 end;
 
 # ╔═╡ 3f5f399f-e012-4a74-8e72-a6ed45c66b7a
-("centerVerticalCut" in keys(monitoring[1])) && begin
+if ("centerVerticalCut" in keys(monitoring[1]))
 	v_min_movie_vert = minimum(minimum, surfacesMovie_vert[i_start:i_end])
 	v_max_movie_vert = maximum(maximum, surfacesMovie_vert[i_start:i_end])
+	f_movie_vert, ax_movie_vert, fnames_movie_vert = [], [], []
+else
+	f_movie_vert, ax_movie_vert, fnames_movie_vert = [], [], []
 end;
-
-# ╔═╡ e6b825ec-64af-4a87-ac0a-20c96a83b3a8
-f_movie_vert, ax_movie_vert, fnames_movie_vert = [], [], [];
 
 # ╔═╡ fe3a6c8f-1135-479e-bf5f-00a7671abd3e
 ("centerVerticalCut" in keys(monitoring[1])) && begin
 	redoMovie_vert = true
 	if createGifImages
-		rm.(fnames_movie_vert)
-		for i in eachindex(fnames_movie_vert)
-			pop!(fnames_movie)_vert
+		for (i, fp) in enumerate(fnames_movie_vert)
+			isfile(fp) && rm(fp)
+			pop!(fnames_movie_vert)
 			pop!(f_movie_vert)
 			pop!(ax_movie_vert)
 		end
@@ -2095,7 +2095,7 @@ f_movie_vert, ax_movie_vert, fnames_movie_vert = [], [], [];
 				end
 				
 				plt.close()
-				f, ax = plt.subplots(1, 1, figsize=(5, 6))
+				f, ax = plt.subplots(1, 1, figsize=(10, 6))
 				
 				x = xAxis_vert
 				y = yAxis_vert
@@ -2105,12 +2105,13 @@ f_movie_vert, ax_movie_vert, fnames_movie_vert = [], [], [];
 				im = ax.imshow(
 					surfacesMovie_vert[i]',
 					origin="lower",
-					#extent=extent,
+					extent=extent,
 					cmap=cmap_vert,
 					vmin=v_min_movie_vert,
-					vmax=v_max_movie_vert
+					vmax=v_max_movie_vert,
+					aspect="auto"
 				)
-				cb = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+				cb = f.colorbar(im, ax=ax)
 				cb.set_label(labelsurfaceMovie_vert)
 				
 				ax.set_title("t = $(MUST.@sprintf("%.2f", time[i]/(60*60))) h")
@@ -2129,7 +2130,7 @@ end;
 
 # ╔═╡ 0ddaddb6-784f-45ae-adc2-9217f0f52996
 (length(fnames_movie_vert) > 0) && let
-	redoMovie
+	redoMovie_vert
 	
 	v_images = Images.load.(fnames_movie_vert)
 	anim = @animate for i ∈ eachindex(v_images)
@@ -2295,6 +2296,5 @@ end
 # ╟─bdf0fb65-7a95-471a-99dc-b2ae8ce9a97e
 # ╠═dffb82a9-7f7f-40f0-9994-70c36323f3f9
 # ╟─3f5f399f-e012-4a74-8e72-a6ed45c66b7a
-# ╟─e6b825ec-64af-4a87-ac0a-20c96a83b3a8
 # ╟─fe3a6c8f-1135-479e-bf5f-00a7671abd3e
 # ╟─0ddaddb6-784f-45ae-adc2-9217f0f52996
