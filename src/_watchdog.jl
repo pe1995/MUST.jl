@@ -264,8 +264,8 @@ centerVerticalCut(w::WatchDog, b, bτ) = begin
         "uyplane" => uyplane,
         "Tplane" => Tplane,
         "lnDplane" => Dplane,
-        "y" => b.x[ixd, :, :],
-        "z" => b.y[ixd, :, :]
+        "y" => b.y[ixd, :, :],
+        "z" => b.z[ixd, :, :]
     )
     if !isnothing(dtplane)
         d["dtplane"] = dtplane
