@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.42
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -976,6 +976,84 @@ end
 # ╔═╡ c4a4e8e9-e14b-4ce7-b574-1e4547c31a41
 
 
+# ╔═╡ 75293185-4d04-4b31-8dd9-cde3b180b13d
+md"## Temperature"
+
+# ╔═╡ eb5ce6ae-bf45-483a-9354-506ebf38186c
+begin
+	TSurf = Dict(name=>[] for name in keys(snapshots_τ))
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots[name])
+			d_i_surf = snap[:uz][:, :, end-6] ./1e5
+			append!(TSurf[name], [d_i_surf])
+		end
+	end
+	TSurf
+end
+
+# ╔═╡ 0fa21289-7e28-44e5-8cb2-d3cbf548b668
+begin
+	T_xslice = Dict(name=>[] for name in keys(snapshots))
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots[name])
+			if :flux in keys(snap.data)
+				d_snap = snap[:T]
+				ixd = 1 #floor(Int, size(d_snap, 1) /2)
+				mean_plane = mean(d_snap, dims=(1, 2))
+				mv = d_snap[ixd, :, :]
+				for i in eachindex(mean_plane)
+					mv[:, i] .= log10.(abs.(mv[:, i] .- mean_plane[i]))
+				end
+				#append!(flux_xslice[name], [mv])
+				append!(T_xslice[name], [d_snap[ixd, :, :]])
+			end
+		end
+	end
+
+	T_xslice
+end
+
+# ╔═╡ 6642e0e4-84fb-486d-8849-41ae7ecae5af
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
+	
+		vmin = minimum([minimum(u) for name in keys(TSurf) for u in TSurf[name]]) 
+		vmax = maximum([maximum(u) for name in keys(TSurf) for u in TSurf[name]]) 
+	
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					TSurf[name][j],
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="jet"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm Temperature\ [K]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
+end
+
+# ╔═╡ 4d438b21-b613-4a9b-97b0-d8451cdfff48
+
+
 # ╔═╡ 6d360e73-736e-41e3-a9f3-86e7d53db58a
 md"## Time steps
 Optionally, it is possible to save the radiative timestep in addition. If it is available, we can plot e.g. where the timestep is smallest. We can for example cut through the atmosphere at a given x value or compute the plane mean."
@@ -1064,6 +1142,51 @@ let
 		
 						cb = f.colorbar(i, ax=ax, fraction=0.1, pad=0.04)
 						cb.set_label(L"\rm density\ [g\ cm^{-3}]")
+			
+						ax.set_xlabel("y [cm]")
+						ax.set_ylabel("z [cm]")
+						
+						append!(figs, [f])
+						append!(axs, [ax])
+					end
+				end
+			end
+			gcf()
+		end
+	end
+end
+
+# ╔═╡ 72cc91ff-1b94-4366-974b-d4a68e9db24a
+let
+	if (nmodels > 0) && plot_given && any([length(T_xslice[d]) for d in keys(T_xslice)] .> 0)
+		let		
+			vmin = minimum(
+				[log10.(minimum(u)) for name in keys(T_xslice) for u in T_xslice[name]]
+			) 
+			vmax = maximum(
+				[log10.(maximum(u)) for name in keys(T_xslice) for u in T_xslice[name]]
+			)
+		
+			figs = []
+			axs = []
+			
+			for name in keys(snapshots)
+				for (j, snap) in enumerate(snapshots[name])
+					if :dt_rt in keys(snap.data)
+						plt.close()			
+						f, ax = plt.subplots(1, 1, figsize=(5, 6))
+					
+						i = ax.imshow(
+							T_xslice[name][j]',
+							origin="lower",
+							#vmin=vmin, vmax=vmax,
+							extent=zextent(snap),
+							cmap="coolwarm",
+							aspect="auto"
+						)
+		
+						cb = f.colorbar(i, ax=ax, fraction=0.1, pad=0.04)
+						cb.set_label(L"\rm Temperature\ [K]")
 			
 						ax.set_xlabel("y [cm]")
 						ax.set_ylabel("z [cm]")
@@ -1579,6 +1702,12 @@ end
 # ╟─e9f71534-e9a2-47ac-95a4-10717c1a38f8
 # ╟─b3b13fff-3006-4b2c-90cc-b4c793dc30a0
 # ╟─c4a4e8e9-e14b-4ce7-b574-1e4547c31a41
+# ╟─75293185-4d04-4b31-8dd9-cde3b180b13d
+# ╠═eb5ce6ae-bf45-483a-9354-506ebf38186c
+# ╟─0fa21289-7e28-44e5-8cb2-d3cbf548b668
+# ╟─6642e0e4-84fb-486d-8849-41ae7ecae5af
+# ╟─72cc91ff-1b94-4366-974b-d4a68e9db24a
+# ╟─4d438b21-b613-4a9b-97b0-d8451cdfff48
 # ╟─6d360e73-736e-41e3-a9f3-86e7d53db58a
 # ╟─dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
 # ╟─b4a8ed35-ba43-4235-b18d-d0a947322fd6

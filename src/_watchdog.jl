@@ -246,6 +246,38 @@ minimumTempSurface(w::WatchDog, b, bτ) = begin
     d
 end
 
+centerVerticalCut(w::WatchDog, b, bτ) = begin
+    ixd = floor(Int, size(b, 1) /2)
+
+    uzplane = b[:uz][ixd, :, :]
+    uxplane = b[:ux][ixd, :, :]
+    uyplane = b[:uy][ixd, :, :]
+
+    Tplane = b[:T][ixd, :, :]
+    Dplane = log.(b[:d][ixd, :, :])
+    dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][ixd, :, :] : nothing
+    fluxplane = haskey(b.data, :flux) ? b[:flux][ixd, :, :] : nothing
+    
+    d = Dict(
+        "uzplane" => uzplane,
+        "uxplane" => uxplane,
+        "uyplane" => uyplane,
+        "Tplane" => Tplane,
+        "lnDplane" => Dplane,
+        "y" => b.x[ixd, :, :],
+        "z" => b.y[ixd, :, :]
+    )
+    if !isnothing(dtplane)
+        d["dtplane"] = dtplane
+    end
+    if !isnothing(fluxplane)
+        d["fluxplane"] = fluxplane
+    end
+
+    d
+end
+
+
 
 
 
@@ -351,6 +383,7 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     geometrical60thQuantile=geometrical60thQuantile,
     geometrical75thQuantile=geometrical75thQuantile,
     geometrical90thQuantile=geometrical90thQuantile,
+    centerVerticalCut=centerVerticalCut,
     additional_functions...
 )
 

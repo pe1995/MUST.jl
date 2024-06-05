@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.42
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -1909,16 +1909,32 @@ end
 # ╔═╡ 61b3e522-2af4-4413-9c69-ee30b0d4673f
 md"# Movies"
 
+# ╔═╡ 713164e6-4a7a-4475-beda-bda33d16e206
+md"Pick the snapshot from which you want to start: $(@bind startTimeMovie Slider(snapshots, show_value=true, default=first(snapshots)))
+"
+
+# ╔═╡ fb94a874-a34b-4721-be63-e443f92330af
+md"Pick the snapshot on which you want to end: $(@bind endTimeMovie Slider(snapshots, show_value=true, default=last(snapshots)))
+"
+
+# ╔═╡ f115e371-5b71-48b2-8929-07c0ab04d5f4
+fps = 4
+
+# ╔═╡ 2e99b941-935b-4379-89bf-55a4635df686
+
+
+# ╔═╡ 9d0348a6-24a1-447c-9af4-5b648a381370
+md"""
+__Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))
+"""
+
+# ╔═╡ 2a05f624-3a71-4d06-a241-9c1703f5db6d
+
+
 # ╔═╡ 40bf37a4-318b-4263-8705-a566a3321f87
 md"
 ## 2D Surface Movie
 You can select any of the 2D plane monitoring results you wish, as well as the image resolution and FPS of the final movie."
-
-# ╔═╡ 362e608f-4765-4f03-85f9-0d4673f6bd2b
-
-
-# ╔═╡ 00876598-ab41-4741-9cb8-1538b0bd01a0
-fps = 4
 
 # ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
 begin
@@ -1945,21 +1961,16 @@ begin
 	labelsurfaceMovie = L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]"
 	=#
 	labelsurfaceMovie = L"\rm temperature\ [K]"
+
+	xAxis = tuppersurfaces["x"][1] ./1e8
+	yAxis = tuppersurfaces["y"][1] ./1e8
 	
 	dpi = 150
 	cmap = "gist_heat"
 end;
 
-# ╔═╡ a84007ca-49d0-4558-ace3-cc42da9cb8eb
+# ╔═╡ c1faa953-4b76-43fa-a958-a5476e325afc
 
-
-# ╔═╡ 98cfdafa-9078-4d0e-84d5-fcf97ab53a55
-md"Pick the snapshot from which you want to start: $(@bind startTimeMovie Slider(snapshots, show_value=true, default=first(snapshots)))
-"
-
-# ╔═╡ 20feed40-879d-4786-93d3-e6d05b72fefc
-md"Pick the snapshot on which you want to end: $(@bind endTimeMovie Slider(snapshots, show_value=true, default=last(snapshots)))
-"
 
 # ╔═╡ 8945b7b7-f3e5-4846-b76e-49d9c864391e
 begin		
@@ -1976,11 +1987,6 @@ begin
 	
 	f_movie, ax_movie, fnames_movie = [], [], []
 end;
-
-# ╔═╡ 2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a
-md"""
-__Click to create GIF__: $(@bind createGifImages CheckBox(default=false))
-"""
 
 # ╔═╡ ba5049f0-b015-41ad-907e-b86edbcbf7fb
 begin
@@ -2001,8 +2007,8 @@ begin
 				plt.close()
 				f, ax = plt.subplots(1, 1, figsize=(5, 6))
 				
-				x = topticalsurfaces["x"][i] ./1e8
-				y = topticalsurfaces["y"][i] ./1e8
+				x = xAxis
+				y = yAxis
 			
 				extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 			
@@ -2041,6 +2047,95 @@ end
 		Plots.plot(v_images[i], axis=([], false), background_color=:transparent)
 	end every 1
 	gif(anim, joinpath(v_opt_folder_name, "v_opt.gif"), fps=fps)
+end
+
+# ╔═╡ fe34b982-e39b-4c54-827f-53b27b2d6db2
+
+
+# ╔═╡ bdf0fb65-7a95-471a-99dc-b2ae8ce9a97e
+md"## Vertical yz, x-center slice"
+
+# ╔═╡ dffb82a9-7f7f-40f0-9994-70c36323f3f9
+begin
+	if "centerVerticalCut" in keys(monitoring[1])
+		surfacesMovie_vert = timeevolution(monitoring, "centerVerticalCut")["Tplane"]
+		labelsurfaceMovie_vert = L"\rm temperature\ [K]"
+	
+		xAxis_vert = timeevolution(monitoring, "centerVerticalCut")["x"][1] ./1e8
+		yAxis_vert = timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8
+	end
+
+	dpi_vert = 150
+	cmap_vert = "gist_heat"
+end;
+
+# ╔═╡ 3f5f399f-e012-4a74-8e72-a6ed45c66b7a
+("centerVerticalCut" in keys(monitoring[1])) && begin
+	v_min_movie_vert = minimum(minimum, surfacesMovie_vert[i_start:i_end])
+	v_max_movie_vert = maximum(maximum, surfacesMovie_vert[i_start:i_end])
+end;
+
+# ╔═╡ e6b825ec-64af-4a87-ac0a-20c96a83b3a8
+f_movie_vert, ax_movie_vert, fnames_movie_vert = [], [], [];
+
+# ╔═╡ fe3a6c8f-1135-479e-bf5f-00a7671abd3e
+("centerVerticalCut" in keys(monitoring[1])) && begin
+	redoMovie_vert = true
+	if createGifImages
+		rm.(fnames_movie_vert)
+		for i in eachindex(fnames_movie_vert)
+			pop!(fnames_movie)_vert
+			pop!(f_movie_vert)
+			pop!(ax_movie_vert)
+		end
+		let 
+			@progress for i in eachindex(snapshots)
+				if (snapshots[i] > endTimeMovie) | (snapshots[i] < startTimeMovie)
+					continue
+				end
+				
+				plt.close()
+				f, ax = plt.subplots(1, 1, figsize=(5, 6))
+				
+				x = xAxis_vert
+				y = yAxis_vert
+			
+				extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+			
+				im = ax.imshow(
+					surfacesMovie_vert[i]',
+					origin="lower",
+					#extent=extent,
+					cmap=cmap_vert,
+					vmin=v_min_movie_vert,
+					vmax=v_max_movie_vert
+				)
+				cb = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+				cb.set_label(labelsurfaceMovie_vert)
+				
+				ax.set_title("t = $(MUST.@sprintf("%.2f", time[i]/(60*60))) h")
+				
+				ax.set_xlabel("y [Mm]")
+				ax.set_ylabel("z [Mm]")
+				
+				append!(f_movie_vert, [f])
+				append!(ax_movie_vert, [ax])
+				append!(fnames_movie_vert, [joinpath(v_opt_folder_name, "im_vert_$i.png")])
+				f.savefig(joinpath(v_opt_folder_name, "im_vert_$i.png"), dpi=dpi_vert)
+			end
+		end
+	end
+end;
+
+# ╔═╡ 0ddaddb6-784f-45ae-adc2-9217f0f52996
+(length(fnames_movie_vert) > 0) && let
+	redoMovie
+	
+	v_images = Images.load.(fnames_movie_vert)
+	anim = @animate for i ∈ eachindex(v_images)
+		Plots.plot(v_images[i], axis=([], false), background_color=:transparent)
+	end every 1
+	gif(anim, joinpath(v_opt_folder_name, "v_opt_vert.gif"), fps=fps)
 end
 
 # ╔═╡ Cell order:
@@ -2184,14 +2279,22 @@ end
 # ╟─3d530773-bd52-41d6-a3dd-509f237ae439
 # ╟─f6916a12-cb30-4fa1-8d24-e75d1729ede2
 # ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
+# ╟─713164e6-4a7a-4475-beda-bda33d16e206
+# ╟─fb94a874-a34b-4721-be63-e443f92330af
+# ╠═f115e371-5b71-48b2-8929-07c0ab04d5f4
+# ╟─2e99b941-935b-4379-89bf-55a4635df686
+# ╟─9d0348a6-24a1-447c-9af4-5b648a381370
+# ╟─2a05f624-3a71-4d06-a241-9c1703f5db6d
 # ╟─40bf37a4-318b-4263-8705-a566a3321f87
-# ╟─362e608f-4765-4f03-85f9-0d4673f6bd2b
-# ╠═00876598-ab41-4741-9cb8-1538b0bd01a0
 # ╠═1483a522-8d36-45f3-a7bc-8f8f8076085f
-# ╟─a84007ca-49d0-4558-ace3-cc42da9cb8eb
-# ╟─98cfdafa-9078-4d0e-84d5-fcf97ab53a55
-# ╟─20feed40-879d-4786-93d3-e6d05b72fefc
+# ╟─c1faa953-4b76-43fa-a958-a5476e325afc
 # ╟─8945b7b7-f3e5-4846-b76e-49d9c864391e
-# ╟─2e865c16-f7ae-4cc8-bcb8-5e4e13aabb9a
 # ╟─ba5049f0-b015-41ad-907e-b86edbcbf7fb
 # ╟─7308fc51-5236-4b07-b773-df5451852fbb
+# ╟─fe34b982-e39b-4c54-827f-53b27b2d6db2
+# ╟─bdf0fb65-7a95-471a-99dc-b2ae8ce9a97e
+# ╠═dffb82a9-7f7f-40f0-9994-70c36323f3f9
+# ╟─3f5f399f-e012-4a74-8e72-a6ed45c66b7a
+# ╟─e6b825ec-64af-4a87-ac0a-20c96a83b3a8
+# ╟─fe3a6c8f-1135-479e-bf5f-00a7671abd3e
+# ╟─0ddaddb6-784f-45ae-adc2-9217f0f52996
