@@ -181,7 +181,7 @@ function snapshotBox_jl(
     end
     b_s, b_τ = try
         # read patch data, collect to data cube
-        b_s = MUST.Box(
+        b_s = @optionalTiming boxingTime MUST.Box(
             number, 
             rundir=folder, 
             quantities=quantites,
@@ -192,12 +192,12 @@ function snapshotBox_jl(
         )
         
         # Add the optical depth
-        τ = optical_depth(b_s, opacity=:kr, density=:d)
+        τ = @optionalTiming opticalDepthTime optical_depth(b_s, opacity=:kr, density=:d)
         add!(b_s, τ, :τ_ross)
 
         # interpolate to optical depth scale
         b_τ = if optical_depth_scale
-            b_τ = height_scale_fast(b_s, :τ_ross)
+            b_τ = @optionalTiming heightScaleTime height_scale_fast(b_s, :τ_ross)
             save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=folder)
 
             b_τ 
@@ -213,7 +213,7 @@ function snapshotBox_jl(
 
     # convert to Multi format and save in the same folder, keep the number of the snapshot!
     if !isnothing(b_s)
-        if to_multi
+        @optionalTiming multiTime if to_multi
             try
                 snapshotsresample = MUST.gresample(
                     b_s, 
@@ -247,3 +247,11 @@ box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"))
 ```
 """
 snapshotBox(args...; legacy=true, kwargs...) = legacy ? snapshotBox_py(args...; kwargs...) : snapshotBox_jl(args...; kwargs...)
+
+
+# timers
+
+const boxingTime = Ref(false)
+const opticalDepthTime = Ref(false)
+const heightScaleTime = Ref(false)
+const multiTime = Ref(false)

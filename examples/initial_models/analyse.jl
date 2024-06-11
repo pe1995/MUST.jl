@@ -163,12 +163,22 @@ md"Tick box to start converting snapshots: $(@bind convert_given CheckBox(defaul
 
 # ╔═╡ 2d684eb0-aa4b-40a6-9e04-ab0b42ed0516
 if convert_given
+	MUST.activate_timing!.(MUST.timers) # general timers
+	MUST.activate_timing!.(MUST.detailedBoxingTimers) # detailed boxing timers
+	
 	for name in keys(snapshots_convert)
 		@info "Converting snapshot $(name), Number: $(snapshots_convert[name])"
+		
+		MUST.start_timing!()
 		p = @in_dispatch(joinpath(datafolder, "$(name)"))
 		snapshotBox(snapshots_convert[name], folder=p, to_multi=alsom3d, legacy=false)
+		MUST.end_timing!()
+		
 		@info "Snapshot $(name), Number: $(snapshots_convert[name]) converted."
 	end
+	
+	MUST.deactivate_timing!.(MUST.timers)
+	MUST.deactivate_timing!.(MUST.detailedBoxingTimers)
 end
 
 # ╔═╡ 53706541-27d7-4093-b37f-3e384c6c8a7c
@@ -1703,7 +1713,7 @@ end
 # ╟─b3b13fff-3006-4b2c-90cc-b4c793dc30a0
 # ╟─c4a4e8e9-e14b-4ce7-b574-1e4547c31a41
 # ╟─75293185-4d04-4b31-8dd9-cde3b180b13d
-# ╠═eb5ce6ae-bf45-483a-9354-506ebf38186c
+# ╟─eb5ce6ae-bf45-483a-9354-506ebf38186c
 # ╟─0fa21289-7e28-44e5-8cb2-d3cbf548b668
 # ╟─6642e0e4-84fb-486d-8849-41ae7ecae5af
 # ╟─72cc91ff-1b94-4366-974b-d4a68e9db24a
