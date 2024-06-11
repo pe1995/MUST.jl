@@ -1601,31 +1601,36 @@ function height_scale_fast(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, 
     # Save loop allocations
     Nx = size(b.x, 1)
     Ny = size(b.x, 2)
+    sortingz = zeros(Int, size(b.x, 3))
 
     # Step by step construct a box object from individual planes
-    @inbounds for j in 1:Ny
-        @inbounds for k in 1:Nx
+    @inbounds for j in axes(b.x, 2)
+        @inbounds for k in axes(b.x, 1)
+            sortingz .= sorting[k, j, :]
             for q in keys(new_box.data)
                 if q == new_scale
                     continue
                 end
-                @inbounds new_box.data[q][k,j,:] .= if all(b.data[q][k, j, :] .> 0.0) & !(q in dont_log)
+                @inbounds new_box.data[q][k, j, :] .= if all(b.data[q][k, j, :] .> 0.0) & !(q in dont_log)
                     exp.(
                         gevaluate!(
                             interps[k, j], 
-                            @views log.(b.data[q][k, j, sorting[k, j, :]])
+                            @views(log.(b.data[q][k, j, sortingz])),
+                            return_copy=false
                         )
                     )
                 else
                     gevaluate!(
                         interps[k, j], 
-                        @views b.data[q][k, j, sorting[k, j, :]]
+                        @views(b.data[q][k, j, sortingz]),
+                        return_copy=false
                     )
                 end
             end
             @inbounds new_box.z[k, j, :] .= gevaluate!(
                 interps[k, j], 
-                @views b.z[k, j, sorting[k, j, :]]
+                @views(b.z[k, j, sortingz]),
+                return_copy=false
             )
 
             @inbounds new_box.data[new_scale][k, j, :] .= h_scale
