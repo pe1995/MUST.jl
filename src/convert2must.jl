@@ -144,6 +144,11 @@ function lookup_function_generator(eos, q)
 		q
 	end
 		
-	TSO.lookup_function(TSO.@axed(eos), q), (args...) -> exp.(TSO.lookup(args...))
+	lf = TSO.lookup_function(TSO.@axed(eos), q)
+	lkp!(res, args...) = begin
+		res .= exp.(TSO.lookup(args...))
+	end
+
+	lf, lkp!
 end
 

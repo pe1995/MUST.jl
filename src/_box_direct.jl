@@ -57,6 +57,22 @@ function _var_from_patch_direct(var, fname, shp, off, li, ui, idxd)
 	)[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
 end
 
+"""
+    _var_from_patch_direct(var, fname, shp, off, li, ui, idxd)
+
+Read data from the binary file as a mmap. Directly call it into RAM.
+This is always okay because it is done patchwise.
+"""
+function _var_from_patch_direct!(res, var, fname, shp, off, li, ui, idxd)
+    varidx = idxd[String(var)] + 1
+    res .= Mmap.mmap(
+		fname, 
+		Array{Float32, length(shp)}, 
+		shp, 
+		off[varidx]
+	)[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
+end
+
 
 
 
@@ -228,7 +244,7 @@ function _squaregaseos(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
 	if (!isnothing(eos_path)) && isdir(eos_path)
 		SquareGasEOS(eos_path), [:T, :kr, :Pg, :Ne]
 	else
-		@warn "No EoS found!"
+		@warn "No EoS found! $(eos_path), $(inputNamelist)"
 		nothing, []
 	end
 end
@@ -282,33 +298,33 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 	# Lookup function can be generated from the input generator
 	# this is a useful hook to use EoS outside of MUST (e.g. TSO)
 	# without needing to include TSO inside MUST
-	lookup_function, lkp = if isnothing(lookup_generator)
+	lookup_function, lkp! = if isnothing(lookup_generator)
 		lookup_function = Dict(
-			q=>(d, ee) -> lookup(
+			q=>(res, d, ee) -> lookup!(
+				res,
 				eos_sq, Symbol(q), d, ee;
 				to_log=false
 			) for q in eos_quantities
 		)
+		lkp! = (res, f, d, ee) -> f(res, d, ee)
 
-		lkp = (f, d, ee) -> f(d, ee)
-
-		lookup_function, lkp
+		lookup_function, lkp!
 	else
-		lookup_function =  Dict(
+		lookup_function = Dict(
 			q=>lookup_generator(eos_sq, Symbol(q)) |> first for q in eos_quantities
 		)
-		
-		lkp = lookup_generator(eos_sq, Symbol(first(eos_quantities))) |> last
+		lkp! = lookup_generator(eos_sq, Symbol(first(eos_quantities))) |> last
 
-		lookup_function, lkp
+		lookup_function, lkp!
 	end
 	
-	for (i, patch) in enumerate(patchMeta)
+	@inbounds for (i, patch) in enumerate(patchMeta)
 		r .= patch_range[:, :, i]
 		li = patch.li
 		ui = patch.ui
-		for (j, var) in enumerate(variablesSym)
-			temp_storage[var] .= _var_from_patch_direct(
+		@optionalTiming varFromPatchTime for (j, var) in enumerate(variablesSym)
+			_var_from_patch_direct!(
+				temp_storage[var],
 				var,
 				patchDataFiles[i],
 				Tuple(patch.ncell),
@@ -319,9 +335,9 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 			) 
 		end
 
-		xx, yy, zz = meshgrid(patch.xi, patch.yi, patch.zi)
+		xx, yy, zz = @optionalTiming meshgridTime meshgrid(patch.xi, patch.yi, patch.zi)
 		
-		if length(auxnames) > 0
+		@optionalTiming auxTime if length(auxnames) > 0
 			auxname = patchAuxFiles[i]
 			aux = readaux(auxname)
 
@@ -334,7 +350,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 		end
 
 		# Check if there are derived variables that we need to add
-		for d in variablesDerived
+		@optionalTiming derivedVariablesTime for d in variablesDerived
 			if !(String(d.name) in auxnames)
 				temp_storage[d.name] .= d.recipe(; 
 					temp_storage...
@@ -343,7 +359,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 		end
 
 		# Check if there are convertsion that we need to apply
-		for d in quantities
+		@optionalTiming convertersTime for d in quantities
 			temp_storage[d.name] .*= converters[d.name]
 		end
 
@@ -351,25 +367,29 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 		yy .*= l_conv(units)
 		zz .*= l_conv(units)
 
-		for q in eos_quantities
-			temp_storage[q] .= lkp(
+		temp_storage[:logd] .= log.(temp_storage[:d])
+		temp_storage[:logee] .= log.(temp_storage[:ee])
+		@optionalTiming eosQuantitesTime for q in eos_quantities
+			lkp!(
+				temp_storage[q],
 				lookup_function[q],
-				log.(temp_storage[:d]), log.(temp_storage[:ee])
+				temp_storage[:logd],
+				temp_storage[:logee]
 			)
 		end
 
-		for d in quantities
+		@optionalTiming saveToStructureTime for d in quantities
 			var = String(d.name)
 			_save_to_structure!(fid[var], r, temp_storage[d.name])
 		end
 
-		for q in eos_quantities
+		@optionalTiming saveToStructureTime for q in eos_quantities
 			_save_to_structure!(fid[String(q)], r, temp_storage[q])
 		end
 
-		_save_to_structure!(fid["x"], r, xx)
-		_save_to_structure!(fid["y"], r, yy)
-		_save_to_structure!(fid["z"], r, zz)
+		@optionalTiming saveToStructureTime _save_to_structure!(fid["x"], r, xx)
+		@optionalTiming saveToStructureTime _save_to_structure!(fid["y"], r, yy)
+		@optionalTiming saveToStructureTime _save_to_structure!(fid["z"], r, zz)
 	end
 end
 
@@ -468,7 +488,7 @@ end
 
 
 """
-    Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_reader=_squaregaseos, lookup_generator=nothing, mmap=false)
+    Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing, mmap=false, save_snapshot=false)
 
 Read and convert data from the given run, saved in the given data folder. This function entirely relies 
 on julia functions and does not use the dispatch python interface. 
@@ -479,7 +499,7 @@ which is the `MUST` EoS reader.
 """
 function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing, mmap=false, save_snapshot=false)	
 	# check the inputs
-    run, rundir, datadir, params_list, files = _check_files(iout, data, run, rundir)
+    run, rundir, datadir, params_list, files = @optionalTiming checkFilesTime _check_files(iout, data, run, rundir)
 
 	mmap = if !save_snapshot 
 		false
@@ -496,7 +516,7 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 	)
 
 	# add parameter groups from data/run/NNNNN/*snapshot.nml
-	snapshot_nml, variablesSym, idxVars, idxs = _snapshot_variables(files)
+	snapshot_nml, variablesSym, idxVars, idxs = @optionalTiming snapshotVariablesTime _snapshot_variables(files)
 
 	# rank namelists
     rank_files = [f for f in glob("*", datadir) if occursin("_patches.nml", f)]
@@ -510,7 +530,7 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
     eos_sq, eos_quantities = eos_reader(run)
 	
 	# First we read the meta data so that we can build the data cube
-	patchMeta, patchDataFiles, patchAuxFiles, auxnames = _patchmeta(
+	patchMeta, patchDataFiles, patchAuxFiles, auxnames = @optionalTiming patchMetaTime _patchmeta(
 		datadir, rank_nmls, snapshot_nml
 	)
 
@@ -523,13 +543,13 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 	quantities = quantities[variableMaskOk]
 
 	# build the 3D cube from patch meta data
-	global_x, global_y, global_z, patch_range = _build_cube_direct(patchMeta)
+	global_x, global_y, global_z, patch_range = @optionalTiming buildCubeTime _build_cube_direct(patchMeta)
 	shape = length.([global_x, global_y, global_z])
 		
 	# prepare the HDF5 file for the final box
 	variablesAndAux = [varnames(quantities)..., eos_quantities...]
 	variablesDerived = derived(quantities)
-	fid = prepare_memory(
+	fid = @optionalTiming prepareMemTime prepare_memory(
 		Float32, shape, String.(variablesAndAux); folder=rundir, number=iout,
 		mmap=mmap
 	)
@@ -544,7 +564,10 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 		k=>zeros(Float32, n...) 
 		for k in unique([variablesSym..., variablesAndAux...])
 	)
-	_patchdata!(
+	temp_storage[:logd] = deepcopy(temp_storage[:d])
+	temp_storage[:logee] = deepcopy(temp_storage[:ee])
+
+	@optionalTiming patchDataTime _patchdata!(
 		temp_storage, 
 		r,
 		patchMeta, 
@@ -566,7 +589,7 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 		lookup_generator
 	)
 
-	if save_snapshot
+	@optionalTiming saveSnapshotTime if save_snapshot
 		_save_box(iout, fid, time, logg, rundir)
 		# return the mmaped box
 		Box(
@@ -577,3 +600,40 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 		_to_box(iout, fid, time, logg, rundir)
 	end
 end
+
+
+
+
+#= timer =#
+checkFilesTime = Ref(false)
+snapshotVariablesTime = Ref(false)
+patchMetaTime = Ref(false)
+buildCubeTime = Ref(false)
+prepareMemTime = Ref(false)
+patchDataTime = Ref(false)
+saveSnapshotTime = Ref(false)
+
+varFromPatchTime = Ref(false)
+meshgridTime = Ref(false)
+auxTime = Ref(false)
+derivedVariablesTime = Ref(false)
+convertersTime = Ref(false)
+eosQuantitesTime = Ref(false)
+saveToStructureTime = Ref(false)
+
+const detailedBoxingTimers = [
+	checkFilesTime,
+	snapshotVariablesTime,
+	patchMetaTime,
+	buildCubeTime,
+	prepareMemTime,
+	patchDataTime,
+	saveSnapshotTime,
+	varFromPatchTime,
+	meshgridTime,
+	auxTime,
+	derivedVariablesTime,
+	convertersTime,
+	eosQuantitesTime,
+	saveToStructureTime
+]

@@ -159,6 +159,51 @@ end
 
 lookup(eos::PythonEOS, parameter, variables::T...) where {T<:AbstractFloat} = lookup(eos, parameter, [T[v] for v in variables]...)
 
+
+
+
+
+"""
+Lookup function for SquareGas EOS.
+    The input is assumed to be CGS. 
+
+    Example:
+        lookup(sqg_eos, :T, [1e-7, 2e-7, 3e-7], [4e-12, 5e-12, 6e-12])
+
+    The EOS tabe is listed in log units, so you can also pass
+        lookup(sqg_eos, :T, log.([1e-7, 2e-7, 3e-7]), log.([4e-12, 5e-12, 6e-12]), to_log=false)
+"""
+function lookup!(result::AbstractArray, eos::SquareGasEOS, parameter::Symbol, d::AbstractArray, ee::AbstractArray; to_log=true)
+    if to_log
+        d  = log.(d)
+        ee = log.(ee)
+    end
+    
+    # The EOS table is searched based on the regular grid imposed by the corresponding axis
+    if ((parameter == :P) || (parameter == :Pg))
+        interpolate_in_table!(result, eos, eos.eostable, d, ee, 1)
+        result .= exp.(result)
+    elseif ((parameter == :T) || (parameter == :Temp))
+        interpolate_in_table!(result, eos, eos.eostable, d, ee, 2)
+    elseif parameter == :Ne
+        interpolate_in_table!(result, eos, eos.eostable, d, ee, 3)
+        result .= exp.(result)
+    elseif ((parameter == :kr) || (parameter == :ross))
+        interpolate_in_table!(result, eos, eos.eostable, d, ee, 4)
+        result .= exp.(result)
+    elseif ((parameter == :src) || (parameter == :Src))
+        interpolate_in_table!(result, eos, eos.temtable, d, ee, 1:eos.params["nRadBins"])
+        result .= exp.(result)
+    elseif parameter == :rk
+        interpolate_in_table!(result, eos, eos.opatable, d, ee, 1:eos.params["nRadBins"])
+        result .= exp.(result)
+    else
+        error("The given parameter $(parameter) is not implemented for the SquareGasEOS.")
+    end
+
+    result
+end
+
 """
 Lookup function for SquareGas EOS.
     The input is assumed to be CGS. 
@@ -194,6 +239,10 @@ function lookup(eos::SquareGasEOS, parameter::Symbol, d::AbstractVector{T}, ee::
 
     return result
 end
+
+
+
+
 
 """
 Lookup function for SquareGas EOS.
@@ -237,12 +286,102 @@ end
 
 
 
+
+
+interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::RangeOrVector) where {T<:AbstractFloat} = begin
+    result = zeros(eltype(d), length(d), length(index))
+    interpolate_in_table!(result, eos, table, d, ee, index)
+end
+interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::Int) where {T<:AbstractFloat} = begin
+    result = zeros(eltype(d), length(d))
+    interpolate_in_table!(result, eos, table, d, ee, index)
+end
+
+
 """
 Interpolate in the given table using the axis in the EOS. 
 """
-function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::RangeOrVector) where {T<:AbstractFloat}
-    result = zeros(eltype(d), length(d), length(index))
+function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::AbstractArray{T,3}, ee::AbstractArray{T,3}, index::Int) where {T<:AbstractFloat}
+    ei_min  = eos.lnEi_axis[1]
+    rho_min = eos.lnRho_axis[1]
 
+    dlnRho = eos.lnRho_axis[2] - eos.lnRho_axis[1]
+    dlnEi  = eos.lnEi_axis[2] - eos.lnEi_axis[1]
+
+    il=0; jl=0; ifr=0.0; jfr=0.0; tt=0.0; u=0.0
+
+    for k in axes(d, 3)
+        for j in axes(d, 2)
+            for i in axes(d, 1)
+                ifr = (ee[i, j, k] - ei_min) / dlnEi + 1.0
+                il  = floor(Int, ifr)
+                tt  = Base.mod(ifr, 1.0) 
+                m1t = 1.0 - tt
+            
+                jfr = (d[i, j, k] - rho_min) / dlnRho + 1.0
+                jl  = floor(Int, jfr)
+                u   = Base.mod(jfr, 1.0) 
+                m1u = 1.0 - u
+
+                if ((ifr<0) || (jfr<0))
+                    result[i, j, k] = Base.convert(eltype(d), NaN) 
+                else
+                    result[i, j, k] = m1t * m1u * table[il,  jl  ,index] +
+                                tt  * m1u * table[il+1,jl  ,index] +
+                                tt  *   u * table[il+1,jl+1,index] +
+                                m1t *   u * table[il  ,jl+1,index] 
+                end
+            end
+        end
+    end
+
+    result
+end
+
+"""
+Interpolate in the given table using the axis in the EOS. 
+"""
+function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::AbstractArray{T,3}, ee::AbstractArray{T,3}, index::RangeOrVector) where {T<:AbstractFloat}
+    ei_min  = eos.lnEi_axis[1]
+    rho_min = eos.lnRho_axis[1]
+
+    dlnRho = eos.lnRho_axis[2] - eos.lnRho_axis[1]
+    dlnEi  = eos.lnEi_axis[2] - eos.lnEi_axis[1]
+
+    il=0; jl=0; ifr=0.0; jfr=0.0; tt=0.0; u=0.0
+
+    for k in axes(d, 3)
+        for j in axes(d, 2)
+            for i in axes(d, 1)
+                ifr = (ee[i, j, k] - ei_min) / dlnEi + 1.0
+                il  = floor(Int, ifr)
+                tt  = Base.mod(ifr, 1.0) 
+                m1t = 1.0 - tt
+            
+                jfr = (d[i, j, k] - rho_min) / dlnRho + 1.0
+                jl  = floor(Int, jfr)
+                u   = Base.mod(jfr, 1.0) 
+                m1u = 1.0 - u
+
+                if ((ifr<0) || (jfr<0))
+                    result[i, j, k, index] .= Base.convert(eltype(d),NaN) 
+                else
+                    result[i, j, k, index] .= m1t .* m1u .* table[il,  jl  ,index] +
+                                              tt  .* m1u .* table[il+1,jl  ,index] +
+                                              tt  .*   u .* table[il+1,jl+1,index] +
+                                              m1t .*   u .* table[il  ,jl+1,index] 
+                end
+            end
+        end
+    end
+
+    result
+end
+
+"""
+Interpolate in the given table using the axis in the EOS. 
+"""
+function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::RangeOrVector) where {T<:AbstractFloat}
     ei_min  = eos.lnEi_axis[1]
     rho_min = eos.lnRho_axis[1]
 
@@ -275,7 +414,47 @@ function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVec
     result
 end
 
-interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::I) where {T<:AbstractFloat, I<:Integer} = interpolate_in_table(eos, table, d, ee, [index])[:,1]
+"""
+Interpolate in the given table using the axis in the EOS. 
+"""
+function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::Int) where {T<:AbstractFloat}
+    ei_min  = eos.lnEi_axis[1]
+    rho_min = eos.lnRho_axis[1]
+
+    dlnRho = eos.lnRho_axis[2] - eos.lnRho_axis[1]
+    dlnEi  = eos.lnEi_axis[2] - eos.lnEi_axis[1]
+
+    il=0; jl=0; ifr=0.0; jfr=0.0; tt=0.0; u=0.0
+
+    @inbounds for i in 1:length(d)
+        ifr = (ee[i] - ei_min) / dlnEi + 1.0
+        il  = floor(Int, ifr)
+        tt  = Base.mod(ifr, 1.0) 
+        m1t = 1.0 - tt
+    
+        jfr = (d[i] - rho_min) / dlnRho + 1.0
+        jl  = floor(Int, jfr)
+        u   = Base.mod(jfr, 1.0) 
+        m1u = 1.0 - u
+
+        if ((ifr<0) || (jfr<0))
+            result[i] = Base.convert(eltype(d),NaN) 
+        else
+            result[i] = m1t * m1u * table[il,  jl  ,index] +
+                          tt  * m1u * table[il+1,jl  ,index] +
+                          tt  *   u * table[il+1,jl+1,index] +
+                          m1t *   u * table[il  ,jl+1,index] 
+        end
+    end
+
+    result
+end
+
+
+
+
+
+#interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::I) where {T<:AbstractFloat, I<:Integer} = interpolate_in_table(eos, table, d, ee, [index])[:,1]
 interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::T, ee::T, index::I) where {T<:AbstractFloat, I<:Integer} = interpolate_in_table(eos, table, d, ee, [index])
 
 function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::T, ee::T, index::RangeOrVector) where {T<:AbstractFloat}
@@ -314,6 +493,9 @@ function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::T, ee::T, i
         result
     end
 end
+
+
+
 
 
 
