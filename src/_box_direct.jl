@@ -73,6 +73,22 @@ function _var_from_patch_direct!(res, var, fname, shp, off, li, ui, idxd)
 	)[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
 end
 
+function _var_from_patch_direct_arr!(res, var, fname, shp, off, li, ui, idxd, buffer)
+    varidx = idxd[String(var)] + 1
+    offset = off[varidx]
+
+    # seek to the correct offset
+    seek(fname, offset)
+
+    # Read the full array data
+    read!(fname, buffer)
+
+    # Slice the array and store the result in `res`
+    res .= buffer[li[1]:ui[1], li[2]:ui[2], li[3]:ui[3]]
+
+	res
+end
+
 
 
 
@@ -318,21 +334,25 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 		lookup_function, lkp!
 	end
 	
+	buffer = Array{Float32, length(Tuple(patchMeta[1].ncell))}(undef, Tuple(patchMeta[1].ncell))
 	@inbounds for (i, patch) in enumerate(patchMeta)
 		r .= patch_range[:, :, i]
 		li = patch.li
 		ui = patch.ui
-		@optionalTiming varFromPatchTime for (j, var) in enumerate(variablesSym)
-			_var_from_patch_direct!(
-				temp_storage[var],
-				var,
-				patchDataFiles[i],
-				Tuple(patch.ncell),
-				patch.offset,
-				li,
-				ui,
-				idxs
-			) 
+		@optionalTiming varFromPatchTime  open(patchDataFiles[i], "r") do f
+			for (j, var) in enumerate(variablesSym)
+				_var_from_patch_direct_arr!(
+					temp_storage[var],
+					var,
+					f,
+					Tuple(patch.ncell),
+					patch.offset,
+					li,
+					ui,
+					idxs,
+					buffer
+				) 
+			end
 		end
 
 		xx, yy, zz = @optionalTiming meshgridTime meshgrid(patch.xi, patch.yi, patch.zi)
