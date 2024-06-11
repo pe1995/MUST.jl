@@ -91,6 +91,8 @@ export ingredients
 export defaultWatchDog, monitor
 
 
+
+
 #= Julia code files =#
 include("_constants.jl")
 include("_argparse.jl")
@@ -120,5 +122,18 @@ include("_physical_quantities.jl")
 
 # watchdog
 include("_watchdog.jl")
+
+# timers
+const timers = [
+    boxingTime,              # time the collection of patches
+    opticalDepthTime,        # time the optical depth computation
+    heightScaleTime,         # time the optical depth scale interpolation
+    multiTime                # time the creation of M3D cubes
+]
+
+const detailedTimers = [
+    timers...,               # General timers
+    detailedBoxingTimers...  # more detail for converting patches to Boxes
+]
 
 end
