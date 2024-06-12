@@ -246,7 +246,7 @@ MUST.@import_dispatch "/path/to/dispatch2"
 box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"))
 ```
 """
-snapshotBox(args...; legacy=true, kwargs...) = legacy ? snapshotBox_py(args...; kwargs...) : snapshotBox_jl(args...; kwargs...)
+snapshotBox(args...; legacy=false, kwargs...) = legacy ? snapshotBox_py(args...; kwargs...) : snapshotBox_jl(args...; kwargs...)
 
 
 # timers
