@@ -149,9 +149,6 @@ function snapshots_all_input(simulation_names::Vector)
 	end
 end
 
-# ╔═╡ 68510276-b102-4a70-bd2f-a63195a4bb08
-
-
 # ╔═╡ 2bf867fc-15bd-437c-b989-b1efbf2bf9d4
 @bind snapshots_convert snapshots_all_input(available_runs)
 
@@ -1626,7 +1623,6 @@ end
 # ╟─6fea8f52-3ca6-4854-aca7-6b125d4c6542
 # ╟─ac1069a6-0687-44fb-bd94-c76af8fd6b1f
 # ╟─73e9bde0-c72e-4a01-aa68-486237e0c475
-# ╟─68510276-b102-4a70-bd2f-a63195a4bb08
 # ╟─2bf867fc-15bd-437c-b989-b1efbf2bf9d4
 # ╟─8a5327d2-748c-43f4-ac21-f0245653e16f
 # ╟─fa8c564d-195b-424a-8814-0c47cd3e03a8

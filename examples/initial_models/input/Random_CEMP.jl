@@ -4,13 +4,13 @@ begin
     dispatch_location = "/home/eitner/shared/model_grid/dispatch2"
 
     # Under what name should the binned opacities be saved
-    name_extension    = "CEMP/R2c3v2"
+    name_extension    = "CEMP/T1m10c3v2"
 
     # PLATO models
-    initial_grid_path = "CEMP/random_CEMP_2_magg_m4_a4_c3_vmic2.mgrid"
-    initial_cl_path   = "CEMP/R2c3v2_CEMP_avail.mgrid"
-    initial_mod_path  = "CEMP/R2c3v2_CEMP_avail.mgrid"
-    final_grid_path   = "CEMP/R2c3v2_CEMP_290424.mgrid"
+    initial_grid_path = "CEMP/giantTests1_magg_m10_vmic2.mgrid"
+    initial_cl_path   = "CEMP/T1m10c3v2_avail.mgrid"
+    initial_mod_path  = "CEMP/T1m10c3v2_avail.mgrid"
+    final_grid_path   = "CEMP/T1m10c3v2_060624.mgrid"
 
     # clean namelists in dispatch folder (other than new ones)
     clean_namelists = false
@@ -27,7 +27,7 @@ end
 #= Dispatch setup =#
 begin
     patch_size = 15                 # Points per patch
-    τ_up = -5.75                    # Upper limit of simulation domain
+    τ_up = -5.0                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 6.5                    # Lower limit of simulation domain
     τ_ee0 = -2.25                   # Newton cooling placement (energy)
@@ -35,7 +35,7 @@ begin
     τ_zee0 = -1.75                  # Newton cooling placement (height)
     τ_rho0 =  0.0                   # Density normaliztion height
     dxdz_max = 3.0                  # how much bigger is box in x than z (max)
-    scale_resolution = 0.75         # Down or upsampling of simulation domain
+    scale_resolution = 0.60         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
         :newton_time=>100.0,        
         :friction_time=>100.0,     
@@ -76,7 +76,7 @@ end
 #= Opacities =#
 begin
     # Location of the opacity table
-    extension = "magg_m4_a4_c3_vmic2"
+    extension = "magg_m10_vmic2"
     mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v4.0"
     eos_path = "combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
@@ -91,10 +91,10 @@ begin
     Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = true
+    skip_binning = false
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = true
+    skip_formation = false
 
     # recompute the rosseland optical depth for the first model in the grid
     recompute_ross = false

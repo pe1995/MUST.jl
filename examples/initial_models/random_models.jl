@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.42
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -12,10 +12,10 @@ begin
 	using MUST
 	using Plots
 	using Printf
-	using DataFrames
+	using DataFrames 
 	using DelimitedFiles 
 	using LazySets
-	using Polyhedra
+	using Polyhedra 
 end
 
 # ╔═╡ d3b3d5a1-82ac-494f-ad15-684be62555d3
@@ -47,7 +47,7 @@ grid = MUST.StaggerGrid("stagger_grid_full.mgrid")
 deleteat!(grid.info, .!isfile.(grid["av_path"]))
 
 # ╔═╡ d3dd31b5-237e-4b51-9706-8b33269ce5dd
-deleteat!(grid.info, grid["logg"] .<= 2.0)
+#deleteat!(grid.info, grid["logg"] .<= 2.0)
 
 # ╔═╡ 5701903e-59f3-4495-9dcc-4e730ed2e15f
 md"## Get any model within
@@ -134,7 +134,7 @@ end
 # ╔═╡ d1415b10-403e-4736-9930-14c451f4f366
 begin
 	
-	paras = random_paramters(
+	#=paras = random_paramters(
 		grid, 
 		60, 
 		lowerLimit,
@@ -142,7 +142,7 @@ begin
 		teff=[4500, 7000], 
 		logg=[3.0, 4.7], 
 		feh=[0.0, 0.0]
-	)
+	)=#
 	
 
 	# or reload parameters already sampled
@@ -158,8 +158,10 @@ begin
 	paras[:, 1] = parasList["teff"]
 	paras[:, 2] = parasList["logg"]
 	paras[:, 3] = parasList["feh"]=#
+
 	
 	# select a few sub-giants for CEMP tests
+	
 	#=paras = random_paramters(
 		grid, 
 		10, 
@@ -167,6 +169,15 @@ begin
 		logg=[3.0, 4.0], 
 		feh=[-4.0, -4.0]
 	)=#
+
+
+	# select a few ulta-low metallicity stars
+	
+	paras = zeros(2, 3)
+	paras[:, 1] = [6400.0, 5400.0]
+	paras[:, 2] = [4.0, 2.5]
+	paras[:, 3] = [-4.0, -4.0]
+	
 end
 
 # ╔═╡ 0bffe69d-50fa-4b1c-adba-de962e8f38cc
@@ -191,8 +202,8 @@ begin
 		markersize=6
 	)
 	scatter!(
-		grid["teff"][grid["feh"].==-1], 
-		grid["logg"][grid["feh"].==0], 
+		grid["teff"][grid["feh"].==-4], 
+		grid["logg"][grid["feh"].==-4], 
 		label="Grid",
 		color="black",
 		markersize=8
@@ -213,28 +224,37 @@ We can add information about the EoS. This will make the interpolation better be
 #extension="magg_m4_a4_c3_vmic2"
 
 # ╔═╡ 6dd1a861-7654-4f5a-b871-3f2526154d26
-extension="magg_m0_a0"
+#extension="magg_m0_a0"
+
+# ╔═╡ cb7d1e6e-5462-44e9-88d0-96a27a85990c
+extension="magg_m10_vmic2"
+
+# ╔═╡ 1ebff512-8f72-48e0-9cb6-c97f23073893
+
 
 # ╔═╡ e17316a1-a29e-4ce7-b651-65a75881180f
 #=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(extension)_v1.8"=#
 
 # ╔═╡ 1191c34a-c27e-4eff-875a-57f7fc043ee9
-mother_table_path = "../../../opacity_tables/TSO_MARCS_$(extension)_v1.8"
+#mother_table_path = "../../../opacity_tables/TSO_MARCS_$(extension)_v1.8"
 
 # ╔═╡ 5e777d3b-2db8-4e82-a125-564c7db64281
 #=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m1_a0_c1_v3.0"=#
 
 # ╔═╡ ad7d6660-fea7-4808-bff3-7288c20966b2
-#=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v4.0"=#
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v4.0"
+
+# ╔═╡ 775aff22-9bb6-4171-aa9d-3b8daff4c248
+
 
 # ╔═╡ 1ca259f3-54b6-4c96-8930-eab6454a2cd2
-eos_mother_path = "ross_combined_eos_$(extension).hdf5"
+#eos_mother_path = "ross_combined_eos_$(extension).hdf5"
 
 # ╔═╡ b40c3cee-303b-4a24-9692-fc92a69a9b50
 #eos_mother_path = "combined_eos_magg_m1_a0_c1.hdf5"
 
 # ╔═╡ 03cde4ab-bd80-4476-a27a-750a13935a96
-#eos_mother_path = "combined_eos_$(extension).hdf5"
+eos_mother_path = "combined_eos_$(extension).hdf5"
 
 # ╔═╡ af910237-0a7d-4b58-a870-1fbcfd5e883e
 
@@ -259,9 +279,9 @@ grid.info[!, "matching_eos"] = [
 
 # ╔═╡ 4aedcbe9-ee05-48d7-8919-51514b09f018
 begin
-	newModelCollection = "MainSequence"
-	newdir = "MainSequence/av_$(extension)/"
-	newSet = "random_MS7"
+	newModelCollection = "CEMP"
+	newdir = "CEMP/av_$(extension)/"
+	newSet = "giantTests1"
 end
 
 # ╔═╡ 268b93aa-b610-467e-be1c-0306ca8ac31e
@@ -346,14 +366,17 @@ MUST.save(ig, joinpath(newModelCollection, "$(newSet)_$(extension).mgrid"))
 # ╠═77758e3f-5d6a-4b4d-9239-0b575d78ef76
 # ╠═d1415b10-403e-4736-9930-14c451f4f366
 # ╠═0bffe69d-50fa-4b1c-adba-de962e8f38cc
-# ╟─5fbd389f-9ea5-4b09-839b-59aad0c72a0d
+# ╠═5fbd389f-9ea5-4b09-839b-59aad0c72a0d
 # ╟─8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
 # ╠═78e843fc-42c1-49ba-8d8b-0a8ada2b2a3a
 # ╠═6dd1a861-7654-4f5a-b871-3f2526154d26
+# ╠═cb7d1e6e-5462-44e9-88d0-96a27a85990c
+# ╟─1ebff512-8f72-48e0-9cb6-c97f23073893
 # ╠═e17316a1-a29e-4ce7-b651-65a75881180f
 # ╠═1191c34a-c27e-4eff-875a-57f7fc043ee9
 # ╠═5e777d3b-2db8-4e82-a125-564c7db64281
 # ╠═ad7d6660-fea7-4808-bff3-7288c20966b2
+# ╟─775aff22-9bb6-4171-aa9d-3b8daff4c248
 # ╠═1ca259f3-54b6-4c96-8930-eab6454a2cd2
 # ╠═b40c3cee-303b-4a24-9692-fc92a69a9b50
 # ╠═03cde4ab-bd80-4476-a27a-750a13935a96

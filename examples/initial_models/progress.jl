@@ -42,7 +42,7 @@ TableOfContents()
 @import_dispatch "../../../dispatch2"
 
 # ╔═╡ e2e0b39b-9c60-4630-817b-f180c2631a08
-datafolder = @in_dispatch "data"
+datafolder = @in_dispatch "data" 
 
 # ╔═╡ 409ff57f-8d9d-419b-b448-fdf40c0843b4
 begin
@@ -1898,7 +1898,7 @@ let
 end
 
 # ╔═╡ 3d530773-bd52-41d6-a3dd-509f237ae439
-begin
+if "flux" in keys(tGeoAv)
 	νmax_expected = exp10(logg) / exp10(4.44) * (5777.0 / teff(tGeoAv["flux"][itimeSurface2][end]))^0.5 * 3090
 	@info "Expected νmax from parameters [μHz]:" νmax_expected
 end
@@ -2058,8 +2058,15 @@ md"## Vertical yz, x-center slice"
 # ╔═╡ dffb82a9-7f7f-40f0-9994-70c36323f3f9
 begin
 	if "centerVerticalCut" in keys(monitoring[1])
+		#=
 		surfacesMovie_vert = timeevolution(monitoring, "centerVerticalCut")["Tplane"]
+		=#
+		surfacesMovie_vert = timeevolution(monitoring, "centerVerticalCut")["uzplane"] ./1e5
+		
+		#=
 		labelsurfaceMovie_vert = L"\rm temperature\ [K]"
+		=#
+		labelsurfaceMovie_vert = L"\rm vertical velocity\ [km/s]"
 	
 		xAxis_vert = timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8
 		yAxis_vert = timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
@@ -2105,7 +2112,7 @@ end;
 				im = ax.imshow(
 					surfacesMovie_vert[i]',
 					origin="lower",
-					extent=extent,
+					#extent=extent,
 					cmap=cmap_vert,
 					vmin=v_min_movie_vert,
 					vmax=v_max_movie_vert,

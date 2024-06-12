@@ -47,7 +47,7 @@ modelatmosfolder = "input_multi3d/test_opac_table/"
 begin
 	minT = 1000.
 	maxT = 50000.
-	minρ = 1e-20
+	minρ = 1e-15
 	maxρ = 1e-2
 	nT   = 150
 	nρ   = 150
@@ -123,7 +123,7 @@ eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10
 			),
 			:composition_params=>(
 				:absdat_file=>"./input_multi3d/TS_absdat.dat",
-                :abund_file=>"./input_multi3d/abund_magg_c3_a4",
+                :abund_file=>"./input_multi3d/abund_fe10",
 				:ldtemp=>δlnT,
 				:ldrho=>δlnρ,
 				:tmolim=>10000.0
@@ -147,13 +147,13 @@ if compute
 		in_log=true,
 		δlnT=(log(maxT)-log(minT))/nT, 
 		δlnρ=(log(maxρ)-log(minρ))/nρ,
-		slurm=false,
+		slurm=true,
 		nν=20,
-		FeH=-4.0
-		#=m3dis_kwargs=Dict(
+		FeH=0.0,
+		m3dis_kwargs=Dict(
 			:threads=>32,
 			:memMB=>90000
-		)=#
+		)
 	)
 end
 
@@ -164,7 +164,7 @@ md"# Read EoS Table"
 md"Decide where to save the table"
 
 # ╔═╡ 270b37a1-d0c9-48b1-bd05-891a8c83cf72
-extension = "magg_m4_a4_c3_vmic2"
+extension = "magg_m10_vmic2"
 
 # ╔═╡ e3f7e4bf-17c2-4c7d-b086-8ef846fdff32
 md"EoS Versions:
@@ -184,7 +184,7 @@ md"EoS Versions:
 	v3.X: FeH = -1, still no molecular lines!
 - v3.0:	Carbon enhanced <-> Carbon solar
 -------------------------------------------------------
-	v4.X: FeH = -4, still no molecular lines!
+	v4.X: FeH = -X, still no molecular lines!
 - v4.0:	Carbon enhanced <-> Carbon solar
 "
 
