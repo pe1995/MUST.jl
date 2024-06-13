@@ -759,6 +759,302 @@ end
 # ╔═╡ 3403a014-2441-4ad2-95f6-2e686ae99ba8
 
 
+# ╔═╡ 77f5cb10-ce91-44c2-91c6-c01432655121
+md"## Lower Boundary Surface"
+
+# ╔═╡ 7532d800-c183-42d5-8bd0-9970ca507cfd
+if "lowerBoundarySurface" in keys(monitoring[1])
+	tlowersurfaces = timeevolution(monitoring, "lowerBoundarySurface")
+end
+
+# ╔═╡ 9504d2ae-a060-4b02-a873-27f4c01d3364
+("lowerBoundarySurface" in keys(monitoring[1])) && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tlowersurfaces["x"][itimeSurface] ./1e8
+	y = tlowersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+
+	i = ax[0].imshow(
+		tlowersurfaces["uzplane"][itimeSurface] ./1e5,
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm_r"
+	)
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+
+	x = tlowersurfaces["x"][itimeSurface2] ./1e8
+	y = tlowersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+
+	i = ax[1].imshow(
+		tlowersurfaces["uzplane"][itimeSurface2] ./1e5,
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm_r"
+	)
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm v_z\ [km\ s^{-1}]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[1].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ ab5e5713-7dde-4592-9371-88e2a9c00400
+("lowerBoundarySurface" in keys(monitoring[1])) && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tlowersurfaces["x"][itimeSurface] ./1e8
+	y = tlowersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(exp.(tlowersurfaces["lnDplane"][itimeSurface])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat_r"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tlowersurfaces["x"][itimeSurface2] ./1e8
+	y = tlowersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(exp.(tlowersurfaces["lnDplane"][itimeSurface2])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat_r"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \log_{10} \rho\ [g\ cm^{-3}]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ 2b627607-4d4f-447f-a29a-daacf7977c28
+("lowerBoundarySurface" in keys(monitoring[1])) && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tlowersurfaces["x"][itimeSurface] ./1e8
+	y = tlowersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		tlowersurfaces["Tplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tlowersurfaces["x"][itimeSurface2] ./1e8
+	y = tlowersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		tlowersurfaces["Tplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm T\ [K]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ b5a51746-f8e3-4760-b73a-a760b2e27c3c
+("lowerBoundarySurface" in keys(monitoring[1])) && haskey(tlowersurfaces, "fluxplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tlowersurfaces["x"][itimeSurface] ./1e8
+	y = tlowersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		tlowersurfaces["fluxplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tlowersurfaces["x"][itimeSurface2] ./1e8
+	y = tlowersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		tlowersurfaces["fluxplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+	
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ 40b66681-4ee6-485c-a94f-6d09cf4d56e6
+("lowerBoundarySurface" in keys(monitoring[1])) && haskey(tlowersurfaces, "qrplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tlowersurfaces["x"][itimeSurface] ./1e8
+	y = tlowersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		tlowersurfaces["qrplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tlowersurfaces["x"][itimeSurface2] ./1e8
+	y = tlowersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		tlowersurfaces["qrplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]")
+	
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ 97e5e57c-3828-4781-b93e-172a1c3c2cce
+("lowerBoundarySurface" in keys(monitoring[1])) && haskey(tlowersurfaces, "qrplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tlowersurfaces["x"][itimeSurface] ./1e8
+	y = tlowersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+
+	#=i = ax[0].imshow(
+		tuppersurfaces["Tplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)=#
+	i = ax[0].imshow(
+		tlowersurfaces["dtplane"][itimeSurface],
+		origin="lower",
+		extent=extent,
+		cmap="rainbow_r", alpha=1
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tlowersurfaces["x"][itimeSurface2] ./1e8
+	y = tlowersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		tlowersurfaces["dtplane"][itimeSurface2],
+		origin="lower",
+		extent=extent,
+		cmap="rainbow_r"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \Delta t\ [s]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ 82d82155-981c-4fdb-b0ae-d8d40ce016f5
+
+
 # ╔═╡ b0c40c50-3361-4b01-ae87-45ae30387526
 md"## Geometrical Profiles"
 
@@ -1900,10 +2196,11 @@ end
 # ╔═╡ 3d530773-bd52-41d6-a3dd-509f237ae439
 if "flux" in keys(tGeoAv)
 	νmax_expected = exp10(logg) / exp10(4.44) * (5777.0 / teff(tGeoAv["flux"][itimeSurface2][end]))^0.5 * 3090
-	@info "Expected νmax from parameters [μHz]:" νmax_expected
+	νtimescale = 1.0/(νmax_expected*1e-6)
+	@info "Expected νmax from parameters [μHz], [s]:" νmax_expected νtimescale
 end
 
-# ╔═╡ f6916a12-cb30-4fa1-8d24-e75d1729ede2
+# ╔═╡ e5aad9bd-4cf9-4c26-9838-a6bc2103f1a5
 
 
 # ╔═╡ 61b3e522-2af4-4413-9c69-ee30b0d4673f
@@ -2209,6 +2506,15 @@ end
 # ╟─ff3d827b-a0dd-4d86-bfd4-d25fc5f4ab3e
 # ╟─0e3d2723-1ecb-4e5a-8125-78f6f27407e2
 # ╟─3403a014-2441-4ad2-95f6-2e686ae99ba8
+# ╟─77f5cb10-ce91-44c2-91c6-c01432655121
+# ╟─7532d800-c183-42d5-8bd0-9970ca507cfd
+# ╟─9504d2ae-a060-4b02-a873-27f4c01d3364
+# ╟─ab5e5713-7dde-4592-9371-88e2a9c00400
+# ╟─2b627607-4d4f-447f-a29a-daacf7977c28
+# ╟─b5a51746-f8e3-4760-b73a-a760b2e27c3c
+# ╟─40b66681-4ee6-485c-a94f-6d09cf4d56e6
+# ╟─97e5e57c-3828-4781-b93e-172a1c3c2cce
+# ╟─82d82155-981c-4fdb-b0ae-d8d40ce016f5
 # ╟─b0c40c50-3361-4b01-ae87-45ae30387526
 # ╟─96a3ddc0-3d70-4b65-a7c2-7482c8817186
 # ╟─8c03ccae-6a25-4f2b-a99d-bf537221d007
@@ -2285,7 +2591,7 @@ end
 # ╠═58b167bf-d79d-48e1-8118-ffc1a13ba913
 # ╟─47f967fb-e063-4b23-97e9-02ca76985fa9
 # ╟─3d530773-bd52-41d6-a3dd-509f237ae439
-# ╟─f6916a12-cb30-4fa1-8d24-e75d1729ede2
+# ╟─e5aad9bd-4cf9-4c26-9838-a6bc2103f1a5
 # ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
 # ╟─713164e6-4a7a-4475-beda-bda33d16e206
 # ╟─fb94a874-a34b-4721-be63-e443f92330af

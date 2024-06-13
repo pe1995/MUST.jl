@@ -214,6 +214,39 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     d
 end
 
+lowerBoundarySurface(w::WatchDog, b, bτ) = begin
+    uzplane = b[:uz][:, :, 1]
+    uxplane = b[:ux][:, :, 1]
+    uyplane = b[:uy][:, :, 1]
+    Tplane = b[:T][:, :, 1]
+    Dplane = log.(b[:d][:, :, 1])
+    dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, 1] : nothing
+    fluxplane = haskey(b.data, :flux) ? b[:flux][:, :, 1] : nothing
+    qrplane = haskey(b.data, :qr) ? b[:qr][:, :, 1] : nothing
+
+    d = Dict(
+        "uzplane" => uzplane,
+        "uxplane" => uxplane,
+        "uyplane" => uyplane,
+        "Tplane" => Tplane,
+        "lnDplane" => Dplane,
+        "x" => b.x[:, :, 1],
+        "y" => b.y[:, :, 1]
+    )
+
+    if !isnothing(dtplane)
+        d["dtplane"] = dtplane[:, :]
+    end
+    if !isnothing(fluxplane)
+        d["fluxplane"] = fluxplane[:, :]
+    end
+    if !isnothing(qrplane)
+        d["qrplane"] = qrplane[:, :]
+    end
+
+    d
+end
+
 minimumTempSurface(w::WatchDog, b, bτ) = begin
     # plane of minimum temperature
     iplane = argmin(b[:T])[3]
@@ -376,14 +409,15 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     opticalMinimum = opticalMinimum,
     geometricalMinimum = geometricalMinimum,
     geometricalMaximum = geometricalMaximum,
-    upperBoundarySurface=upperBoundarySurface,
-    geometrical15thQuantile=geometrical15thQuantile,
-    geometrical30thQuantile=geometrical30thQuantile,
-    geometrical45thQuantile=geometrical45thQuantile,
-    geometrical60thQuantile=geometrical60thQuantile,
-    geometrical75thQuantile=geometrical75thQuantile,
-    geometrical90thQuantile=geometrical90thQuantile,
-    centerVerticalCut=centerVerticalCut,
+    upperBoundarySurface = upperBoundarySurface,
+    lowerBoundarySurface = lowerBoundarySurface,
+    geometrical15thQuantile = geometrical15thQuantile,
+    geometrical30thQuantile = geometrical30thQuantile,
+    geometrical45thQuantile = geometrical45thQuantile,
+    geometrical60thQuantile = geometrical60thQuantile,
+    geometrical75thQuantile = geometrical75thQuantile,
+    geometrical90thQuantile = geometrical90thQuantile,
+    centerVerticalCut = centerVerticalCut,
     additional_functions...
 )
 
