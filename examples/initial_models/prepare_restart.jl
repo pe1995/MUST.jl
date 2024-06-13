@@ -215,9 +215,10 @@ function prepare_restart(name, snapshot; decay_timescales=false, datadir=joinpat
 			eos_path=eos_path
 		)
 
-		@show b
 		if isnothing(b)
 			Box("box_sn$(snapshot)", folder=datadir)
+		else
+			b
 		end
 	else
 		@info "[$(name)] Loading snapshot $(snapshot)."
@@ -388,11 +389,11 @@ new_namelist_params = if length(selectedRunList) > 0
 	) for i in eachindex(runnameList)]
 else
 	new_namelist_params = Dict(
-		:friction_params=>(
-			:on=>true,
-			:end_time=>50,
-			:decay_scale=>20
-		),
+		#:friction_params=>(
+		#	:on=>true,
+		#	:end_time=>50,
+		#	:decay_scale=>5
+		#),
 		#:boundary_params=>(
 		#	:htop_scale=>7.0,
 		#),
@@ -512,7 +513,7 @@ end
 # ╟─a1c18af7-0d55-4c6c-b503-3950e13b6b17
 # ╟─9a08c5ec-bdab-4323-895c-7fec358b5af8
 # ╟─f27c5eb0-6a6e-42bc-bf2e-f0aab0be2368
-# ╠═4b782275-ce60-4ca0-ac17-be52d3573925
+# ╟─4b782275-ce60-4ca0-ac17-be52d3573925
 # ╟─27f1e1ac-77cf-459b-820e-b167ee11f391
 # ╟─cf03da3f-8a94-4697-a4e4-0e0f9c13b803
 # ╟─b64ad2d7-78d4-49dd-9998-4d58166a649d
