@@ -24,7 +24,7 @@ depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false)
+function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -35,7 +35,9 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
         updatesnaps!(w)
 
         # check if there is a new snapshot
-        for (i, snapf) in enumerate(w.snapshots)
+        enum = enumerate(w.snapshots)
+        enum = reverse ? Iterators.reverse(enum) : enum
+        for (i, snapf) in enum
             # for safety reasons, we dont convert the last N snaps
             # this avoids them being read while not written properly
             if i >= length(w.snapshots)-snapshotbuffer
