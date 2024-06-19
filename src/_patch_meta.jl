@@ -121,7 +121,7 @@ function readaux(fname)
         f = FortranFiles.FortranFile(fname)
         version, id = read(f, (Int32, 2))
         while true
-            try			
+            try		
                 name = read_string(f)
                 rnk = read_numbers(f)
                 shp = read_numbers(f)

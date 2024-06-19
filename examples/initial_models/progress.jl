@@ -201,11 +201,11 @@ end
 md"# Individual Snapshots"
 
 # ╔═╡ b9a721cf-46ef-4e3c-a37c-8b35653e31cb
-md"Pick the time for which you want to see the status: $(@bind timeSurface Slider(snapshots, show_value=true, default=last(snapshots)))
+md"Pick the time for which you want to see the status: $(@bind timeSurface confirm(Slider(snapshots, show_value=true, default=last(snapshots))))
 "
 
 # ╔═╡ 725f7500-c31b-4efa-9df9-00c51640914a
-md"Pick a second time for comparison: $(@bind timeSurface2 Slider(snapshots, show_value=true))
+md"Pick a second time for comparison: $(@bind timeSurface2 confirm(Slider(snapshots, show_value=true)))
 "
 
 # ╔═╡ a34793ae-db12-4dac-b2f8-348a88092815
@@ -1727,6 +1727,9 @@ if haskey(tOptAv, "flux")
 	end
 end
 
+# ╔═╡ be186b14-8ae2-4f67-8a1f-fcf2d5eaa8fa
+
+
 # ╔═╡ 321e3dda-cd15-4787-95e6-f928125535d5
 md"""
 # Time evolution
@@ -1741,7 +1744,7 @@ md"__Snapshot selector__\
 You can select a snapshot by moving the vertical line in the plots:"
 
 # ╔═╡ 15f1108e-6f72-4700-89d9-fc2dfaf7ea47
-md"$(@bind snapshotSelector Slider(snapshots, show_value=true, default=first(snapshots)))"
+md"$(@bind snapshotSelector confirm(Slider(snapshots, show_value=true, default=first(snapshots))))"
 
 # ╔═╡ e452c94a-3b4b-4dd1-a286-3c32a5c8e995
 md"Click to show the selector in the plots: $(@bind activateSnapshotSelector CheckBox(default=false))"
@@ -2195,34 +2198,32 @@ end
 
 # ╔═╡ 3d530773-bd52-41d6-a3dd-509f237ae439
 if "flux" in keys(tGeoAv)
-	νmax_expected = exp10(logg) / exp10(4.44) * (5777.0 / teff(tGeoAv["flux"][itimeSurface2][end]))^0.5 * 3090
+	νmax_expected = exp10(logg) / exp10(4.44) * (5777.0 / teff(tGeoAv["flux"][itimeSurface2][end]))^0.5 * 3166
 	νtimescale = 1.0/(νmax_expected*1e-6)
-	@info "Expected νmax from parameters [μHz], [s]:" νmax_expected νtimescale
+	@info "Expected νmax from parameters (Themeßl et al. 2018) [μHz], [s]:" νmax_expected νtimescale
 end
-
-# ╔═╡ e5aad9bd-4cf9-4c26-9838-a6bc2103f1a5
-
 
 # ╔═╡ 61b3e522-2af4-4413-9c69-ee30b0d4673f
 md"# Movies"
 
 # ╔═╡ 713164e6-4a7a-4475-beda-bda33d16e206
-md"Pick the snapshot from which you want to start: $(@bind startTimeMovie Slider(snapshots, show_value=true, default=first(snapshots)))
+md"Pick the snapshot from which you want to start: $(@bind startTimeMovie confirm(Slider(snapshots, show_value=true, default=first(snapshots))))
 "
 
 # ╔═╡ fb94a874-a34b-4721-be63-e443f92330af
-md"Pick the snapshot on which you want to end: $(@bind endTimeMovie Slider(snapshots, show_value=true, default=last(snapshots)))
+md"Pick the snapshot on which you want to end: $(@bind endTimeMovie confirm(Slider(snapshots, show_value=true, default=last(snapshots))))
 "
 
 # ╔═╡ f115e371-5b71-48b2-8929-07c0ab04d5f4
-fps = 4
+fps = 1
 
 # ╔═╡ 2e99b941-935b-4379-89bf-55a4635df686
 
 
 # ╔═╡ 9d0348a6-24a1-447c-9af4-5b648a381370
 md"""
-__Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))
+__Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))\
+From snapshot $(startTimeMovie) to $(endTimeMovie).
 """
 
 # ╔═╡ 2a05f624-3a71-4d06-a241-9c1703f5db6d
@@ -2357,20 +2358,23 @@ begin
 	if "centerVerticalCut" in keys(monitoring[1])
 		#=
 		surfacesMovie_vert = timeevolution(monitoring, "centerVerticalCut")["Tplane"]
-		=#
 		surfacesMovie_vert = timeevolution(monitoring, "centerVerticalCut")["uzplane"] ./1e5
+		=#
+		surfacesMovie_vert = timeevolution(monitoring, "centerVerticalCut")["Tplane"]
+
 		
 		#=
 		labelsurfaceMovie_vert = L"\rm temperature\ [K]"
-		=#
 		labelsurfaceMovie_vert = L"\rm vertical velocity\ [km/s]"
+		=#
+		labelsurfaceMovie_vert = L"\rm temperature\ [K]"
 	
 		xAxis_vert = timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8
 		yAxis_vert = timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
 	end
 
 	dpi_vert = 150
-	cmap_vert = "gist_heat"
+	cmap_vert = "rainbow"
 end;
 
 # ╔═╡ 3f5f399f-e012-4a74-8e72-a6ed45c66b7a
@@ -2409,7 +2413,7 @@ end;
 				im = ax.imshow(
 					surfacesMovie_vert[i]',
 					origin="lower",
-					#extent=extent,
+					extent=extent,
 					cmap=cmap_vert,
 					vmin=v_min_movie_vert,
 					vmax=v_max_movie_vert,
@@ -2548,9 +2552,10 @@ end
 # ╟─d55d7d42-c78c-447c-9959-3689f5341655
 # ╟─c3fb528f-4bd8-4ae7-bb4c-ac90899fbf21
 # ╟─10e5e8cb-0881-40d0-b392-2f66c0cbfc7c
-# ╠═4c3b9b8a-03a5-494d-a321-7f5c400ed054
+# ╟─4c3b9b8a-03a5-494d-a321-7f5c400ed054
 # ╟─dc0315d8-0616-433b-8182-33840afb0b0f
 # ╟─aef86067-68b0-48b8-8bb2-0d410a7521c2
+# ╟─be186b14-8ae2-4f67-8a1f-fcf2d5eaa8fa
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─643eaee3-a1f8-4be2-b032-08fcb325fbe8
 # ╟─aae74666-7fdd-4db9-8869-68e4597f6940
@@ -2591,7 +2596,6 @@ end
 # ╠═58b167bf-d79d-48e1-8118-ffc1a13ba913
 # ╟─47f967fb-e063-4b23-97e9-02ca76985fa9
 # ╟─3d530773-bd52-41d6-a3dd-509f237ae439
-# ╟─e5aad9bd-4cf9-4c26-9838-a6bc2103f1a5
 # ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
 # ╟─713164e6-4a7a-4475-beda-bda33d16e206
 # ╟─fb94a874-a34b-4721-be63-e443f92330af

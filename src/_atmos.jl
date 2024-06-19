@@ -152,8 +152,8 @@ function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false)
         fname = pyconvert(Any, patch.filename)
 		shp = Tuple(pyconvert.(Any, patch.ncell))
 		off = pyconvert(Vector{Int}, patch.offset)
-		li = pyconvert(Vector{Int}, patch.li)
-		ui = pyconvert(Vector{Int}, patch.ui)
+		li = pyconvert(Vector{Int}, patch.li)+1
+		ui = pyconvert(Vector{Int}, patch.ui)+1
         idxd = patch.idx.__dict__
         
         # extract the quantites for this patch
@@ -486,8 +486,8 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
         fname = pyconvert(Any, patch.filename)
 		shp = Tuple(pyconvert.(Any, patch.ncell))
 		off = pyconvert(Vector{Int}, patch.offset)
-		li = pyconvert(Vector{Int}, patch.li)
-		ui = pyconvert(Vector{Int}, patch.ui)
+		li = pyconvert(Vector{Int}, patch.li) .+1
+		ui = pyconvert(Vector{Int}, patch.ui) .+1
         idxd = patch.idx.__dict__
         aux_vars = patch.aux.vars
        
