@@ -65,7 +65,12 @@ function PatchMeta(patch, snap)
     ncell = parse_multiple(nmlValue(patch, "ncell"))
     gn = parse_multiple(nmlValue(snap, "gn"))
     ng = parse_multiple(nmlValue(snap, "ng"))
-    offset = [iv + (rec-1) * mv for iv in 0:mv-1] .* (4*prod(gn))
+    bts = if guards
+        prod(gn)
+    else
+        prod(n)
+    end
+    offset = [iv + (rec-1) * mv for iv in 0:mv-1] .* (4*bts)
     id = nmlValue(patch, "id")
 
     # for axes
