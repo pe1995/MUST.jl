@@ -339,6 +339,8 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 		r .= patch_range[:, :, i]
 		li = patch.li
 		ui = patch.ui
+		liwg = patch.li_with_guards
+		uiwg = patch.ui_with_guards
 		@optionalTiming varFromPatchTime  open(patchDataFiles[i], "r") do f
 			for (j, var) in enumerate(variablesSym)
 				_var_from_patch_direct_arr!(
@@ -364,7 +366,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 			for a in aux
 				asym = Symbol(a.name)
 				if asym in variablesAndAux
-					temp_storage[asym] .= a.data[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]] 
+					temp_storage[asym] .= a.data[liwg[1]:uiwg[1],liwg[2]:uiwg[2],liwg[3]:uiwg[3]] 
 				end
 			end
 		end

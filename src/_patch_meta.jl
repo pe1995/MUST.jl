@@ -17,6 +17,8 @@ struct PatchMeta
     ncell
     li
     ui
+    li_with_guards
+    ui_with_guards
     gn
     n
     ng
@@ -59,6 +61,9 @@ function PatchMeta(patch, snap)
         )
     end
 
+    li_with_guards = parse_multiple(nmlValue(snap, "li"))
+    ui_with_guards = parse_multiple(nmlValue(snap, "ui"))
+
     mv = nmlValue(snap, "mv")
     nv = nmlValue(snap, "nv")
     rec = nmlValue(patch, "record")
@@ -92,6 +97,8 @@ function PatchMeta(patch, snap)
         ncell,
         li,
         ui,
+        li_with_guards,
+        ui_with_guards,
         gn,
         n,
         ng,
