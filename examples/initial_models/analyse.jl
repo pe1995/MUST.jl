@@ -149,6 +149,9 @@ function snapshots_all_input(simulation_names::Vector)
 	end
 end
 
+# ╔═╡ 157d213c-f852-433d-951d-9323a1996159
+
+
 # ╔═╡ 2bf867fc-15bd-437c-b989-b1efbf2bf9d4
 @bind snapshots_convert snapshots_all_input(available_runs)
 
@@ -160,22 +163,23 @@ md"Tick box to start converting snapshots: $(@bind convert_given CheckBox(defaul
 
 # ╔═╡ 2d684eb0-aa4b-40a6-9e04-ab0b42ed0516
 if convert_given
-	MUST.activate_timing!.(MUST.timers) # general timers
-	MUST.activate_timing!.(MUST.detailedBoxingTimers) # detailed boxing timers
+	new_converted = true
+	#MUST.activate_timing!.(MUST.timers) # general timers
+	#MUST.activate_timing!.(MUST.detailedBoxingTimers) # detailed boxing timers
 	
 	for name in keys(snapshots_convert)
 		@info "Converting snapshot $(name), Number: $(snapshots_convert[name])"
 		
-		MUST.start_timing!()
+		#MUST.start_timing!()
 		p = @in_dispatch(joinpath(datafolder, "$(name)"))
 		snapshotBox(snapshots_convert[name], folder=p, to_multi=alsom3d, legacy=false)
-		MUST.end_timing!()
+		#MUST.end_timing!()
 		
 		@info "Snapshot $(name), Number: $(snapshots_convert[name]) converted."
 	end
 	
-	MUST.deactivate_timing!.(MUST.timers)
-	MUST.deactivate_timing!.(MUST.detailedBoxingTimers)
+	#MUST.deactivate_timing!.(MUST.timers)
+	#MUST.deactivate_timing!.(MUST.detailedBoxingTimers)
 end
 
 # ╔═╡ 53706541-27d7-4093-b37f-3e384c6c8a7c
@@ -184,6 +188,7 @@ end
 # ╔═╡ ddcbcf4d-eb85-4cde-b2ac-a4b7e93ed809
 begin
 	convert_given
+	new_converted
 	@bind snapshots_picks snapshots_input(available_runs)
 end
 
@@ -221,6 +226,9 @@ loggs = NamedTuple(
 	name=>length(snapshots[name]) > 0 ? first(snapshots[name]).parameter.logg : -99.0
 	for name in keys(snapshots_picks)
 )
+
+# ╔═╡ 7fb0330c-f564-4f18-ac7c-58df50be1815
+
 
 # ╔═╡ ac46894f-44b4-477a-81ce-687b1308c38f
 md"## Picking EoS"
@@ -323,6 +331,9 @@ labels_adiabat = NamedTuple(
 	for name in pick_initial_models
 )
 
+# ╔═╡ c88ce2b0-580f-4ab6-ac3e-954ec9c9c778
+
+
 # ╔═╡ e6d33b23-e77c-43d3-b401-c5620721d659
 md"## Stagger models"
 
@@ -360,6 +371,9 @@ begin
 		nothing
 	end
 end
+
+# ╔═╡ ca654dd1-e8d6-4082-bf11-ab92e91b450f
+
 
 # ╔═╡ bb0cb1ab-7e03-4a5e-bfd8-60bf17e007d5
 md"# Figure layout"
@@ -678,6 +692,71 @@ plot_given && let
 	gcf()
 end
 
+# ╔═╡ 743e2ce6-2310-4162-aacb-dfddee677d44
+md"## EoS check"
+
+# ╔═╡ 0b9f46ed-4c03-4deb-8ca9-717c25df2516
+plot_given && (length(eos)>0) && let
+	plt.close()
+
+	fA, axA = plt.subplots(1, 1, figsize=(5, 6))
+
+	eos_name_to_plot = keys(snapshots) |> first
+
+	eos_plot = eos[eos_name_to_plot]
+	opa_plot = opa[eos_name_to_plot]
+	
+	xx, yy = TSO.meshgrid(@axed(eos_plot))
+	yy = log10.(exp.(yy))
+	xx = log10.(exp.(xx))
+	im = axA.scatter(yy, xx, c=log10.(exp.(eos_plot.lnRoss)), cmap="rainbow", s=2)
+	c = fA.colorbar(im, ax=axA)
+	c.set_label("rosseland opacity")
+	
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots[name])
+			_, T = profile(mean, snap, :z, :log10T)
+			_, d = profile(mean, snap, :z, :log10d)
+		
+			axA.plot(
+				d, T,
+				lw=2.5, 
+				color=colors[name][j], 
+				label=labels[name][j]
+			)
+
+			_, T = profile(maximum, snap, :z, :log10T)
+			_, d = profile(minimum, snap, :z, :log10d)
+	
+			axA.plot(
+				d, T,
+				lw=2.5, 
+				ls="--",
+				color=colors[name][j], 
+				label=labels[name][j] *" max(T)-min(ρ) "
+			)
+		end
+	end
+
+	for name in keys(initial_model)
+		axA.plot(
+			log10.(exp.(initial_model[name].lnρ)), 
+			exp.(initial_model[name].lnT),
+			lw=1., 
+			color=colors_initial[name],
+			label=labels_initial[name],
+			alpha=0.7,
+			ls="-"
+		)
+	end
+	
+	axA.legend()
+	axA.set_xlabel(L"\rm density\ [g\ \times\ cm^{-3}]")
+	axA.set_ylabel(L"\rm temperature\ [K]")	
+	
+	gcf()
+end
+
 # ╔═╡ 434e3e6e-94d0-4e3f-ba04-59029a39c85d
 
 
@@ -991,7 +1070,7 @@ begin
 	TSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			d_i_surf = snap[:uz][:, :, end-6] ./1e5
+			d_i_surf = snap[:T][:, :, end]
 			append!(TSurf[name], [d_i_surf])
 		end
 	end
@@ -1623,6 +1702,7 @@ end
 # ╟─6fea8f52-3ca6-4854-aca7-6b125d4c6542
 # ╟─ac1069a6-0687-44fb-bd94-c76af8fd6b1f
 # ╟─73e9bde0-c72e-4a01-aa68-486237e0c475
+# ╟─157d213c-f852-433d-951d-9323a1996159
 # ╟─2bf867fc-15bd-437c-b989-b1efbf2bf9d4
 # ╟─8a5327d2-748c-43f4-ac21-f0245653e16f
 # ╟─fa8c564d-195b-424a-8814-0c47cd3e03a8
@@ -1634,6 +1714,7 @@ end
 # ╟─b9f82f31-f25e-4cad-abb4-aac2d4d0e584
 # ╟─cfa74be4-06c9-4911-ac29-2a17809391e6
 # ╟─ba8bded9-f13b-477e-a9fc-bd88e4f01e35
+# ╟─7fb0330c-f564-4f18-ac7c-58df50be1815
 # ╟─ac46894f-44b4-477a-81ce-687b1308c38f
 # ╟─574b4a88-c562-44ab-8a8e-6e5b5c5aabf0
 # ╟─926aa121-ba10-4410-a91c-f36fc79a63ed
@@ -1651,6 +1732,7 @@ end
 # ╟─271e4e9c-def2-4b3e-b383-45d95fbb309b
 # ╟─c561e5a2-dfd6-4de9-80b5-9f6ae100b217
 # ╟─55581a87-2638-4f85-9ad7-7313c37c1971
+# ╟─c88ce2b0-580f-4ab6-ac3e-954ec9c9c778
 # ╟─e6d33b23-e77c-43d3-b401-c5620721d659
 # ╟─bd41fb98-70c4-4192-8753-6fee82f14576
 # ╟─b90c53aa-9ca6-421c-9b2f-f650a1f0832f
@@ -1658,6 +1740,7 @@ end
 # ╟─80f8c89e-5c14-4df6-8a05-f5fe79a7585e
 # ╟─50bc1f52-0638-427a-8cc0-f8cd49535114
 # ╟─3d1d9e3e-aa7d-4ef0-9c3e-41816285a938
+# ╟─ca654dd1-e8d6-4082-bf11-ab92e91b450f
 # ╟─bb0cb1ab-7e03-4a5e-bfd8-60bf17e007d5
 # ╟─b7c0a489-b7f7-4105-bce3-ae0c1074c650
 # ╟─9ea4e08e-62aa-44c3-bbf0-78b1954a9c4f
@@ -1684,6 +1767,8 @@ end
 # ╟─6c4f5ac6-a03b-4237-aa8f-fe50f77bde6f
 # ╟─4d623d6f-7366-468b-930e-71878b72aa5f
 # ╟─3bf11523-ad8f-49c9-84dc-5554364a8b3b
+# ╟─743e2ce6-2310-4162-aacb-dfddee677d44
+# ╟─0b9f46ed-4c03-4deb-8ca9-717c25df2516
 # ╟─434e3e6e-94d0-4e3f-ba04-59029a39c85d
 # ╟─292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 # ╟─795357b7-4d73-4bb6-899a-574183fc97e1
