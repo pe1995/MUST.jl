@@ -2215,7 +2215,7 @@ md"Pick the snapshot on which you want to end: $(@bind endTimeMovie confirm(Slid
 "
 
 # ╔═╡ f115e371-5b71-48b2-8929-07c0ab04d5f4
-fps = 1
+fps = 4
 
 # ╔═╡ 2e99b941-935b-4379-89bf-55a4635df686
 
@@ -2501,7 +2501,7 @@ if "centerVerticalCut" in keys(monitoring[1])
 	surfacesMovie_vert = vertMovieSelected.movie
 	labelsurfaceMovie_vert = vertMovieSelected.label
 	xAxis_vert = vertMovieSelected.xAxis
-	yAxis_vert = vertMovieSelected.xAxis
+	yAxis_vert = vertMovieSelected.yAxis
 end;
 
 # ╔═╡ 5540fbd5-67b4-4d18-8d3b-b12f1249e2ec
