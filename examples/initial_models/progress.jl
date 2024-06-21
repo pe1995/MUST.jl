@@ -2215,7 +2215,7 @@ md"Pick the snapshot on which you want to end: $(@bind endTimeMovie confirm(Slid
 "
 
 # ╔═╡ f115e371-5b71-48b2-8929-07c0ab04d5f4
-fps = 2
+fps = 1
 
 # ╔═╡ 2e99b941-935b-4379-89bf-55a4635df686
 
@@ -2245,82 +2245,93 @@ begin
 		xAxis
 		yAxis
 	end
-	surfacesMovieSelection = Dict(
-		"upper boundary - temperature" => SurfaceMovieContent(
-			tuppersurfaces["Tplane"], 
-			L"\rm temperature\ [K]", 
-			tuppersurfaces["x"][1] ./1e8, 
-			tuppersurfaces["y"][1] ./1e8
-		),
-		"upper boundary - density" => SurfaceMovieContent(
-			tuppersurfaces["lnDplane"], 
-			L"\rm density\ [g\ cm^{-3}]",
-			tuppersurfaces["x"][1] ./1e8, 
-			tuppersurfaces["y"][1] ./1e8
-		),
-		"upper boundary - flux" => SurfaceMovieContent(
+	surfacesMovieSelection = Dict()
+	surfacesMovieSelection["upper boundary - temperature"] = SurfaceMovieContent(
+		tuppersurfaces["Tplane"], 
+		L"\rm temperature\ [K]", 
+		tuppersurfaces["x"][1] ./1e8, 
+		tuppersurfaces["y"][1] ./1e8
+	)
+	surfacesMovieSelection["upper boundary - density"] = SurfaceMovieContent(
+		tuppersurfaces["lnDplane"], 
+		L"\rm density\ [g\ cm^{-3}]",
+		tuppersurfaces["x"][1] ./1e8, 
+		tuppersurfaces["y"][1] ./1e8
+	)
+	if haskey(tuppersurfaces, "fluxplane")
+		surfacesMovieSelection["upper boundary - flux"] = SurfaceMovieContent(
 			tuppersurfaces["fluxplane"], 
 			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
 			tuppersurfaces["x"][1] ./1e8, 
 			tuppersurfaces["y"][1] ./1e8
-		),
-		"upper boundary - vertical velocity" => SurfaceMovieContent(
-			tuppersurfaces["uzplane"] ./1e5, 
-			L"\rm v_z\ [km\ s^{-1}]", 
-			tuppersurfaces["x"][1] ./1e8, 
-			tuppersurfaces["y"][1] ./1e8
-		),
-		"upper boundary - timestep" => SurfaceMovieContent(
+		)
+	end
+	surfacesMovieSelection["upper boundary - vertical velocity"] = SurfaceMovieContent(
+		tuppersurfaces["uzplane"] ./1e5, 
+		L"\rm v_z\ [km\ s^{-1}]", 
+		tuppersurfaces["x"][1] ./1e8, 
+		tuppersurfaces["y"][1] ./1e8
+	)
+	if haskey(tuppersurfaces, "dtplane")
+		surfacesMovieSelection["upper boundary - timestep"] = SurfaceMovieContent(
 			tuppersurfaces["dtplane"] ./1e5, 
 			L"\rm timestep\ [s]",
 			tuppersurfaces["x"][1] ./1e8, 
 			tuppersurfaces["y"][1] ./1e8
-		),
-		"upper boundary - heating" => SurfaceMovieContent(
+		)
+	end
+	if haskey(tuppersurfaces, "qrplane")
+		surfacesMovieSelection["upper boundary - heating"] = SurfaceMovieContent(
 			tuppersurfaces["qrplane"] ./1e5, 
 			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
 			tuppersurfaces["x"][1] ./1e8, 
 			tuppersurfaces["y"][1] ./1e8
-		),
-		#
-		#
-		"optical surface - temperature" => SurfaceMovieContent(
-			topticalsurfaces["Tplane"], 
-			L"\rm temperature\ [K]", 
-			tuppersurfaces["x"][1] ./1e8, 
-			tuppersurfaces["y"][1] ./1e8
-		),
-		"optical surface - density" => SurfaceMovieContent(
-			topticalsurfaces["lnDplane"], 
-			L"\rm density\ [g\ cm^{-3}]",
-			tuppersurfaces["x"][1] ./1e8, 
-			tuppersurfaces["y"][1] ./1e8
-		),
-		"optical surface - flux" => SurfaceMovieContent(
+		)
+	end
+		
+		
+	surfacesMovieSelection["optical surface - temperature"] = SurfaceMovieContent(
+		topticalsurfaces["Tplane"], 
+		L"\rm temperature\ [K]", 
+		tuppersurfaces["x"][1] ./1e8, 
+		tuppersurfaces["y"][1] ./1e8
+	)
+	surfacesMovieSelection["optical surface - density"] = SurfaceMovieContent(
+		topticalsurfaces["lnDplane"], 
+		L"\rm density\ [g\ cm^{-3}]",
+		tuppersurfaces["x"][1] ./1e8, 
+		tuppersurfaces["y"][1] ./1e8
+	)
+	if haskey(tuppersurfaces, "fluxplane")
+		surfacesMovieSelection["optical surface - flux"] = SurfaceMovieContent(
 			topticalsurfaces["fluxplane"], 
 			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
 			tuppersurfaces["x"][1] ./1e8, 
 			tuppersurfaces["y"][1] ./1e8
-		),
-		"optical surface - vertical velocity" => SurfaceMovieContent(
-			topticalsurfaces["uzplane"] ./1e5, 
-			L"\rm v_z\ [km\ s^{-1}]", 
-			tuppersurfaces["x"][1] ./1e8, 
-			tuppersurfaces["y"][1] ./1e8
-		),
-		"optical surface - timestep" => SurfaceMovieContent(
+		)
+	end
+	surfacesMovieSelection["optical surface - vertical velocity"] = SurfaceMovieContent(
+		topticalsurfaces["uzplane"] ./1e5, 
+		L"\rm v_z\ [km\ s^{-1}]", 
+		tuppersurfaces["x"][1] ./1e8, 
+		tuppersurfaces["y"][1] ./1e8
+	)
+	if haskey(tuppersurfaces, "dtplane")
+		surfacesMovieSelection["optical surface - timestep"] = SurfaceMovieContent(
 			topticalsurfaces["dtplane"] ./1e5, 
 			L"\rm timestep\ [s]",
 			tuppersurfaces["x"][1] ./1e8, 
 			tuppersurfaces["y"][1] ./1e8
-		),
-		"optical surface - heating" => SurfaceMovieContent(
+		)
+	end
+	if haskey(tuppersurfaces, "qrplane")
+		surfacesMovieSelection["optical surface - heating"] = SurfaceMovieContent(
 			topticalsurfaces["qrplane"] ./1e5, 
 			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
 			tuppersurfaces["x"][1] ./1e8, 
 			tuppersurfaces["y"][1] ./1e8
-		),
-	)
+		)
+	end
 end;
 
 # ╔═╡ b901bb2a-1f3c-46f5-b3f7-1d530975d767
@@ -2437,38 +2448,43 @@ md"## Vertical yz, x-center slice"
 
 # ╔═╡ a2718d44-abdc-47fd-8ad1-6ad2aece1718
 vertMovieSelection = if "centerVerticalCut" in keys(monitoring[1])
-	Dict(
-		"temperature" => SurfaceMovieContent(
-			timeevolution(monitoring, "centerVerticalCut")["Tplane"], 
-			L"\rm temperature\ [K]", 
-			timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8, 
-			timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
-		),
-		"density" => SurfaceMovieContent(
-			timeevolution(monitoring, "centerVerticalCut")["lnDplane"], 
-			L"\rm density\ [g\ cm^{-3}]",
-			timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8, 
-			timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
-		),
-		"Flux" => SurfaceMovieContent(
-			timeevolution(monitoring, "centerVerticalCut")["fluxplane"], 
-			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
-			timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8, 
-			timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
-		),
-		"vertical velocity" => SurfaceMovieContent(
-			timeevolution(monitoring, "centerVerticalCut")["uzplane"] ./1e5, 
-			L"\rm v_z\ [km\ s^{-1}]", 
-			timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8, 
-			timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
-		),
-		"timestep" => SurfaceMovieContent(
-			timeevolution(monitoring, "centerVerticalCut")["dtplane"] ./1e5, 
-			L"\rm timestep\ [s]",
-			timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8, 
-			timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
-		)
+	vertMovieSelection = Dict()
+	tvc = timeevolution(monitoring, "centerVerticalCut")
+	vertMovieSelection["temperature"] = SurfaceMovieContent(
+		tvc["Tplane"], 
+		L"\rm temperature\ [K]", 
+		tvc["y"][1] ./1e8, 
+		tvc["z"][1] ./1e8
 	)
+	vertMovieSelection["density"] = SurfaceMovieContent(
+		tvc["lnDplane"], 
+		L"\rm density\ [g\ cm^{-3}]",
+		tvc["y"][1] ./1e8, 
+		tvc["z"][1] ./1e8
+	)
+	if haskey(tvc, "fluxplane")
+		vertMovieSelection["Flux"] = SurfaceMovieContent(
+			tvc["fluxplane"], 
+			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
+			tvc["y"][1] ./1e8, 
+			tvc["z"][1] ./1e8
+		)
+	end
+	vertMovieSelection["vertical velocity"] = SurfaceMovieContent(
+		tvc["uzplane"] ./1e5, 
+		L"\rm v_z\ [km\ s^{-1}]", 
+		tvc["y"][1] ./1e8, 
+		tvc["z"][1] ./1e8
+	)
+	if haskey(tvc, "timestep")
+		vertMovieSelection["timestep"] = SurfaceMovieContent(
+			tvc["dtplane"] ./1e5, 
+			L"\rm timestep\ [s]",
+			tvc["y"][1] ./1e8, 
+			tvc["z"][1] ./1e8
+		)
+	end
+	vertMovieSelection
 else
 	Dict("Temperature"=>nothing)
 end;
@@ -2586,82 +2602,93 @@ begin
 		xlabel
 		ylabel
 	end
-	averageMovieSelection = Dict(
-		"geometrical - temperature" => AverageMovieContent(
-			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
-			[tGeoAv["T"], tGeoMin["T"], tGeoMax["T"]],
-			L"\rm z\ [km]", 
-			L"\rm temperature\ [K]", 
-		),
-		"geometrical - density" => AverageMovieContent(
-			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
-			[tGeoAv["d"], tGeoMin["d"], tGeoMax["d"]],
-			L"\rm z\ [km]", 
-			L"\rm density\ [g\ cm^{-3}]",
-		),
-		"geometrical - flux" => AverageMovieContent(
+	averageMovieSelection = Dict()
+	averageMovieSelection["geometrical - temperature"] = AverageMovieContent(
+		[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
+		[tGeoAv["T"], tGeoMin["T"], tGeoMax["T"]],
+		L"\rm z\ [km]", 
+		L"\rm temperature\ [K]", 
+	)
+	averageMovieSelection["geometrical - density"] = AverageMovieContent(
+		[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
+		[tGeoAv["d"], tGeoMin["d"], tGeoMax["d"]],
+		L"\rm z\ [km]", 
+		L"\rm density\ [g\ cm^{-3}]",
+	)
+	if haskey(tGeoMin, "flux")
+		averageMovieSelection["geometrical - flux"] = AverageMovieContent(
 			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
 			[tGeoAv["flux"], tGeoMin["flux"], tGeoMax["flux"]],
 			L"\rm z\ [km]", 
 			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
-		),
-		"geometrical - vertical velocity" => AverageMovieContent(
-			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
-			[tGeoAv["uz"], tGeoMin["uz"], tGeoMax["uz"]] ./1e5,
-			L"\rm z\ [km]", 
-			L"\rm v_z\ [km\ s^{-1}]", 
-		),
-		"geometrical - timestep" => AverageMovieContent(
+		)
+	end
+	averageMovieSelection["geometrical - vertical velocity"] = AverageMovieContent(
+		[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
+		[tGeoAv["uz"], tGeoMin["uz"], tGeoMax["uz"]] ./1e5,
+		L"\rm z\ [km]", 
+		L"\rm v_z\ [km\ s^{-1}]", 
+	)
+	if haskey(tGeoMin, "dt_rt")
+		averageMovieSelection["geometrical - timestep"] = AverageMovieContent(
 			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
 			[tGeoAv["dt_rt"], tGeoMin["dt_rt"], tGeoMax["dt_rt"]],
 			L"\rm z\ [km]", 
 			L"\rm timestep\ [s]",
-		),
-		"geometrical - heating" => AverageMovieContent(
+		)
+	end
+	if haskey(tGeoMin, "qr")
+		averageMovieSelection["geometrical - heating"] = AverageMovieContent(
 			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
 			[tGeoAv["qr"], tGeoMin["qr"], tGeoMax["qr"]],
 			L"\rm z\ [km]", 
 			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
-		),
-		#
-		#
-		"optical - temperature" => AverageMovieContent(
-			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
-			[tOptAv["T"], tOptMin["T"], tOptMax["T"]],
-			L"\rm \log \tau_{ross}", 
-			L"\rm temperature\ [K]", 
-		),
-		"optical - density" => AverageMovieContent(
-			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
-			[tOptAv["d"], tOptMin["d"], tOptMax["d"]],
-			L"\rm \log \tau_{ross}", 
-			L"\rm density\ [g\ cm^{-3}]",
-		),
-		"optical - flux" => AverageMovieContent(
+		)
+	end
+
+
+	averageMovieSelection["optical - temperature"] = AverageMovieContent(
+		[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
+		[tOptAv["T"], tOptMin["T"], tOptMax["T"]],
+		L"\rm \log \tau_{ross}", 
+		L"\rm temperature\ [K]", 
+	)
+	averageMovieSelection["optical - density"] = AverageMovieContent(
+		[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
+		[tOptAv["d"], tOptMin["d"], tOptMax["d"]],
+		L"\rm \log \tau_{ross}", 
+		L"\rm density\ [g\ cm^{-3}]",
+	)
+	if haskey(tGeoMin, "dt_rt")
+		averageMovieSelection["optical - flux"] = AverageMovieContent(
 			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
 			[tOptAv["flux"], tOptMin["flux"], tOptMax["flux"]],
 			L"\rm \log \tau_{ross}", 
 			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
-		),
-		"optical - vertical velocity" => AverageMovieContent(
-			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
-			[tOptAv["uz"], tOptMin["uz"], tOptMax["uz"]] ./1e5,
-			L"\rm \log \tau_{ross}", 
-			L"\rm v_z\ [km\ s^{-1}]", 
-		),
-		"optical - timestep" => AverageMovieContent(
+		)
+	end
+	averageMovieSelection["optical - vertical velocity"] = AverageMovieContent(
+		[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
+		[tOptAv["uz"], tOptMin["uz"], tOptMax["uz"]] ./1e5,
+		L"\rm \log \tau_{ross}", 
+		L"\rm v_z\ [km\ s^{-1}]", 
+	)
+	if haskey(tGeoMin, "dt_rt")
+		averageMovieSelection["optical - timestep"] = AverageMovieContent(
 			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
 			[tOptAv["dt_rt"], tOptMin["dt_rt"], tOptMax["dt_rt"]],
 			L"\rm \log \tau_{ross}", 
 			L"\rm timestep\ [s]",
-		),
-		"optical - heating" => AverageMovieContent(
+		)
+	end
+	if haskey(tGeoMin, "dt_rt")
+		averageMovieSelection["optical - heating"] = AverageMovieContent(
 			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
 			[tOptAv["qr"], tOptMin["qr"], tOptMax["qr"]],
 			L"\rm \log \tau_{ross}", 
 			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
-		),
-	)
+		)
+	end
 end;
 
 # ╔═╡ 12767600-b8d3-4a46-bea2-8325f91da347
