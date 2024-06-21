@@ -24,7 +24,7 @@ depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false)
+function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -33,6 +33,18 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
     while true
         # list snapshots
         updatesnaps!(w)
+
+        # check how many snapshots we have comleted
+        # delete the snapshots if they are older than keeplast
+        if keeplast > 0
+            n_snapsCompleted = length(w.snapshotsCompleted)
+            if n_snapsCompleted > keeplast
+                snaps2remove = w.snapshotsCompleted[1:end-keeplast]
+                for (i, snap2remove) in enumerate(snaps2remove)
+                   deleteSnapshot(w, snap2remove)
+                end
+            end
+        end
 
         # check if there is a new snapshot
         enum = enumerate(w.snapshots)
@@ -449,6 +461,32 @@ availableSnaps(w) = begin
 end
 
 
+
+"""
+    deleteSnapshot(w, snap)
+
+Delete the snapshot with number snap from the monitored run.
+The function removes the snapshot data to save disk space, but
+does not remove it from the monitoring. This allows to check the progress
+without saving every snapshot.
+"""
+deleteSnapshot(w, snap) = begin
+    # check if monitoring really exists
+    if !(snap in w.snapshotsCompleted)
+        @warn "Deleting requested for snapshot $(snap), which is not monitored yet."
+        return
+    end
+
+    _, _, datadir, _, _ = _check_files(snap, nothing, w.name, w.folder, check_existing=false)
+    if isdir(datadir)
+        rm(datadir, recursive=true)
+        @info "Snapshot $(snap) removed from $(datadir)."
+    end
+end
+
+
+
+
 add_to_hdf5!(fid, fname, val)       = fid["$(fname)"] = val
 add_to_hdf5!(fid, fname, val::Bool) = fid["$(fname)"] = Int(val)
 
@@ -475,6 +513,7 @@ save(w::WatchDog, monitoring) = begin
 
     close(fid)
 end
+
 
 
 
@@ -550,6 +589,8 @@ reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all) where {S<:Wa
         l
     end
 end
+
+
 
 
 

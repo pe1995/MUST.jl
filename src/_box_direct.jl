@@ -169,19 +169,19 @@ end
 
 
 """
-    _check_files(iout, data, run)
+    _check_files(iout, data, run, rundir)
 
 Check basic folders/ files exist for the given run.
 """
-function _check_files(iout, data, run, rundir)
+function _check_files(iout, data, run, rundir; check_existing=true)
     run = run=="" ? splitpath(rundir)[end] : run
 	rundir = isnothing(rundir) ? joinpath(data, run) : rundir
-	if !isdir(rundir)
+	if check_existing && !isdir(rundir)
 		error("directory '$(rundir)' does not exist")
 	end
 
 	datadir = joinpath(rundir, @sprintf("%05d", iout))
-	if !isdir(datadir)
+	if check_existing && !isdir(datadir)
 		error("directory '$(datadir)' does not exist")
 	end
 
@@ -189,7 +189,7 @@ function _check_files(iout, data, run, rundir)
     params_list = FreeNamelist(file)
 	files = [f for f in glob("*", datadir) if occursin("snapshot.nml", f)]
 	
-	if length(files)==0
+	if check_existing && length(files)==0
 		error("directory '$(datadir)' has no snapshot.nml file")
 	end
 
