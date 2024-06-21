@@ -2511,7 +2511,7 @@ md"""
 
 # ╔═╡ d0e41ab4-6d23-4fa2-89dd-5253013af2d2
 begin
-	dpi_vert = 150
+	dpi_vert = 300
 	cmap_vert = "rainbow"
 end;
 
@@ -2541,7 +2541,7 @@ end;
 				end
 				
 				plt.close()
-				f, ax = plt.subplots(1, 1, figsize=(10, 6))
+				f, ax = plt.subplots(1, 1, figsize=(6, 4))
 				
 				x = xAxis_vert
 				y = yAxis_vert
@@ -2713,7 +2713,7 @@ md"""
 
 # ╔═╡ ff6d80d9-aadb-41a4-9cd8-0c601bfea714
 begin
-	dpi_averageMovie = 200
+	dpi_averageMovie = 300
 	logy_averageMovie = true
 	color_averageMovie = ["black", "magenta", "cyan"]
 	kwargs_averageMovie = [
@@ -2759,7 +2759,7 @@ begin
 				end
 				
 				plt.close()
-				f, ax = plt.subplots(1, 1, figsize=(10, 6))
+				f, ax = plt.subplots(1, 1, figsize=(6, 4))
 
 				for j in eachindex(xAxis_averageMovie)
 					x = xAxis_averageMovie[j][i]
