@@ -2215,7 +2215,7 @@ md"Pick the snapshot on which you want to end: $(@bind endTimeMovie confirm(Slid
 "
 
 # ╔═╡ f115e371-5b71-48b2-8929-07c0ab04d5f4
-fps = 1
+fps = 2
 
 # ╔═╡ 2e99b941-935b-4379-89bf-55a4635df686
 
@@ -2229,46 +2229,125 @@ From snapshot $(startTimeMovie) to $(endTimeMovie).
 # ╔═╡ 2a05f624-3a71-4d06-a241-9c1703f5db6d
 
 
+# ╔═╡ 4545ed90-dbf9-4e6e-8170-29af90b92c21
+
+
 # ╔═╡ 40bf37a4-318b-4263-8705-a566a3321f87
 md"
 ## 2D Surface Movie
-You can select any of the 2D plane monitoring results you wish, as well as the image resolution and FPS of the final movie."
+You can select any of the 2D plane monitoring results you wish, as well as the image resolution and FPS of the final movie. There are a couple of movie setting already available. If you want to plot something else, please have a look at the cell below (hidden, click the eye symbol on the left to show cell content)"
 
-# ╔═╡ 1483a522-8d36-45f3-a7bc-8f8f8076085f
+# ╔═╡ c1faa953-4b76-43fa-a958-a5476e325afc
 begin
-	#=
-	surfacesMovie = topticalsurfaces["Tplane"]
-	surfacesMovie = topticalsurfaces["fluxplane"]
-	surfacesMovie = topticalsurfaces["uzplane"] ./1e5
-	surfacesMovie = tuppersurfaces["lnDplane"]
-	surfacesMovie = tuppersurfaces["uzplane"] ./1e5
-	surfacesMovie = tuppersurfaces["Tplane"] 
-	surfacesMovie = tuppersurfaces["dtplane"]
-	surfacesMovie = tuppersurfaces["fluxplane"] 
-	surfacesMovie = tuppersurfaces["qrplane"] 
-	surfacesMovie = timeevolution(monitoring, "minimumTempSurface")["uzplane"]
-	=#
-	surfacesMovie = tuppersurfaces["Tplane"] 
+	struct SurfaceMovieContent
+		movie
+		label
+		xAxis
+		yAxis
+	end
+	surfacesMovieSelection = Dict(
+		"upper boundary - temperature" => SurfaceMovieContent(
+			tuppersurfaces["Tplane"], 
+			L"\rm temperature\ [K]", 
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		"upper boundary - density" => SurfaceMovieContent(
+			tuppersurfaces["lnDplane"], 
+			L"\rm density\ [g\ cm^{-3}]",
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		"upper boundary - flux" => SurfaceMovieContent(
+			tuppersurfaces["fluxplane"], 
+			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		"upper boundary - vertical velocity" => SurfaceMovieContent(
+			tuppersurfaces["uzplane"] ./1e5, 
+			L"\rm v_z\ [km\ s^{-1}]", 
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		"upper boundary - timestep" => SurfaceMovieContent(
+			tuppersurfaces["dtplane"] ./1e5, 
+			L"\rm timestep\ [s]",
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		"upper boundary - heating" => SurfaceMovieContent(
+			tuppersurfaces["qrplane"] ./1e5, 
+			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		#
+		#
+		"optical surface - temperature" => SurfaceMovieContent(
+			topticalsurfaces["Tplane"], 
+			L"\rm temperature\ [K]", 
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		"optical surface - density" => SurfaceMovieContent(
+			topticalsurfaces["lnDplane"], 
+			L"\rm density\ [g\ cm^{-3}]",
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		"optical surface - flux" => SurfaceMovieContent(
+			topticalsurfaces["fluxplane"], 
+			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		"optical surface - vertical velocity" => SurfaceMovieContent(
+			topticalsurfaces["uzplane"] ./1e5, 
+			L"\rm v_z\ [km\ s^{-1}]", 
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		"optical surface - timestep" => SurfaceMovieContent(
+			topticalsurfaces["dtplane"] ./1e5, 
+			L"\rm timestep\ [s]",
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+		"optical surface - heating" => SurfaceMovieContent(
+			topticalsurfaces["qrplane"] ./1e5, 
+			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
+			tuppersurfaces["x"][1] ./1e8, 
+			tuppersurfaces["y"][1] ./1e8
+		),
+	)
+end;
 
-	#=
-	labelsurfaceMovie = L"\rm v_z\ [km\ s^{-1}]"
-	labelsurfaceMovie = L"\rm temperature\ [K]"
-	labelsurfaceMovie = L"\rm density\ [g\ cm^{-3}]"
-	labelsurfaceMovie = L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]"
-	labelsurfaceMovie = L"\rm timestep\ [s]"
-	labelsurfaceMovie = L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]"
-	=#
-	labelsurfaceMovie = L"\rm temperature\ [K]"
+# ╔═╡ b901bb2a-1f3c-46f5-b3f7-1d530975d767
+md"""
+	Select 2D surface movie topic
+$(@bind surfaceMovie_choice Select(sort(keys(surfacesMovieSelection)|>collect), default="optical surface - temperature"))
+"""
 
-	xAxis = tuppersurfaces["x"][1] ./1e8
-	yAxis = tuppersurfaces["y"][1] ./1e8
-	
+# ╔═╡ 3c3c8847-ae3e-40d5-97ef-d69e3e5ccd14
+begin
+	surfaceMovieSelected = surfacesMovieSelection[surfaceMovie_choice]
+	surfacesMovie = surfaceMovieSelected.movie
+	labelsurfaceMovie = surfaceMovieSelected.label
+	xAxis = surfaceMovieSelected.xAxis
+	yAxis = surfaceMovieSelected.xAxis
+end;
+
+# ╔═╡ 6575c66a-fe2a-4427-bd4c-f23eef344caf
+md"""
+	Modify movie appearence
+"""
+
+# ╔═╡ e8e6bc53-9d2d-4e5c-b8a6-cfbb23e5c387
+begin
 	dpi = 150
 	cmap = "gist_heat"
 end;
-
-# ╔═╡ c1faa953-4b76-43fa-a958-a5476e325afc
-
 
 # ╔═╡ 8945b7b7-f3e5-4846-b76e-49d9c864391e
 begin		
@@ -2350,29 +2429,72 @@ end
 # ╔═╡ fe34b982-e39b-4c54-827f-53b27b2d6db2
 
 
+# ╔═╡ 7cb38dc7-385f-4521-9c9e-f70b1a7e4fd4
+
+
 # ╔═╡ bdf0fb65-7a95-471a-99dc-b2ae8ce9a97e
 md"## Vertical yz, x-center slice"
 
-# ╔═╡ dffb82a9-7f7f-40f0-9994-70c36323f3f9
+# ╔═╡ a2718d44-abdc-47fd-8ad1-6ad2aece1718
+vertMovieSelection = if "centerVerticalCut" in keys(monitoring[1])
+	Dict(
+		"temperature" => SurfaceMovieContent(
+			timeevolution(monitoring, "centerVerticalCut")["Tplane"], 
+			L"\rm temperature\ [K]", 
+			timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8, 
+			timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
+		),
+		"density" => SurfaceMovieContent(
+			timeevolution(monitoring, "centerVerticalCut")["lnDplane"], 
+			L"\rm density\ [g\ cm^{-3}]",
+			timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8, 
+			timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
+		),
+		"Flux" => SurfaceMovieContent(
+			timeevolution(monitoring, "centerVerticalCut")["fluxplane"], 
+			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
+			timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8, 
+			timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
+		),
+		"vertical velocity" => SurfaceMovieContent(
+			timeevolution(monitoring, "centerVerticalCut")["uzplane"] ./1e5, 
+			L"\rm v_z\ [km\ s^{-1}]", 
+			timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8, 
+			timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
+		),
+		"timestep" => SurfaceMovieContent(
+			timeevolution(monitoring, "centerVerticalCut")["dtplane"] ./1e5, 
+			L"\rm timestep\ [s]",
+			timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8, 
+			timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
+		)
+	)
+else
+	Dict("Temperature"=>nothing)
+end;
+
+# ╔═╡ 97a4f8d2-6c3b-48c0-a5ff-ac4f23cfcaf9
+("centerVerticalCut" in keys(monitoring[1])) && md"""
+	Select 2D vertical movie topic
+$(@bind vertMovie_choice Select(sort(keys(vertMovieSelection)|>collect), default="temperature"))
+"""
+
+# ╔═╡ 7ccca88c-23f4-4440-8346-0d3cc25ebae9
+if "centerVerticalCut" in keys(monitoring[1])
+	vertMovieSelected = vertMovieSelection[vertMovie_choice]
+	surfacesMovie_vert = vertMovieSelected.movie
+	labelsurfaceMovie_vert = vertMovieSelected.label
+	xAxis_vert = vertMovieSelected.xAxis
+	yAxis_vert = vertMovieSelected.xAxis
+end;
+
+# ╔═╡ 5540fbd5-67b4-4d18-8d3b-b12f1249e2ec
+md"""
+	Modify movie appearence
+"""
+
+# ╔═╡ d0e41ab4-6d23-4fa2-89dd-5253013af2d2
 begin
-	if "centerVerticalCut" in keys(monitoring[1])
-		#=
-		surfacesMovie_vert = timeevolution(monitoring, "centerVerticalCut")["Tplane"]
-		surfacesMovie_vert = timeevolution(monitoring, "centerVerticalCut")["uzplane"] ./1e5
-		=#
-		surfacesMovie_vert = timeevolution(monitoring, "centerVerticalCut")["Tplane"]
-
-		
-		#=
-		labelsurfaceMovie_vert = L"\rm temperature\ [K]"
-		labelsurfaceMovie_vert = L"\rm vertical velocity\ [km/s]"
-		=#
-		labelsurfaceMovie_vert = L"\rm temperature\ [K]"
-	
-		xAxis_vert = timeevolution(monitoring, "centerVerticalCut")["y"][1] ./1e8
-		yAxis_vert = timeevolution(monitoring, "centerVerticalCut")["z"][1] ./1e8
-	end
-
 	dpi_vert = 150
 	cmap_vert = "rainbow"
 end;
@@ -2445,6 +2567,214 @@ end;
 		Plots.plot(v_images[i], axis=([], false), background_color=:transparent)
 	end every 1
 	gif(anim, joinpath(v_opt_folder_name, "v_opt_vert.gif"), fps=fps)
+end
+
+# ╔═╡ 401758b0-9d90-4e90-bb44-36337afe4425
+
+
+# ╔═╡ 0580f869-e419-4ad3-890e-0844b10d7887
+
+
+# ╔═╡ f2923fdf-d717-46e5-bd64-87cf599d9a11
+md"## 1D stratification movie"
+
+# ╔═╡ d07278c5-f95a-4e3a-9709-9a1aa52c1500
+begin
+	struct AverageMovieContent
+		xmovie
+		ymovie
+		xlabel
+		ylabel
+	end
+	averageMovieSelection = Dict(
+		"geometrical - temperature" => AverageMovieContent(
+			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
+			[tGeoAv["T"], tGeoMin["T"], tGeoMax["T"]],
+			L"\rm z\ [km]", 
+			L"\rm temperature\ [K]", 
+		),
+		"geometrical - density" => AverageMovieContent(
+			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
+			[tGeoAv["d"], tGeoMin["d"], tGeoMax["d"]],
+			L"\rm z\ [km]", 
+			L"\rm density\ [g\ cm^{-3}]",
+		),
+		"geometrical - flux" => AverageMovieContent(
+			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
+			[tGeoAv["flux"], tGeoMin["flux"], tGeoMax["flux"]],
+			L"\rm z\ [km]", 
+			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
+		),
+		"geometrical - vertical velocity" => AverageMovieContent(
+			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
+			[tGeoAv["uz"], tGeoMin["uz"], tGeoMax["uz"]] ./1e5,
+			L"\rm z\ [km]", 
+			L"\rm v_z\ [km\ s^{-1}]", 
+		),
+		"geometrical - timestep" => AverageMovieContent(
+			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
+			[tGeoAv["dt_rt"], tGeoMin["dt_rt"], tGeoMax["dt_rt"]],
+			L"\rm z\ [km]", 
+			L"\rm timestep\ [s]",
+		),
+		"geometrical - heating" => AverageMovieContent(
+			[tGeoAv["z"], tGeoMin["z"], tGeoMax["z"]] ./1e8,
+			[tGeoAv["qr"], tGeoMin["qr"], tGeoMax["qr"]],
+			L"\rm z\ [km]", 
+			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
+		),
+		#
+		#
+		"optical - temperature" => AverageMovieContent(
+			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
+			[tOptAv["T"], tOptMin["T"], tOptMax["T"]],
+			L"\rm \log \tau_{ross}", 
+			L"\rm temperature\ [K]", 
+		),
+		"optical - density" => AverageMovieContent(
+			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
+			[tOptAv["d"], tOptMin["d"], tOptMax["d"]],
+			L"\rm \log \tau_{ross}", 
+			L"\rm density\ [g\ cm^{-3}]",
+		),
+		"optical - flux" => AverageMovieContent(
+			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
+			[tOptAv["flux"], tOptMin["flux"], tOptMax["flux"]],
+			L"\rm \log \tau_{ross}", 
+			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
+		),
+		"optical - vertical velocity" => AverageMovieContent(
+			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
+			[tOptAv["uz"], tOptMin["uz"], tOptMax["uz"]] ./1e5,
+			L"\rm \log \tau_{ross}", 
+			L"\rm v_z\ [km\ s^{-1}]", 
+		),
+		"optical - timestep" => AverageMovieContent(
+			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
+			[tOptAv["dt_rt"], tOptMin["dt_rt"], tOptMax["dt_rt"]],
+			L"\rm \log \tau_{ross}", 
+			L"\rm timestep\ [s]",
+		),
+		"optical - heating" => AverageMovieContent(
+			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
+			[tOptAv["qr"], tOptMin["qr"], tOptMax["qr"]],
+			L"\rm \log \tau_{ross}", 
+			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
+		),
+	)
+end;
+
+# ╔═╡ 12767600-b8d3-4a46-bea2-8325f91da347
+md"""
+	Select 1D average movie topic
+$(@bind averageMovie_choice Select(sort(keys(averageMovieSelection)|>collect), default="optical - temperature"))
+"""
+
+# ╔═╡ 6f82fd7d-8be1-4065-a0d8-2100cada740c
+begin
+	averageMovieSelected = averageMovieSelection[averageMovie_choice]
+	xAxis_averageMovie = averageMovieSelected.xmovie
+	yAxis_averageMovie = averageMovieSelected.ymovie
+	xlabelaverageMovie_vert = averageMovieSelected.xlabel
+	ylabelaverageMovie_vert = averageMovieSelected.ylabel
+end;
+
+# ╔═╡ 0d9f3118-7029-4c89-97a1-6f1989584a50
+md"""
+	Modify movie appearence
+"""
+
+# ╔═╡ ff6d80d9-aadb-41a4-9cd8-0c601bfea714
+begin
+	dpi_averageMovie = 200
+	logy_averageMovie = true
+	color_averageMovie = ["black", "magenta", "cyan"]
+	kwargs_averageMovie = [
+		Dict(:ls=>"-", :lw=>2), Dict(:ls=>"-", :lw=>2), Dict(:ls=>"-", :lw=>2)
+	]
+end;
+
+# ╔═╡ be0fc7d6-0145-4f7a-97fb-ee43fa61c099
+begin
+	x_min_movie_averageMovie = Inf
+	x_max_movie_averageMovie = -Inf
+	y_min_movie_averageMovie = Inf
+	y_max_movie_averageMovie = -Inf
+	for (x, y) in zip(xAxis_averageMovie, yAxis_averageMovie)
+		x_min_loc = minimum(minimum, x[i_start:i_end])
+		x_max_loc = maximum(maximum, x[i_start:i_end])
+		y_min_loc = minimum(minimum, y[i_start:i_end])
+		y_max_loc = maximum(maximum, y[i_start:i_end])
+
+		x_min_movie_averageMovie = min(x_min_loc, x_min_movie_averageMovie)
+		x_max_movie_averageMovie = max(x_max_loc, x_max_movie_averageMovie)
+		y_min_movie_averageMovie = min(y_min_loc, y_min_movie_averageMovie)
+		y_max_movie_averageMovie = max(y_max_loc, y_max_movie_averageMovie)
+	end
+	
+	f_movie_averageMovie, ax_movie_averageMovie, fnames_movie_averageMovie = [], [], []
+end;
+
+# ╔═╡ ea8df11b-7355-4564-bcfc-6271e8211ef1
+begin
+	redoMovie_averageMovie = true
+	if createGifImages
+		for (i, fp) in enumerate(fnames_movie_averageMovie)
+			isfile(fp) && rm(fp)
+			pop!(fnames_movie_averageMovie)
+			pop!(f_movie_averageMovie)
+			pop!(ax_movie_averageMovie)
+		end
+		let 
+			@progress for i in eachindex(snapshots)
+				if (snapshots[i] > endTimeMovie) | (snapshots[i] < startTimeMovie)
+					continue
+				end
+				
+				plt.close()
+				f, ax = plt.subplots(1, 1, figsize=(10, 6))
+
+				for j in eachindex(xAxis_averageMovie)
+					x = xAxis_averageMovie[j][i]
+					y = yAxis_averageMovie[j][i]
+
+					im = ax.plot(
+						x, y,
+						color=color_averageMovie[j]; 
+						kwargs_averageMovie[j]...
+					)
+				end
+				
+				ax.set_title("t = $(MUST.@sprintf("%.2f", time[i]/(60*60))) h")
+				
+				ax.set_xlabel(xlabelaverageMovie_vert)
+				ax.set_ylabel(ylabelaverageMovie_vert)
+
+				ax.set_xlim(x_min_movie_averageMovie, x_max_movie_averageMovie)
+				ax.set_ylim(y_min_movie_averageMovie, y_max_movie_averageMovie)
+
+				if logy_averageMovie
+					ax.set_yscale("log")
+				end
+				
+				append!(f_movie_averageMovie, [f])
+				append!(ax_movie_averageMovie, [ax])
+				append!(fnames_movie_averageMovie, [joinpath(v_opt_folder_name, "im_averageMovie_$i.png")])
+				f.savefig(joinpath(v_opt_folder_name, "im_averageMovie_$i.png"), dpi=dpi_averageMovie)
+			end
+		end
+	end
+end;
+
+# ╔═╡ 260616da-d48e-4a7e-9a2b-1923c16408be
+(length(fnames_movie_averageMovie) > 0) && let
+	redoMovie_averageMovie
+	
+	v_images = Images.load.(fnames_movie_averageMovie)
+	anim = @animate for i ∈ eachindex(v_images)
+		Plots.plot(v_images[i], axis=([], false), background_color=:transparent)
+	end every 1
+	gif(anim, joinpath(v_opt_folder_name, "v_opt_averageMovie.gif"), fps=fps)
 end
 
 # ╔═╡ Cell order:
@@ -2603,15 +2933,35 @@ end
 # ╟─2e99b941-935b-4379-89bf-55a4635df686
 # ╟─9d0348a6-24a1-447c-9af4-5b648a381370
 # ╟─2a05f624-3a71-4d06-a241-9c1703f5db6d
+# ╟─4545ed90-dbf9-4e6e-8170-29af90b92c21
 # ╟─40bf37a4-318b-4263-8705-a566a3321f87
-# ╠═1483a522-8d36-45f3-a7bc-8f8f8076085f
 # ╟─c1faa953-4b76-43fa-a958-a5476e325afc
+# ╟─b901bb2a-1f3c-46f5-b3f7-1d530975d767
+# ╟─3c3c8847-ae3e-40d5-97ef-d69e3e5ccd14
+# ╟─6575c66a-fe2a-4427-bd4c-f23eef344caf
+# ╠═e8e6bc53-9d2d-4e5c-b8a6-cfbb23e5c387
 # ╟─8945b7b7-f3e5-4846-b76e-49d9c864391e
 # ╟─ba5049f0-b015-41ad-907e-b86edbcbf7fb
 # ╟─7308fc51-5236-4b07-b773-df5451852fbb
 # ╟─fe34b982-e39b-4c54-827f-53b27b2d6db2
+# ╟─7cb38dc7-385f-4521-9c9e-f70b1a7e4fd4
 # ╟─bdf0fb65-7a95-471a-99dc-b2ae8ce9a97e
-# ╠═dffb82a9-7f7f-40f0-9994-70c36323f3f9
+# ╟─a2718d44-abdc-47fd-8ad1-6ad2aece1718
+# ╟─97a4f8d2-6c3b-48c0-a5ff-ac4f23cfcaf9
+# ╟─7ccca88c-23f4-4440-8346-0d3cc25ebae9
+# ╟─5540fbd5-67b4-4d18-8d3b-b12f1249e2ec
+# ╠═d0e41ab4-6d23-4fa2-89dd-5253013af2d2
 # ╟─3f5f399f-e012-4a74-8e72-a6ed45c66b7a
 # ╟─fe3a6c8f-1135-479e-bf5f-00a7671abd3e
 # ╟─0ddaddb6-784f-45ae-adc2-9217f0f52996
+# ╟─401758b0-9d90-4e90-bb44-36337afe4425
+# ╟─0580f869-e419-4ad3-890e-0844b10d7887
+# ╟─f2923fdf-d717-46e5-bd64-87cf599d9a11
+# ╟─d07278c5-f95a-4e3a-9709-9a1aa52c1500
+# ╟─12767600-b8d3-4a46-bea2-8325f91da347
+# ╟─6f82fd7d-8be1-4065-a0d8-2100cada740c
+# ╟─0d9f3118-7029-4c89-97a1-6f1989584a50
+# ╠═ff6d80d9-aadb-41a4-9cd8-0c601bfea714
+# ╟─be0fc7d6-0145-4f7a-97fb-ee43fa61c099
+# ╟─ea8df11b-7355-4564-bcfc-6271e8211ef1
+# ╟─260616da-d48e-4a7e-9a2b-1923c16408be
