@@ -17,14 +17,14 @@ WatchDog(name; folder=@in_dispatch("data/"), functions...) = WatchDog(name, join
 
 
 """
-    monitor(w::WatchDog)
+    monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10)
 
 Monitor the progress of the linked simulation. Compute statistics and save 
 depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1)
+function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -49,6 +49,7 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
         # check if there is a new snapshot
         enum = enumerate(w.snapshots)
         enum = reverse ? Iterators.reverse(enum) : enum
+        ibatch = 0
         for (i, snapf) in enum
             # for safety reasons, we dont convert the last N snaps
             # this avoids them being read while not written properly
@@ -71,8 +72,17 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
 
                 if success
                     @info "...snapshot $(snapf) done."
+                    ibatch += 1
                     time_current = time()
                 end
+            end
+
+            if ibatch>=batch
+                # if more than `batch` snapshots have been converted
+                # we exit the conversion loop and check for new snapshots
+                # this is usefull, because this provides more recent 
+                # snapshots quicker
+                break
             end
         end
 
