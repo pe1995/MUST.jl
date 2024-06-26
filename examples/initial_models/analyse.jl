@@ -1140,6 +1140,84 @@ end
 # ╔═╡ 4d438b21-b613-4a9b-97b0-d8451cdfff48
 
 
+# ╔═╡ c7cacafa-a9a6-4709-947f-f9c6ea6d38fc
+md"## Vertical velocity"
+
+# ╔═╡ d5435b08-f2b2-4c45-92a8-94c3fc52f6c2
+begin
+	uzSurf = Dict(name=>[] for name in keys(snapshots_τ))
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots[name])
+			uz_i_surf = snap[:uz][:, :, end] ./1e5
+			append!(uzSurf[name], [uz_i_surf])
+		end
+	end
+	uzSurf
+end
+
+# ╔═╡ a7b44610-1c5d-41d7-9795-710ff4ac8347
+begin
+	uz_xslice = Dict(name=>[] for name in keys(snapshots))
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots[name])
+			if :flux in keys(snap.data)
+				d_snap = snap[:uz] ./1e5
+				ixd = 1 #floor(Int, size(d_snap, 1) /2)
+				mean_plane = mean(d_snap, dims=(1, 2))
+				mv = d_snap[ixd, :, :]
+				for i in eachindex(mean_plane)
+					mv[:, i] .= log10.(abs.(mv[:, i] .- mean_plane[i]))
+				end
+				#append!(flux_xslice[name], [mv])
+				append!(uz_xslice[name], [d_snap[ixd, :, :]])
+			end
+		end
+	end
+
+	uz_xslice
+end
+
+# ╔═╡ 31f1cf65-1590-4b62-a613-17f8f21ccfd1
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
+	
+		vmin = minimum([minimum(u) for name in keys(uzSurf) for u in uzSurf[name]]) 
+		vmax = maximum([maximum(u) for name in keys(uzSurf) for u in uzSurf[name]]) 
+	
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					uzSurf[name][j],
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="jet"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm u_z\ [km\ s^{-1}]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
+end
+
+# ╔═╡ 6d987f13-bdd9-4660-8ad9-3d60079ed874
+
+
 # ╔═╡ 6d360e73-736e-41e3-a9f3-86e7d53db58a
 md"## Time steps
 Optionally, it is possible to save the radiative timestep in addition. If it is available, we can plot e.g. where the timestep is smallest. We can for example cut through the atmosphere at a given x value or compute the plane mean."
@@ -1273,6 +1351,51 @@ let
 		
 						cb = f.colorbar(i, ax=ax, fraction=0.1, pad=0.04)
 						cb.set_label(L"\rm Temperature\ [K]")
+			
+						ax.set_xlabel("y [cm]")
+						ax.set_ylabel("z [cm]")
+						
+						append!(figs, [f])
+						append!(axs, [ax])
+					end
+				end
+			end
+			gcf()
+		end
+	end
+end
+
+# ╔═╡ 79dd7e6f-5662-4588-a605-a8b4770fc234
+let
+	if (nmodels > 0) && plot_given && any([length(uz_xslice[d]) for d in keys(uz_xslice)] .> 0)
+		let		
+			vmin = minimum(
+				[minimum(u) for name in keys(uz_xslice) for u in uz_xslice[name]]
+			) 
+			vmax = maximum(
+				[maximum(u) for name in keys(uz_xslice) for u in uz_xslice[name]]
+			)
+		
+			figs = []
+			axs = []
+			
+			for name in keys(snapshots)
+				for (j, snap) in enumerate(snapshots[name])
+					if :dt_rt in keys(snap.data)
+						plt.close()			
+						f, ax = plt.subplots(1, 1, figsize=(5, 6))
+					
+						i = ax.imshow(
+							uz_xslice[name][j]',
+							origin="lower",
+							#vmin=vmin, vmax=vmax,
+							extent=zextent(snap),
+							cmap="coolwarm",
+							aspect="auto"
+						)
+		
+						cb = f.colorbar(i, ax=ax, fraction=0.1, pad=0.04)
+						cb.set_label(L"\rm u_z\ [km\ s^{-1}]")
 			
 						ax.set_xlabel("y [cm]")
 						ax.set_ylabel("z [cm]")
@@ -1799,6 +1922,12 @@ end
 # ╟─6642e0e4-84fb-486d-8849-41ae7ecae5af
 # ╟─72cc91ff-1b94-4366-974b-d4a68e9db24a
 # ╟─4d438b21-b613-4a9b-97b0-d8451cdfff48
+# ╟─c7cacafa-a9a6-4709-947f-f9c6ea6d38fc
+# ╟─d5435b08-f2b2-4c45-92a8-94c3fc52f6c2
+# ╟─a7b44610-1c5d-41d7-9795-710ff4ac8347
+# ╟─31f1cf65-1590-4b62-a613-17f8f21ccfd1
+# ╟─79dd7e6f-5662-4588-a605-a8b4770fc234
+# ╟─6d987f13-bdd9-4660-8ad9-3d60079ed874
 # ╟─6d360e73-736e-41e3-a9f3-86e7d53db58a
 # ╟─dc6422ca-e56c-4527-9ac4-7dc7faf62cc1
 # ╟─b4a8ed35-ba43-4235-b18d-d0a947322fd6
