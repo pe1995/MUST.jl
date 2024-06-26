@@ -51,6 +51,10 @@ begin
 	matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Bergemann2023.mplstyle"))
 	#matplotlib.style.use("dark_background")
 	scipy_fft = MUST.pyimport("scipy.fft")
+
+	# create a tempdir for all the movie content
+	# this is needed if multiple people try to run the same code at the same time
+	v_opt_folder_name = mktempdir()
 end;
 
 # ╔═╡ 6754b2c3-d205-4a12-88b3-53fe62c5637f
@@ -2144,6 +2148,15 @@ end
 # ╔═╡ 43b11d24-2496-44f2-9e9f-fc30ff8d285d
 md"# Fourier transformation"
 
+# ╔═╡ dbeee710-c9f3-4561-969a-321f256f99f5
+md"You can select any number of snapshots you want to include in the Fourier transformation. Make sure that you include enough snapshots so that the time sampling is dense enough, but also make sure you include a long enough time sequence so that you resolve long-wavelength waves."
+
+# ╔═╡ 408f2044-cac0-48b2-8b33-f7ddf9b66849
+md"__First snapshot to include:__ $(@bind start_fft confirm(Slider(snapshots, default=snapshots[max(length(snapshots)-200, 1)], show_value=true)))"
+
+# ╔═╡ 7a1d3d74-fea2-402b-aee1-728ff89eb548
+
+
 # ╔═╡ c5550bd5-725d-4d3e-9990-324860af7f67
 fft(args...; kwargs...) = MUST.pyconvert(Array, scipy_fft.fftn(args...; kwargs...))
 
@@ -2157,19 +2170,20 @@ end
 # ╔═╡ 587cd5a6-2117-4a65-b50e-c8d2107adfd9
 rms(data) = sqrt(mean(data .^2))
 
-# ╔═╡ 58b167bf-d79d-48e1-8118-ffc1a13ba913
-begin
-	iend_fft = length(time)
-	istart_fft = iend_fft - 100
-end
-
 # ╔═╡ 47f967fb-e063-4b23-97e9-02ca76985fa9
 let 
-	if istart_fft>1
-		data = topticalsurfaces["uzplane"][istart_fft:iend_fft] ./ 1e5
-		data = [mean(d) for d in data]
+	iend_fft = length(time)
+	istart_fft = findfirst(snapshots.==start_fft)
+	if istart_fft>=1
+		data, ylabel = if haskey(topticalsurfaces, "fluxplane")
+			dat = topticalsurfaces["fluxplane"][istart_fft:iend_fft]
+			[sum(d)/prod(size(d)) for d in dat],  L"\rm fft(<F_{bol}^{\tau=1}>)\ [normalized]"
+		else
+			dat = topticalsurfaces["uzplane"][istart_fft:iend_fft] ./ 1e5
+			[mean(d) for d in dat], L"\rm fft(<v_z^{\tau=1}>)\ [normalized]"
+		end
+		
 		t = time[istart_fft:iend_fft]
-	
 		surfaces = zeros(length(data))
 		for (i, d) in enumerate(data)
 			surfaces[i] = d
@@ -2188,10 +2202,24 @@ let
 
 		first_half = floor(Int, length(x) /2) 
 		ax.plot(x[first_half:end], y[first_half:end], color="k")
-		ax.set_xlabel(L"\rm frequency\ [\mu Hz]")
-		ax.set_ylabel(L"\rm fft(<v_z^{\tau=1}>)\ [normalized]")
 
+		if haskey(tGeoAv, "flux")
+			ax.axvline(exp10(logg) / exp10(4.44) * (5777.0 / teff(tGeoAv["flux"][itimeSurface2][end]))^0.5 * 3166, ls="--", alpha=0.5, color="k")
+		end
+		
+		ax.set_xlabel(L"\rm frequency\ [\mu Hz]")
+		ax.set_ylabel(ylabel)
 		ax.set_xlim(0, last(x))
+
+		xpos = x[x.>100.0]
+		ypos = y[x.>100.0]
+
+		Δt = first(diff(t)) ./(60)
+		t_max = (last(t) - first(t)) ./(60*60)
+		@info "Fourier transformation including $(length(t)) snapshots."
+		@info "Time spacing [min], time sequence length [h]" Δt t_max
+		@info "Peak around $(xpos[argmax(ypos)]) μHz = $(1.0/(1e-6*xpos[argmax(ypos)])) s"
+
 		f
 	end
 end
@@ -2214,22 +2242,24 @@ md"Pick the snapshot from which you want to start: $(@bind startTimeMovie confir
 md"Pick the snapshot on which you want to end: $(@bind endTimeMovie confirm(Slider(snapshots, show_value=true, default=last(snapshots))))
 "
 
-# ╔═╡ f115e371-5b71-48b2-8929-07c0ab04d5f4
-fps = 4
-
 # ╔═╡ 2e99b941-935b-4379-89bf-55a4635df686
+begin
+	i_start_fps = findfirst(i->i==startTimeMovie, snapshots)
+	i_end_fps = findfirst(i->i==endTimeMovie, snapshots)
+	
+	md"Pick the frames-per-second (FPS) of the movies: $(@bind fps confirm(Slider(1:(i_end_fps-i_start_fps+1), default=4, show_value=true)))"
+end
+
+# ╔═╡ 48b4180b-6891-4c2a-a22e-7761b8e1f439
 
 
 # ╔═╡ 9d0348a6-24a1-447c-9af4-5b648a381370
 md"""
 __Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))\
-From snapshot $(startTimeMovie) to $(endTimeMovie).
+From snapshot $(startTimeMovie) to $(endTimeMovie) with $(fps) FPS.
 """
 
-# ╔═╡ 2a05f624-3a71-4d06-a241-9c1703f5db6d
-
-
-# ╔═╡ 4545ed90-dbf9-4e6e-8170-29af90b92c21
+# ╔═╡ 4564cbd9-34bb-4b21-9fca-1027d5c95518
 
 
 # ╔═╡ 40bf37a4-318b-4263-8705-a566a3321f87
@@ -2354,11 +2384,12 @@ md"""
 	Modify movie appearence
 """
 
-# ╔═╡ e8e6bc53-9d2d-4e5c-b8a6-cfbb23e5c387
-begin
-	dpi = 150
-	cmap = "gist_heat"
-end;
+# ╔═╡ 5646dc57-693f-4605-9edc-46b0648f3ab5
+md"""
+figure resolution (DPI): $(@bind dpi confirm(Slider(10:600, default=75, show_value=true)))\
+
+colormap (matplotlib): $(@bind cmap confirm(TextField(default=\"gist_heat\")))
+"""
 
 # ╔═╡ 8945b7b7-f3e5-4846-b76e-49d9c864391e
 begin		
@@ -2366,12 +2397,10 @@ begin
 	i_end = findfirst(i->i==endTimeMovie, snapshots)
 	v_min_movie = minimum(minimum, surfacesMovie[i_start:i_end])
 	v_max_movie = maximum(maximum, surfacesMovie[i_start:i_end])	
-	v_opt_folder_name = "v_opt"
 	
-	if isdir(v_opt_folder_name)
-		rm(v_opt_folder_name, recursive=true)
+	if !isdir(v_opt_folder_name)
+		mkdir(v_opt_folder_name)
 	end
-	mkdir(v_opt_folder_name)
 	
 	f_movie, ax_movie, fnames_movie = [], [], []
 end;
@@ -2440,7 +2469,7 @@ end
 # ╔═╡ fe34b982-e39b-4c54-827f-53b27b2d6db2
 
 
-# ╔═╡ 7cb38dc7-385f-4521-9c9e-f70b1a7e4fd4
+# ╔═╡ 5d5886f6-565f-47d5-be94-7e7bf5b0e89d
 
 
 # ╔═╡ bdf0fb65-7a95-471a-99dc-b2ae8ce9a97e
@@ -2510,10 +2539,11 @@ md"""
 """
 
 # ╔═╡ d0e41ab4-6d23-4fa2-89dd-5253013af2d2
-begin
-	dpi_vert = 300
-	cmap_vert = "rainbow"
-end;
+md"""
+figure resolution (DPI): $(@bind dpi_vert confirm(Slider(10:600, default=75, show_value=true)))\
+
+colormap (matplotlib): $(@bind cmap_vert confirm(TextField(default=\"rainbow\")))
+"""
 
 # ╔═╡ 3f5f399f-e012-4a74-8e72-a6ed45c66b7a
 if ("centerVerticalCut" in keys(monitoring[1]))
@@ -2681,7 +2711,7 @@ begin
 			L"\rm timestep\ [s]",
 		)
 	end
-	if haskey(tGeoMin, "dt_rt")
+	if haskey(tGeoMin, "qr")
 		averageMovieSelection["optical - heating"] = AverageMovieContent(
 			[tOptAv["log10τ_ross"], tOptMin["log10τ_ross"], tOptMax["log10τ_ross"]],
 			[tOptAv["qr"], tOptMin["qr"], tOptMax["qr"]],
@@ -2712,9 +2742,13 @@ md"""
 """
 
 # ╔═╡ ff6d80d9-aadb-41a4-9cd8-0c601bfea714
+md"""
+figure resolution (DPI): $(@bind dpi_averageMovie confirm(Slider(10:800, default=200, show_value=true)))\
+log scale for vertical axis: $(@bind logy_averageMovie CheckBox(default=true))
+"""
+
+# ╔═╡ a926b689-8009-42f5-acf7-b35c5d5ed53f
 begin
-	dpi_averageMovie = 300
-	logy_averageMovie = true
 	color_averageMovie = ["black", "magenta", "cyan"]
 	kwargs_averageMovie = [
 		Dict(:ls=>"-", :lw=>2), Dict(:ls=>"-", :lw=>2), Dict(:ls=>"-", :lw=>2)
@@ -2947,37 +2981,38 @@ end
 # ╟─787b1cc4-9e1f-4421-874d-bdff7c231bf9
 # ╟─8ae48e0a-cddf-4775-9a1a-8eada0c07ca7
 # ╟─43b11d24-2496-44f2-9e9f-fc30ff8d285d
+# ╟─dbeee710-c9f3-4561-969a-321f256f99f5
+# ╟─408f2044-cac0-48b2-8b33-f7ddf9b66849
+# ╟─7a1d3d74-fea2-402b-aee1-728ff89eb548
 # ╟─c5550bd5-725d-4d3e-9990-324860af7f67
 # ╟─43ab1632-3df6-4b76-9385-627452ce97aa
 # ╟─587cd5a6-2117-4a65-b50e-c8d2107adfd9
-# ╠═58b167bf-d79d-48e1-8118-ffc1a13ba913
 # ╟─47f967fb-e063-4b23-97e9-02ca76985fa9
 # ╟─3d530773-bd52-41d6-a3dd-509f237ae439
 # ╟─61b3e522-2af4-4413-9c69-ee30b0d4673f
 # ╟─713164e6-4a7a-4475-beda-bda33d16e206
 # ╟─fb94a874-a34b-4721-be63-e443f92330af
-# ╠═f115e371-5b71-48b2-8929-07c0ab04d5f4
 # ╟─2e99b941-935b-4379-89bf-55a4635df686
+# ╟─48b4180b-6891-4c2a-a22e-7761b8e1f439
 # ╟─9d0348a6-24a1-447c-9af4-5b648a381370
-# ╟─2a05f624-3a71-4d06-a241-9c1703f5db6d
-# ╟─4545ed90-dbf9-4e6e-8170-29af90b92c21
+# ╟─4564cbd9-34bb-4b21-9fca-1027d5c95518
 # ╟─40bf37a4-318b-4263-8705-a566a3321f87
 # ╟─c1faa953-4b76-43fa-a958-a5476e325afc
 # ╟─b901bb2a-1f3c-46f5-b3f7-1d530975d767
 # ╟─3c3c8847-ae3e-40d5-97ef-d69e3e5ccd14
 # ╟─6575c66a-fe2a-4427-bd4c-f23eef344caf
-# ╠═e8e6bc53-9d2d-4e5c-b8a6-cfbb23e5c387
+# ╟─5646dc57-693f-4605-9edc-46b0648f3ab5
 # ╟─8945b7b7-f3e5-4846-b76e-49d9c864391e
 # ╟─ba5049f0-b015-41ad-907e-b86edbcbf7fb
 # ╟─7308fc51-5236-4b07-b773-df5451852fbb
 # ╟─fe34b982-e39b-4c54-827f-53b27b2d6db2
-# ╟─7cb38dc7-385f-4521-9c9e-f70b1a7e4fd4
+# ╟─5d5886f6-565f-47d5-be94-7e7bf5b0e89d
 # ╟─bdf0fb65-7a95-471a-99dc-b2ae8ce9a97e
 # ╟─a2718d44-abdc-47fd-8ad1-6ad2aece1718
 # ╟─97a4f8d2-6c3b-48c0-a5ff-ac4f23cfcaf9
 # ╟─7ccca88c-23f4-4440-8346-0d3cc25ebae9
 # ╟─5540fbd5-67b4-4d18-8d3b-b12f1249e2ec
-# ╠═d0e41ab4-6d23-4fa2-89dd-5253013af2d2
+# ╟─d0e41ab4-6d23-4fa2-89dd-5253013af2d2
 # ╟─3f5f399f-e012-4a74-8e72-a6ed45c66b7a
 # ╟─fe3a6c8f-1135-479e-bf5f-00a7671abd3e
 # ╟─0ddaddb6-784f-45ae-adc2-9217f0f52996
@@ -2988,7 +3023,8 @@ end
 # ╟─12767600-b8d3-4a46-bea2-8325f91da347
 # ╟─6f82fd7d-8be1-4065-a0d8-2100cada740c
 # ╟─0d9f3118-7029-4c89-97a1-6f1989584a50
-# ╠═ff6d80d9-aadb-41a4-9cd8-0c601bfea714
+# ╟─ff6d80d9-aadb-41a4-9cd8-0c601bfea714
+# ╠═a926b689-8009-42f5-acf7-b35c5d5ed53f
 # ╟─be0fc7d6-0145-4f7a-97fb-ee43fa61c099
 # ╟─ea8df11b-7355-4564-bcfc-6271e8211ef1
 # ╟─260616da-d48e-4a7e-9a2b-1923c16408be
