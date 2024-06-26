@@ -198,7 +198,7 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 end
 
 function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothing; 
-	teff, logg, feh, common_size=1000, τbottom=8, τtop=-6, adiabats=nothing, models=nothing, models_mod=nothing)
+	teff, logg, feh, common_size=1000, τbottom=8, τtop=-6, adiabats=nothing, models=nothing, models_mod=nothing, τ_extrapolate=nothing)
 	@info "Interpolating $teff, $logg, $feh on optical depth scale."
 	
 	logg_gr = grid.info[!, "logg"]
@@ -246,6 +246,11 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 	# interpolate to equally spaced in z
 	# for this we need to construct a new z scale 
 	mnew = TSO.flip(Model1D(z=z, lnT=t, lnρ=d, logg=logg, τ=exp10.(ltscale)), depth=true)
+	mnew = if !isnothing(τ_extrapolate)
+		TSO.interpolate_to(mnew, τ=range(maximum(log10.(mnew.τ)), τ_extrapolate, length=length(mnew.τ))|>collect, in_log=true)
+	else
+		mnew
+	end
 
 	# recompute z scale from opacity
 	znew = TSO.rosseland_depth(eos, mnew)
@@ -336,16 +341,16 @@ end
 #===========================================================interpolate grid =#
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
-	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="") where {F<:AbstractFloat}
+	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", τ_extrapolate=nothing) where {F<:AbstractFloat}
 	# create the initial model from interpolating the average snapshots
 	model = if isnothing(models)
 		isnothing(eos) ? 
 		interpolate_average(grid, teff=teff, logg=logg, feh=feh) : 
-		interpolate_average(grid, eos, opa, teff=teff, logg=logg, feh=feh, adiabats=adiabats)
+		interpolate_average(grid, eos, opa, teff=teff, logg=logg, feh=feh, adiabats=adiabat)
 	else
 		isnothing(eos) ? 
 		interpolate_average(grid, teff=teff, logg=logg, feh=feh, models=models, models_mod=models_mod) : 
-		interpolate_average(grid, eos, opa, teff=teff, logg=logg, feh=feh, adiabats=adiabats, models=models, models_mod=models_mod)
+		interpolate_average(grid, eos, opa, teff=teff, logg=logg, feh=feh, adiabats=adiabats, models=models, models_mod=models_mod, τ_extrapolate=τ_extrapolate)
 	end
 
 	folder_name = "interpolated"
@@ -406,7 +411,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 end
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
-	eos::F2=[nothing for _ in teff], opa::F3=[nothing for _ in teff], adiabats=nothing, folder="") where {F<:AbstractArray, F2<:AbstractArray, F3<:AbstractArray}
+	eos::F2=[nothing for _ in teff], opa::F3=[nothing for _ in teff], adiabats=nothing, folder="", τ_extrapolate=nothing) where {F<:AbstractArray, F2<:AbstractArray, F3<:AbstractArray}
 	subgrids = []
 
 	models, models_mod = read_models_from_grid(grid; eos=first(eos), opa=first(opa), adiabats=adiabats)
@@ -417,7 +422,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 				grid, teff[i], logg[i], feh[i], 
 				eos=eos[i], opa=opa[i], 
 				adiabats=adiabats, 
-				models=models, models_mod=models_mod, folder=folder
+				models=models, models_mod=models_mod, folder=folder, τ_extrapolate=τ_extrapolate
 			)
 		])
 	end

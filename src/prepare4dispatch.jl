@@ -189,7 +189,7 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
     ip_z = MUST.linear_interpolation(
         MUST.Interpolations.deduplicate_knots!(log10.(av_model.τ[mask])), 
         av_model.z[mask], 
-        extrapolation_bc=MUST.Flat()
+        extrapolation_bc=MUST.Line()
     )
 
     actual_top = ip_z(τ_top)
@@ -317,6 +317,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     Δt(R, u, c=1.0) = c * R / u
 
     velocity_ratio = max(abs(vmax), abs(vmin)) / 1e6
+    velocity_max = round(max(abs(vmax), abs(vmin)), sigdigits=4)
     dynamic_scale_ratio = velocity_ratio / larger_than_sun
 
     tscale = if test_tscale
@@ -326,6 +327,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         # currants. Round to the next quater
         dx = x_size / (patches(x_resolution, patch_size) * patch_size)
         round(Δt(dx, max(abs(vmax), abs(vmin)), courant_target) / 5e-3, sigdigits=3)
+        l_cgs / velocity_max
     else
         tscale
     end
@@ -389,7 +391,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         scaling_params=(
             :l_cgs=>l_cgs, 
             :d_cgs=>d_cgs, 
-            :t_cgs=>tscale
+            #:t_cgs=>tscale
+            :v_cgs=>velocity_max
         ),
         experiment_params=(
             :t_bot=>tbot*t_scaling,
@@ -432,7 +435,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         ),
         boundary_params=(
             :upper_bc=>2, 
-            :htop_scale=>round(htop_scale, sigdigits=5),
+            #:htop_scale=>round(htop_scale, sigdigits=5),
             :lower_bc=>5
         ),
         an_params=(
@@ -574,7 +577,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         m = TSO.flip(models[i])
         mask = sortperm(m.τ)
         td = min(τ_down, maximum(log10.(m.τ[5:end-5])))
-        tu = max(τ_up, minimum(log10.(m.τ[5:end-5])))
+        tu = τ_up #max(τ_up, minimum(log10.(m.τ[5:end-5])))
 
         xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
             m, 
@@ -594,22 +597,22 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         ip_r = MUST.linear_interpolation(
             MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.lnρ[mask], 
-            extrapolation_bc=MUST.Flat()
+            extrapolation_bc=MUST.Line()
         )
         ip_z = MUST.linear_interpolation(
             MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.z[mask], 
-            extrapolation_bc=MUST.Flat()
+            extrapolation_bc=MUST.Line()
         )
         ip_E = MUST.linear_interpolation(
             MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.lnEi[mask], 
-            extrapolation_bc=MUST.Flat()
+            extrapolation_bc=MUST.Line()
         )
         ip_T = MUST.linear_interpolation(
             MUST.Interpolations.deduplicate_knots!(log10.(m.τ[mask]), move_knots=true),
             m.lnT[mask], 
-            extrapolation_bc=MUST.Flat()
+            extrapolation_bc=MUST.Line()
         )
 
         rho_norm[i] = round(exp.(ip_r(τ_rho0)), sigdigits=5) 

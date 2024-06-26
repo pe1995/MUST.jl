@@ -31,24 +31,24 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 15                 # Points per patch
+    patch_size = 14                 # Points per patch
     τ_up = -6.0                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 7.0                    # Lower limit of simulation domain
-    τ_ee0 = -5.5                    # Newton cooling placement (energy)
+    τ_ee0 = -2.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -3.0                   # Newton cooling placement (height)
+    τ_zee0 = -1.75                  # Newton cooling placement (height)
     τ_rho0 =  0.0                   # Density normaliztion height
     dxdz_max = 3.0                  # how much bigger is box in x than z (max)
-    scale_resolution = 0.50         # Down or upsampling of simulation domain
+    scale_resolution = 0.6          # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
-        :newton_time=>80.0,        
-        :friction_time=>100.0,     
+        :newton_time=>70.0,        
+        :friction_time=>130.0,     
         :newton_decay_scale=>20.0,  
-        :friction_decay_scale=>20.0,  
-        :courant_target=>0.3,
-        :courant_hd=>0.3,
-        :courant_rt=>1.0,
+        :friction_decay_scale=>10.0,  
+        :courant_target=>0.25,
+        :courant_hd=>0.25,
+        :courant_rt=>0.25,
         :newton_params=>(           #   Optional: Give namelist field = NamedTuple 
             :on=>true,              #   for direct namelist replacement
             :delay_rt=>true
@@ -57,7 +57,7 @@ begin
             :out_time=>1.0,
         ),
         :aux_params=>(
-            :select=>["dt_rt", "flux"],
+            :select=>["dt_rt", "flux", "qr"],
         ),
         :boundary_params=>(
             :upper_bc=>7,
@@ -65,22 +65,27 @@ begin
         ),
         :an_params=>(
             :smallr=>1e-8,
-            :smallc=>1e-8, 
-            :dlnr_limit=>0.5
+            :smallc=>0.1, 
+            :dlnr_limit=>0.7
         ),
         :patch_params=>(
             :grace=>0.01,
-            :nt=>5
+            :nt=>5,
+            :dt_small=>1e-10
         ),
         :sc_rt_params=>(
             :rt_grace=>0.01,
-            :rt_freq=>2.0,
+            :rt_freq=>0.0,
+            :cdtd=>0.8
             #:timestep_limiter=>1.1 
         ),
-        :friction_params=>(
-            :slope_factor=>0.7,
-            :slope_decay_scale=>55.0
-        )
+        :dispatcher0_params=>(
+            :retry_stalled=>60,
+        ),
+        #:friction_params=>(
+        #    :slope_factor=>0.7,
+        #    :slope_decay_scale=>55.0
+        #)
     )
 end
 
@@ -101,6 +106,7 @@ begin
     # opacity table version (output)
     # v0.5   -> 8 bins (MARCS)
     # v0.5+1 -> 8 bins (MARCS) - redo for debugging (logg 4.44 for sun)
+    # v0.5+3 -> default 8 bins + 1 bin in lines, set line limiter to 5.0
     # v0.5.1 -> Grey (MARCS)
     # v0.5.2 -> 4 MURaM bins (MARCS)
     # v0.5.3 -> 5 bins in paper-setup
@@ -111,13 +117,13 @@ begin
     version = "v0.5+2"
 
     # Number of bins in the opacity table (output)
-    Nbins = 8
+    Nbins = 9
 
     # Skip binning procedure (assumes it has already been done)
-    skip_binning = true
+    skip_binning = false
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = true
+    skip_formation = false
 
     # remove formation opacities after binning (save disk space)
     clean = false
@@ -131,8 +137,16 @@ begin
         )
 
         # 8 bins
-        quadrants = [ 
+       #=quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
+            TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
+        ]=#
+
+        # 9 bins
+        quadrants = [ 
+            TSO.Quadrant((0.0, 4.0), (qlim, 5.0), 3, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
