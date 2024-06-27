@@ -2492,7 +2492,7 @@ vertMovieSelection = if "centerVerticalCut" in keys(monitoring[1])
 		tvc["z"][1] ./1e8
 	)
 	if haskey(tvc, "fluxplane")
-		vertMovieSelection["Flux"] = SurfaceMovieContent(
+		vertMovieSelection["flux"] = SurfaceMovieContent(
 			tvc["fluxplane"], 
 			L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]",
 			tvc["y"][1] ./1e8, 
@@ -2505,7 +2505,7 @@ vertMovieSelection = if "centerVerticalCut" in keys(monitoring[1])
 		tvc["y"][1] ./1e8, 
 		tvc["z"][1] ./1e8
 	)
-	if haskey(tvc, "timestep")
+	if haskey(tvc, "dtplane")
 		vertMovieSelection["timestep"] = SurfaceMovieContent(
 			tvc["dtplane"] ./1e5, 
 			L"\rm timestep\ [s]",
