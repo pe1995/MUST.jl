@@ -2283,7 +2283,7 @@ begin
 		tuppersurfaces["y"][1] ./1e8
 	)
 	surfacesMovieSelection["upper boundary - density"] = SurfaceMovieContent(
-		tuppersurfaces["lnDplane"], 
+		[exp.(x) for x in tuppersurfaces["lnDplane"]], 
 		L"\rm density\ [g\ cm^{-3}]",
 		tuppersurfaces["x"][1] ./1e8, 
 		tuppersurfaces["y"][1] ./1e8
@@ -2304,7 +2304,7 @@ begin
 	)
 	if haskey(tuppersurfaces, "dtplane")
 		surfacesMovieSelection["upper boundary - timestep"] = SurfaceMovieContent(
-			tuppersurfaces["dtplane"] ./1e5, 
+			tuppersurfaces["dtplane"], 
 			L"\rm timestep\ [s]",
 			tuppersurfaces["x"][1] ./1e8, 
 			tuppersurfaces["y"][1] ./1e8
@@ -2312,7 +2312,7 @@ begin
 	end
 	if haskey(tuppersurfaces, "qrplane")
 		surfacesMovieSelection["upper boundary - heating"] = SurfaceMovieContent(
-			tuppersurfaces["qrplane"] ./1e5, 
+			tuppersurfaces["qrplane"], 
 			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
 			tuppersurfaces["x"][1] ./1e8, 
 			tuppersurfaces["y"][1] ./1e8
@@ -2327,7 +2327,7 @@ begin
 		tuppersurfaces["y"][1] ./1e8
 	)
 	surfacesMovieSelection["optical surface - density"] = SurfaceMovieContent(
-		topticalsurfaces["lnDplane"], 
+		[exp.(x) for x in topticalsurfaces["lnDplane"]], 
 		L"\rm density\ [g\ cm^{-3}]",
 		tuppersurfaces["x"][1] ./1e8, 
 		tuppersurfaces["y"][1] ./1e8
@@ -2348,7 +2348,7 @@ begin
 	)
 	if haskey(tuppersurfaces, "dtplane")
 		surfacesMovieSelection["optical surface - timestep"] = SurfaceMovieContent(
-			topticalsurfaces["dtplane"] ./1e5, 
+			topticalsurfaces["dtplane"], 
 			L"\rm timestep\ [s]",
 			tuppersurfaces["x"][1] ./1e8, 
 			tuppersurfaces["y"][1] ./1e8
@@ -2356,7 +2356,7 @@ begin
 	end
 	if haskey(tuppersurfaces, "qrplane")
 		surfacesMovieSelection["optical surface - heating"] = SurfaceMovieContent(
-			topticalsurfaces["qrplane"] ./1e5, 
+			topticalsurfaces["qrplane"], 
 			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
 			tuppersurfaces["x"][1] ./1e8, 
 			tuppersurfaces["y"][1] ./1e8
@@ -2388,7 +2388,9 @@ md"""
 md"""
 figure resolution (DPI): $(@bind dpi confirm(Slider(10:600, default=75, show_value=true)))\
 
-colormap (matplotlib): $(@bind cmap confirm(TextField(default=\"gist_heat\")))
+colormap (matplotlib): $(@bind cmap confirm(TextField(default=\"gist_heat\")))\
+
+log scale for color axis: $(@bind logy CheckBox(default=true))
 """
 
 # ╔═╡ 8945b7b7-f3e5-4846-b76e-49d9c864391e
@@ -2429,14 +2431,26 @@ begin
 			
 				extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 			
-				im = ax.imshow(
-					surfacesMovie[i],
-					origin="lower",
-					extent=extent,
-					cmap=cmap,
-					vmin=v_min_movie,
-					vmax=v_max_movie
-				)
+				im = if !logy
+					ax.imshow(
+						surfacesMovie[i]',
+						origin="lower",
+						extent=extent,
+						cmap=cmap,
+						vmin=v_min_movie,
+						vmax=v_max_movie,
+						aspect="equal"
+					)
+				else
+					ax.imshow(
+						surfacesMovie[i]',
+						origin="lower",
+						extent=extent,
+						cmap=cmap,
+						aspect="equal",
+						norm=matplotlib.colors.LogNorm(vmin=v_min_movie, vmax=v_max_movie)
+					)
+				end
 				cb = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 				cb.set_label(labelsurfaceMovie)
 			
@@ -2486,7 +2500,7 @@ vertMovieSelection = if "centerVerticalCut" in keys(monitoring[1])
 		tvc["z"][1] ./1e8
 	)
 	vertMovieSelection["density"] = SurfaceMovieContent(
-		tvc["lnDplane"], 
+		[exp.(x) for x in tvc["lnDplane"]], 
 		L"\rm density\ [g\ cm^{-3}]",
 		tvc["y"][1] ./1e8, 
 		tvc["z"][1] ./1e8
@@ -2507,8 +2521,16 @@ vertMovieSelection = if "centerVerticalCut" in keys(monitoring[1])
 	)
 	if haskey(tvc, "dtplane")
 		vertMovieSelection["timestep"] = SurfaceMovieContent(
-			tvc["dtplane"] ./1e5, 
+			tvc["dtplane"], 
 			L"\rm timestep\ [s]",
+			tvc["y"][1] ./1e8, 
+			tvc["z"][1] ./1e8
+		)
+	end
+	if haskey(tvc, "qrplane")
+		vertMovieSelection["heating"] = SurfaceMovieContent(
+			tvc["qrplane"], 
+			L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]",
 			tvc["y"][1] ./1e8, 
 			tvc["z"][1] ./1e8
 		)
@@ -2542,7 +2564,9 @@ md"""
 md"""
 figure resolution (DPI): $(@bind dpi_vert confirm(Slider(10:600, default=75, show_value=true)))\
 
-colormap (matplotlib): $(@bind cmap_vert confirm(TextField(default=\"rainbow\")))
+colormap (matplotlib): $(@bind cmap_vert confirm(TextField(default=\"rainbow\")))\
+
+log scale for color axis: $(@bind logy_vert CheckBox(default=true))
 """
 
 # ╔═╡ 3f5f399f-e012-4a74-8e72-a6ed45c66b7a
@@ -2577,16 +2601,27 @@ end;
 				y = yAxis_vert
 			
 				extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
-			
-				im = ax.imshow(
-					surfacesMovie_vert[i]',
-					origin="lower",
-					extent=extent,
-					cmap=cmap_vert,
-					vmin=v_min_movie_vert,
-					vmax=v_max_movie_vert,
-					aspect="auto"
-				)
+
+				im = if !logy_vert
+					ax.imshow(
+						surfacesMovie_vert[i]',
+						origin="lower",
+						extent=extent,
+						cmap=cmap_vert,
+						vmin=v_min_movie_vert,
+						vmax=v_max_movie_vert,
+						aspect="auto"
+					)
+				else
+					ax.imshow(
+						surfacesMovie_vert[i]',
+						origin="lower",
+						extent=extent,
+						cmap=cmap_vert,
+						aspect="auto",
+						norm=matplotlib.colors.LogNorm(vmin=v_min_movie_vert, vmax=v_max_movie_vert)
+					)
+				end
 				cb = f.colorbar(im, ax=ax)
 				cb.set_label(labelsurfaceMovie_vert)
 				
