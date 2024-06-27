@@ -552,7 +552,13 @@ reload(w::S, snap; mmap=false, groups=nothing) where {S<:WatchDog} = begin
         fvals[gname] = Dict()
         group = fid[gname]
         for dname in keys(group)
-            fvals[gname][dname] = mmap ? HDF5.readmmap(group[dname]) : HDF5.read(group[dname])
+            fvals[gname][dname] = if (mmap && 
+                                    HDF5.ismmappable(group[dname]) && 
+                                    (HDF5.get_jl_type(group[dname])<:AbstractArray))
+                HDF5.readmmap(group[dname])
+            else
+                HDF5.read(group[dname])
+            end
         end
     end
 

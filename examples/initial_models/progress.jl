@@ -90,7 +90,7 @@ md"## Load monitoring"
 wd = MUST.WatchDog(selectedRun, folder=datafolder)
 
 # ╔═╡ 6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
-monitoring = MUST.reload!(wd)
+monitoring = MUST.reload!(wd; mmap=true)
 
 # ╔═╡ 62e93fea-6600-4619-bb66-5908be8c26e3
 
