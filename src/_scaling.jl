@@ -95,28 +95,41 @@ StandardUnits(folder::String) = begin
     file = joinpath(folder, "params.nml")
     ps = FreeNamelist(file)
 
-	scalingp = nmlField(ps, Symbol("scaling_params"))
-    pnames = keys(scalingp) |> collect
-	
-    l_name = "l_cgs" 
-    d_name = "d_cgs" 
-    v_name = "v_cgs" 
-    t_name = "t_cgs" 
+    scalingp, pnames, l_name, d_name, v_name, t_name = try 
+        scalingp = nmlField(ps, Symbol("scaling_nml"))
+        pnames = keys(scalingp) |> collect
+
+        scalingp, pnames, "l", "d", "v", "t"
+    catch
+        @warn "SCALING_NML not found in params.nml!"
+        scalingp = nmlField(ps, Symbol("scaling_params"))
+        pnames = keys(scalingp) |> collect
+    
+        scalingp, pnames, "l_cgs", "d_cgs", "v_cgs", "t_cgs"
+    end
 
     l = scalingp[l_name]
     d = scalingp[d_name]
 
-	if t_name in pnames
+	t, v = if (t_name in pnames) & (v_name in pnames) 
+        t = scalingp[t_name]
+        v = scalingp[v_name]
+        t, v
+    elseif t_name in pnames
+        @warn "Only $(t_name) found."
         t = scalingp[t_name]
         v = l / t
+        t, v
 	elseif v_name in pnames
+        @warn "Only $(v_name) found."
         v = scalingp[v_name]
         t = l / v
+        t, v
 	else
 		error("Either t or v scaling needs to be provided")
     end
 
-    StandardUnits(l=l,d=d,t=t,u=v)
+    StandardUnits(l=l, d=d, t=t, u=v)
 end
 
 
