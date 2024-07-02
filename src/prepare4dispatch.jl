@@ -336,7 +336,11 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     t_cross = x_size / min(abs(vmax), abs(vmin))
 
     # how many time scales is one crossing time compared to the sun
-    t_scaling = t_cross / tscale / ((6.0e8 / 12.0e5) /100)
+    t_scaling = 1 # t_cross / tscale / ((6.0e8 / 12.0e5) /100)
+
+    # the friction should be scaled to the nu_max value compared to the sun
+    friction_scaling = 1.0 / (exp10(logg) / exp10(4.44) * (5777.0 / teff)^0.5) * 100.0/tscale
+    @info friction_scaling
 
     stellar_w = 0.1 # round(0.1 * velocity_ratio, sigdigits=3)
     strength = 0.1 #round(0.1 * velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
@@ -407,7 +411,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         friction_params=(
             :end_time=>round(friction_time*t_scaling*duration_scaling, sigdigits=4), 
             :decay_scale=>round(friction_decay_scale*t_scaling*duration_scaling, sigdigits=4), 
-            :time=>0.1*t_scaling,
+            :time=>strength*t_scaling*friction_scaling,
         ),
         gravity_params=(
             :constant=>-round(exp10(logg), digits=3),
