@@ -10,10 +10,12 @@ mutable struct WatchDog
     folder
     snapshots
     snapshotsCompleted
+    refinement
+    currentSnapshot
     functions
 end
 
-WatchDog(name; folder=@in_dispatch("data/"), functions...) = WatchDog(name, joinpath(folder, name), [], [], functions)
+WatchDog(name; folder=@in_dispatch("data/"), functions...) = WatchDog(name, joinpath(folder, name), [], [], 0, 0, functions)
 
 
 """
@@ -24,7 +26,7 @@ depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10)
+function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10, spectra=-1)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -60,6 +62,14 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
             if !(snapf in w.snapshotsCompleted)
                 # give the snapshot some time to be written (optional)
                 sleep(delay)
+
+                # Check how detailed the output should be
+                w.currentSnapshot = snapf
+                w.refinement = 0
+                if spectra > 0
+                    # Increase refinemet if spectra are requested
+                    w.refinement = ((snapf % spectra) == 0) ? 1 : 0
+                end
 
                 success = try
                     @info "Analysing snapshot $(snapf)..."
@@ -406,6 +416,100 @@ end
 
 
 
+#= Spectrum synthesis =#
+
+resolvedSpectra4MOST3(w::WatchDog, b, bτ) = begin
+    d = Dict{Any, Any}(
+        #"intensity" => nothing,
+        #"continuum" => nothing,
+        #"wavelength" => nothing,
+        #"x" => nothing,
+        #"y" => nothing
+    )
+    
+    # only compute spectra if the WatchDog says its time
+    if w.refinement > 0
+        try
+            λs = 6200
+            λe = 6790
+            Δλ = 0.5
+            name = w.name
+            run = w.folder
+            isnap = w.currentSnapshot
+            _, _, feh = parametersFromName(name)
+            multi_name = joinpath(run, "m3dis_$(isnap)")
+            linelists = String[
+                MUST.@in_m3dis("input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata"),
+                MUST.@in_m3dis("input_multi3d/LINE-LISTS/nlte_ges_linelist_jmg04sep2023_I_II")
+            ]
+            
+            # downsample to make it faster
+            bDown = MUST.gresample(b; nx=40, ny=40, nz=size(b, 3) * 2 - 1)
+            bDown.data[:ne] = pop!(bDown.data, :Ne)
+            MUST.multiBox(bDown, joinpath(run, "m3dis_$(isnap)"))
+
+            # setup for M3D
+            spectrum_namelist = Dict(
+                :model_folder=>run,
+                :linelist=>nothing,
+                :absmet=>nothing,
+                :linelist_params=>(:line_lists=>linelists,),
+                :atom_params=>(:atom_file=>"",),
+                :spectrum_params=>(:daa=>Δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>false),
+                :atmos_params=>(
+                    :dims=>1, 
+                    :atmos_format=>"must",
+                    :use_density=>true, 
+                    :use_ne=>false,
+                    :FeH=>feh
+                ),
+                :m3d_params=>(
+                    :save_resolved=>true,
+                    :long_scheme=>"disk_center"
+                ),
+            )
+            m3dis_kwargs = Dict(:threads=>2)
+
+            @info "Spectrum synthesis requested for snapshot $(isnap)! Estimated time ~1h."
+            # Running M3D
+            result = MUST.spectrum(
+                "m3dis_$(isnap)"; 
+                name=name, 
+                NLTE=false, 
+                slurm=false, 
+                namelist_kwargs=spectrum_namelist, 
+                m3dis_kwargs=m3dis_kwargs
+            )
+
+            # get the output arrays
+            i = MUST.pyconvert(Array, result.i3)
+            c = MUST.pyconvert(Array, result.c3)
+            l = MUST.pyconvert(Array, result.lam)
+
+            d["intensity"] = i 
+            d["continuum"] = c
+            d["wavelength"] = l
+            d["x"] = bDown.x[:, :, end]
+            d["y"] = bDown.y[:, :, end]
+
+            # delete the M3D output folder
+            mn = join(["m3dis_$(isnap)", name], "_")
+            output_folder = MUST.@in_m3dis("data/$(mn)")
+            if isdir(output_folder)
+                @show output_folder
+                rm(output_folder, recursive=true)
+            end
+        catch
+        end
+    end
+
+    d
+end
+
+
+
+
+
 
 
 
@@ -442,6 +546,7 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     geometrical75thQuantile = geometrical75thQuantile,
     geometrical90thQuantile = geometrical90thQuantile,
     centerVerticalCut = centerVerticalCut,
+    resolvedSpectra4MOST3=resolvedSpectra4MOST3,
     additional_functions...
 )
 
