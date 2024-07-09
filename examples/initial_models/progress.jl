@@ -54,7 +54,7 @@ begin
 
 	# create a tempdir for all the movie content
 	# this is needed if multiple people try to run the same code at the same time
-	v_opt_folder_name = mktempdir()
+	v_opt_folder_name = "v_opt" #mktempdir()
 end;
 
 # ╔═╡ 6754b2c3-d205-4a12-88b3-53fe62c5637f
@@ -1062,27 +1062,21 @@ end
 # ╔═╡ b0c40c50-3361-4b01-ae87-45ae30387526
 md"## Geometrical Profiles"
 
-# ╔═╡ 96a3ddc0-3d70-4b65-a7c2-7482c8817186
-tGeoAv = timeevolution(monitoring, "geometricalAverages")
-
-# ╔═╡ 8c03ccae-6a25-4f2b-a99d-bf537221d007
-tGeoMin = timeevolution(monitoring, "geometricalMinimum")
-
-# ╔═╡ 2f86b88f-b53a-489b-8a1e-7d5116492e34
-tGeoMax = timeevolution(monitoring, "geometricalMaximum")
-
-# ╔═╡ f3002fa3-b796-4479-8008-fc8149e797bf
-tGeoRms = timeevolution(monitoring, "geometricalRMS")
-
-# ╔═╡ 32603241-ed2c-4579-9319-40e50eb2172c
-tGeoQuantiles = Dict(
-	k=>timeevolution(monitoring, "geometrical$(k)thQuantile") 
-	for k in [15, 30, 45, 60, 75, 90] 
-	if "geometrical$(k)thQuantile" in keys(monitoring[1])
-)
-
-# ╔═╡ 53bed7de-b834-465e-8d13-2909240286b5
-
+# ╔═╡ 159019c1-b183-4d25-83a9-0ae27d9eb0ee
+begin
+	tGeoAv = timeevolution(monitoring, "geometricalAverages")
+	tGeoMin = timeevolution(monitoring, "geometricalMinimum")
+	tGeoMax = timeevolution(monitoring, "geometricalMaximum")
+	tGeoRms = timeevolution(monitoring, "geometricalRMS")
+	tGeoQuantiles = Dict(
+		k=>timeevolution(
+			monitoring,
+			"geometrical$(k)thQuantile"
+		) 
+		for k in [15, 30, 45, 60, 75, 90]
+		if "geometrical$(k)thQuantile" in keys(monitoring[1])
+	)
+end
 
 # ╔═╡ 29803b42-3f55-4fb1-8853-8848bbdd5bd9
 md"### Averages"
@@ -1395,20 +1389,13 @@ end
 # ╔═╡ db1a9405-e93c-476d-a43b-f11f3138b57a
 md"## Optical Profiles"
 
-# ╔═╡ 3da231de-ff58-4161-a6a4-58162483825a
-tOptAv = timeevolution(monitoring, "opticalAverages")
-
-# ╔═╡ efc11ddf-99b9-4344-ab4f-1e5d7b7e2805
-tOptMin = timeevolution(monitoring, "opticalMinimum")
-
-# ╔═╡ e0d8aa2e-85cb-43fe-a5f4-65a7a757f19c
-tOptMax = timeevolution(monitoring, "opticalMaximum")
-
-# ╔═╡ 699ef294-a1b0-4ea5-8618-5cfd0b143c9a
-tOptRms = timeevolution(monitoring, "opticalRMS")
-
-# ╔═╡ 46944b1e-1590-4cba-9b9a-078f34d987ad
-
+# ╔═╡ a575dee8-6283-469b-a6ad-365ca9d1b5e9
+begin
+    tOptAv = timeevolution(monitoring, "opticalAverages")
+	tOptMin = timeevolution(monitoring, "opticalMinimum")
+	tOptMax = timeevolution(monitoring, "opticalMaximum")
+	tOptRms = timeevolution(monitoring, "opticalRMS")
+end
 
 # ╔═╡ f5c4d377-09f2-4ecf-9cd6-458c10be2943
 md"### Averages"
@@ -1731,9 +1718,6 @@ if haskey(tOptAv, "flux")
 	end
 end
 
-# ╔═╡ be186b14-8ae2-4f67-8a1f-fcf2d5eaa8fa
-
-
 # ╔═╡ 321e3dda-cd15-4787-95e6-f928125535d5
 md"""
 # Time evolution
@@ -1778,8 +1762,12 @@ end
 # ╔═╡ 35f64e1d-2273-4178-879e-187b86b24043
 md"## Optical Surface"
 
-# ╔═╡ c2b64d82-09a7-4d67-97d0-b51d96d30d25
-ttempsurface = timeevolution(monitoring, "opticalSurfaces", "Tplane")
+# ╔═╡ cb3e21b3-0197-4685-a9ae-fe4040106222
+begin
+	ttempsurface = timeevolution(monitoring, "opticalSurfaces", "Tplane")
+	tdsurface = timeevolution(monitoring, "opticalSurfaces", "lnDplane")
+	tuzsurface = timeevolution(monitoring, "opticalSurfaces", "uzplane")
+end
 
 # ╔═╡ eb335a4d-e662-499c-bb80-8bf38c84329f
 let
@@ -1812,9 +1800,6 @@ let
 	gcf()
 end
 
-# ╔═╡ 71c4c81a-5567-45f0-925a-1dcad0f97082
-tdsurface = timeevolution(monitoring, "opticalSurfaces", "lnDplane")
-
 # ╔═╡ 35b4aa7e-e41b-4444-af3b-74684c723d5c
 let
 	plt.close()
@@ -1845,9 +1830,6 @@ let
 	
 	gcf()
 end
-
-# ╔═╡ 1521d2b2-56a7-41eb-ad52-b661af7f30c6
-tuzsurface = timeevolution(monitoring, "opticalSurfaces", "uzplane")
 
 # ╔═╡ 87d43815-9733-40ac-b4e7-81a2c5dbd0d1
 let
@@ -2028,11 +2010,11 @@ end
 # ╔═╡ 9e883b44-f225-4566-9d76-ecd3e34d3b5b
 md"## Mass Flux"
 
-# ╔═╡ 3bfef187-d899-473d-9a92-acf5c65fa50d
-tmassfluxgeo = timeevolution(monitoring, "geoMassFlux")
-
-# ╔═╡ 786e489d-42fb-4ef0-83b6-0e6a7fce2d93
-tmassfluxopt = timeevolution(monitoring, "optMassFlux")
+# ╔═╡ def11de6-b7af-446b-ada7-e61f19b6503b
+begin
+	tmassfluxgeo = timeevolution(monitoring, "geoMassFlux")
+	tmassfluxopt = timeevolution(monitoring, "optMassFlux")
+end
 
 # ╔═╡ 01026bad-d93a-4246-a940-e9eb894ccf67
 let
@@ -2209,8 +2191,9 @@ let
 		
 		ax.set_xlabel(L"\rm frequency\ [\mu Hz]")
 		ax.set_ylabel(ylabel)
-		ax.set_xlim(0, last(x))
+		ax.set_xlim(1, last(x))
 
+		#ax.set_xscale("log")
 		xpos = x[x.>100.0]
 		ypos = y[x.>100.0]
 
@@ -2786,7 +2769,7 @@ log scale for vertical axis: $(@bind logy_averageMovie CheckBox(default=true))
 begin
 	color_averageMovie = ["black", "magenta", "cyan"]
 	kwargs_averageMovie = [
-		Dict(:ls=>"-", :lw=>2), Dict(:ls=>"-", :lw=>2), Dict(:ls=>"-", :lw=>2)
+		Dict(:ls=>"-", :lw=>2), Dict(:ls=>"", :lw=>2, :marker=>"."), Dict(:ls=>"", :lw=>2, :marker=>".")
 	]
 end;
 
@@ -2946,12 +2929,7 @@ end
 # ╟─97e5e57c-3828-4781-b93e-172a1c3c2cce
 # ╟─82d82155-981c-4fdb-b0ae-d8d40ce016f5
 # ╟─b0c40c50-3361-4b01-ae87-45ae30387526
-# ╟─96a3ddc0-3d70-4b65-a7c2-7482c8817186
-# ╟─8c03ccae-6a25-4f2b-a99d-bf537221d007
-# ╟─2f86b88f-b53a-489b-8a1e-7d5116492e34
-# ╟─f3002fa3-b796-4479-8008-fc8149e797bf
-# ╟─32603241-ed2c-4579-9319-40e50eb2172c
-# ╟─53bed7de-b834-465e-8d13-2909240286b5
+# ╟─159019c1-b183-4d25-83a9-0ae27d9eb0ee
 # ╟─29803b42-3f55-4fb1-8853-8848bbdd5bd9
 # ╟─68477423-a6f7-424f-8fd4-849d63648b57
 # ╟─8ef763ae-d1bd-40de-a26a-f91f529c03bf
@@ -2963,11 +2941,7 @@ end
 # ╟─b046b3a0-05d4-4b6c-be80-7396f475be3d
 # ╟─b09b0c9e-3d76-4ff0-ae82-205cbc3b83b5
 # ╟─db1a9405-e93c-476d-a43b-f11f3138b57a
-# ╟─3da231de-ff58-4161-a6a4-58162483825a
-# ╟─efc11ddf-99b9-4344-ab4f-1e5d7b7e2805
-# ╟─e0d8aa2e-85cb-43fe-a5f4-65a7a757f19c
-# ╟─699ef294-a1b0-4ea5-8618-5cfd0b143c9a
-# ╟─46944b1e-1590-4cba-9b9a-078f34d987ad
+# ╟─a575dee8-6283-469b-a6ad-365ca9d1b5e9
 # ╟─f5c4d377-09f2-4ecf-9cd6-458c10be2943
 # ╟─0fdf3055-4d11-4dea-8a50-e595ef1c112d
 # ╟─eddc02bf-d7ca-41e1-878e-ef1103bf1b0f
@@ -2981,7 +2955,6 @@ end
 # ╟─4c3b9b8a-03a5-494d-a321-7f5c400ed054
 # ╟─dc0315d8-0616-433b-8182-33840afb0b0f
 # ╟─aef86067-68b0-48b8-8bb2-0d410a7521c2
-# ╟─be186b14-8ae2-4f67-8a1f-fcf2d5eaa8fa
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─643eaee3-a1f8-4be2-b032-08fcb325fbe8
 # ╟─aae74666-7fdd-4db9-8869-68e4597f6940
@@ -2990,11 +2963,9 @@ end
 # ╟─c370ebd5-fc25-4e81-b3f9-37bf99b35598
 # ╟─fc550522-d506-4f0e-b582-e7c54cd23be0
 # ╟─35f64e1d-2273-4178-879e-187b86b24043
-# ╟─c2b64d82-09a7-4d67-97d0-b51d96d30d25
+# ╟─cb3e21b3-0197-4685-a9ae-fe4040106222
 # ╟─eb335a4d-e662-499c-bb80-8bf38c84329f
-# ╟─71c4c81a-5567-45f0-925a-1dcad0f97082
 # ╟─35b4aa7e-e41b-4444-af3b-74684c723d5c
-# ╟─1521d2b2-56a7-41eb-ad52-b661af7f30c6
 # ╟─87d43815-9733-40ac-b4e7-81a2c5dbd0d1
 # ╟─c8492ca5-893f-4939-a256-f0872f351c5d
 # ╟─df9b58cf-fe4f-4858-a296-879bb0385ba7
@@ -3005,8 +2976,7 @@ end
 # ╟─0378dcdf-0291-4e9c-a30b-5dacd346707c
 # ╟─b4fd0320-74b2-4ed4-b7b0-beca4eccd553
 # ╟─9e883b44-f225-4566-9d76-ecd3e34d3b5b
-# ╟─3bfef187-d899-473d-9a92-acf5c65fa50d
-# ╟─786e489d-42fb-4ef0-83b6-0e6a7fce2d93
+# ╟─def11de6-b7af-446b-ada7-e61f19b6503b
 # ╟─01026bad-d93a-4246-a940-e9eb894ccf67
 # ╟─dd1297cd-62d0-4b39-b0a3-e41fab79bc8b
 # ╟─43590370-0a2e-4d6e-9531-f93eb1630acd

@@ -228,3 +228,39 @@ macro optionalTiming(name, exp)
         end
     end
 end
+
+
+
+"""
+    parametersFromName(name)
+
+Try to extract stellar parameters from the name. Parameters need to be given as
+tXXXXgXXXmXXXX. Please make sure to include the minus sign in m.
+"""
+parametersFromName(name) = begin
+	names = split(name, "_", keepempty=false)
+	i_name = 0
+	for (i, split) in enumerate(names)
+		if occursin("t", split) & occursin("g", split) & occursin("m", split)
+			i_name = i
+		end
+	end
+
+	t, g, m = if i_name == 0
+		@warn "could not guess atmospheric parameters from name."
+		-1, -1, 0.0
+	else
+        relevantPart = names[i_name]
+        t1 = findfirst(x->x=='t', relevantPart) + 1
+        t2 = findfirst(x->x=='g', relevantPart) - 1
+        t3 = findfirst(x->x=='m', relevantPart) - 1
+
+        t = parse(Float64, relevantPart[t1:t2])
+        g = parse(Float64, relevantPart[t2+2:t3]) ./10
+        m = parse(Float64, relevantPart[t3+2:end])
+
+		t, g, m
+	end
+
+	t, g, m
+end
