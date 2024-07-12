@@ -70,7 +70,7 @@ get_teff(name)
 run = @in_dispatch("data/$(name)")
 
 # ╔═╡ f56644af-c01c-4d3a-8e78-d675560432b1
-isnap = 302
+isnap = 352
 
 # ╔═╡ e1aaad21-9340-4e31-9644-7f11b446e859
 multi_name = joinpath(run, "m3dis_$(isnap)")
@@ -127,12 +127,12 @@ m3dis_kwargs = Dict(
 )
 
 # ╔═╡ eed8ef16-ee05-4245-9ae6-a57ec85f4eec
-result = MUST.spectrum(
-	"m3dis_$(isnap)"; name=name, NLTE=false, slurm=false, namelist_kwargs=spectrum_namelist, m3dis_kwargs=m3dis_kwargs
-)
+#result = MUST.spectrum(
+#	"m3dis_$(isnap)"; name=name, NLTE=false, slurm=false, #namelist_kwargs=spectrum_namelist, m3dis_kwargs=m3dis_kwargs
+#)
 
 # ╔═╡ 2f718c66-6c8c-4fae-953d-83c8cc676e06
-#result = MUST.M3DISRun("m3dis_300_$(name)", @in_m3dis("data"))
+result = MUST.M3DISRun("m3dis_352_$(name)", @in_m3dis("data"))
 
 # ╔═╡ 309a3b42-0f48-4618-a1f1-83467df6e02d
 i = MUST.pyconvert(Array, result.i3)
@@ -160,6 +160,13 @@ end
 
 # ╔═╡ 782d5099-c19d-44ff-8be3-bea4c340ea43
 l = MUST.pyconvert(Array, result.xx)
+
+# ╔═╡ 66274028-910a-4c6c-abce-6458a71c7980
+let
+	plt.imshow(bDown[:T][:,:,200], cmap="gist_heat")
+
+	gcf()
+end
 
 # ╔═╡ Cell order:
 # ╠═16244768-3acc-11ef-2fbf-0d708f18e84d
@@ -189,3 +196,4 @@ l = MUST.pyconvert(Array, result.xx)
 # ╠═729c8ba1-2460-417c-a72a-f1a2ddc505c5
 # ╠═22ad2a7e-a358-4aac-8f6d-4b6ce97f4d0b
 # ╠═782d5099-c19d-44ff-8be3-bea4c340ea43
+# ╠═66274028-910a-4c6c-abce-6458a71c7980

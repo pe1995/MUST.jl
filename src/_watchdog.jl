@@ -26,7 +26,7 @@ depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10, spectra=-1)
+function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10, spectra=-1, onlyrefinement=false)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -68,12 +68,27 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
                 w.refinement = 0
                 if spectra > 0
                     # Increase refinemet if spectra are requested
-                    w.refinement = ((snapf % spectra) == 0) ? 1 : 0
+                    w.refinement = (((snapf % spectra) == 0) && snapf>0) ? 1 : 0
+                end
+
+                # save the snapshot to disk if we have a refinement level
+                save_refinement = if w.refinement > 0
+                    true
+                else
+                    save_box
+                end
+
+                # skip if only a refinement is requested
+                if onlyrefinement
+                    if w.refinement == 0
+                        @info "Skipping snapshot $(snapf) because no refinement is requested."
+                        continue
+                    end
                 end
 
                 success = try
                     @info "Analysing snapshot $(snapf)..."
-                    analyse(w, snapf, save_box=save_box)
+                    analyse(w, snapf, save_box=save_refinement)
                     true
                 catch
                     @info "...snapshot $(snapf) failed."
@@ -418,46 +433,60 @@ end
 
 #= Spectrum synthesis =#
 
-resolvedSpectra4MOST3(w::WatchDog, b, bτ) = begin
-    d = Dict{Any, Any}(
-        #"intensity" => nothing,
-        #"continuum" => nothing,
-        #"wavelength" => nothing,
-        #"x" => nothing,
-        #"y" => nothing
-    )
+resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ=nothing) = begin
+    dλ = if isnothing(Δλ)
+        (lambda_max+lambda_min)/2.0/R
+    else
+        Δλ
+    end
+    d = Dict{Any, Any}()
     
     # only compute spectra if the WatchDog says its time
     if w.refinement > 0
         try
-            λs = 6200
-            λe = 6790
-            Δλ = 0.5
+            λs = lambda_min
+            λe = lambda_max
+            Δλ = dλ
             name = w.name
             run = w.folder
             isnap = w.currentSnapshot
             _, _, feh = parametersFromName(name)
             multi_name = joinpath(run, "m3dis_$(isnap)")
+
+            # linelists relative to M3D 
             linelists = String[
-                MUST.@in_m3dis("input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata"),
-                MUST.@in_m3dis("input_multi3d/LINE-LISTS/nlte_ges_linelist_jmg04sep2023_I_II")
+                "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
+                "input_multi3d/LINE-LISTS/nlte_ges_linelist_jmg04sep2023_I_II"
             ]
+
+            # make sure, that M3D is setup correctly
+            if !isdir(@in_m3dis("input_multi3d/MUST"))
+                @warn "There is not yet a MUST directory in M3D. This is needed to keep the paths short!"
+                symlink(@in_dispatch("data"), @in_m3dis("input_multi3d/MUST"))
+            end
+
+            linelists = if !isdir(@in_m3dis("input_multi3d/LINE-LISTS"))
+                @warn "The default linelists can not be found! Provide the following: $(linelists)"
+                []
+            else
+                linelists
+            end
             
             # downsample to make it faster
-            bDown = MUST.gresample(b; nx=40, ny=40, nz=size(b, 3) * 2 - 1)
+            bDown = gresample(b; nx=SPECTRUM_DOWNSAMPLING[], ny=SPECTRUM_DOWNSAMPLING[], nz=size(b, 3) * 2 - 1)
             bDown.data[:ne] = pop!(bDown.data, :Ne)
-            MUST.multiBox(bDown, joinpath(run, "m3dis_$(isnap)"))
+            multiBox(bDown, joinpath(run, "m3dis_$(isnap)"))
 
             # setup for M3D
             spectrum_namelist = Dict(
-                :model_folder=>run,
+                :model_folder=>joinpath("input_multi3d","MUST", name),
                 :linelist=>nothing,
                 :absmet=>nothing,
                 :linelist_params=>(:line_lists=>linelists,),
                 :atom_params=>(:atom_file=>"",),
                 :spectrum_params=>(:daa=>Δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>false),
                 :atmos_params=>(
-                    :dims=>1, 
+                    :dims=>30, 
                     :atmos_format=>"must",
                     :use_density=>true, 
                     :use_ne=>false,
@@ -468,11 +497,11 @@ resolvedSpectra4MOST3(w::WatchDog, b, bτ) = begin
                     :long_scheme=>"disk_center"
                 ),
             )
-            m3dis_kwargs = Dict(:threads=>2)
+            m3dis_kwargs = Dict(:threads=>SPECTRUM_THREADS[])
 
             @info "Spectrum synthesis requested for snapshot $(isnap)! Estimated time ~1h."
             # Running M3D
-            result = MUST.spectrum(
+            result = spectrum(
                 "m3dis_$(isnap)"; 
                 name=name, 
                 NLTE=false, 
@@ -482,9 +511,9 @@ resolvedSpectra4MOST3(w::WatchDog, b, bτ) = begin
             )
 
             # get the output arrays
-            i = MUST.pyconvert(Array, result.i3)
-            c = MUST.pyconvert(Array, result.c3)
-            l = MUST.pyconvert(Array, result.lam)
+            i = pyconvert(Array, result.i3)
+            c = pyconvert(Array, result.c3)
+            l = pyconvert(Array, result.lam)
 
             d["intensity"] = i 
             d["continuum"] = c
@@ -494,18 +523,25 @@ resolvedSpectra4MOST3(w::WatchDog, b, bτ) = begin
 
             # delete the M3D output folder
             mn = join(["m3dis_$(isnap)", name], "_")
-            output_folder = MUST.@in_m3dis("data/$(mn)")
+            output_folder = @in_m3dis("data/$(mn)")
             if isdir(output_folder)
-                @show output_folder
                 rm(output_folder, recursive=true)
             end
         catch
+            error("Spectrum synthesis failed.")
         end
     end
 
     d
 end
 
+
+resolvedSpectra4MOST3(w::WatchDog, b, bτ) = resolvedSpectra(6200.0, 6790.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
+resolvedSpectraAPOGEESDSSV(w::WatchDog, b, bτ) = resolvedSpectra(15140.0, 17000.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
+resolvedSpectraGaiaESOHR10(w::WatchDog, b, bτ) = resolvedSpectra(5339.0, 5619.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
+resolvedSpectraGaiaRVS(w::WatchDog, b, bτ) = resolvedSpectra(8470.0, 8740.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
+resolvedSpectraGaiaRVSCATriplet(w::WatchDog, b, bτ) = resolvedSpectra(8480.0, 8560.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
+resolvedSpectraHalpha(w::WatchDog, b, bτ) = resolvedSpectra(6562.8-20.0, 6562.8+20.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
 
 
 
@@ -546,7 +582,11 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     geometrical75thQuantile = geometrical75thQuantile,
     geometrical90thQuantile = geometrical90thQuantile,
     centerVerticalCut = centerVerticalCut,
-    resolvedSpectra4MOST3=resolvedSpectra4MOST3,
+    resolvedSpectraAPOGEESDSSV = resolvedSpectraAPOGEESDSSV,
+    resolvedSpectraGaiaESOHR10 = resolvedSpectraGaiaESOHR10,
+    resolvedSpectraGaiaRVS = resolvedSpectraGaiaRVS,
+    resolvedSpectraGaiaRVSCATriplet = resolvedSpectraGaiaRVSCATriplet,
+    resolvedSpectraHalpha = resolvedSpectraHalpha,
     additional_functions...
 )
 
@@ -577,6 +617,9 @@ end
 
 
 
+
+
+
 """
     deleteSnapshot(w, snap)
 
@@ -598,6 +641,26 @@ deleteSnapshot(w, snap) = begin
         @info "Snapshot $(snap) removed from $(datadir)."
     end
 end
+
+"""
+    deleteMonitoring(w, snap)
+
+Delete the snapshot with number snap from the monitoring.
+This is usefull if you want to re-do the analysis of the given snapshot.
+"""
+deleteMonitoring(w, snap) = begin
+    # check if monitoring really exists
+    if !(snap in w.snapshotsCompleted)
+        @warn "Deleting requested for snapshot $(snap), which is not monitored yet."
+        return
+    end
+
+   # remove the monitoring
+   rm(monitoringPath(w, snap))
+end
+
+
+
 
 
 
@@ -745,3 +808,17 @@ timeevolution(m, group) = begin
         for k in keys(mg)
     )
 end
+
+
+
+
+
+
+
+
+#= GLobal parameters =#
+
+const SPECTRUM_THREADS = Ref(2)
+const SPECTRUM_RESOLUTION = Ref(100000.0)
+const SPECTRUM_DOWNSAMPLING = Ref(40)
+
