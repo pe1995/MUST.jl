@@ -52,7 +52,7 @@ begin
 
 	selectedPointsFile = joinpath(v_opt_folder_name, "selectedPoints.txt")
 	
-	TableOfContents()
+	TableOfContents(title="DISPATCH Spectroscopy 🌟")
 end
 
 # ╔═╡ c7dc3b15-6555-4824-872a-d487fe5145ea
@@ -398,7 +398,7 @@ make colormap symmetric $(@bind sliceCmapSym CheckBox(default=false))\
 
 # ╔═╡ 2182de0b-bb9a-4fb2-b9df-45ef4ecd084e
 md"""
-Below you can find a list of colormaps that are available. Just expand the dictionary and have a look!. A good choice for the velocity field is e.g.
+Below you can find a list of colormaps that are available. Just expand the dictionary and have a look! A good choice for the velocity field is e.g.
 `diverging_bwr_40_95_c42_n256` or `bwr`, and for the temperature `linear_kryw_5_100_c64_n256`.
 """
 
@@ -900,10 +900,17 @@ if length(ix_pickOptVSurf_arr) > 0
 	ylab = [@sprintf("%.3f", yi) for yi in y]
 	
 	md"""
-		Optically modify curve appearance
+		Modify curve appearance
 	$(@bind plot_names set_selected_names(zip(ix_pickOptVSurf_arr, iy_pickOptVSurf_arr), xlab, ylab))
 	"""
 end
+
+# ╔═╡ 9db76078-3d67-47bd-bbb6-b16035a56912
+yloc = if length(ix_pickOptVSurf_arr) > 0
+	resolvedSelection[resolved_choice].yAxis()
+else
+	nothing
+end;
 
 # ╔═╡ e849b063-7500-44a8-8bfe-a757a661b60e
 let
@@ -952,7 +959,6 @@ let
 		end
 
 		i = 1
-		yloc = resolvedSelection[resolved_choice].yAxis()
 		for i in eachindex(iy_pickOptVSurf_arr)
 			# spectrum here
 			yi = yloc[i]
@@ -1087,6 +1093,7 @@ end=#
 # ╟─63ec2623-eb88-43f1-a037-b86c013181f2
 # ╟─2dd31efe-7ca9-46d9-9f01-188dcf688b4f
 # ╟─c61e23a0-9b4b-492a-99f2-093f293d1d59
+# ╟─9db76078-3d67-47bd-bbb6-b16035a56912
 # ╟─e849b063-7500-44a8-8bfe-a757a661b60e
 # ╟─133176e8-85ac-40ab-bc09-180cd9dd1f9f
 # ╟─b8e6b417-2b9e-4b7f-a4d9-500b2c464a23
