@@ -499,7 +499,7 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
             )
             m3dis_kwargs = Dict(:threads=>SPECTRUM_THREADS[])
 
-            @info "Spectrum synthesis requested for snapshot $(isnap)! Estimated time ~1h."
+            @info "Spectrum synthesis between $(lambda_min)Å and $(lambda_max)Å (Δλ=$(dλ)) requested for snapshot $(isnap)."
             # Running M3D
             result = spectrum(
                 "m3dis_$(isnap)"; 
@@ -528,7 +528,8 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
                 rm(output_folder, recursive=true)
             end
         catch
-            error("Spectrum synthesis failed.")
+            @warn "Spectrum synthesis between $(lambda_min)Å and $(lambda_max)Å (Δλ=$(dλ)) failes for snapshot $(isnap)."
+            #error("Spectrum synthesis failed.")
         end
     end
 
@@ -536,12 +537,12 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
 end
 
 
-resolvedSpectra4MOST3(w::WatchDog, b, bτ) = resolvedSpectra(6200.0, 6790.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
-resolvedSpectraAPOGEESDSSV(w::WatchDog, b, bτ) = resolvedSpectra(15140.0, 17000.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
-resolvedSpectraGaiaESOHR10(w::WatchDog, b, bτ) = resolvedSpectra(5339.0, 5619.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
-resolvedSpectraGaiaRVS(w::WatchDog, b, bτ) = resolvedSpectra(8470.0, 8740.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
-resolvedSpectraGaiaRVSCATriplet(w::WatchDog, b, bτ) = resolvedSpectra(8480.0, 8560.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
-resolvedSpectraHalpha(w::WatchDog, b, bτ) = resolvedSpectra(6562.8-20.0, 6562.8+20.0, w, b, bτ; R=SPECTRUM_RESOLUTION[])
+resolvedSpectra4MOST3(w::WatchDog, b, bτ) = resolvedSpectra(6200.0, 6790.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraAPOGEESDSSV(w::WatchDog, b, bτ) = resolvedSpectra(15140.0, 17000.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraGaiaESOHR10(w::WatchDog, b, bτ) = resolvedSpectra(5339.0, 5619.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraGaiaRVS(w::WatchDog, b, bτ) = resolvedSpectra(8470.0, 8740.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraGaiaRVSCATriplet(w::WatchDog, b, bτ) = resolvedSpectra(8480.0, 8560.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraHalpha(w::WatchDog, b, bτ) = resolvedSpectra(6562.8-20.0, 6562.8+20.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 
 
 
@@ -582,7 +583,7 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     geometrical75thQuantile = geometrical75thQuantile,
     geometrical90thQuantile = geometrical90thQuantile,
     centerVerticalCut = centerVerticalCut,
-    resolvedSpectraAPOGEESDSSV = resolvedSpectraAPOGEESDSSV,
+    #resolvedSpectraAPOGEESDSSV = resolvedSpectraAPOGEESDSSV,
     resolvedSpectraGaiaESOHR10 = resolvedSpectraGaiaESOHR10,
     resolvedSpectraGaiaRVS = resolvedSpectraGaiaRVS,
     resolvedSpectraGaiaRVSCATriplet = resolvedSpectraGaiaRVSCATriplet,
@@ -819,6 +820,6 @@ end
 #= GLobal parameters =#
 
 const SPECTRUM_THREADS = Ref(2)
-const SPECTRUM_RESOLUTION = Ref(100000.0)
+const SPECTRUM_RESOLUTION = Ref(0.05)
 const SPECTRUM_DOWNSAMPLING = Ref(40)
 
