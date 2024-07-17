@@ -27,6 +27,8 @@ begin
 	using LaTeXStrings
 	using Printf
 	using ImageFiltering
+	using DelimitedFiles
+	using JSON
 
 	#plotly()
 	#PlutoPlotly.default(grid=false, framestyle=:box, minorticks=true)
@@ -987,69 +989,30 @@ let
 	end
 end
 
-# ╔═╡ 133176e8-85ac-40ab-bc09-180cd9dd1f9f
-#md"""
-#	Select spatially-dependent quantity to show for selected point
-#$(@bind pickOptVCol Select(sort(keys(surfacesSliceSelection)|>collect), #default="optical surface - temperature"))
-#"""
-
-# ╔═╡ b8e6b417-2b9e-4b7f-a4d9-500b2c464a23
-#=let
-	if !isnothing(pickOptVSurf)
-		#@show ix_pickOptVSurf, iy_pickOptVSurf
-		#@show surfacesSliceSelection[surface_choice].zAxis[ix_pickOptVSurf, iy_pickOptVSurf]
-
-		x = surfacesSliceSelection[surface_choice].xAxis
-		y = surfacesSliceSelection[surface_choice].yAxis
-		z = surfacesSliceSelection[surface_choice].zAxis
-		z = sliceCmapLog ? log10.(z) : z
-		vmin, vmax = if sliceCmapSym
-			vmax = maximum(abs.(z))
-			-vmax, vmax
-		else
-			minimum(z), maximum(z)
-		end
-
-		xstart = max(ix_pickOptVSurf -20, 1)
-		xend = min(ix_pickOptVSurf +20, size(x, 1))
-		ystart = max(iy_pickOptVSurf -20, 1)
-		yend = min(iy_pickOptVSurf +20, size(y, 2))
+# ╔═╡ e754eb4b-9304-440b-a306-6efa4f04b40b
+if length(iy_pickOptVSurf_arr) > 0 
+	let
+		xlab = resolvedSelection[resolved_choice].xlabel
+		ylab = resolvedSelection[resolved_choice].label
 	
-		extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
-		cmap = cmaps[Symbol(sliceCmap)]
-		p1 = defaultSubPlot(
-			heatmap, 
-			z=z[xstart:xend, ystart:yend]',
-			x=x[xstart:xend, 1], y=y[1, ystart:yend],
-			zmin=vmin, zmax=vmax,
-			colorscale=cmap,
-			colorbar_titleside="right",
-			colorbar_title=surfacesSliceSelection[surface_choice].label,
-			reversescale=sliceCmapReverse,
-			yaxis="y2", xaxis="x2", name="zoom"
+		data = JSON.json(
+			Dict(
+				xlab=>resolvedSelection[resolved_choice].xAxis,
+				Dict(
+					"$(ylab)-$(pl)"=>yloc[i] for (i, pl) in enumerate(plot_names)
+				)...
+			)
 		)
 
-		# spectrum here
-		p2 = scatter(y=rand(10), name="spectrum", linecolor="white")
-
-		p = make_subplots(insets=[Inset(cell=(1,1), l=0.8, b=0.7)]);
-
-		# second trace is added to axes (x2, y2), which is the insets
-		addtraces!(p, p2, p1)
-
-		#l = Layout(template="plotly_dark", xaxis_title="X [Mm]")
-		relayout!(p, defaultLayout(
-				xaxis_title="X [Mm]",
-				yaxis_title="Y [Mm]",
-				title="spatially resolved spectrum",
-		))
-		
-		p
+		@info "You can download the data in the JSON format by clicking the button above."
+		DownloadButton(data, replace(
+			resolved_choice, 
+			' '=>'_',
+			'('=>"",
+			')'=>""
+		)*".json")
 	end
-end=#
-
-# ╔═╡ be186b14-8ae2-4f67-8a1f-fcf2d5eaa8fa
-
+end
 
 # ╔═╡ Cell order:
 # ╟─c7dc3b15-6555-4824-872a-d487fe5145ea
@@ -1095,6 +1058,4 @@ end=#
 # ╟─c61e23a0-9b4b-492a-99f2-093f293d1d59
 # ╟─9db76078-3d67-47bd-bbb6-b16035a56912
 # ╟─e849b063-7500-44a8-8bfe-a757a661b60e
-# ╟─133176e8-85ac-40ab-bc09-180cd9dd1f9f
-# ╟─b8e6b417-2b9e-4b7f-a4d9-500b2c464a23
-# ╟─be186b14-8ae2-4f67-8a1f-fcf2d5eaa8fa
+# ╟─e754eb4b-9304-440b-a306-6efa4f04b40b
