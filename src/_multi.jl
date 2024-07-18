@@ -219,7 +219,7 @@ opacityTable(models; folder, linelist, λs, λe, δλ, H_atom="input_multi3d/ato
 			:m3d_params=>(
 				:n_nu=>1, 
 				:ilambd=>0,
-				:quad_scheme=>"disk_center",
+				:short_scheme=>"disk_center",
 				:long_scheme=>"disk_center",
 				:make_opac_table=>true
 			),
@@ -242,7 +242,7 @@ end
 Submit a job to the M3DIS code, which will compute the outgoing flux across in LTE or NLTE.
 IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis macro.
 """
-function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true, name="")
+function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true, name="", cleanup=true)
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
     # Create the default namelist (with adjustments)
@@ -290,6 +290,13 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
     end
     @info "M3D completed."
 
+
+    if cleanup
+        nmls_created = glob("$(mn(model_name)).nml*", @in_m3dis(""))
+        rm.(nmls_created)
+    end
+
+
     # read the output
     M3DISRun(joinpath(nml.io_params["datadir"], mn(model_name)))
 end
@@ -300,7 +307,7 @@ end
 Submit jobs to the M3DIS code, which will compute the outgoing flux across in LTE or NLTE.
 IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis macro.
 """
-function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true, wait=true, name="")
+function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true, wait=true, name="", cleanup=true)
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
     data_dir = whole_spectrum_namelist(model_names |> first; namelist_kwargs...).io_params["datadir"]
@@ -366,6 +373,11 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
             srun_m3dis(join([model_name, name], "_")*".nml"; wait=false, m3dis_kwargs...)
         else
             run_m3dis(join([model_name, name], "_")*".nml"; wait=false, m3dis_kwargs...)
+        end
+
+        if cleanup
+            nmls_created = glob(join([model_name, name], "_")*".nml*", @in_m3dis(""))
+            rm.(nmls_created)
         end
 
         append!(results, [r])
