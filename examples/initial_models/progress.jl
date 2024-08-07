@@ -84,16 +84,13 @@ md"Click 'Submit' again to look for new snapshots."
 
 
 # ╔═╡ ed9cc79f-0161-4178-b6f0-81a2bccbf188
-md"## Load monitoring"
+md"## Load Monitoring"
 
 # ╔═╡ 28d708db-45a7-4fad-a226-e907ebf88b43
 wd = MUST.WatchDog(selectedRun, folder=datafolder)
 
 # ╔═╡ 6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
-monitoring = MUST.reload!(wd; mmap=true)
-
-# ╔═╡ 62e93fea-6600-4619-bb66-5908be8c26e3
-
+monitoring = MUST.reload!(wd; mmap=true);
 
 # ╔═╡ 1fcefd1e-1c50-43b5-b203-62920944344a
 begin
@@ -2137,6 +2134,9 @@ md"You can select any number of snapshots you want to include in the Fourier tra
 md"__First snapshot to include:__ $(@bind start_fft confirm(Slider(snapshots, default=snapshots[max(length(snapshots)-200, 1)], show_value=true)))"
 
 # ╔═╡ 7a1d3d74-fea2-402b-aee1-728ff89eb548
+md"__Frequency limit [μHz]:__ $(@bind fft_xlim confirm(TextField(default=\"5000\")))"
+
+# ╔═╡ 39d3636d-1161-4cbd-a11e-b900e75e77ce
 
 
 # ╔═╡ c5550bd5-725d-4d3e-9990-324860af7f67
@@ -2191,7 +2191,9 @@ let
 		
 		ax.set_xlabel(L"\rm frequency\ [\mu Hz]")
 		ax.set_ylabel(ylabel)
-		ax.set_xlim(1, last(x))
+		#ax.set_xlim(1, last(x))
+		ax.set_xlim(1, parse(Float64, fft_xlim))
+		
 
 		#ax.set_xscale("log")
 		xpos = x[x.>100.0]
@@ -2873,7 +2875,6 @@ end
 # ╟─ed9cc79f-0161-4178-b6f0-81a2bccbf188
 # ╟─28d708db-45a7-4fad-a226-e907ebf88b43
 # ╟─6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
-# ╟─62e93fea-6600-4619-bb66-5908be8c26e3
 # ╟─1fcefd1e-1c50-43b5-b203-62920944344a
 # ╟─60199001-8f0e-44a6-ae50-e829687c045c
 # ╟─0e4df1b3-52ef-4fce-8f32-bddc966b0516
@@ -2989,6 +2990,7 @@ end
 # ╟─dbeee710-c9f3-4561-969a-321f256f99f5
 # ╟─408f2044-cac0-48b2-8b33-f7ddf9b66849
 # ╟─7a1d3d74-fea2-402b-aee1-728ff89eb548
+# ╟─39d3636d-1161-4cbd-a11e-b900e75e77ce
 # ╟─c5550bd5-725d-4d3e-9990-324860af7f67
 # ╟─43ab1632-3df6-4b76-9385-627452ce97aa
 # ╟─587cd5a6-2117-4a65-b50e-c8d2107adfd9
