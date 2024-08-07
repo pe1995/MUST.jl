@@ -57,7 +57,7 @@ Base.:+(g1::StaggerGrid, g2::StaggerGrid) = StaggerGrid(g1.name, vcat(g1.info, g
 """
 	interpolate_quantity(grid::StaggerGrid, what; teff, logg, feh, method="linear")
 
-Interpolate quantity `what` from within the grid to the new teff, loww and feh values.
+Interpolate quantity `what` from within the grid to the new teff, logg and feh values.
 Uses scipy griddata for scattered interpolation. Convert output to julia.
 
 # Examples
@@ -74,7 +74,7 @@ function interpolate_quantity(grid::StaggerGrid, what; teff, logg, feh, method="
 	teff_gr = grid.info[femask, "teff"]
 	what_gr = grid.info[femask, what]
 
-	pyconvert(
+	a = pyconvert(
 		Any,
 		first(
 			scipy_interpolate.griddata(
@@ -83,6 +83,20 @@ function interpolate_quantity(grid::StaggerGrid, what; teff, logg, feh, method="
 			)
 		), 
 	)
+
+	if isnan(a)
+		pyconvert(
+			Any,
+			first(
+				scipy_interpolate.griddata(
+					(logg_gr, teff_gr), what_gr, ([logg], [teff]), 
+					method="nearest"
+				)
+			), 
+		)
+	else
+		a
+	end
 end
 
 
