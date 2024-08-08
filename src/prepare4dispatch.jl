@@ -56,6 +56,7 @@ find_integer_simple(dxdz_approx, desired_n_patches; step=0.1) = begin
     a = dxdz_approx * desired_n_patches
 
     [p, m][argmin([abs(p - a), abs(m - a)])]
+    p
 end
 
 @inline patches(res, patch_size) = Int(floor(res / patch_size))

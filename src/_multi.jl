@@ -4,15 +4,15 @@ struct M3DISRun{P<:PythonCall.Py}
     run::P
 end
 
-M3DISRun(path::String) = begin
+M3DISRun(path::String; kwargs...) = begin
     isnothing(multi_location) && error("No Multi module has been loaded.")
     p = @in_m3dis(path)
     @assert isdir(p)
-    M3DISRun(m3dis.read(p))
+    M3DISRun(m3dis.m3dis.read(p; kwargs...))
 end
 
-M3DISRun(path::String, folder::String) = begin
-    M3DISRun(joinpath(folder, path))
+M3DISRun(path::String, folder::String; kwargs...) = begin
+    M3DISRun(joinpath(folder, path); kwargs...)
 end
 
 
@@ -157,7 +157,7 @@ function whole_spectrum(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs
     end
 
     # read the output
-    M3DISRun(joinpath(nml.io_params["datadir"], model_name))
+    M3DISRun(joinpath(nml.io_params["datadir"], model_name), read_atmos=false)
 end
 
 """
@@ -196,7 +196,7 @@ function whole_spectrum(model_names::AbstractVector{String}; namelist_kwargs=Dic
     end
 
     # read the output
-    [M3DISRun(joinpath(data_dir, model_name)) for model_name in model_names]
+    [M3DISRun(joinpath(data_dir, model_name), read_atmos=false) for model_name in model_names]
 end
 
 opacityTable(models; folder, linelist, λs, λe, δλ, H_atom="input_multi3d/atoms/atom.h20",
