@@ -11,7 +11,7 @@ begin
 	using MUST
 	using TSO
 	using PythonPlot
-	using DataFrames 
+	using DataFrames
 end
 
 # ╔═╡ 273c40e1-f4ef-4f24-93dc-b9bb95f3abeb
@@ -21,16 +21,16 @@ plt = matplotlib.pyplot;
 md"Problem: The initial models for hot stars seem to look terrible. They crash almost immediatelly. The idea now is to look at the MARCS models and see how far off the interpolted models are. If they are far off, it might be an idea to extend the MARCS models deeper inside the star and see how that goes."
 
 # ╔═╡ 63ac3293-0d3f-4533-8fc4-ae3695e40cc6
-mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+#mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
 
 # ╔═╡ 62d17d2d-6727-4632-b086-30cc6e828360
-#mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m10_vmic2_v4.0"
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m10_vmic2_v4.0"
 
 # ╔═╡ ce43f8fe-6274-4da3-b427-1f362352f1a4
-eos_mother_path = "ross_combined_eos_magg_m0_a0.hdf5"
+#eos_mother_path = "ross_combined_eos_magg_m0_a0.hdf5"
 
 # ╔═╡ e607ddf1-fb54-4c6c-842c-40003f2604e2
-#eos_mother_path = "combined_eos_magg_m10_vmic2.hdf5"
+eos_mother_path = "combined_eos_magg_m10_vmic2.hdf5"
 
 # ╔═╡ 4fe7acc7-d74d-4c28-84b4-336630221922
 modelgrids = MUST.ingredients("modelgrids.jl")
@@ -202,7 +202,7 @@ list_marcs_models(folder) = begin
 end
 
 # ╔═╡ 08fd37b2-2d68-4ce5-afce-a92cf6d89142
-df = list_marcs_models(marcs_path)
+df = list_marcs_models(marcs_path) 
 
 # ╔═╡ 23814821-fae0-402e-b8c9-696d8c9b01b2
 row_selector(g) = begin
@@ -228,10 +228,10 @@ row_selector(g) = begin
 end
 
 # ╔═╡ 50060c7b-f021-424c-8733-ecf7db170e95
-marcs_grid = combine(groupby(df, [:T, :logg, :feh]), row_selector)
+marcs_grid = combine(groupby(df, [:T, :logg, :feh]), row_selector) 
 
 # ╔═╡ 3c2ee7a4-f85f-4505-ae48-248e9ec11fac
-deleteat!(marcs_grid, marcs_grid[!, :feh] .!= 0.0)
+deleteat!(marcs_grid, (marcs_grid[!, :feh] .<= -4.5) .| (marcs_grid[!, :feh] .>= -3.5))
 
 # ╔═╡ 646a5bfb-0fc8-4256-894b-fffc3f10525c
 
@@ -240,7 +240,16 @@ deleteat!(marcs_grid, marcs_grid[!, :feh] .!= 0.0)
 md"Now we have a MARCS grid, that contains models with the lowest available microturbulance (greater than 0), and α-enhancement of 0.4 below metallicity of -1. This makes sure that the grid is unique in Teff, logg and FeH. We can now grab auxiliary 3D information from the Stagger grid. Those MARCS models can then be used to interpolate new models. The new models should then be adiabatically extrapolated."
 
 # ╔═╡ 061fcfbd-45b6-4f6b-b191-64b672ac4a08
-
+begin
+	folder_marcs = "MARCS_z4"
+	if !isdir(folder_marcs) 
+		mkdir(folder_marcs)
+		mkdir(joinpath(folder_marcs, "av_models"))
+	end
+	if !isdir(joinpath(folder_marcs, "av_models"))
+		mkdir(joinpath(folder_marcs, "av_models"))
+	end
+end
 
 # ╔═╡ a9f10b54-4c53-497a-9586-0ac48c430276
 begin
@@ -248,7 +257,7 @@ begin
 	parasmarcs[:, 1] = marcs_grid[!, :T]
 	parasmarcs[:, 2] = marcs_grid[!, :logg]
 	parasmarcs[:, 3] = marcs_grid[!, :feh]
-	folder = "MARCS/av_models"
+	folder = joinpath(folder_marcs, "av_models")
 	old_path = marcs_grid[!, :path]
 
 	eos_marcs = [
@@ -482,8 +491,11 @@ marcs_constructed_grid[!, "matching_eos"] = [
 	for _ in 1:nrow(marcs_constructed_grid)
 ]
 
+# ╔═╡ 44fa2659-7369-42fa-a52c-996808656e9f
+marcs_constructed_grid[!, "avo_path"] = marcs_constructed_grid[!, "av_path"]
+
 # ╔═╡ fe0512ee-38e7-4e75-aa73-e517c522aef7
-MUST.save(MUST.StaggerGrid("MARCS constructed", marcs_constructed_grid), "marcs_grid_z0.mgrid")
+MUST.save(MUST.StaggerGrid("MARCS constructed", marcs_constructed_grid), joinpath(folder,"marcs_grid_z4.mgrid"))
 
 # ╔═╡ Cell order:
 # ╠═b04a8d9a-5307-11ef-1268-95d5b8233977
@@ -518,4 +530,5 @@ MUST.save(MUST.StaggerGrid("MARCS constructed", marcs_constructed_grid), "marcs_
 # ╠═2c40e250-b0c4-4a34-b626-b052e1143b1e
 # ╠═d0f927ab-b49a-4a51-ab15-f089caffb1e9
 # ╠═d1998950-051d-4b26-b219-0424f92b4778
+# ╠═44fa2659-7369-42fa-a52c-996808656e9f
 # ╠═fe0512ee-38e7-4e75-aa73-e517c522aef7
