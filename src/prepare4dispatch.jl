@@ -207,7 +207,7 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
     dxdz_approx = round(dxdz, sigdigits=2)
     step = 0.1
 
-    actual_x_patches = find_integer_simple(dxdz_approx, desired_n_patches, step=step)
+    actual_x_patches = 2* desired_n_patches # find_integer_simple(dxdz_approx, desired_n_patches, step=step)
     #actual_x_patches = actual_x_patches % 2 == 0 ? actual_x_patches : actual_x_patches + 1
 
     # For some reason the fraction needs to be integer as well...
