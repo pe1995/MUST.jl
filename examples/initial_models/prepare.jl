@@ -225,7 +225,7 @@ end
 
 #====================== Step (C): Conversion =================================#
 begin
-    prepare4dispatch.fromT_toE.(grid.info[!, "binned_tables"], grid.info[!, "binned_E_tables"], upsample=2048)
+    prepare4dispatch.fromT_toE.(grid.info[!, "binned_tables"], grid.info[!, "binned_E_tables"], upsample=4096)
 
     # Copy the average model in the same folder so that we can link it all to the right place
     for i in 1:nrow(grid.info)
