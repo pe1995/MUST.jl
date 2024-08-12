@@ -3,10 +3,6 @@ using MUST
 using TSO
 using ArgParse
 
-MUST.@import_dispatch("../../../dispatch2/")
-iniCond = MUST.ingredients("initial_condition.jl")
-
-
 # argument parsing for arrays
 ArgParse.parse_item(::Type{Vector{A}}, x::AbstractString) where {A<:Number} = parse.(A, split(x, ",", keepempty=false))
 ArgParse.parse_item(::Type{Vector{A}}, x::AbstractString) where {A<:AbstractString} = split(x, ",", keepempty=false)
@@ -18,24 +14,28 @@ s = ArgParseSettings()
         help = "Where to store new models + binned opacities."
         arg_type = String
         default = "interpolatedModels/M1"
+    "--version"
+        help = "Version to be added to the EoS table."
+        default="v1.0"
+        arg_type = String
     "--grid"
         help = "Grid in which to interpolate (Stagger, MARCS)."
         arg_type = String
         default = "Stagger"
     "--teff", "-t"
-        help = "List of effective temperatures"
+        help = "List of effective temperatures."
         arg_type = Vector{Float64}
         required = true
     "--logg", "-l"
-        help = "List of log effective surface gravities."
+        help = "List of log10 surface gravities."
         arg_type = Vector{Float64}
         required = true
     "--feh", "-f"
-        help = "List of metallicities [Fe/H]"
+        help = "List of metallicities [Fe/H]."
         arg_type = Vector{Float64}
         required = true
     "--eos"
-        help = "EoS to use. Can be set to 'closest' to pick the closest EoS in the grid."
+        help = "EoS to use. Can be set to `closest` to pick the closest EoS in the grid."
         arg_type = Vector{String}
         default = ["closest"]
     "--tau_bottom"
@@ -43,7 +43,7 @@ s = ArgParseSettings()
         arg_type = Float64
         default = 6
     "--adiabatic_extrapolation"
-        help = """Extrapolate adiabatically below the bottom boundary 'tau_bottom' after the model has been averaged.
+        help = """Extrapolate adiabatically below the bottom boundary `tau_bottom` after the model has been averaged.
         The extrapolation is carried out until the geometrical bottom boundary as specified in the grid has been reached.
         """
         action = :store_true
@@ -61,7 +61,7 @@ s = ArgParseSettings()
         arg_type = Float64
         default = 6.0
     "--tau_ee0"
-        help = "Surface energy during Newton phase."
+        help = "Surface energy during Newton phase picked from this height."
         arg_type = Float64
         default = -2.5
     "--tau_zee0"
@@ -145,6 +145,10 @@ end
 
 # read and parse command line arguments
 arguments = parse_args(ARGS, s)
+
+# include dispatch path and untility functions
+MUST.@import_dispatch("../../../dispatch2/")
+iniCond = MUST.ingredients("initial_condition.jl")
 
 # Dispatch setup from command line
 begin
@@ -241,6 +245,7 @@ begin
         eos=eos, 
         savedir=avModels, 
         τbottom=arguments["tau_bottom"], 
+        common_size=3000,
         adiabatic_extrapolation=arguments["adiabatic_extrapolation"]
     )
 end
@@ -250,6 +255,7 @@ begin
     iniCond.prepare(
 	    grid,
 	    name_extension=modelFolder,
+        version=arguments["version"],
         patch_size=patch_size,
         τ_up=τ_up,
         τ_surf=τ_surf,
