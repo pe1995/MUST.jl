@@ -2136,6 +2136,9 @@ md"__First snapshot to include:__ $(@bind start_fft confirm(Slider(snapshots, de
 # ╔═╡ 7a1d3d74-fea2-402b-aee1-728ff89eb548
 md"__Frequency limit [μHz]:__ $(@bind fft_xlim confirm(TextField(default=\"5000\")))"
 
+# ╔═╡ e9b7dfd5-1034-4b95-941c-df003436e26e
+md"__Frequency selector [μHz]:__ $(@bind freqSelect confirm(TextField(default=\"3000\")))"
+
 # ╔═╡ 39d3636d-1161-4cbd-a11e-b900e75e77ce
 
 
@@ -2182,7 +2185,7 @@ let
 		x = timeFFT[sortmask] .* 1e6
 		y = surfaceFFT[sortmask] ./ maximum(surfaceFFT[sortmask])
 
-		first_half = floor(Int, length(x) /2) 
+		first_half = 1#floor(Int, length(x) /2) 
 		ax.plot(x[first_half:end], y[first_half:end], color="k")
 
 		if haskey(tGeoAv, "flux")
@@ -2192,10 +2195,13 @@ let
 		ax.set_xlabel(L"\rm frequency\ [\mu Hz]")
 		ax.set_ylabel(ylabel)
 		#ax.set_xlim(1, last(x))
+		#ax.set_xlim(-parse(Float64, fft_xlim), parse(Float64, fft_xlim))
 		ax.set_xlim(1, parse(Float64, fft_xlim))
+		#ax.set_ylim(0, 0.01)
 		
 
 		#ax.set_xscale("log")
+		ax.set_yscale("log")
 		xpos = x[x.>100.0]
 		ypos = y[x.>100.0]
 
@@ -2204,6 +2210,9 @@ let
 		@info "Fourier transformation including $(length(t)) snapshots."
 		@info "Time spacing [min], time sequence length [h]" Δt t_max
 		@info "Peak around $(xpos[argmax(ypos)]) μHz = $(1.0/(1e-6*xpos[argmax(ypos)])) s"
+
+		ax.axvline(parse(Float64, freqSelect), ls=":", alpha=0.5, color="r")
+		
 
 		f
 	end
@@ -2962,7 +2971,7 @@ end
 # ╟─15f1108e-6f72-4700-89d9-fc2dfaf7ea47
 # ╟─e452c94a-3b4b-4dd1-a286-3c32a5c8e995
 # ╟─c370ebd5-fc25-4e81-b3f9-37bf99b35598
-# ╟─fc550522-d506-4f0e-b582-e7c54cd23be0
+# ╠═fc550522-d506-4f0e-b582-e7c54cd23be0
 # ╟─35f64e1d-2273-4178-879e-187b86b24043
 # ╟─cb3e21b3-0197-4685-a9ae-fe4040106222
 # ╟─eb335a4d-e662-499c-bb80-8bf38c84329f
@@ -2990,6 +2999,7 @@ end
 # ╟─dbeee710-c9f3-4561-969a-321f256f99f5
 # ╟─408f2044-cac0-48b2-8b33-f7ddf9b66849
 # ╟─7a1d3d74-fea2-402b-aee1-728ff89eb548
+# ╟─e9b7dfd5-1034-4b95-941c-df003436e26e
 # ╟─39d3636d-1161-4cbd-a11e-b900e75e77ce
 # ╟─c5550bd5-725d-4d3e-9990-324860af7f67
 # ╟─43ab1632-3df6-4b76-9385-627452ce97aa

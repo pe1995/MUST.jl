@@ -32,12 +32,12 @@ end
 #= Dispatch setup =#
 begin
     patch_size = 14                 # Points per patch
-    τ_up = -6.5                     # Upper limit of simulation domain
+    τ_up = -6.0                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 6.5                    # Lower limit of simulation domain
-    τ_ee0 = -6.0                    # Newton cooling placement (energy)
+    τ_ee0 = -4.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -3.0                   # Newton cooling placement (height)
+    τ_zee0 = -2.5                   # Newton cooling placement (height)
     τ_rho0 =  0.0                   # Density normaliztion height
     dxdz_max = 3.0                  # how much bigger is box in x than z (max)
     scale_resolution = 0.75         # Down or upsampling of simulation domain
@@ -48,24 +48,25 @@ begin
         :friction_decay_scale=>10.0,  
         :courant_target=>0.25,
         :courant_hd=>0.25,
-        :courant_rt=>0.25,
+        :courant_rt=>0.5,
         :newton_params=>(           #   Optional: Give namelist field = NamedTuple 
             :on=>true,              #   for direct namelist replacement
             :delay_rt=>true
         ),
         :io_params=>(
             :out_time=>0.25,
+            :end_time=>400
         ),
         :aux_params=>(
-            :select=>["dt_rt", "flux", "qr"],
+            :select=>["flux"],
         ),
         :boundary_params=>(
             :upper_bc=>7,
-            :smallr=>1e-8
+            :radiation_bc=>3,
+            :smallr=>1e-9
         ),
         :an_params=>(
             :smallr=>1e-8,
-            :smallc=>0.1, 
             :dlnr_limit=>0.7
         ),
         :patch_params=>(
@@ -75,7 +76,7 @@ begin
         ),
         :sc_rt_params=>(
             :rt_grace=>0.01,
-            :rt_freq=>2.0,
+            :rt_freq=>0.0,
             :cdtd=>1.0
             #:timestep_limiter=>1.1 
         ),
@@ -97,8 +98,10 @@ begin
     # Location of the opacity table
     # for MARCS EoS
     mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
-    mother_table_path = "../../../opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+    #mother_table_path = "../../../opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
+    #mother_table_path = "../../../opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
     extension = "magg_m0_a0"
+    #mother_table_path = "../../../opacity_tables/TSO_M3D_$(extension)_v5.0"
     eos_path = "ross_combined_eos_"*extension*".hdf5"
     opa_path = "combined_opacities_"*extension*".hdf5"
     sopa_path = "combined_Sopacities_"*extension*".hdf5"
@@ -115,16 +118,16 @@ begin
     # v0.5.5 -> 12 bins in paper-setup
     # v0.5.6 -> 7 bins in paper-setup
     # v0.5.7 -> 12 bins in Co5bold setup
-    version = "v0.5+4"
+    version = "v0.5+1"
 
     # Number of bins in the opacity table (output)
-    Nbins = 12
+    Nbins = 8
 
     # Skip binning procedure (assumes it has already been done)
     skip_binning = false
 
     # Skip formation opacity procedure (assumes it has already been done)
-    skip_formation = true
+    skip_formation = false
 
     # remove formation opacities after binning (save disk space)
     clean = false
@@ -138,12 +141,12 @@ begin
         )
 
         # 8 bins
-       #=quadrants = [ 
+       quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
-        ]=#
+        ]
 
         # 9 bins
         #=quadrants = [ 
@@ -154,12 +157,12 @@ begin
         ]=#
 
         # 12 bins
-        quadrants = [ 
+        #=quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 5.5), 5, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (5.5, 100), 1, stripes=:κ),
             TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 5, stripes=:λ),
-        ]
+        ]=#
 
         # 4 MURaM bins
         #=quadrants = [ 

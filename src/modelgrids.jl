@@ -23,6 +23,8 @@ end
 
 
 
+
+
 #======================================================================= EoS =#
 
 function equation_of_state(grid::MUST.AbstractMUSTGrid, point::Int; energy=false)
@@ -44,8 +46,8 @@ function equation_of_state(grid::MUST.AbstractMUSTGrid, point::String; kwargs...
 	equation_of_state(grid, i; kwargs...)
 end
 
-find_closest_eos(grid::MUST.AbstractMUSTGrid, teff, feh) = begin
-	mother_tables = grid["eos_root"]
+find_closest_eos(grid::MUST.AbstractMUSTGrid, teff, feh; from="eos_root") = begin
+	mother_tables = grid[from]
 	path = if all(mother_tables .== mother_tables[1])
 		mother_tables[1]
 	else
@@ -71,18 +73,17 @@ find_closest_eos(grid::MUST.AbstractMUSTGrid, teff, feh) = begin
 		else
 			# pick the one where the temp is closest
 			tempminall = tempall[matchingtables]
-			mothertablesminall = mother_tables[fehminall]
+			mothertablesminall = mother_tables[matchingtables]
 			imin = argmin(abs.(tempminall .- teff))
 
 			mothertablesminall[imin]
 		end
 	end
 
-	reload(
-			SqEoS,
-			joinpath(path, "combined_eos.hdf5")
-		)
+	path
 end
+
+
 
 
 
@@ -282,6 +283,8 @@ adiabat_from_model(model, eos) = begin
 end
 
 
+
+
 #========================================================= Select Parameters =#
 
 """
@@ -336,6 +339,63 @@ function random_paramters(grid, N;
 	rand_points
 end
 
+"""
+	random_paramters(grid, N, lowerlimit, upperlimit; [teff, logg, feh])
+
+Random set of parameters within the convex hull of the grid.
+Ranges for teff, logg and feh can be given as kwargs.
+Random points will be within the give grid, so that a scatter interpolation
+(e.g. scipy.griddata) can be used on them. Limit the selection between the functions
+`lowerlimit` and `upperlimit`, which will are functions teff->logg setting the selection domain.
+"""
+function random_paramters(grid, N, lowerlimit, upperlimit; 
+	teff=[minimum(grid["teff"]), maximum(grid["teff"])], 
+	logg=[minimum(grid["logg"]), maximum(grid["logg"])], 
+	feh=[minimum(grid["feh"]), maximum(grid["feh"])])
+	
+	points = [[t, l, f] for (t, l, f) in zip(grid["teff"], grid["logg"], grid["feh"])]
+	hull = convex_hull(points)
+	P = VPolytope(hull)
+	
+	rand_points = zeros(N, 3)
+	found = 0
+	while found < N
+		t = MUST.randrange(teff...)
+		l = MUST.randrange(logg...) 
+		f = MUST.randrange(feh...)
+	
+		if [t, l, f] ∈ P
+			# check if it is below the lower or above the upper limit
+			lgLowLim = min(lowerlimit(t), upperlimit(t))
+			lgUpLim = max(lowerlimit(t), upperlimit(t))
+
+			if (l>=lgLowLim) & (l<=lgUpLim)
+				found += 1
+				rand_points[found, 1] = t
+				rand_points[found, 2] = l
+				rand_points[found, 3] = f
+			end
+		end
+	end
+
+	rand_points
+end
+
+lineLimit(teff, x1, x2) = begin
+	m = (x2[2] - x1[2]) / (x2[1] - x1[1]) 
+	m* teff + x2[2] - m*x2[1]
+end
+
+checkparameters(grid; teff, logg, feh) = begin
+	points = [[t, l, f] for (t, l, f) in zip(grid["teff"], grid["logg"], grid["feh"])]
+	hull = convex_hull(points)
+	P = VPolytope(hull)
+	[p ∈ P for p in points]
+end
+
+checkparameters(grid, paras) = checkparameters(grid, teff=paras[:, 1], logg=paras[:, 2], feh=paras[:, 3])
+
+
 
 
 
@@ -378,7 +438,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	model = if adiabatic_extrapolation
 		mi_z = MUST.interpolate_quantity(grid, "mi_z"; teff=teff, logg=logg, feh=feh)
 		ma_z = MUST.interpolate_quantity(grid, "ma_z"; teff=teff, logg=logg, feh=feh)
-		model_extra = TSO.adiabatic_extrapolation(model, eos, abs(ma_z - mi_z)*1.1)
+		model_extra = TSO.adiabatic_extrapolation(model, eos, abs(ma_z - mi_z)*1.02)
 		uniform_z = range(
 			minimum(model_extra.z), maximum(model_extra.z), step=abs(hres)
 		) |> collect
@@ -397,8 +457,9 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 		MUST.writedlm(f, [model.z exp.(model.lnT) model.lnρ])
 	end
 	
-	MUST.StaggerGrid(
+	MUST.Atmos1DGrid(
         "interpolated",
+		abspath(joinpath(pwd(), "interpolated.mgrid")),
         MUST.DataFrame(
 		Dict(
 			"name"     => name,
@@ -415,7 +476,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 			"vmax"     => vmax,
 			"tscale"   => tscale,
 			"hres"     => hres,
-			"av_path"  => joinpath(folder, "$(name)_99999_av.dat"),
+			"av_path"  => av_path,
 			"abs_av_path" => av_path,
 			"teff"     => teff,
 			"logg"     => logg,
@@ -461,7 +522,7 @@ with an interpolated resolution and resamples accordingly.
 # Examples
 
 ```julia
-grid = MUST.StaggerGrid("dispatch_grid.mgrid")
+grid = MUST.Atmos1DGrid("dispatch_grid.mgrid")
 new_gridpoints = interpolate_from_grid(grid, teff=[4000, 5000], logg=[4.0, 4.5], feh=[0.5, 0.0])
 ```
 """
@@ -476,7 +537,7 @@ with an interpolated resolution and resamples accordingly. Also include old grid
 # Examples
 
 ```julia
-grid = MUST.StaggerGrid("dispatch_grid.mgrid")
+grid = MUST.Atmos1DGrid("dispatch_grid.mgrid")
 new_and_old_gridpoints = interpolate_from_grid!(grid, teff=[4000, 5000], logg=[4.0, 4.5], feh=[0.5, 0.0])
 ```
 """

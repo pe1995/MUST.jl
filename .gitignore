@@ -30,6 +30,8 @@ examples/solar_model/*.txt
 examples/solar_model/*.npz
 examples/dispatch2space/data
 
+examples/MainSequence/*/
+
 examples/initial_models/*
 examples/initial_models/*.dat
 examples/initial_models/*99999_av.dat

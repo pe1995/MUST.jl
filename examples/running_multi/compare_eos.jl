@@ -19,7 +19,7 @@ end
 ext1 = "magg_m0_a0"
 
 # ╔═╡ 6e6d4927-afd1-450c-ad02-a62802d143c3
-ext2 = "magg_m0_vmic1_op"
+ext2 = "magg_m4_a0_vmic1"
 
 # ╔═╡ 789f821a-be1c-4fa3-8b75-b888f9eeed1f
 eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext1)_v1.8/combined_eos_$(ext1).hdf5")

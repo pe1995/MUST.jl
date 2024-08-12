@@ -28,6 +28,7 @@ import Base.read!, Base.write
 import Base.size, Base.axes
 import Base.Broadcast.broadcastable
 import Base.:+
+import Base.dirname
 
 
 #= Python modules =#

@@ -265,7 +265,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         newton_scale=0.1, newton_decay_scale=15.0, friction_decay_scale=10.0,
                         duration=360,
                         courant_target=0.25, kwargs...)
-    dummy_nml = MUST.StellarNamelist("stellar_default.nml")
+    dummy_nml = MUST.StellarNamelist(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "stellar_default.nml")))
 
     # name of namelists
     name = "grid_$(name).nml"
@@ -467,8 +467,6 @@ end
 
 #= adiabats =#
 
-#================================================================== Adiabats =#
-
 function adiabat(eospath, av_path, logg; common_size=1000, saveat=nothing, kwargs...)
 	eos = reload(
         SqEoS,
@@ -664,7 +662,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     nothing
 end
 
-create_namelist!(grid::MUST.StaggerGrid; kwargs...) = begin
+create_namelist!(grid::MUST.Atmos1DGrid; kwargs...) = begin
     g(i, v) = grid.info[i, v]
 
     names = []

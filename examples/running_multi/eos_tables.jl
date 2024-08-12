@@ -81,8 +81,8 @@ end
 begin
 	# Dimensions of the EoS Table
 	minT = 1000.
-	maxT = 50000.
-	minρ = 1e-15
+	maxT = 100000.
+	minρ = 1e-18
 	maxρ = 1e-2
 	nT = 150
 	nρ = 150
@@ -115,7 +115,7 @@ begin
 
 	# name of the new EoS table
 	extension = "magg_m0_a0_vmic1"
-	version = "v5.0"
+	version = "v5.1"
 
 	# computation setup
 	compute = true  # set to false if you only want to collect the output from M3D

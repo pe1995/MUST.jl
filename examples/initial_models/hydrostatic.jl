@@ -11,7 +11,7 @@ begin
 	using MUST
 	using TSO
 	using PythonPlot
-	using DataFrames
+	using DataFrames  
 end
 
 # ╔═╡ 273c40e1-f4ef-4f24-93dc-b9bb95f3abeb
@@ -24,16 +24,47 @@ md"Problem: The initial models for hot stars seem to look terrible. They crash a
 #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_magg_m0_a0_v1.8"
 
 # ╔═╡ 62d17d2d-6727-4632-b086-30cc6e828360
-mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m10_vmic2_v4.0"
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m10_a4_c3_vmic2_v5.0"
+
+# ╔═╡ 83648aa8-11dd-425b-bc92-938a360e03a0
+#mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m0_a0_vmic1_v5.0"
 
 # ╔═╡ ce43f8fe-6274-4da3-b427-1f362352f1a4
 #eos_mother_path = "ross_combined_eos_magg_m0_a0.hdf5"
 
 # ╔═╡ e607ddf1-fb54-4c6c-842c-40003f2604e2
-eos_mother_path = "combined_eos_magg_m10_vmic2.hdf5"
+eos_mother_path = "combined_eos_magg_m10_a4_c3_vmic2.hdf5"
+
+# ╔═╡ fc9633c5-fbd8-458c-a7de-38875987eb3b
+#eos_mother_path = "combined_eos_magg_m0_a0_vmic1.hdf5"
 
 # ╔═╡ 4fe7acc7-d74d-4c28-84b4-336630221922
 modelgrids = MUST.ingredients("modelgrids.jl")
+
+# ╔═╡ 8f106a64-49a5-4333-865d-de2c22a3fba8
+
+
+# ╔═╡ 215c05aa-4513-43ad-81c8-dd669f2c7a8f
+oproot = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/"
+
+# ╔═╡ 7a530655-c3c2-4d64-acda-cf5b58626e90
+eos_name(ext) = joinpath(oproot, "TSO_M3D_$(ext)_v5.0/combined_eos_$(ext).hdf5")
+
+# ╔═╡ 73426bbd-e476-4523-b5fc-0d0a80aadd7e
+allEoS = Dict(
+	0=>eos_name("magg_m0_a0_vmic1"),
+	-1=>eos_name("magg_m1_a0_vmic1"),
+	-2=>eos_name("magg_m2_a0_vmic1"),
+	-3=>eos_name("magg_m3_a0_vmic1"),
+	-4=>eos_name("magg_m4_a0_vmic1")
+)
+
+# ╔═╡ a97947c4-31bc-4fe7-a3d5-57fad759ab79
+closest_eos(feh) = begin
+	k = sort(keys(allEoS) |> collect)
+	ik = k[argmin(abs.(k .- feh))]
+	allEoS[ik]
+end
 
 # ╔═╡ a8ee335f-cd4b-479f-8c22-b54ff3a3a1e3
 
@@ -169,7 +200,7 @@ For testing purposes we create a Grid similar to the Stagger grid that contains 
 """
 
 # ╔═╡ c5325ecd-6290-443f-9384-84e3371d89a8
-marcs_path = "/mnt/beegfs/gemini/groups/bergemann/users/shared-storage/gerber/marcs/marcs_standard_comp"
+marcs_path = "/mnt/beegfs/gemini/groups/bergemann/users/shared-storage/gerber/marcs/marcs_standard_comp"  
 
 # ╔═╡ 5e253ecd-ddca-4ab4-ac26-d42080b1005e
 marcs_parameters_from_name(marcs_path) = begin
@@ -202,7 +233,7 @@ list_marcs_models(folder) = begin
 end
 
 # ╔═╡ 08fd37b2-2d68-4ce5-afce-a92cf6d89142
-df = list_marcs_models(marcs_path) 
+df = list_marcs_models(marcs_path)   
 
 # ╔═╡ 23814821-fae0-402e-b8c9-696d8c9b01b2
 row_selector(g) = begin
@@ -228,10 +259,13 @@ row_selector(g) = begin
 end
 
 # ╔═╡ 50060c7b-f021-424c-8733-ecf7db170e95
-marcs_grid = combine(groupby(df, [:T, :logg, :feh]), row_selector) 
+marcs_grid = combine(groupby(df, [:T, :logg, :feh]), row_selector)  
 
 # ╔═╡ 3c2ee7a4-f85f-4505-ae48-248e9ec11fac
-deleteat!(marcs_grid, (marcs_grid[!, :feh] .<= -4.5) .| (marcs_grid[!, :feh] .>= -3.5))
+deleteat!(marcs_grid, (marcs_grid[!, :feh] .> 0.0) .| (marcs_grid[!, :feh] .< -4.0))
+
+# ╔═╡ 549bbdfb-834d-4043-aecf-ef33391ef5f5
+deleteat!(marcs_grid, (marcs_grid[!, :T] .> 7000.0) .| (marcs_grid[!, :T] .< 3500.0))
 
 # ╔═╡ 646a5bfb-0fc8-4256-894b-fffc3f10525c
 
@@ -241,7 +275,7 @@ md"Now we have a MARCS grid, that contains models with the lowest available micr
 
 # ╔═╡ 061fcfbd-45b6-4f6b-b191-64b672ac4a08
 begin
-	folder_marcs = "MARCS_z4"
+	folder_marcs = "MARCS"
 	if !isdir(folder_marcs) 
 		mkdir(folder_marcs)
 		mkdir(joinpath(folder_marcs, "av_models"))
@@ -260,19 +294,21 @@ begin
 	folder = joinpath(folder_marcs, "av_models")
 	old_path = marcs_grid[!, :path]
 
+	eos_marcs_path = [closest_eos(feh) for feh in parasmarcs[:, 3]]
 	eos_marcs = [
-		reload(SqEoS, joinpath(mother_table_path, eos_mother_path))
-		for _ in 1:size(parasmarcs, 1)
+		reload(SqEoS, eos_marcs_path[i])
+		for i in 1:size(parasmarcs, 1)
 	]
 end
 
 # ╔═╡ 450f1d97-5f7f-41e8-9445-3b435e67e4ab
-function simpleMarcs(oldpath, teff, logg, feh; folder)
+function simpleMarcs(oldpath, teff, logg, feh; folder, eos)
 	tname = MUST.@sprintf "%.2f" teff/100
 	gname = MUST.@sprintf "%.2f" logg*10
 	fname = MUST.@sprintf "%.3f" feh
 	name = "t$(tname)g$(gname)m$(fname)"
 	av_path = abspath(joinpath(folder, "$(name)_99999_av.dat"))
+	avo_path = abspath(joinpath(folder, "$(name)_99999_avo.dat"))
 	
 	model = MUST.MARCSModel(oldpath)
 	model = TSO.Model1D(
@@ -282,15 +318,23 @@ function simpleMarcs(oldpath, teff, logg, feh; folder)
 		lnEi=fill!(similar(model.structure["Depth"]), 0.0),
 		logg=logg
 	)
-
 	hres = minimum(abs.(diff(model.z)))
+	model = @optical model eos
+	znew = TSO.rosseland_depth(eos, model)
+	model.z .= znew
+	TSO.optical_surface!(model)
+
 	model = TSO.flip(TSO.interpolate_to(
 		model, in_log=false,
 		z=range(minimum(model.z), maximum(model.z), step=hres)
 	))
+	
 
 	open(av_path, "w") do f
 		MUST.writedlm(f, [model.z exp.(model.lnT) model.lnρ])
+	end
+	open(avo_path, "w") do f
+		MUST.writedlm(f, [model.z exp.(model.lnT) model.lnρ log.(model.τ)])
 	end
 
 	model
@@ -384,6 +428,7 @@ end
 
 # ╔═╡ 07ac5d26-c496-40e1-8e8a-573abe05af10
 function construct_grid(teff, logg, feh; folder, oldpath, eos)
+	@info teff,logg,feh
 	folder_name = "constructed"
 	mesh   = "constructed"
 
@@ -394,7 +439,7 @@ function construct_grid(teff, logg, feh; folder, oldpath, eos)
 	av_path = abspath(joinpath(folder, "$(name)_99999_av.dat"))
 
 	snapshot = "interpolated"
-	model = simpleMarcs(oldpath, teff, logg, feh; folder=folder)
+	model = simpleMarcs(oldpath, teff, logg, feh; folder=folder, eos=eos)
 	hres = minimum(abs.(diff(model.z)))
 	
 	model_extended = adiabatic_extrapolation(model, eos, nz=1000, dlnd=0.02)
@@ -403,6 +448,7 @@ function construct_grid(teff, logg, feh; folder, oldpath, eos)
 	# Interpolate the extended model to be until logτ=7, find the optical surface and construct a z scale
 	τ_min = max(minimum(log10.(model_extended.τ)), -8)
 	τ_max = min(maximum(log10.(model_extended.τ)), 7)
+	@info τ_min,τ_max
 	model_clipped = TSO.flip!(TSO.interpolate_to(
 		model_extended, 
 		in_log=true, 
@@ -454,6 +500,7 @@ function construct_grid(teff, logg, feh; folder, oldpath, eos)
 			"tscale"   => timescale,
 			"hres"     => hres,
 			"av_path"  => joinpath(folder, "$(name)_99999_av.dat"),
+			"avo_path"  => joinpath(folder, "$(name)_99999_avo.dat"),
 			"abs_av_path" => av_path,
 			"teff"     => teff,
 			"logg"     => logg,
@@ -485,17 +532,38 @@ end
 # ╔═╡ d0f927ab-b49a-4a51-ab15-f089caffb1e9
 marcs_constructed_grid
 
+# ╔═╡ 62597df8-0ffa-4a63-9d79-a5111535525f
+function relative_path(from, to)
+	fstag = basename(from)
+	feos = basename(to)
+	stag_path = split(dirname(from), "/", keepempty=false)
+	eos_path = split(dirname(to), "/", keepempty=false)
+
+	i = findfirst(x->!(x in eos_path), stag_path)
+	ieos = findfirst(eos_path .== stag_path[i-1]) + 1
+
+	path_difference = stag_path[i:end]
+	eos_path_difference = eos_path[ieos:end]
+	new_path = joinpath([".." for _ in path_difference]..., eos_path_difference..., feos)
+end
+
 # ╔═╡ d1998950-051d-4b26-b219-0424f92b4778
-marcs_constructed_grid[!, "matching_eos"] = [
-	joinpath(mother_table_path, eos_mother_path) 
-	for _ in 1:nrow(marcs_constructed_grid)
-]
+marcs_constructed_grid[!, "matching_eos"] = relative_path.(
+	abspath(joinpath(folder_marcs, "marcs_grid.mgrid")),
+	eos_marcs_path
+)
 
 # ╔═╡ 44fa2659-7369-42fa-a52c-996808656e9f
-marcs_constructed_grid[!, "avo_path"] = marcs_constructed_grid[!, "av_path"]
+#marcs_constructed_grid[!, "avo_path"] = marcs_constructed_grid[!, "av_path"]
 
 # ╔═╡ fe0512ee-38e7-4e75-aa73-e517c522aef7
-MUST.save(MUST.StaggerGrid("MARCS constructed", marcs_constructed_grid), joinpath(folder,"marcs_grid_z4.mgrid"))
+MUST.save(
+	MUST.Atmos1DGrid(
+		"MARCS constructed", 
+		joinpath(folder_marcs,"marcs_grid.mgrid"),
+		marcs_constructed_grid
+	)
+)
 
 # ╔═╡ Cell order:
 # ╠═b04a8d9a-5307-11ef-1268-95d5b8233977
@@ -503,9 +571,16 @@ MUST.save(MUST.StaggerGrid("MARCS constructed", marcs_constructed_grid), joinpat
 # ╟─77e9b680-d0e4-431f-9a59-a4a081ffd65e
 # ╠═63ac3293-0d3f-4533-8fc4-ae3695e40cc6
 # ╠═62d17d2d-6727-4632-b086-30cc6e828360
+# ╠═83648aa8-11dd-425b-bc92-938a360e03a0
 # ╠═ce43f8fe-6274-4da3-b427-1f362352f1a4
 # ╠═e607ddf1-fb54-4c6c-842c-40003f2604e2
+# ╠═fc9633c5-fbd8-458c-a7de-38875987eb3b
 # ╠═4fe7acc7-d74d-4c28-84b4-336630221922
+# ╟─8f106a64-49a5-4333-865d-de2c22a3fba8
+# ╠═215c05aa-4513-43ad-81c8-dd669f2c7a8f
+# ╠═7a530655-c3c2-4d64-acda-cf5b58626e90
+# ╠═73426bbd-e476-4523-b5fc-0d0a80aadd7e
+# ╠═a97947c4-31bc-4fe7-a3d5-57fad759ab79
 # ╟─a8ee335f-cd4b-479f-8c22-b54ff3a3a1e3
 # ╟─158f1700-a14d-4414-95eb-e4551fb148b8
 # ╟─6e257449-5cac-4f00-9303-6a25219f9c97
@@ -518,6 +593,7 @@ MUST.save(MUST.StaggerGrid("MARCS constructed", marcs_constructed_grid), joinpat
 # ╟─23814821-fae0-402e-b8c9-696d8c9b01b2
 # ╠═50060c7b-f021-424c-8733-ecf7db170e95
 # ╠═3c2ee7a4-f85f-4505-ae48-248e9ec11fac
+# ╠═549bbdfb-834d-4043-aecf-ef33391ef5f5
 # ╟─646a5bfb-0fc8-4256-894b-fffc3f10525c
 # ╟─7e63e0d2-7baa-4523-8340-3c709cab3366
 # ╠═061fcfbd-45b6-4f6b-b191-64b672ac4a08
@@ -529,6 +605,7 @@ MUST.save(MUST.StaggerGrid("MARCS constructed", marcs_constructed_grid), joinpat
 # ╠═0b99d9d8-07d1-4884-b335-9051baa96cf4
 # ╠═2c40e250-b0c4-4a34-b626-b052e1143b1e
 # ╠═d0f927ab-b49a-4a51-ab15-f089caffb1e9
+# ╠═62597df8-0ffa-4a63-9d79-a5111535525f
 # ╠═d1998950-051d-4b26-b219-0424f92b4778
 # ╠═44fa2659-7369-42fa-a52c-996808656e9f
 # ╠═fe0512ee-38e7-4e75-aa73-e517c522aef7
