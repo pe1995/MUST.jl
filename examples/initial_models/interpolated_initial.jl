@@ -267,7 +267,7 @@ begin
         version=arguments["version"],
         skip_binning=arguments["skip_binning"],
         skip_formation=arguments["skip_formation"],
-        clean=!arguments["dont_clean_formation"],
+        clean_formation=!arguments["dont_clean_formation"],
         patch_size=patch_size,
         τ_up=τ_up,
         τ_surf=τ_surf,

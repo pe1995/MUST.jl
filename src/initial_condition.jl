@@ -159,12 +159,12 @@ function prepare(
     τ_rho0 =  0.0,                   # Density normaliztion height
     dxdz_max = 3.0,                  # how much bigger is box in x than z (max)
     scale_resolution = 0.75,         # Down or upsampling of simulation domain
-	namelist_kwargs=Dict(),
-	recompute_ross=false,
+	namelist_kwargs = Dict(),
+	recompute_ross = false,
 	Nbins = 8,
 	skip_binning = false,
 	skip_formation = false,
-	clean = false,
+	clean_formation = true,
 	clean_namelists = false,
     clean_logs = false,
 	make_quadrants = (name, eos_root, opa_path) -> begin
@@ -259,7 +259,7 @@ function prepare(
 		end
 	
 		# remove the formation opacities
-		clean && clean(eos_root, name)
+		clean_formation && clean(eos_root, name)
 	end
     
     # End-to-end binning, with clean-up
