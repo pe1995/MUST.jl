@@ -131,6 +131,43 @@ relative_path!(grid; to=@__FILE__) = begin
 end
 
 
+#============================================================== Replace Path =#
+
+"""
+	replace_relative_path!(grid; kwargs...)
+
+Replace e.g. the EoS of a grid that contains relative paths with a new array 
+of paths (that are absolute!).
+"""
+function replace_relative_path!(grid; kwargs...)
+	# make paths absolute
+	absolute_path!(grid)
+
+	# replace paths with new ones
+	replace_absolute_path!(grid; kwargs...)
+
+	# make paths relative again
+	relative_path!(grid)
+
+	grid
+end
+
+"""
+	replace_absolute_path!(grid; kwargs...)
+
+Replace e.g. the EoS of a grid that contains absolute paths with a new array 
+of paths (that are absolute!).
+"""
+function replace_absolute_path!(grid; kwargs...)
+	# paths are already absolute
+	for (k, v) in kwargs
+		grid.info[k] = v
+	end
+	
+	grid
+end
+
+
 
 
 #============================================================= Interpolation =#
@@ -200,6 +237,7 @@ stage_namelists(grid::Atmos1DGrid, folder="run_grid"; clean_logs=true, clean_nam
 	glob("*", folder_run) .|> rm
 
 	for (i, n) in enumerate(nml_names)
+		@info "copy $(nml_path[i]) to $(joinpath(folder_run, n))."
 		cp(nml_path[i], joinpath(folder_run, n))
 	end
 

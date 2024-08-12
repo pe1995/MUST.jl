@@ -342,8 +342,18 @@ function prepare(
 
     MUST.save(grid, final_grid_path)
 
+    # copy over namelists to dispatch
+    for i in 1:nrow(grid.info)
+        fold = joinpath(grid.info[i, "binned_E_tables"], "ininml.dat")
+        f = dirname(fold)
+        name = last(split(f, '/', keepempty=false))
+        pnew = MUST.@in_dispatch "$(name).nml"
+        @info "copy $(fold) to $(pnew)."
+        cp.(fold, pnew, force=true)
+    end
+
     # Stage the grid for execution, possible remove other output
-    MUST.stage_namelists(grid, clean_namelists=clean_namelists, clean_logs=clean_logs)
+    #MUST.stage_namelists(grid, clean_namelists=clean_namelists, clean_logs=clean_logs)
 
     grid
 end
