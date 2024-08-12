@@ -47,6 +47,15 @@ s = ArgParseSettings()
         The extrapolation is carried out until the geometrical bottom boundary as specified in the grid has been reached.
         """
         action = :store_true
+    "--skip_binning"
+        help = "Skip opacity binning."
+        action = :store_true
+    "--skip_formation"
+        help = "Skip computation of formation opacities."
+        action = :store_true
+    "--dont_clean_formation"
+        help = "Don't remove formation opacities after computation. This uses huge amounts of disk space, but speeds up re-binning."
+        action = :store_true
     # General parameters
     "--patch_size"
         help = "Points per patch."
@@ -256,6 +265,9 @@ begin
 	    grid,
 	    name_extension=modelFolder,
         version=arguments["version"],
+        skip_binning=arguments["skip_binning"],
+        skip_formation=arguments["skip_formation"],
+        clean=!arguments["dont_clean_formation"],
         patch_size=patch_size,
         τ_up=τ_up,
         τ_surf=τ_surf,
