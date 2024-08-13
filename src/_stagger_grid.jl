@@ -96,9 +96,10 @@ relative_path(from, to) = begin
 	eos_path = split(dirname(to), "/", keepempty=false)
 
 	i = findfirst(x->!(x in eos_path), stag_path)
-	ieos = findfirst(eos_path .== stag_path[i-1]) + 1
+	i = isnothing(i) ? length(stag_path) + 1 : i
+	ieos = findfirst(eos_path .== stag_path[i-1]) + 1 
 
-	path_difference = stag_path[i:end]
+	path_difference = i > length(stag_path) ? [] : stag_path[i:end]
 	eos_path_difference = eos_path[ieos:end]
 	
 	joinpath([".." for _ in path_difference]..., eos_path_difference..., feos)

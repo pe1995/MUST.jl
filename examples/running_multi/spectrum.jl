@@ -158,12 +158,15 @@ begin
             "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
             "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/12CH_multi.list",
             "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/13CH_multi.list",
-            MUST.glob("*.list", "input_multi3d/LINE-LISTS/combined_molecules/most_relevant/")...
+            MUST.relative_path.(@in_m3dis("."), MUST.glob("*.list", @in_m3dis("input_multi3d/LINE-LISTS/combined_molecules/most_relevant/")))...
         ]
     else
         arguments["linelists"]
     end
     maskL = isfile.([@in_m3dis(l) for l in linelists])
+    if any(.!maskL)
+        @warn "Linelists could not be found at: $(linelists[.!maskL])"
+    end
     linelists = linelists[maskL]
 
     FeH = arguments["feh"]
