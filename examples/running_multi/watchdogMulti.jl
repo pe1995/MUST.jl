@@ -32,7 +32,7 @@ end
 (λe - λs) / Δλ
 
 # ╔═╡ 5ca326db-5903-4947-a6b5-af9f8792fbf9
-name = "grid_t5777g44m00_h1.1"
+name = "M1_E_t57.77g44.40m-4.000_v1.0"
 
 # ╔═╡ 0b00f487-b3a5-44f6-af94-c0e0f1955823
 get_teff(name) = begin
@@ -70,34 +70,103 @@ get_teff(name)
 run = @in_dispatch("data/$(name)")
 
 # ╔═╡ f56644af-c01c-4d3a-8e78-d675560432b1
-isnap = 352
+isnap = 398
 
 # ╔═╡ e1aaad21-9340-4e31-9644-7f11b446e859
 multi_name = joinpath(run, "m3dis_$(isnap)")
 
 # ╔═╡ b3b1f71c-dfff-4c10-af63-967634b3d92e
-b, bτ = pick_snapshot(run, isnap)
+begin
+	snaps_ready =  MUST.list_snapshots(MUST.converted_snapshots(run))
+	@show (isnap in snaps_ready)
+
+	if !(isnap in snaps_ready)
+		@info "Converting snapshot $(name), Number: $(isnap)"
+		snapshotBox(isnap, folder=run, to_multi=true, legacy=false)		
+		@info "Snapshot $(name), Number: $(isnap) converted."
+	end
+
+	b, bτ = pick_snapshot(run, isnap)
+end
 
 # ╔═╡ cc4090d0-b6bf-49ab-8b9f-dbcc27a3ec37
 
 
 # ╔═╡ 46021094-c218-462d-9b4c-a14b06c618d5
 begin
-	bDown = MUST.gresample(b; nx=40, ny=40, nz=size(b, 3) * 2 - 1)
-	bDown.data[:ne] = pop!(bDown.data, :Ne)
+	#bDown = MUST.gresample(b; nx=40, ny=40, nz=size(b, 3) * 2 - 1)
+	#bDown.data[:ne] = pop!(bDown.data, :Ne)
 end;
 
 # ╔═╡ 9ba6635c-d71e-4ca1-8ee9-2f2004be10cb
-MUST.multiBox(bDown, joinpath(run, "m3dis_$(isnap)"))
+#MUST.multiBox(bDown, joinpath(run, "m3dis_$(isnap)"))
 
 # ╔═╡ bc8b742e-34e9-4148-917c-b054d9a0e952
 
 
 # ╔═╡ 4d92338e-7b8d-47f0-8b07-d838ba4cad00
 linelists = String[
+	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/vald_2490-25540.list",
+	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/1000-2490-vald.list",
+	"/home/eitner/shared/StAt/LINE-LISTS/25500-200000_cut-4/atom_25500-200000.list",
 	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
-	"input_multi3d/nlte_ges_linelist_jmg04sep2023_I_II"
+	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/12CH_multi.list",
+	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/13CH_multi.list",
+	MUST.glob("*.list", "/home/eitner/shared/StAt/LINE-LISTS/combined_molecules/most_relevant/")...
 ]
+
+# ╔═╡ 993a34fb-0763-463d-aa02-4f2b276eabfc
+function absdat_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...)
+	# read the default abundances
+	abund_default = MUST.readdlm(@in_m3dis(default))
+	abund_new = deepcopy(abund_default)
+	new_name = default
+	if α != 0.0
+		for ele in ["C", "O", "Ne", "Mg", "Si", "S", "Ar", "Ca"]
+			iele = findfirst(ele .== abund_new[:, 1])
+			if !isnothing(iele)
+				abund_new[iele, 2] = abund_default[iele, 2] + α
+			else
+				@warn "element $(ele) not found in absdat $(default)."
+			end
+		end
+		new_name *= "_a$(α)"
+	end
+
+	for (eleS, val) in eles
+		ele = string(eleS)
+		iele = findfirst(ele .== abund_new[:, 1])
+		if !isnothing(iele)
+			abund_new[iele, 2] = abund_default[iele, 2] + val
+			new_name *= "_$(ele)$(val)"
+		else
+			@warn "element $(ele) not found in absdat $(default)."
+		end
+	end
+
+	if new_name != default
+		open(@in_m3dis(new_name), "w") do f
+			for i in axes(abund_new, 1)
+				line = MUST.@sprintf "%-4s %-.3f\n" abund_new[i, 1] abund_new[i, 2]
+				write(f, line)
+			end
+		end
+	else
+		default
+	end
+
+	new_name
+end
+
+# ╔═╡ bb58fe3e-d222-4706-8ec3-17bf087dc092
+begin
+	FeH = -5.0
+	abund_file = absdat_abundances(
+		α=0.4, 
+		C=3.0,
+		default="./input_multi3d/abund_magg"
+	)
+end
 
 # ╔═╡ 2941966e-ddf5-453e-bc89-63068ccc8eff
 spectrum_namelist = Dict(
@@ -108,31 +177,40 @@ spectrum_namelist = Dict(
 	:atom_params=>(:atom_file=>"",),
 	:spectrum_params=>(:daa=>Δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>false),
 	:atmos_params=>(
-		:dims=>1, 
+		:dims=>32, 
 		:atmos_format=>"must",
 		:use_density=>true, 
 		:use_ne=>false,
-		:FeH=>0.0
+		:FeH=>FeH,
+		:nx=>40,#size(b, 1),
+		:ny=>40,#size(b, 2),
+		:nz=>size(b, 3) * 2 - 1
 	),
 	:m3d_params=>(
 		:save_resolved=>true,
-		:long_scheme=>"disk_center"
+		:long_scheme=>"lobatto",
+		:short_scheme=>"radau",
+		:ilambd=>0,
+		:n_nu=>32,
 	),
-	
+	:composition_params=>(
+		:absdat_file=>"./input_multi3d/TS_absdat.dat",
+        :abund_file=>abund_file
+	)
 )
 
 # ╔═╡ b18dc1cc-153e-49e3-bc97-e03c306c6dc5
 m3dis_kwargs = Dict(
-	:threads=>2
+	:threads=>20
 )
 
 # ╔═╡ eed8ef16-ee05-4245-9ae6-a57ec85f4eec
-#result = MUST.spectrum(
-#	"m3dis_$(isnap)"; name=name, NLTE=false, slurm=false, #namelist_kwargs=spectrum_namelist, m3dis_kwargs=m3dis_kwargs
-#)
+result = MUST.spectrum(
+	"m3dis_$(isnap)"; name=name, NLTE=false, slurm=false, namelist_kwargs=spectrum_namelist, m3dis_kwargs=m3dis_kwargs
+)
 
 # ╔═╡ 2f718c66-6c8c-4fae-953d-83c8cc676e06
-result = MUST.M3DISRun("m3dis_352_$(name)", @in_m3dis("data"))
+#result = MUST.M3DISRun("m3dis_352_$(name)", @in_m3dis("data"))
 
 # ╔═╡ 309a3b42-0f48-4618-a1f1-83467df6e02d
 i = MUST.pyconvert(Array, result.i3)
@@ -142,6 +220,7 @@ c = MUST.pyconvert(Array, result.c3)
 
 # ╔═╡ 729c8ba1-2460-417c-a72a-f1a2ddc505c5
 let
+	@show size(result.temp)
 	plt.close()
 	f, ax = plt.subplots()
 
@@ -187,6 +266,8 @@ end
 # ╠═9ba6635c-d71e-4ca1-8ee9-2f2004be10cb
 # ╟─bc8b742e-34e9-4148-917c-b054d9a0e952
 # ╠═4d92338e-7b8d-47f0-8b07-d838ba4cad00
+# ╟─993a34fb-0763-463d-aa02-4f2b276eabfc
+# ╠═bb58fe3e-d222-4706-8ec3-17bf087dc092
 # ╠═2941966e-ddf5-453e-bc89-63068ccc8eff
 # ╠═b18dc1cc-153e-49e3-bc97-e03c306c6dc5
 # ╠═eed8ef16-ee05-4245-9ae6-a57ec85f4eec

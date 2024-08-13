@@ -137,6 +137,60 @@ end
 #= running M3DIS =#
 
 """
+    abund_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...)
+
+Create an absdat file with the given abundance ratios.
+"""
+function abund_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...)
+	# read the default abundances
+	abund_default = readdlm(@in_m3dis(default))
+	abund_new = deepcopy(abund_default)
+    ele_names = lowercase.(abund_new[:, 1])
+	new_name = default
+	if α != 0.0
+		for ele in ["c", "o", "ne", "mg", "si", "s", "ar", "ca"]
+			iele = findfirst(lowercase(ele) .== ele_names)
+			if !isnothing(iele)
+				abund_new[iele, 2] = abund_default[iele, 2] + α
+			else
+				@warn "element $(ele) not found in absdat $(default)."
+			end
+		end
+		new_name *= "_a$(α)"
+	end
+
+	for (eleS, val) in eles
+		ele = lowercase(string(eleS))
+		iele = findfirst(ele .== ele_names)
+		if !isnothing(iele)
+			abund_new[iele, 2] = abund_default[iele, 2] + val
+			new_name *= "_$(ele)$(val)"
+		else
+			@warn "element $(string(eleS)) not found in absdat $(default)."
+		end
+	end
+
+	if new_name != default
+		open(@in_m3dis(new_name), "w") do f
+			for i in axes(abund_new, 1)
+				line = @sprintf "%-4s %-.3f\n" abund_new[i, 1] abund_new[i, 2]
+				write(f, line)
+			end
+		end
+	else
+		default
+	end
+
+	new_name
+end
+
+
+
+
+
+
+
+"""
 	whole_spectrum(model_name; [namelist_kwargs, m3dis_kwargs])
 
 Submit a job to the M3DIS code, which will compute the outgoing flux across the entire wavelength range.
