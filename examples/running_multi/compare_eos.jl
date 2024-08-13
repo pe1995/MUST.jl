@@ -16,16 +16,25 @@ begin
 end
 
 # ╔═╡ db28e099-4c6f-4786-94ad-14ab71767353
-ext1 = "magg_m0_a0"
+#ext1 = "magg_m0_a0"
+
+# ╔═╡ 2013feaa-c461-450f-8365-982c205fa1df
+ext1 = "magg_m5_a4_vmic2"
 
 # ╔═╡ 6e6d4927-afd1-450c-ad02-a62802d143c3
-ext2 = "magg_m0_a0_vmic1"
+ext2 = "magg_m5_a4_c3_vmic2"
 
 # ╔═╡ 789f821a-be1c-4fa3-8b75-b888f9eeed1f
-eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext1)_v1.8/combined_eos_$(ext1).hdf5")
+#eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext1)_v1.8/combined_eos_$(ext1).hdf5")
 
 # ╔═╡ 54cd6e9e-c4e7-4512-bd5e-59c05840dfbf
-opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext1)_v1.8/combined_opacities_$(ext1).hdf5", mmap=true)
+#opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext1)_v1.8/combined_opacities_$(ext1).hdf5", mmap=true)
+
+# ╔═╡ eca1793a-a4eb-4937-bf03-75d3d6472329
+eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext1)_v5.1/combined_eos_$(ext1).hdf5")
+
+# ╔═╡ c67235eb-69c2-49b6-afe7-5f9d8315e480
+opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext1)_v5.1/combined_opacities_$(ext1).hdf5", mmap=true)
 
 # ╔═╡ bdf0a7ba-d30d-40f2-92f4-b9dd791a9ba9
 eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v5.1/combined_eos_$(ext2).hdf5")
@@ -64,8 +73,8 @@ let
 	im = ax[0].pcolormesh(tt1, rr1, c1, vmin=vmin, vmax=vmax)
 	ax[1].pcolormesh(tt2, rr2, c2, vmin=vmin, vmax=vmax)
 
-	ax[0].set_title("MARCS")
-	ax[1].set_title("M3D")
+	ax[0].set_title("[C/Fe]=0.4")
+	ax[1].set_title("[C/Fe]=3.0")
 	
 
 	f.colorbar(im, ax=ax)
@@ -105,20 +114,22 @@ let
 	plt.close()
 	f, ax = plt.subplots(1, 1)
 
-	ax.plot(log10.(opa1.λ), log10.(κ1), label="MARCS")
-	ax.plot(log10.(opa2.λ), log10.(κ2), label="M3D")
-
-	ax.legend()
-
+	ax.plot(log10.(opa1.λ), log10.(κ1) .-  log10.(κ2))
+	ax.set_ylabel("log10 [C/Fe]=0.4 / [C/Fe]=3.0")
+	ax.set_xlabel("log10 wavelength")
+	
 	gcf()
 end
 
 # ╔═╡ Cell order:
 # ╠═0dbac1c4-d566-11ee-0ad0-cf2cf182e68a
 # ╠═db28e099-4c6f-4786-94ad-14ab71767353
+# ╠═2013feaa-c461-450f-8365-982c205fa1df
 # ╠═6e6d4927-afd1-450c-ad02-a62802d143c3
 # ╠═789f821a-be1c-4fa3-8b75-b888f9eeed1f
 # ╠═54cd6e9e-c4e7-4512-bd5e-59c05840dfbf
+# ╠═eca1793a-a4eb-4937-bf03-75d3d6472329
+# ╠═c67235eb-69c2-49b6-afe7-5f9d8315e480
 # ╠═bdf0a7ba-d30d-40f2-92f4-b9dd791a9ba9
 # ╠═7cd8df75-c5e5-4ce3-b3af-cb54a7ec8cce
 # ╠═5f34751e-382d-4bb3-8c00-fb6c4a4eb8bd

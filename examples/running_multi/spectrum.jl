@@ -47,7 +47,8 @@ s = ArgParseSettings()
         arg_type = Float64
         default = 0.5
     "--linelists"
-        help = "List of linelists. Choose `all` to use the default."
+        help = "List of linelists. Choose `all` to use the default.
+        Also available: CHonly (turn molecules except CH off)"
         arg_type = String
         default="all"
     "--feh"
@@ -82,7 +83,7 @@ s = ArgParseSettings()
     "--dims"
         help = "Number of vertical atmosphere splits."
         arg_type = Int
-        default=32
+        default=8
     "--nnu"
         help = "Number of frequency splits."
         arg_type = Int
@@ -109,6 +110,9 @@ s = ArgParseSettings()
     "--NLTE"
         help = "Turn on NLTE."
         action = :store_true
+    "--move"
+        help = "Move results to DISPATCH after computation has finished."
+        action = :store_true
 end
 
 # code setup
@@ -128,6 +132,7 @@ begin
 	λe = arguments["lambda_end"]
 	Δλ = arguments["lambda_step"]
     nλ = (λe - λs) / Δλ
+    window = MUST.@sprintf "lam_%i-%i" λs λe
 
     # simulation
     name = arguments["run"]
@@ -158,7 +163,16 @@ begin
             "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
             "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/12CH_multi.list",
             "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/13CH_multi.list",
+		    #"input_multi3d/LINE-LISTS/combined_molecules/H2O_multi.list",
             MUST.relative_path.(@in_m3dis("."), MUST.glob("*.list", @in_m3dis("input_multi3d/LINE-LISTS/combined_molecules/most_relevant/")))...
+        ]
+    elseif arguments["linelists"] == "CHonly" 
+        String[
+            "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/vald_2490-25540.list",
+            "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/1000-2490-vald.list",
+            "input_multi3d/LINE-LISTS/25500-200000_cut-4/atom_25500-200000.list",
+            "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/12CH_multi.list",
+            "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/13CH_multi.list",
         ]
     else
         arguments["linelists"]
@@ -226,14 +240,20 @@ begin
 
     result = MUST.spectrum(
         "m3dis_$(isnap)"; 
-        name=name, 
+        name=name*"_"*window, 
         NLTE=arguments["NLTE"], 
         slurm=false, 
         namelist_kwargs=spectrum_namelist,
         m3dis_kwargs=m3dis_kwargs
     )
 
-    newp = @in_m3dis("data/m3dis_$(isnap)_$(name)")
-    @info "M3D run saved at $(newp)."
+    newp = @in_m3dis("data/m3dis_$(isnap)_$(name)_$(window)")
+    if arguments["move"]
+        mvp = joinpath(run, "spectra_sn$(isnap)_$(window)")
+        mv(newp, mvp, force=true)
+        @info "M3D run saved at $(mvp)."
+    else
+        @info "M3D run saved at $(newp)."
+    end
 end
 
