@@ -40,7 +40,7 @@ md"# New EoS
 You can now define any rule you like to pick for each row of the grid a EoS at any path. You need to use the absolute paths here!"
 
 # ╔═╡ 3377dc64-141a-40ce-a9b1-dff24b238507
-new_name = "marcs_grid_a0-4_vmic1-2"
+new_name = "marcs_grid"
 
 # ╔═╡ ff93980e-d013-4d14-bc9f-e858ae824cf5
 oproot = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/"
@@ -50,11 +50,11 @@ eos_name(ext, version) = joinpath(oproot, "TSO_M3D_$(ext)_$(version)/combined_eo
 
 # ╔═╡ fb3b92d2-c689-45b4-a7c5-6ef2a702fbb7
 allEoS = Dict(
-	0=>eos_name("magg_m0_a0_vmic1", "v5.1"),
-	-1=>eos_name("magg_m1_a0_vmic1", "v5.1"),
-	-2=>eos_name("magg_m2_a4_vmic1", "v5.1"),
-	-3=>eos_name("magg_m3_a4_vmic2", "v5.1"),
-	-4=>eos_name("magg_m4_a4_vmic2", "v5.1")
+	0=>eos_name("magg_m0_a0_vmic1", "v5.0"),
+	-1=>eos_name("magg_m1_a0_vmic1", "v5.0"),
+	-2=>eos_name("magg_m2_a0_vmic1", "v5.0"),
+	-3=>eos_name("magg_m3_a0_vmic1", "v5.0"),
+	-4=>eos_name("magg_m4_a0_vmic1", "v5.0")
 )
 
 # ╔═╡ def67aaa-d41d-4a47-a77a-b679ca3d8c65
@@ -88,11 +88,20 @@ grid2.info[!, "eos_root"] = dirname.(new_eos)
 # ╔═╡ 4d09e9ed-885c-4e59-9bd3-461c58932872
 grid2.info[!, "matching_eos"] = new_eos
 
+# ╔═╡ 7462b440-a580-4a58-adee-a170e1788d44
+#grid2.info[!, "av_path"] = joinpath.(abspath(pwd(), "MARCS/av_models"), basename.(grid2.info[!, "av_path"]))
+
+# ╔═╡ 21242730-5fd7-4c73-8951-deaee78fd287
+#grid2.info[!, "avo_path"] = joinpath.(abspath(pwd(), "MARCS/av_models"), basename.(grid2.info[!, "avo_path"]))
+
+# ╔═╡ 3c03580b-d97f-459f-ae72-694f7d2c0453
+#grid2.info[!, "abs_av_path"] = joinpath.(abspath(pwd(), "MARCS/av_models"), basename.(grid2.info[!, "av_path"]))
+
 # ╔═╡ 9c6f4603-1a89-4614-ba23-07a52f4996bc
 MUST.relative_path!(grid2)
 
 # ╔═╡ 88489ab8-44d8-4726-baa6-a52fcf10a3ae
-path_new = joinpath(dirname(grid2.path), new_name)
+path_new = joinpath(dirname(grid2.path), new_name*".mgrid")
 
 # ╔═╡ 15cc88df-ed46-47a5-901f-fa9cdade8072
 grid3 = MUST.Atmos1DGrid(new_name, path_new, grid2.info)
@@ -123,6 +132,9 @@ MUST.save(grid3)
 # ╠═317f87f8-9862-48cb-8924-cb75bb118f02
 # ╠═9a3a65fa-c866-4d44-a613-748f8c5e58be
 # ╠═4d09e9ed-885c-4e59-9bd3-461c58932872
+# ╠═7462b440-a580-4a58-adee-a170e1788d44
+# ╠═21242730-5fd7-4c73-8951-deaee78fd287
+# ╠═3c03580b-d97f-459f-ae72-694f7d2c0453
 # ╠═9c6f4603-1a89-4614-ba23-07a52f4996bc
 # ╠═88489ab8-44d8-4726-baa6-a52fcf10a3ae
 # ╠═15cc88df-ed46-47a5-901f-fa9cdade8072

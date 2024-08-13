@@ -19,7 +19,7 @@ s = ArgParseSettings()
         default="v1.0"
         arg_type = String
     "--grid"
-        help = "Grid in which to interpolate (Stagger, StaggerAlphamod (a=0-4, vmic=1-2), MARCS)."
+        help = "Grid in which to interpolate (Stagger, StaggerAlphamod (a=0-4, vmic=1-2), MARCS, MARCSAlphamod (a=0-4, vmic=1-2))."
         arg_type = String
         default = "Stagger"
     "--teff", "-t"
@@ -244,6 +244,8 @@ begin
         iniCond.staggergrid_alphamod
     elseif arguments["grid"] == "MARCS"
         iniCond.marcsgrid
+    elseif arguments["grid"] == "MARCSAlphamod"
+        iniCond.marcsgrid_alphamod
     else
         error("Given input grid doesn't exist.")
     end
