@@ -19,7 +19,7 @@ s = ArgParseSettings()
         default="v1.0"
         arg_type = String
     "--grid"
-        help = "Grid in which to interpolate (Stagger, MARCS)."
+        help = "Grid in which to interpolate (Stagger, StaggerAlphamod (a=0-4, vmic=1-2), MARCS)."
         arg_type = String
         default = "Stagger"
     "--teff", "-t"
@@ -43,9 +43,8 @@ s = ArgParseSettings()
         arg_type = Float64
         default = 6
     "--adiabatic_extrapolation"
-        help = """Extrapolate adiabatically below the bottom boundary `tau_bottom` after the model has been averaged.
-        The extrapolation is carried out until the geometrical bottom boundary as specified in the grid has been reached.
-        """
+        help = "Extrapolate adiabatically below the bottom boundary `tau_bottom` after the model has been averaged.
+        The extrapolation is carried out until the geometrical bottom boundary as specified in the grid has been reached."
         action = :store_true
     "--skip_binning"
         help = "Skip opacity binning."
@@ -59,7 +58,7 @@ s = ArgParseSettings()
     # General parameters
     "--patch_size"
         help = "Points per patch."
-        arg_type = Float64
+        arg_type = Int
         default = 14
     "--tau_up"
         help = "Upper boundary (target) of simulation domain."
@@ -241,6 +240,8 @@ begin
 
     ingrid = if arguments["grid"] == "Stagger"
         iniCond.staggergrid
+    elseif arguments["grid"] == "StaggerAlphamod"
+        iniCond.staggergrid_alphamod
     elseif arguments["grid"] == "MARCS"
         iniCond.marcsgrid
     else

@@ -262,10 +262,10 @@ end
 marcs_grid = combine(groupby(df, [:T, :logg, :feh]), row_selector)  
 
 # ╔═╡ 3c2ee7a4-f85f-4505-ae48-248e9ec11fac
-deleteat!(marcs_grid, (marcs_grid[!, :feh] .> 0.0) .| (marcs_grid[!, :feh] .< -4.0))
+deleteat!(marcs_grid, (marcs_grid[!, :feh] .> 0.0) .| (marcs_grid[!, :feh] .< -4.5))
 
 # ╔═╡ 549bbdfb-834d-4043-aecf-ef33391ef5f5
-deleteat!(marcs_grid, (marcs_grid[!, :T] .> 7000.0) .| (marcs_grid[!, :T] .< 3500.0))
+deleteat!(marcs_grid, (marcs_grid[!, :T] .> 7500.0) .| (marcs_grid[!, :T] .< 3500.0))
 
 # ╔═╡ 646a5bfb-0fc8-4256-894b-fffc3f10525c
 
@@ -291,7 +291,7 @@ begin
 	parasmarcs[:, 1] = marcs_grid[!, :T]
 	parasmarcs[:, 2] = marcs_grid[!, :logg]
 	parasmarcs[:, 3] = marcs_grid[!, :feh]
-	folder = joinpath(folder_marcs, "av_models")
+	folder = abspath(joinpath(folder_marcs, "av_models"))
 	old_path = marcs_grid[!, :path]
 
 	eos_marcs_path = [closest_eos(feh) for feh in parasmarcs[:, 3]]
@@ -320,13 +320,14 @@ function simpleMarcs(oldpath, teff, logg, feh; folder, eos)
 	)
 	hres = minimum(abs.(diff(model.z)))
 	model = @optical model eos
+	@info minimum(log10.(model.τ)) maximum(log10.(model.τ))
 	znew = TSO.rosseland_depth(eos, model)
 	model.z .= znew
 	TSO.optical_surface!(model)
 
 	model = TSO.flip(TSO.interpolate_to(
 		model, in_log=false,
-		z=range(minimum(model.z), maximum(model.z), step=hres)
+		z=range(minimum(model.z), maximum(model.z), step=hres/2)
 	))
 	
 
@@ -442,13 +443,13 @@ function construct_grid(teff, logg, feh; folder, oldpath, eos)
 	model = simpleMarcs(oldpath, teff, logg, feh; folder=folder, eos=eos)
 	hres = minimum(abs.(diff(model.z)))
 	
-	model_extended = adiabatic_extrapolation(model, eos, nz=1000, dlnd=0.02)
+	model_extended = adiabatic_extrapolation(model, eos, nz=2000, dlnd=0.05)
 	model_extended = @optical model_extended eos
 
 	# Interpolate the extended model to be until logτ=7, find the optical surface and construct a z scale
 	τ_min = max(minimum(log10.(model_extended.τ)), -8)
 	τ_max = min(maximum(log10.(model_extended.τ)), 7)
-	@info τ_min,τ_max
+	#@info τ_min,τ_max
 	model_clipped = TSO.flip!(TSO.interpolate_to(
 		model_extended, 
 		in_log=true, 
@@ -460,7 +461,11 @@ function construct_grid(teff, logg, feh; folder, oldpath, eos)
 	model_clipped.z .= znew
 
 	# find the optical surface
-	TSO.optical_surface!(model_clipped)
+	try
+		TSO.optical_surface!(model_clipped)
+	catch
+		@info "optical surface failed. $(teff), $logg, $feh"
+	end
 	TSO.flip!(model_clipped)
 
 	mi_z = minimum(model_clipped.z)
@@ -499,8 +504,8 @@ function construct_grid(teff, logg, feh; folder, oldpath, eos)
 			"vmax"     => velocityscale,
 			"tscale"   => timescale,
 			"hres"     => hres,
-			"av_path"  => joinpath(folder, "$(name)_99999_av.dat"),
-			"avo_path"  => joinpath(folder, "$(name)_99999_avo.dat"),
+			"av_path"  => abspath(joinpath(folder, "$(name)_99999_av.dat")),
+			"avo_path"  => abspath(joinpath(folder, "$(name)_99999_avo.dat")),
 			"abs_av_path" => av_path,
 			"teff"     => teff,
 			"logg"     => logg,
@@ -548,22 +553,26 @@ function relative_path(from, to)
 end
 
 # ╔═╡ d1998950-051d-4b26-b219-0424f92b4778
-marcs_constructed_grid[!, "matching_eos"] = relative_path.(
-	abspath(joinpath(folder_marcs, "marcs_grid.mgrid")),
-	eos_marcs_path
-)
+marcs_constructed_grid[!, "matching_eos"] = abspath.(eos_marcs_path)
+
+# ╔═╡ cb3764c4-044b-4b85-9b6d-7e2bf46e0664
+marcs_constructed_grid[!, "eos_root"] = dirname.(marcs_constructed_grid[!, "matching_eos"])
 
 # ╔═╡ 44fa2659-7369-42fa-a52c-996808656e9f
 #marcs_constructed_grid[!, "avo_path"] = marcs_constructed_grid[!, "av_path"]
 
-# ╔═╡ fe0512ee-38e7-4e75-aa73-e517c522aef7
-MUST.save(
-	MUST.Atmos1DGrid(
-		"MARCS constructed", 
-		joinpath(folder_marcs,"marcs_grid.mgrid"),
-		marcs_constructed_grid
-	)
+# ╔═╡ 9c29e181-d406-4d76-ac77-db809cdda001
+g = MUST.Atmos1DGrid(
+	"MARCS constructed", 
+	joinpath(folder_marcs,"marcs_grid.mgrid"),
+	marcs_constructed_grid
 )
+
+# ╔═╡ 88834ecf-74ca-4742-8bd6-7e15924b6447
+MUST.relative_path!(g)
+
+# ╔═╡ fe0512ee-38e7-4e75-aa73-e517c522aef7
+MUST.save(g)
 
 # ╔═╡ Cell order:
 # ╠═b04a8d9a-5307-11ef-1268-95d5b8233977
@@ -598,14 +607,17 @@ MUST.save(
 # ╟─7e63e0d2-7baa-4523-8340-3c709cab3366
 # ╠═061fcfbd-45b6-4f6b-b191-64b672ac4a08
 # ╠═a9f10b54-4c53-497a-9586-0ac48c430276
-# ╟─450f1d97-5f7f-41e8-9445-3b435e67e4ab
+# ╠═450f1d97-5f7f-41e8-9445-3b435e67e4ab
 # ╟─ebd655db-c8aa-4fb2-9b9c-5e9ea9ffb391
 # ╟─38f1be62-784f-4efd-9a6b-4219aaac1b0f
-# ╟─07ac5d26-c496-40e1-8e8a-573abe05af10
+# ╠═07ac5d26-c496-40e1-8e8a-573abe05af10
 # ╠═0b99d9d8-07d1-4884-b335-9051baa96cf4
 # ╠═2c40e250-b0c4-4a34-b626-b052e1143b1e
 # ╠═d0f927ab-b49a-4a51-ab15-f089caffb1e9
 # ╠═62597df8-0ffa-4a63-9d79-a5111535525f
 # ╠═d1998950-051d-4b26-b219-0424f92b4778
+# ╠═cb3764c4-044b-4b85-9b6d-7e2bf46e0664
 # ╠═44fa2659-7369-42fa-a52c-996808656e9f
+# ╠═9c29e181-d406-4d76-ac77-db809cdda001
+# ╠═88834ecf-74ca-4742-8bd6-7e15924b6447
 # ╠═fe0512ee-38e7-4e75-aa73-e517c522aef7

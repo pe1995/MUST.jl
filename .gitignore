@@ -2,6 +2,8 @@
 
 /.CondaPkg
 examples/*/.CondaPkg
+initial_grids/.CondaPkg
+
 
 examples/*/Manifest.toml
 examples/*/slurm*

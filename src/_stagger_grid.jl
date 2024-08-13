@@ -117,7 +117,7 @@ relative_path!(grid; to=@__FILE__) = begin
     	grid.info[!, "avo_path"] .= relative_path.(to, grid.info[!, "avo_path"])
     end
 	if "eos_root" in names(grid.info) 
-		grid.info[!, "eos_root"] .= abspath.(joinpath.(dirname(from), grid.info[!, "eos_root"]))
+		grid.info[!, "eos_root"] .= relative_path.(to, grid.info[!, "eos_root"])
 	end
 	if "matching_eos" in names(grid.info) 
 		grid.info[!, "matching_eos"] .= relative_path.(to, grid.info[!, "matching_eos"])

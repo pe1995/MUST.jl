@@ -106,15 +106,15 @@ begin
 	]
 
 	# modify chemical composition by element name (beyond [Fe/H] with abund file, give as [X/Fe])
-	FeH = 0.0
+	FeH = -1.0
 	abund_file = absdat_abundances(
-		#α=0.4, 
+		α=0.0, 
 		#C=3.0,
 		default="./input_multi3d/abund_magg"
 	)
 
 	# name of the new EoS table
-	extension = "magg_m0_a0_vmic1"
+	extension = "magg_m1_a0_vmic1"
 	version = "v5.1"
 
 	# computation setup
@@ -247,7 +247,9 @@ md"EoS Versions:
 	v4.X: FeH = -X, still no molecular lines!
 - v4.0:	Carbon enhanced <-> Carbon solar
 -------------------------------------------------------
-- v5.X: with molecules, OP formalism for H in EoS 
+	v5.X: with molecules, OP formalism for H in EoS 
+-v5.0: 50,000 K
+-v5.1: 100,000 K
 -------------------------------------------------------
 "
 

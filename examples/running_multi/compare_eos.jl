@@ -19,7 +19,7 @@ end
 ext1 = "magg_m0_a0"
 
 # ╔═╡ 6e6d4927-afd1-450c-ad02-a62802d143c3
-ext2 = "magg_m4_a0_vmic1"
+ext2 = "magg_m0_a0_vmic1"
 
 # ╔═╡ 789f821a-be1c-4fa3-8b75-b888f9eeed1f
 eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext1)_v1.8/combined_eos_$(ext1).hdf5")
@@ -28,10 +28,10 @@ eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/o
 opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext1)_v1.8/combined_opacities_$(ext1).hdf5", mmap=true)
 
 # ╔═╡ bdf0a7ba-d30d-40f2-92f4-b9dd791a9ba9
-eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v5.0/combined_eos_$(ext2).hdf5")
+eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v5.1/combined_eos_$(ext2).hdf5")
 
 # ╔═╡ 7cd8df75-c5e5-4ce3-b3af-cb54a7ec8cce
-opa2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v5.0/combined_opacities_$(ext2).hdf5", mmap=true)
+opa2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v5.1/combined_opacities_$(ext2).hdf5", mmap=true)
 
 # ╔═╡ 5f34751e-382d-4bb3-8c00-fb6c4a4eb8bd
 solar_model1 = @optical Average3D(eos1, "sun_stagger.dat") eos1 opa1
