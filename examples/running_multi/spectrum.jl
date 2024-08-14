@@ -77,13 +77,16 @@ s = ArgParseSettings()
         arg_type = String
         default=""
     "--datafolder"
-        help = "Dispatch data directory (relative to stellar_atmospheres experiment)"
+        help = "Dispatch data directory."
         arg_type = String
         default="data"
+    "--absolutepath"
+        help = "Snapshot data directory in `datafolder` is given as absolute path, instead of relative."
+        action = :store_true
     "--dims"
         help = "Number of vertical atmosphere splits."
         arg_type = Int
-        default=8
+        default=32
     "--nnu"
         help = "Number of frequency splits."
         arg_type = Int
@@ -140,8 +143,15 @@ begin
 
     # simulation
     name = arguments["run"]
-    run = @in_dispatch("$(arguments["datafolder"])/$(name)")
+    if arguments["absolutepath"]
+        run = joinpath("$(arguments["datafolder"])/$(name)")
+    else
+        run = @in_dispatch("$(arguments["datafolder"])/$(name)")
+    end
     isnap = arguments["snapshot"]
+
+    extension = arguments["extension"]
+    @info "Spectrum synthesis for model $(name) ($(extension)) in spectral window $(window) Å."
 end
 
 # convert snapshot if not already done, convert to M3D aswell (full res.)
