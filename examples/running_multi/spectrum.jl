@@ -113,6 +113,10 @@ s = ArgParseSettings()
     "--move"
         help = "Move results to DISPATCH after computation has finished."
         action = :store_true
+    "--extension"
+        help = "Additional, optional name extension. No '_' added automatically."
+        default = ""
+        arg_type = String
 end
 
 # code setup
@@ -240,16 +244,16 @@ begin
 
     result = MUST.spectrum(
         "m3dis_$(isnap)"; 
-        name=name*"_"*window, 
+        name=name*"_"*window*extension, 
         NLTE=arguments["NLTE"], 
         slurm=false, 
         namelist_kwargs=spectrum_namelist,
         m3dis_kwargs=m3dis_kwargs
     )
 
-    newp = @in_m3dis("data/m3dis_$(isnap)_$(name)_$(window)")
+    newp = @in_m3dis("data/m3dis_$(isnap)_$(name)_$(window)$(extension)")
     if arguments["move"]
-        mvp = joinpath(run, "spectra_sn$(isnap)_$(window)")
+        mvp = joinpath(run, "spectra_sn$(isnap)_$(window)$(extension)")
         mv(newp, mvp, force=true)
         @info "M3D run saved at $(mvp)."
     else

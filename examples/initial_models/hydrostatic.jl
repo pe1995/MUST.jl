@@ -48,15 +48,16 @@ modelgrids = MUST.ingredients("modelgrids.jl")
 oproot = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/"
 
 # ╔═╡ 7a530655-c3c2-4d64-acda-cf5b58626e90
-eos_name(ext) = joinpath(oproot, "TSO_M3D_$(ext)_v5.0/combined_eos_$(ext).hdf5")
+eos_name(ext, version) = joinpath(oproot, "TSO_M3D_$(ext)_$(version)/combined_eos_$(ext).hdf5")
 
 # ╔═╡ 73426bbd-e476-4523-b5fc-0d0a80aadd7e
 allEoS = Dict(
-	0=>eos_name("magg_m0_a0_vmic1"),
-	-1=>eos_name("magg_m1_a0_vmic1"),
-	-2=>eos_name("magg_m2_a0_vmic1"),
-	-3=>eos_name("magg_m3_a0_vmic1"),
-	-4=>eos_name("magg_m4_a0_vmic1")
+	0=>eos_name("magg_m0_a0_vmic1", "v5.1"),
+	-1=>eos_name("magg_m1_a0_vmic1", "v5.1"),
+	-2=>eos_name("magg_m2_a0_vmic1", "v5.0"),
+	-3=>eos_name("magg_m3_a0_vmic1", "v5.0"),
+	-4=>eos_name("magg_m4_a0_vmic1", "v5.0"),
+	-5=>eos_name("magg_m5_a0_vmic2", "v5.1")
 )
 
 # ╔═╡ a97947c4-31bc-4fe7-a3d5-57fad759ab79
@@ -262,7 +263,7 @@ end
 marcs_grid = combine(groupby(df, [:T, :logg, :feh]), row_selector)  
 
 # ╔═╡ 3c2ee7a4-f85f-4505-ae48-248e9ec11fac
-deleteat!(marcs_grid, (marcs_grid[!, :feh] .> 0.0) .| (marcs_grid[!, :feh] .< -4.5))
+deleteat!(marcs_grid, (marcs_grid[!, :feh] .> 0.0) .| (marcs_grid[!, :feh] .< -5.5))
 
 # ╔═╡ 549bbdfb-834d-4043-aecf-ef33391ef5f5
 deleteat!(marcs_grid, (marcs_grid[!, :T] .> 7500.0) .| (marcs_grid[!, :T] .< 3500.0))
@@ -275,7 +276,7 @@ md"Now we have a MARCS grid, that contains models with the lowest available micr
 
 # ╔═╡ 061fcfbd-45b6-4f6b-b191-64b672ac4a08
 begin
-	folder_marcs = "MARCS"
+	folder_marcs = abspath("../../initial_grids/MARCS")
 	if !isdir(folder_marcs) 
 		mkdir(folder_marcs)
 		mkdir(joinpath(folder_marcs, "av_models"))
