@@ -25,15 +25,19 @@ s = ArgParseSettings()
     "--teff"
         help = "List of effective temperatures."
         arg_type = Vector{Float64}
-        required = true
+        default = [5777.0]
     "--logg"
         help = "List of log10 surface gravities."
         arg_type = Vector{Float64}
-        required = true
+        default = [4.44]
     "--feh"
         help = "List of metallicities [Fe/H]."
         arg_type = Vector{Float64}
-        required = true
+        default = [0.0]
+    "--parameterFile"
+        help = "Path to a file containing the wanted Teff, logg and [Fe/H] as columns `teff`, `logg`, and `feh`."
+        arg_type = String
+        default = ""
     "--random"
         help = "Sample this many models randomly between the limits set by `teff`, `logg` and `feh`. Set to -1 to don't sample at all."
         arg_type = Int
@@ -240,7 +244,20 @@ begin
 
     # check parameter input
     @assert length(arguments["teff"])==length(arguments["logg"])==length(arguments["feh"])
-    paras = if arguments["random"] == -1
+    paras = if length(arguments["parameterFile"]) > 0
+        if !isfile(arguments["parameterFile"])
+            error("The given parameterFile $(parameterFile) does not exist.")
+        end
+        paraFile = MUST.Atmos1DGrid(arguments["parameterFile"])
+
+        nparas = nrow(paraFile)
+        paras = zeros(nparas, 3)
+        paras[:, 1] .= paraFile["teff"]
+        paras[:, 2] .= paraFile["logg"]
+        paras[:, 3] .= paraFile["feh"]
+
+        paras
+    elseif arguments["random"] == -1
         nparas = length(arguments["teff"])
         paras = zeros(nparas, 3)
         paras[:, 1] .= arguments["teff"]
