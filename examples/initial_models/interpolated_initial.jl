@@ -22,18 +22,22 @@ s = ArgParseSettings()
         help = "Grid in which to interpolate (Stagger, StaggerAlphamod (a=0-4, vmic=1-2), MARCS, MARCSAlphamod (a=0-4, vmic=1-2))."
         arg_type = String
         default = "Stagger"
-    "--teff", "-t"
+    "--teff"
         help = "List of effective temperatures."
         arg_type = Vector{Float64}
         required = true
-    "--logg", "-l"
+    "--logg"
         help = "List of log10 surface gravities."
         arg_type = Vector{Float64}
         required = true
-    "--feh", "-f"
+    "--feh"
         help = "List of metallicities [Fe/H]."
         arg_type = Vector{Float64}
         required = true
+    "--random"
+        help = "Sample this many models randomly between the limits set by `teff`, `logg` and `feh`. Set to -1 to don't sample at all."
+        arg_type = Int
+        default = -1
     "--eos"
         help = "EoS to use. Can be set to `closest` to pick the closest EoS in the grid."
         arg_type = Vector{String}
@@ -221,23 +225,7 @@ begin
 	avModels = joinpath(modelFolder, "av_models")
     !isdir(avModels) && mkpath(avModels)
 
-    # check parameter input
-    @assert length(arguments["teff"])==length(arguments["logg"])==length(arguments["feh"])
-    nparas = length(arguments["teff"])
-    paras = zeros(nparas, 3)
-    paras[:, 1] .= arguments["teff"]
-    paras[:, 2] .= arguments["logg"]
-    paras[:, 3] .= arguments["feh"]
-
-    # pick EoS
-    eos = [e == "closest" ? :closest : e for e in arguments["eos"]]
-    eos = if length(eos) == 1
-        [first(eos) for _ in axes(paras, 1)]
-    else
-        @assert size(paras, 1) == length(eos)
-        eos
-    end
-
+    # pick the grid to interpolate in
     ingrid = if arguments["grid"] == "Stagger"
         iniCond.staggergrid
     elseif arguments["grid"] == "StaggerAlphamod"
@@ -248,6 +236,36 @@ begin
         iniCond.marcsgrid_alphamod
     else
         error("Given input grid doesn't exist.")
+    end
+
+    # check parameter input
+    @assert length(arguments["teff"])==length(arguments["logg"])==length(arguments["feh"])
+    paras = if arguments["random"] == -1
+        nparas = length(arguments["teff"])
+        paras = zeros(nparas, 3)
+        paras[:, 1] .= arguments["teff"]
+        paras[:, 2] .= arguments["logg"]
+        paras[:, 3] .= arguments["feh"]
+
+        paras
+    else
+        @info "Sampling $(arguments["random"]) random initial models within the grid..."
+        paras = iniCond.random_paramters(ingrid, arguments["random"], teff=arguments["teff"], logg=arguments["logg"], feh=arguments["feh"])
+        Teff = repr(round.(paras[:, 1], sigdigits=4))
+        logg =repr(round.(paras[:, 2], sigdigits=4))
+        FeH = repr(round.(paras[:, 3], sigdigits=4))
+        @info "Parameters sampled:" Teff logg FeH
+
+        paras
+    end
+
+    # pick EoS
+    eos = [e == "closest" ? :closest : e for e in arguments["eos"]]
+    eos = if length(eos) == 1
+        [first(eos) for _ in axes(paras, 1)]
+    else
+        @assert size(paras, 1) == length(eos)
+        eos
     end
 
     # interpolate in grid
