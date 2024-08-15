@@ -2249,9 +2249,11 @@ end
 
 # ╔═╡ 9d0348a6-24a1-447c-9af4-5b648a381370
 md"""
-__Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))\
-From snapshot $(startTimeMovie) to $(endTimeMovie) with $(fps) FPS.
+__Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))
 """
+
+# ╔═╡ c30611f4-1d2e-41c9-b8db-f85b3c99990d
+md"From snapshot $(startTimeMovie) to $(endTimeMovie) with $(fps) FPS."
 
 # ╔═╡ 4564cbd9-34bb-4b21-9fca-1027d5c95518
 
@@ -3012,6 +3014,7 @@ end
 # ╟─2e99b941-935b-4379-89bf-55a4635df686
 # ╟─48b4180b-6891-4c2a-a22e-7761b8e1f439
 # ╟─9d0348a6-24a1-447c-9af4-5b648a381370
+# ╟─c30611f4-1d2e-41c9-b8db-f85b3c99990d
 # ╟─4564cbd9-34bb-4b21-9fca-1027d5c95518
 # ╟─40bf37a4-318b-4263-8705-a566a3321f87
 # ╟─c1faa953-4b76-43fa-a958-a5476e325afc

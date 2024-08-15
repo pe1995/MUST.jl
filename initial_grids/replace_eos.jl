@@ -21,7 +21,7 @@ iniCond = MUST.ingredients("initial_condition.jl")
 md"# Load Grid"
 
 # ╔═╡ 3ed4fb6f-3766-4891-b9a8-c37948bced88
-grid = iniCond.marcsgrid
+grid = iniCond.staggergrid
 
 # ╔═╡ 7b87b39f-fcdd-473f-9bed-8ddcc5e355db
 md"Next, we expand the relative paths within this grid to absolute paths. They are assumed to be replative to the `MUST.jl/src` directory by default."
@@ -40,7 +40,7 @@ md"# New EoS
 You can now define any rule you like to pick for each row of the grid a EoS at any path. You need to use the absolute paths here!"
 
 # ╔═╡ 3377dc64-141a-40ce-a9b1-dff24b238507
-new_name = "marcs_grid"
+new_name = "stagger_grid_v5.1"
 
 # ╔═╡ ff93980e-d013-4d14-bc9f-e858ae824cf5
 oproot = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/"
@@ -50,11 +50,12 @@ eos_name(ext, version) = joinpath(oproot, "TSO_M3D_$(ext)_$(version)/combined_eo
 
 # ╔═╡ fb3b92d2-c689-45b4-a7c5-6ef2a702fbb7
 allEoS = Dict(
-	0=>eos_name("magg_m0_a0_vmic1", "v5.0"),
-	-1=>eos_name("magg_m1_a0_vmic1", "v5.0"),
-	-2=>eos_name("magg_m2_a0_vmic1", "v5.0"),
-	-3=>eos_name("magg_m3_a0_vmic1", "v5.0"),
-	-4=>eos_name("magg_m4_a0_vmic1", "v5.0")
+	0=>eos_name("magg_m0_a0_vmic1", "v5.1"),
+	-1=>eos_name("magg_m1_a0_vmic1", "v5.1"),
+	-2=>eos_name("magg_m2_a0_vmic1", "v5.1"),
+	-3=>eos_name("magg_m3_a0_vmic1", "v5.1"),
+	-4=>eos_name("magg_m4_a0_vmic1", "v5.1"),
+	-5=>eos_name("magg_m5_a0_vmic1", "v5.1")
 )
 
 # ╔═╡ def67aaa-d41d-4a47-a77a-b679ca3d8c65

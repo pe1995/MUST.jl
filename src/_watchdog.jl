@@ -239,6 +239,8 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, end] : nothing
     fluxplane = haskey(b.data, :flux) ? b[:flux][:, :, end] : nothing
     qrplane = haskey(b.data, :qr) ? b[:qr][:, :, end] : nothing
+    kapparhoplane = haskey(b.data, :kapparho) ? b[:kapparho][:, :, end] : nothing
+
 
     d = Dict(
         "uzplane" => uzplane,
@@ -258,6 +260,9 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     end
     if !isnothing(qrplane)
         d["qrplane"] = qrplane[:, :]
+    end
+    if !isnothing(kapparhoplane)
+        d["kapparhoplane"] = kapparhoplane[:, :]
     end
 
     d

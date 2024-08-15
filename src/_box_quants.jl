@@ -52,6 +52,7 @@ eeQ = Quantity(:ee, (; d, e, kwargs...)->(e ./ d), standardConversion(:ee))
 dtQ = Quantity(:dt_rt, nothing, standardConversion(:t))
 fluxQ = Quantity(:flux, nothing, standardConversion(:flux))
 heatingQ = Quantity(:qr, nothing, standardConversion(:qr))
+opacityQ = Quantity(:kapparho, nothing, standardConversion(:rk))
 
 defaultQuantities = [
     dQ,
@@ -62,5 +63,6 @@ defaultQuantities = [
     eeQ,
     dtQ,
     fluxQ,
-    heatingQ
+    heatingQ,
+    opacityQ
 ]
