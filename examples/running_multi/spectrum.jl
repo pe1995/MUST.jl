@@ -29,7 +29,6 @@ s = ArgParseSettings()
     "--snapshot", "-n"
         help = "Number of the snapshot within `run`. Converts if it not converted yet."
         arg_type = Int
-        required=true
     "--multi_threads", "-t"
         help = "Number of threads to use for M3D."
         arg_type = Int
@@ -43,9 +42,16 @@ s = ArgParseSettings()
         arg_type = Float64
         default = 6790.0
     "--lambda_step", "-d"
-        help = "Wavelength window end wavelength [Å]."
+        help = "Wavelength window step wavelength [Å]."
         arg_type = Float64
         default = 0.5
+    "--lambda_n"
+        help = "Wavelength window number of points."
+        arg_type = Float64
+        default = -1.0
+    "--lambda_log"
+        help = "Wavelength window should be sampled in log units."
+        action = :store_true
     "--linelists"
         help = "List of linelists. Choose `all` to use the default.
         Also available: CHonly (turn molecules except CH off)"
@@ -120,6 +126,10 @@ s = ArgParseSettings()
         help = "Additional, optional name extension. No '_' added automatically."
         default = ""
         arg_type = String
+    "--onedimensional"
+        help = "Path to a 1D model."
+        default = ""
+        arg_type = String
 end
 
 # code setup
@@ -135,10 +145,19 @@ end
 # simulation details
 begin
     # wavelengh coverage
-	λs = arguments["lambda_start"]
-	λe = arguments["lambda_end"]
-	Δλ = arguments["lambda_step"]
-    nλ = (λe - λs) / Δλ
+    λs = arguments["lambda_log"] ? log(arguments["lambda_start"]) : arguments["lambda_start"]
+    λe = arguments["lambda_log"] ? log(arguments["lambda_end"]) : arguments["lambda_end"]
+    Δλ, nλ = if arguments["lambda_n"] < 0.0
+        Δλ = arguments["lambda_log"] ? log(arguments["lambda_step"]) : arguments["lambda_step"]
+        nλ = (λe - λs) / Δλ
+
+        Δλ, nλ
+    else
+        nλ = arguments["lambda_n"]
+        Δλ = (λe - λs) / nλ
+
+        Δλ, nλ
+    end
     window = MUST.@sprintf "lam_%i-%i" λs λe
 
     # simulation
@@ -148,7 +167,12 @@ begin
     else
         run = @in_dispatch("$(arguments["datafolder"])/$(name)")
     end
-    isnap = arguments["snapshot"]
+
+    isnap = if length(arguments["onedimensional"])==0
+        arguments["snapshot"]
+    else
+        -1
+    end
 
     extension = arguments["extension"]
     @info "Spectrum synthesis for model $(name) ($(extension)) in spectral window $(window) Å."
@@ -156,15 +180,19 @@ end
 
 # convert snapshot if not already done, convert to M3D aswell (full res.)
 begin
-	snaps_ready = MUST.list_snapshots(MUST.converted_snapshots(run))
+    b, bτ = if length(arguments["onedimensional"])==0
+        snaps_ready = MUST.list_snapshots(MUST.converted_snapshots(run))
 
-	if !(isnap in snaps_ready)
-		@info "Converting snapshot $(name), Number: $(isnap)"
-		snapshotBox(isnap, folder=run, to_multi=true, legacy=false)		
-		@info "Snapshot $(name), Number: $(isnap) converted."
-	end
+        if !(isnap in snaps_ready)
+            @info "Converting snapshot $(name), Number: $(isnap)"
+            snapshotBox(isnap, folder=run, to_multi=true, legacy=false)		
+            @info "Snapshot $(name), Number: $(isnap) converted."
+        end
 
-	b, bτ = pick_snapshot(run, isnap)
+        b, bτ = pick_snapshot(run, isnap)
+    else
+        nothing, nothing
+    end
 end
 
 # chemical details
@@ -213,57 +241,88 @@ end
 
 # run M3D
 begin
-    nz = if arguments["vertical_resolution"] == -1
-        size(b, 3) * 2 - 1
-    else
-        arguments["vertical_resolution"]
-    end
+    spectrum_namelist, multiname = if length(arguments["onedimensional"])==0
+        nz = if arguments["vertical_resolution"] == -1
+            size(b, 3) * 2 - 1
+        else
+            arguments["vertical_resolution"]
+        end
 
-    spectrum_namelist = Dict(
-        :model_folder=>run,
-        :linelist=>nothing,
-        :absmet=>nothing,
-        :linelist_params=>(:line_lists=>linelists,),
-        :atom_params=>(:atom_file=>arguments["atom"],),
-        :spectrum_params=>(:daa=>Δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>false),
-        :atmos_params=>(
-            :dims=>arguments["dims"], 
-            :atmos_format=>"must",
-            :use_density=>true, 
-            :use_ne=>false,
-            :FeH=>FeH,
-            :nx=>arguments["horizontal_resolution"],
-            :ny=>arguments["horizontal_resolution"],
-            :nz=>nz
-        ),
-        :m3d_params=>(
-            :save_resolved=>arguments["save_resolved"],
-            :long_scheme=>arguments["long_scheme"],
-            :short_scheme=>arguments["short_scheme"],
-            :n_nu=>arguments["nnu"],
-        ),
-        :composition_params=>(
-            :absdat_file=>arguments["absdat"],
-            :abund_file=>abund_file
+        spectrum_namelist = Dict(
+            :model_folder=>run,
+            :linelist=>nothing,
+            :absmet=>nothing,
+            :linelist_params=>(:line_lists=>linelists,),
+            :atom_params=>(:atom_file=>arguments["atom"],),
+            :spectrum_params=>(:daa=>Δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>false),
+            :atmos_params=>(
+                :dims=>arguments["dims"], 
+                :atmos_format=>"must",
+                :use_density=>true, 
+                :use_ne=>false,
+                :FeH=>FeH,
+                :nx=>arguments["horizontal_resolution"],
+                :ny=>arguments["horizontal_resolution"],
+                :nz=>nz
+            ),
+            :m3d_params=>(
+                :save_resolved=>arguments["save_resolved"],
+                :long_scheme=>arguments["long_scheme"],
+                :short_scheme=>arguments["short_scheme"],
+                :n_nu=>arguments["nnu"],
+            ),
+            :composition_params=>(
+                :absdat_file=>arguments["absdat"],
+                :abund_file=>abund_file
+            )
         )
-    )
+        spectrum_namelist, "m3dis_$(isnap)"
+    else
+        spectrum_namelist = Dict(
+            :model_folder=>run,
+            :linelist=>nothing,
+            :absmet=>nothing,
+            :linelist_params=>(:line_lists=>linelists,),
+            :atom_params=>(:atom_file=>arguments["atom"],),
+            :spectrum_params=>(:daa=>Δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>false),
+            :atmos_params=>(
+                :dims=>arguments["dims"], 
+                :atmos_format=>"text",
+                :use_density=>true, 
+                :use_ne=>false,
+                :FeH=>FeH,
+                :amr=>false
+            ),
+            :m3d_params=>(
+                :long_scheme=>arguments["long_scheme"],
+                :short_scheme=>arguments["short_scheme"],
+                :n_nu=>arguments["nnu"],
+            ),
+            :composition_params=>(
+                :absdat_file=>arguments["absdat"],
+                :abund_file=>abund_file
+            )
+        )
+        spectrum_namelist, arguments["onedimensional"]
+    end
 
     m3dis_kwargs = Dict(
         :threads=>arguments["multi_threads"]
     )
 
     result = MUST.spectrum(
-        "m3dis_$(isnap)"; 
+        multiname; 
         name=name*"_"*window*extension, 
         NLTE=arguments["NLTE"], 
         slurm=false, 
         namelist_kwargs=spectrum_namelist,
-        m3dis_kwargs=m3dis_kwargs
+        m3dis_kwargs=m3dis_kwargs,
+        cleanup=true
     )
 
-    newp = @in_m3dis("data/m3dis_$(isnap)_$(name)_$(window)$(extension)")
+    newp = @in_m3dis("data/$(multiname)_$(name)_$(window)$(extension)")
     if arguments["move"]
-        mvp = joinpath(run, "spectra_sn$(isnap)_$(window)$(extension)")
+        mvp = joinpath(run, "spectra_$(multiname)_$(window)$(extension)")
         mv(newp, mvp, force=true)
         @info "M3D run saved at $(mvp)."
     else
