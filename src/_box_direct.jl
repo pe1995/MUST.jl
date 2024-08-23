@@ -499,7 +499,12 @@ end
 
 _get_teff_from_fid(fid, flux_name="flux") = begin
 	if flux_name in keys(fid)
-		(mean(fid[flux_name][:, :, end]) /σ_S) ^0.25
+		mf = mean(fid[flux_name][:, :, end])
+		if isfinite(mf)
+			(mf /σ_S) ^0.25
+		else
+			-99.9
+		end
 	else
 		-99.0
 	end
