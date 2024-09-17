@@ -54,6 +54,9 @@ s = ArgParseSettings()
         help = "Extrapolate adiabatically below the bottom boundary `tau_bottom` after the model has been averaged.
         The extrapolation is carried out until the geometrical bottom boundary as specified in the grid has been reached."
         action = :store_true
+    "--adiabatic"
+        help = "Replace the initial model with an adiabat."
+        action = :store_true
     "--skip_binning"
         help = "Skip opacity binning."
         action = :store_true
@@ -100,7 +103,7 @@ s = ArgParseSettings()
     "--friction_time"
         help = "End time of artifical friction."
         arg_type = Float64
-        default = 120.0
+        default = 140.0
     "--newton_decay_scale"
         help = "Decay scale of Newtong cooling contribution after Newton time."
         arg_type = Float64
@@ -108,11 +111,11 @@ s = ArgParseSettings()
     "--friction_decay_scale"
         help = "Decay scale of friction after friction time."
         arg_type = Float64
-        default = 20.0
+        default = 10.0
     "--courant_hd"
         help = "Hydrodynamic courant factor."
         arg_type = Float64
-        default = 0.25
+        default = 0.2
     "--courant_rt"
         help = "Radiative transfer courant factor."
         arg_type = Float64
@@ -144,11 +147,23 @@ s = ArgParseSettings()
     "--smallr"
         help = "Lower density limit."
         arg_type = Float64
-        default = 1.0e-9
+        default = 1.0e-16
+    "--rt_solver"
+        help = "RT solver id."
+        arg_type = Int
+        default = 2
+    "--dtau_min"
+        help = "Minimum optical depth increment for RT solver."
+        arg_type = Float64
+        default = 1.0e-7
+    "--dtau_max"
+        help = "Maximum optical depth increment for RT solver."
+        arg_type = Float64
+        default = 1.0e7
     "--dt_small"
         help = "Lower timestep limit."
         arg_type = Float64
-        default = 1.0e-10
+        default = 1.0e-16
     "--rt_freq"
         help = "Upper limit on RT timestep relative to the HD."
         arg_type = Float64
@@ -205,7 +220,7 @@ begin
         ),
         :an_params=>(
             :smallr=>arguments["smallr"],
-            :dlnr_limit=>0.7
+            :dlnr_limit=>7.7
         ),
         :patch_params=>(
             :grace=>0.01,
@@ -216,6 +231,11 @@ begin
             :rt_grace=>0.01,
             :rt_freq=>arguments["rt_freq"],
             :cdtd=>arguments["cdtd"]
+        ),
+        :rt_integral_params=>(
+            :solver=>arguments["rt_solver"],
+            :dtau_min=>arguments["dtau_min"],
+            :dtau_max=>arguments["dtau_max"],
         ),
         :dispatcher0_params=>(
             :retry_stalled=>60,
@@ -292,13 +312,30 @@ begin
         eos=eos, 
         savedir=avModels, 
         τbottom=arguments["tau_bottom"], 
-        common_size=3000,
+        τ_extrapolate=τ_up*1.02,    
+        common_size=5000,
+        use_adiabat=arguments["adiabatic"],
+        use_avnewz=!arguments["adiabatic"],
         adiabatic_extrapolation=arguments["adiabatic_extrapolation"]
     )
 end
 
 # binning opacities
 begin
+    Nbins = 8
+    make_quadrants = (name, eos_root, opa_path) -> begin
+        qlim = round(
+            iniCond.quadrantlimit(name, eos_root, opa_path, λ_lim=5.0), 
+            sigdigits=3
+        )
+        quadrants = [ 
+            TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
+            TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
+            TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
+            TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
+        ]
+    end
+
     iniCond.prepare(
 	    grid,
 	    name_extension=modelFolder,
@@ -316,6 +353,8 @@ begin
         τ_rho0=τ_rho0,
         dxdz_max=dxdz_max,
         scale_resolution=scale_resolution,
-        namelist_kwargs=namelist_kwargs
+        namelist_kwargs=namelist_kwargs,
+        make_quadrants=make_quadrants,
+        Nbins=Nbins
     )
 end

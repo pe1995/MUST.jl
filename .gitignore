@@ -37,6 +37,9 @@ examples/solar_model/*.npz
 examples/dispatch2space/data
 
 examples/MainSequence/*/
+examples/CEMP/*.txt
+examples/CEMP/*_rho
+examples/CEMP/*_T
 
 examples/initial_models/*
 examples/initial_models/*.dat

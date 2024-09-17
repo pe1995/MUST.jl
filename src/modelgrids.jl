@@ -257,7 +257,8 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 	# interpolate to equally spaced in z
 	# for this we need to construct a new z scale 
 	mnew = TSO.flip(Model1D(z=z, lnT=t, lnρ=d, logg=logg, τ=exp10.(ltscale)), depth=true)
-	mnew = if !isnothing(τ_extrapolate)
+	mnew = if (!isnothing(τ_extrapolate)) && (τ_extrapolate>τtop)
+		@info "Extrapolating to log10τ=$(τ_extrapolate)"
 		TSO.interpolate_to(mnew, τ=range(maximum(log10.(mnew.τ)), τ_extrapolate, length=length(mnew.τ))|>collect, in_log=true)
 	else
 		mnew

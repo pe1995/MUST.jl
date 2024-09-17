@@ -19,7 +19,7 @@ end
 #ext1 = "magg_m0_a0"
 
 # ╔═╡ 2013feaa-c461-450f-8365-982c205fa1df
-ext1 = "magg_m5_a4_vmic2"
+ext1 = "magg_m7_a4_c5_vmic2"
 
 # ╔═╡ 6e6d4927-afd1-450c-ad02-a62802d143c3
 ext2 = "magg_m5_a4_c3_vmic2"
@@ -114,7 +114,10 @@ let
 	plt.close()
 	f, ax = plt.subplots(1, 1)
 
-	ax.plot(log10.(opa1.λ), log10.(κ1) .-  log10.(κ2))
+	ax.plot(opa1.λ, log10.(κ1) .- log10.(κ2))
+	#ax.plot(opa1.λ, log10.(κ2))
+	ax.set_xlim(0, 25000)
+	#ax.set_xlim(3500, 18000)
 	ax.set_ylabel("log10 [C/Fe]=0.4 / [C/Fe]=3.0")
 	ax.set_xlabel("log10 wavelength")
 	
@@ -143,4 +146,4 @@ end
 # ╠═2edee1f3-d5ea-45ad-9656-ffa34b32427e
 # ╠═b70728c9-d046-4db2-945c-015443c00b44
 # ╠═fe9ac9ee-80be-4a47-b2e4-5e7a95662ab4
-# ╟─fddc345a-94ed-4bfb-b78c-b316be4390f0
+# ╠═fddc345a-94ed-4bfb-b78c-b316be4390f0

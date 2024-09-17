@@ -11,6 +11,7 @@ struct AtmosUnits
     ee     ::Float64
     e      ::Float64
     flux   ::Float64
+    src    ::Float64
     qr     ::Float64
     k      ::Float64
     rk     ::Float64
@@ -38,6 +39,7 @@ function StandardUnits(;system = "cgs",
                     ee = u^2,    
                     e  = d*ee,
                     flux = d*u^2/t*l,
+                    src = m/(t^3),
                     qr = e/t,
                     k  = l^2/m,
                     rk = 1/l,
@@ -46,7 +48,7 @@ function StandardUnits(;system = "cgs",
                     k_B  = 1.380658E-16,
                     m_H  = 1.6726219E-24,
                     m_He = 6.65e-24)
-    AtmosUnits(system,l,d,t,n,u,m,p,pm,ee,e,flux,qr,k,rk,mu,b,k_B,m_H,m_He)
+    AtmosUnits(system,l,d,t,n,u,m,p,pm,ee,e,flux,src,qr,k,rk,mu,b,k_B,m_H,m_He)
 end
 
 """

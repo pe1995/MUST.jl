@@ -19,9 +19,15 @@
 #julia spectrum.jl -r "M2_E_t57.77g44.40m-4.000_v1.0" --extension="_C2.6" -n 399 -x 30 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_2.6 --linelists="CHonly" --move -t 32 --nnu=64
 
 
+
 # CEMP models with MARCS grid parameters
 ##julia spectrum.jl -r "M3_E_t57.50g45.00m-4.000_v1.0" --extension="CEMP-CEMP" -n 398 -x 30 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_3.0 --linelists="CHonly" --move -t 32 --nnu=64
 ##julia spectrum.jl -r "M4_E_t57.50g45.00m-4.000_v1.0" --extension="MP-CEMP"   -n 398 -x 30 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_3.0 --linelists="CHonly" --move -t 32 --nnu=64
+
+# abundance corrections for M3
+#julia spectrum.jl -r "M3_E_t57.50g45.00m-4.000_v1.0" --extension="_C2.25" -n 398 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_2.25 --linelists="CHonly" --move -t 32 --nnu=64
+
+
 
 
 # Test with 1D models
@@ -68,4 +74,45 @@
 #julia spectrum.jl -r M1_E_t57.77g44.40m-4.000_v1.0_long --extension=_C2.0 -n 399 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_2.0 --linelists=CHonly --move -t 32 --nnu=64
 #julia spectrum.jl -r M1_E_t57.77g44.40m-4.000_v1.0_long --extension=_C2.5 -n 399 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_2.5 --linelists=CHonly --move -t 32 --nnu=64
 #julia spectrum.jl -r M1_E_t57.77g44.40m-4.000_v1.0_long --extension=_C2.75 -n 399 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_2.75 --linelists=CHonly --move -t 32 --nnu=64
-julia spectrum.jl -r M1_E_t57.77g44.40m-4.000_v1.0_long --extension=_C2.25 -n 399 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_2.25 --linelists=CHonly --move -t 32 --nnu=64
+#julia spectrum.jl -r M1_E_t57.77g44.40m-4.000_v1.0_long --extension=_C2.25 -n 399 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_2.25 --linelists=CHonly --move -t 32 --nnu=64
+
+
+
+# Other CEMP stars
+#julia spectrum.jl -r M8_E_t57.50g45.00m-4.000_v1.0 -n 378 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-4.0 --alpha=0.4 --composition=C_0.75 --linelists=CHonly --move -t 32 --nnu=64
+
+# MARCS models for M8
+#julia spectrum.jl -r M8_E_t57.50g45.00m-4.000_v1.0 --onedimensional=p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod -s 4297 -e 4303 -d 0.001 --feh=-4.0 --alpha=0.4 --composition=C_0.75 --linelists=CHonly --move -t 32 --nnu=64
+#julia spectrum.jl -r M8_E_t57.50g45.00m-4.000_v1.0 --onedimensional=p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod --extension=_C_0.75 -s 4297 -e 4303 -d 0.001 --feh=-4.0 --alpha=0.4 --composition=C_0.75 --linelists=CHonly --move -t 32 --nnu=64
+#julia spectrum.jl -r M8_E_t57.50g45.00m-4.000_v1.0 --onedimensional=p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod --extension=_C_0.85 -s 4297 -e 4303 -d 0.001 --feh=-4.0 --alpha=0.4 --composition=C_0.85 --linelists=CHonly --move -t 32 --nnu=64
+#julia spectrum.jl -r M8_E_t57.50g45.00m-4.000_v1.0 --onedimensional=p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod --extension=_C_0.95 -s 4297 -e 4303 -d 0.001 --feh=-4.0 --alpha=0.4 --composition=C_0.95 --linelists=CHonly --move -t 32 --nnu=64
+#julia spectrum.jl -r M8_E_t57.50g45.00m-4.000_v1.0 --onedimensional=p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod --extension=_C_1.05 -s 4297 -e 4303 -d 0.001 --feh=-4.0 --alpha=0.4 --composition=C_1.05 --linelists=CHonly --move -t 32 --nnu=64
+#julia spectrum.jl -r M8_E_t57.50g45.00m-4.000_v1.0 --onedimensional=p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod --extension=_C_1.75 -s 4297 -e 4303 -d 0.001 --feh=-4.0 --alpha=0.4 --composition=C_1.75 --linelists=CHonly --move -t 32 --nnu=64
+#julia spectrum.jl -r M8_E_t57.50g45.00m-4.000_v1.0 --onedimensional=p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod --extension=_C_2.75 -s 4297 -e 4303 -d 0.001 --feh=-4.0 --alpha=0.4 --composition=C_2.75 --linelists=CHonly --move -t 32 --nnu=64
+#julia spectrum.jl -r M8_E_t57.50g45.00m-4.000_v1.0 --onedimensional=p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod --extension=_C_1.25 -s 4297 -e 4303 -d 0.001 --feh=-4.0 --alpha=0.4 --composition=C_1.25 --linelists=CHonly --move -t 32 --nnu=64
+#julia spectrum.jl -r M8_E_t57.50g45.00m-4.000_v1.0 --onedimensional=p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod --extension=_C_1.50 -s 4297 -e 4303 -d 0.001 --feh=-4.0 --alpha=0.4 --composition=C_1.50 --linelists=CHonly --move -t 32 --nnu=64
+
+#julia spectrum.jl -r "M3_E_t57.50g45.00m-4.000_v1.0" --extension=_C2.0  -n 398 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_2.0 --linelists="CHonly" --move -t 32 --nnu=32
+#julia spectrum.jl -r "M3_E_t57.50g45.00m-4.000_v1.0" --extension=_C2.1  -n 398 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_2.1  --linelists="CHonly" --move -t 32 --nnu=32
+#julia spectrum.jl -r "M3_E_t57.50g45.00m-4.000_v1.0" --extension=_C2.2  -n 398 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_2.2  --linelists="CHonly" --move -t 32 --nnu=32
+
+# Very metal poor CEMP -> 11.2 hast artefacts for some reason. Those are not at the upper boundary but at the optical surface.
+#julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0" --onedimensional=p5750_g+4.5_m0.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_5.0 --linelists="CHonly" --move -t 32 --nnu=64
+#julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0" -n 567 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_5.0 --linelists="CHonly" --move -t 32 --nnu=64
+#julia spectrum.jl -r "M3_E_t57.50g45.00m-4.000_v1.0"    -n 398 -x 30 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_3.0 --linelists="CHonly" --move -t 32 --nnu=64
+#julia spectrum.jl -r "M4_E_t57.50g45.00m-4.000_v1.0"    -n 398 -x 30 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_3.0 --linelists="CHonly" --move -t 32 --nnu=64
+#julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0" --extension=_C_4.25 -n 567 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_4.25 --linelists="CHonly" --move -t 32 --nnu=64
+#julia spectrum.jl -r "M4_E_t57.50g45.00m-4.000_v1.0" --extension=_C_0.4 -n 398 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_0.4 --linelists="CHonly" --move -t 32 --nnu=64
+
+#julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0" --extension=_C_4.25 -n 567 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_4.25 --linelists="CHonly" --move -t 32 --nnu=64
+#julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0" --extension=_C_4.5  -n 567 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_4.5  --linelists="CHonly" --move -t 32 --nnu=64
+#julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0" --extension=_C_4.75 -n 567 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_4.75 --linelists="CHonly" --move -t 32 --nnu=64
+
+#julia spectrum.jl -r "M3_E_t57.50g45.00m-4.000_v1.0" --onedimensional=p5750_g+4.5_m0.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod -s 4297 -e 4303 -d 0.001 --feh=-5.0 --alpha=0.4 --composition=C_3.0 --linelists="CHonly" --move -t 32 --nnu=64
+#julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0" --onedimensional=p5750_g+4.5_m0.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_5.0 --linelists="CHonly" --move -t 32 --nnu=64
+
+# Higher resolution m=-7
+#julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0_hres" -n 597 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_5.0 --linelists="CHonly" --move -t 32 --nnu=64
+julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0_hres" -n 597 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_4.25 --extension=_C_4.25 --linelists="CHonly" --move -t 32 --nnu=64
+julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0_hres" -n 597 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_4.5  --extension=_C_4.5  --linelists="CHonly" --move -t 32 --nnu=64
+julia spectrum.jl -r "M11.2_E_t57.50g45.00m-7.000_v1.0_hres" -n 597 -x 20 -s 4297 -e 4303 -d 0.001 --feh=-7.0 --alpha=0.4 --composition=C_4.75 --extension=_C_4.75 --linelists="CHonly" --move -t 32 --nnu=64

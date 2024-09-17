@@ -273,7 +273,8 @@ begin
             ),
             :composition_params=>(
                 :absdat_file=>arguments["absdat"],
-                :abund_file=>abund_file
+                :abund_file=>abund_file,
+                :save_species=>"C I, C II, CH"
             )
         )
         spectrum_namelist, "m3dis_$(isnap)"
@@ -300,7 +301,8 @@ begin
             ),
             :composition_params=>(
                 :absdat_file=>arguments["absdat"],
-                :abund_file=>abund_file
+                :abund_file=>abund_file,
+                :save_species=>"C I, C II, CH"
             )
         )
         spectrum_namelist, arguments["onedimensional"]
@@ -317,7 +319,7 @@ begin
         slurm=false, 
         namelist_kwargs=spectrum_namelist,
         m3dis_kwargs=m3dis_kwargs,
-        cleanup=true
+        cleanup=false
     )
 
     newp = @in_m3dis("data/$(multiname)_$(name)_$(window)$(extension)")

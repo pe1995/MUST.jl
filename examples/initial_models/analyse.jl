@@ -1006,7 +1006,7 @@ begin
 	fluxSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			flux_i_surf = snap[:flux][:, :, end]
+			flux_i_surf = snap[:flux][:, :, end-3]
 			append!(fluxSurf[name], [flux_i_surf])
 		end
 	end
@@ -1076,6 +1076,70 @@ end
 # ╔═╡ 11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
 
 
+# ╔═╡ 4c6a8975-c2a7-43ac-a5da-4b1714d923e3
+md"## Opacity"
+
+# ╔═╡ 59a389f7-382d-4540-8d49-ded5cd0f9895
+begin
+	opaSurf = Dict(name=>[] for name in keys(snapshots_τ))
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots[name])
+			eos_plot = eos[name]
+			opa_plot = opa[name]
+
+			ip = 3
+			opa_i_surf = log10.(exp.(lookup(
+				eos_plot, :lnRoss,
+				log.(snap[:d][:, :, end-ip]), 
+				log.(snap[:T][:, :, end-ip])
+			) .+ log.(snap[:d][:, :, end-ip])))
+			append!(opaSurf[name], [opa_i_surf])
+		end
+	end
+	opaSurf
+end
+
+# ╔═╡ 0b93eda7-ea74-4969-a68c-60022cd1f69e
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
+	
+		vmin = minimum([minimum(u) for name in keys(opaSurf) for u in opaSurf[name]]) 
+		vmax = maximum([maximum(u) for name in keys(opaSurf) for u in opaSurf[name]]) 
+	
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					opaSurf[name][j],
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="jet"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm \kappa\ \rho\ [cm^{-1}]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
+end
+
+# ╔═╡ 0446831c-3e40-45e1-b10b-c37532c879e1
+
+
 # ╔═╡ 4d0ce543-d551-481b-97c4-2585d3befd0a
 md"## Density"
 
@@ -1084,7 +1148,7 @@ begin
 	dSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			d_i_surf = snap[:d][:, :, end]
+			d_i_surf = snap[:d][:, :, end-3]
 			append!(dSurf[name], [d_i_surf])
 		end
 	end
@@ -1134,6 +1198,13 @@ let
 					extent=extent(snap),
 					cmap="jet"
 				)
+
+			 	#=axD.imshow(
+					TSurf[name][j],
+					origin="lower",
+					extent=extent(snap),
+					cmap="Greys", alpha=0.4
+				)=#
 		
 				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
 				cb.set_label(L"\rm density\ [g\ cm^{-3}]")
@@ -1162,7 +1233,7 @@ begin
 	TSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			d_i_surf = snap[:T][:, :, end-4]
+			d_i_surf = snap[:T][:, :, end-3]
 			append!(TSurf[name], [d_i_surf])
 		end
 	end
@@ -1240,7 +1311,7 @@ begin
 	uzSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			uz_i_surf = snap[:uz][:, :, end] ./1e5
+			uz_i_surf = snap[:uz][:, :, end-3] ./1e5
 			append!(uzSurf[name], [uz_i_surf])
 		end
 	end
@@ -1290,6 +1361,13 @@ let
 					extent=extent(snap),
 					cmap="jet"
 				)
+
+				#=axD.imshow(
+					TSurf[name][j],
+					origin="lower",
+					extent=extent(snap),
+					cmap="Greys", alpha=0.7
+				)=#
 		
 				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
 				cb.set_label(L"\rm u_z\ [km\ s^{-1}]")
@@ -1507,8 +1585,10 @@ begin
 	dtSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			dt_i_surf = snap[:dt_rt][:, :, end]
-			append!(dtSurf[name], [dt_i_surf])
+			if (haskey(snap.data, :dt_rt))
+				dt_i_surf = snap[:dt_rt][:, :, end]
+				append!(dtSurf[name], [dt_i_surf])
+			end
 		end
 	end
 	dtSurf
@@ -1534,36 +1614,39 @@ end
 let
 	if (nmodels > 0) && plot_given
 		fDs, axDs = [], []
-	
-		vmin = minimum([minimum(u) for name in keys(dtSurf) for u in dtSurf[name]]) 
-		vmax = maximum([maximum(u) for name in keys(dtSurf) for u in dtSurf[name]]) 
-	
-		for name in keys(snapshots)
-			for (j, snap) in enumerate(snapshots[name])
-				plt.close()
-				
-				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
-				
-				i = axD.imshow(
-					dtSurf[name][j],
-					origin="lower",
-					vmin=vmin, vmax=vmax,
-					extent=extent(snap),
-					cmap="coolwarm_r"
-				)
+
+		if all([length(d)>0 for (name, d) in dtSurf])
+			
+			vmin = minimum([minimum(u) for name in keys(dtSurf) for u in dtSurf[name]]) 
+			vmax = maximum([maximum(u) for name in keys(dtSurf) for u in dtSurf[name]]) 
 		
-				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
-				cb.set_label(L"\rm dt\ [s]")
-		
-				axD.set_xlabel("x [cm]")
-				axD.set_ylabel("y [cm]")	
-		
-				append!(fDs, [fD])
-				append!(axDs, [axD])
+			for name in keys(snapshots)
+				for (j, snap) in enumerate(snapshots[name])
+					plt.close()
+					
+					fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+					
+					i = axD.imshow(
+						dtSurf[name][j],
+						origin="lower",
+						vmin=vmin, vmax=vmax,
+						extent=extent(snap),
+						cmap="coolwarm_r"
+					)
+			
+					cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+					cb.set_label(L"\rm dt\ [s]")
+			
+					axD.set_xlabel("x [cm]")
+					axD.set_ylabel("y [cm]")	
+			
+					append!(fDs, [fD])
+					append!(axDs, [axD])
+				end
 			end
+			
+			gcf()
 		end
-		
-		gcf()
 	end
 end
 
@@ -2001,13 +2084,17 @@ end
 # ╟─359bc89f-0077-4b44-9330-305856dd1fb3
 # ╟─b881f838-86bd-4948-a940-be3204264974
 # ╟─3948852a-e40c-4851-880b-36c0cb5893f0
-# ╟─737fe8bd-65d3-4b3b-9d67-f7e61b93d238
+# ╠═737fe8bd-65d3-4b3b-9d67-f7e61b93d238
 # ╟─9dcc79e0-afee-40d0-a3a7-17381bca0252
 # ╟─f50a0387-40c3-440a-b439-8448822bf47c
 # ╟─d00fd506-3847-4deb-898c-cf29b765fd7e
 # ╟─11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
+# ╟─4c6a8975-c2a7-43ac-a5da-4b1714d923e3
+# ╠═59a389f7-382d-4540-8d49-ded5cd0f9895
+# ╟─0b93eda7-ea74-4969-a68c-60022cd1f69e
+# ╟─0446831c-3e40-45e1-b10b-c37532c879e1
 # ╟─4d0ce543-d551-481b-97c4-2585d3befd0a
-# ╟─99f5fdef-8c58-4ac5-a00c-2d5af409284d
+# ╠═99f5fdef-8c58-4ac5-a00c-2d5af409284d
 # ╟─2783c9a7-8e39-45ce-b823-8d26e94b99d9
 # ╟─e9f71534-e9a2-47ac-95a4-10717c1a38f8
 # ╟─b3b13fff-3006-4b2c-90cc-b4c793dc30a0
@@ -2019,7 +2106,7 @@ end
 # ╟─72cc91ff-1b94-4366-974b-d4a68e9db24a
 # ╟─4d438b21-b613-4a9b-97b0-d8451cdfff48
 # ╟─c7cacafa-a9a6-4709-947f-f9c6ea6d38fc
-# ╟─d5435b08-f2b2-4c45-92a8-94c3fc52f6c2
+# ╠═d5435b08-f2b2-4c45-92a8-94c3fc52f6c2
 # ╟─a7b44610-1c5d-41d7-9795-710ff4ac8347
 # ╟─31f1cf65-1590-4b62-a613-17f8f21ccfd1
 # ╟─79dd7e6f-5662-4588-a605-a8b4770fc234

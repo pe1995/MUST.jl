@@ -91,7 +91,7 @@ begin
 	λs = 1000
 	λe = 200000
 	nλ = 100000
-	vmic = 1.0
+	vmic = 2.0
 
 	# pick linelists you want to use
 	linelists = String[
@@ -106,15 +106,14 @@ begin
 	]
 
 	# modify chemical composition by element name (beyond [Fe/H] with abund file, give as [X/Fe])
-	FeH = -2.0
+	FeH = -7.0
 	abund_file = absdat_abundances(
-		α=0.0, 
-		#C=3.0,
+		α=0.4, 
 		default="./input_multi3d/abund_magg"
 	)
 
 	# name of the new EoS table
-	extension = "magg_m2_a0_vmic1"
+	extension = "magg_m7_a4_vmic2"
 	version = "v5.1"
 
 	# computation setup
@@ -122,6 +121,7 @@ begin
 	nν = 34
 	threads = 34
 	slurm = false
+	outputname = "TSO-M3D3"
 end;
 
 # ╔═╡ b87b7824-bd8d-43f2-ae88-b454d293acaa
@@ -136,14 +136,14 @@ function eosTableInput(wheretosave; minT=1000., maxT=5.5e5, minρ=1e-30, maxρ=1
 
 	z = [-1.0, 1.0]
 	TSO.saveAsText(
-		joinpath(path, "TSO-M3D"), 
+		joinpath(path, outputname), 
 		z=z, 
 		T=[minT, maxT], 
 		ρ=[minρ, maxρ],
 		vmic=vmic
 	)
 
-	"TSO-M3D"
+	outputname
 end
 
 

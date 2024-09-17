@@ -67,7 +67,7 @@ md"Press the button to check for new monitored runs: $(@bind reload_data Button(
 availableRuns(folder) = begin
 	allruns = MUST.glob("*/", folder)
 	mask = isdir.(joinpath.(allruns, "monitoring"))
-	split.(allruns[mask], "/", keepempty=false) .|> last
+	[nothing, (split.(allruns[mask], "/", keepempty=false) .|> last)...]
 end;
 
 # ╔═╡ 8af0c339-237c-42ca-bda5-0b0e44f11c30
@@ -187,10 +187,10 @@ end
 md"## Resolution"
 
 # ╔═╡ 4eef1012-c8cd-4579-9a7e-ac2b4d4c7af6
-let
-	z = timeevolution(monitoring, "geometricalAverages", "z") |> first
-	HD_dims = (length(z)*2, length(z)*2, length(z))
-	HD_res = maximum(diff(z)) / 1e5
+begin
+	z_HD = timeevolution(monitoring, "geometricalAverages", "z") |> first
+	HD_dims = (length(z_HD)*2, length(z_HD)*2, length(z_HD))
+	HD_res = maximum(diff(z_HD)) / 1e5
 	
 	@info "[$selectedRun] HD Resolution (Nx, Ny, Nz), dz [km]" HD_dims HD_res
 end
@@ -462,6 +462,98 @@ haskey(topticalsurfaces, "qrplane") && let
 end
 
 # ╔═╡ 5817821d-67f5-4e41-a0d3-7ca12961b0c7
+haskey(topticalsurfaces, "kapparhoplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = topticalsurfaces["x"][itimeSurface] ./1e8
+	y = topticalsurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(topticalsurfaces["kapparhoplane"][itimeSurface]* HD_res/2*1e5),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = topticalsurfaces["x"][itimeSurface2] ./1e8
+	y = topticalsurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(topticalsurfaces["kapparhoplane"][itimeSurface2]* HD_res/2*1e5),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \log_{10}{\Delta\tau}")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ c924f995-1586-498d-8f8a-909192f64117
+haskey(topticalsurfaces, "sourcefunctionplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = topticalsurfaces["x"][itimeSurface] ./1e8
+	y = topticalsurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(topticalsurfaces["sourcefunctionplane"][itimeSurface]),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = topticalsurfaces["x"][itimeSurface2] ./1e8
+	y = topticalsurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(topticalsurfaces["sourcefunctionplane"][itimeSurface2]),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \log_{10}{S}\ [erg\ s^{-1}\ cm^{-2}]")
+	
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ cd1f47e3-2849-429b-8794-75bba85fc468
 
 
 # ╔═╡ 7f77f259-505d-4344-8ee4-8628387f2401
@@ -524,6 +616,7 @@ let
 
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
+	
 	i = ax[0].imshow(
 		log10.(exp.(tuppersurfaces["lnDplane"][itimeSurface])),
 		origin="lower",
@@ -542,9 +635,11 @@ let
 	y = tuppersurfaces["y"][itimeSurface2] ./1e8
 
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
-	
+	v = log10.(exp.(tuppersurfaces["lnDplane"][itimeSurface2]))
+	#mask = v .<= -10.8
+	#v[.!mask] .= 1
 	i = ax[1].imshow(
-		log10.(exp.(tuppersurfaces["lnDplane"][itimeSurface2])),
+		v,
 		origin="lower",
 		extent=extent,
 		cmap="gist_heat_r"
@@ -616,6 +711,8 @@ haskey(topticalsurfaces, "fluxplane") && let
 	x = tuppersurfaces["x"][itimeSurface] ./1e8
 	y = tuppersurfaces["y"][itimeSurface] ./1e8
 
+	#xx, yy = MUST.meshgrid(x[1:14:end], y[1:14:end])
+
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
 	i = ax[0].imshow(
@@ -624,6 +721,8 @@ haskey(topticalsurfaces, "fluxplane") && let
 		extent=extent,
 		cmap="jet"
 	)
+
+	#ax[0].scatter(xx, yy, s=0.1)
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
@@ -656,7 +755,7 @@ haskey(topticalsurfaces, "fluxplane") && let
 end
 
 # ╔═╡ ff3d827b-a0dd-4d86-bfd4-d25fc5f4ab3e
-haskey(topticalsurfaces, "qrplane") && let 
+haskey(tuppersurfaces, "qrplane") && let 
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(10, 6))
 
@@ -755,6 +854,100 @@ if haskey(tuppersurfaces, "dtplane")
 		
 		gcf()
 	end
+end
+
+# ╔═╡ ce073ce3-12f3-45f8-a86f-b1d08f16acce
+haskey(tuppersurfaces, "kapparhoplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(tuppersurfaces["kapparhoplane"][itimeSurface] * HD_res/2*1e5),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(tuppersurfaces["kapparhoplane"][itimeSurface2]* HD_res/2*1e5),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \log_{10}{\Delta\tau}")
+	
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ f809f2ad-4f3e-4ad4-87ba-584e44585e7b
+haskey(tuppersurfaces, "sourcefunctionplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(tuppersurfaces["sourcefunctionplane"][itimeSurface]),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(tuppersurfaces["sourcefunctionplane"][itimeSurface2]),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \log_{10}{S}\ [erg\ s^{-1}\ cm^{-2}]")
+	
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
 end
 
 # ╔═╡ 3403a014-2441-4ad2-95f6-2e686ae99ba8
@@ -1001,7 +1194,7 @@ end
 end
 
 # ╔═╡ 97e5e57c-3828-4781-b93e-172a1c3c2cce
-("lowerBoundarySurface" in keys(monitoring[1])) && haskey(tlowersurfaces, "qrplane") && let 
+("lowerBoundarySurface" in keys(monitoring[1])) && haskey(tlowersurfaces, "dtplane") && let 
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(10, 6))
 
@@ -1269,6 +1462,55 @@ let
 end
 
 # ╔═╡ cdfb5217-e298-4ee1-ac5d-f294d04f5abc
+let
+	if haskey(tGeoMax, "qr")
+		plt.close()
+	
+		f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	
+		x, y = tGeoMax["z"][itimeSurface] ./1e8, tGeoMax["qr"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="-"
+		)
+		x, y = tGeoMin["z"][itimeSurface] ./1e8, tGeoMin["qr"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="-"
+		)
+		x, y = tGeoAv["z"][itimeSurface] ./1e8, tGeoAv["qr"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
+		) 
+	
+	
+	
+		x, y = tGeoMax["z"][itimeSurface2] ./1e8, tGeoMax["qr"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="--",
+		) 
+		x, y = tGeoMin["z"][itimeSurface2] ./1e8, tGeoMin["qr"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="--",
+		) 
+		x, y = tGeoAv["z"][itimeSurface2] ./1e8, tGeoAv["qr"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
+		) 
+	
+		ax.set_xlabel("z [Mm]")
+		ax.set_ylabel(L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]")
+		ax.legend()
+	
+		gcf()
+	end
+end
+
+# ╔═╡ 3a18524e-46bb-4874-8646-c6414dc92471
 
 
 # ╔═╡ 274d42e7-20eb-4560-a0f0-e4a631aedcec
@@ -1686,8 +1928,6 @@ if haskey(tOptAv, "flux")
 			label="t = $(time[itimeSurface]) s, "*teff_str(tGeoAv["flux"][itimeSurface][end]), lw=2.5
 		) 
 	
-	
-	
 		
 		x, y = tOptMax["log10τ_ross"][itimeSurface2], tOptMax["flux"][itimeSurface2]
 		ax.plot(
@@ -1708,6 +1948,57 @@ if haskey(tOptAv, "flux")
 
 		ax.set_yscale("log")
 		ax.set_xlabel(L"\rm \log \tau_{ross}")
+		ax.set_ylabel(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+		ax.legend()
+
+		gcf()
+	end
+end
+
+# ╔═╡ 1189fb71-29a2-4f51-98d8-44298e269227
+if haskey(tOptAv, "flux")
+	let
+		plt.close()
+	
+		f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	
+		x, y = tGeoMax["z"][itimeSurface], tGeoMax["flux"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="-"
+		) 
+		x, y = tGeoMin["z"][itimeSurface], tGeoMin["flux"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="-"
+		) 
+		x, y = tGeoAv["z"][itimeSurface], tGeoAv["flux"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="-", 
+			label="t = $(time[itimeSurface]) s, "*teff_str(tGeoAv["flux"][itimeSurface][end]), lw=2.5
+		) 
+	
+		
+		x, y = tGeoMax["z"][itimeSurface2], tGeoMax["flux"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="--"
+		) 
+		x, y = tGeoMin["z"][itimeSurface2], tGeoMin["flux"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="--"
+		) 
+		x, y = tGeoAv["z"][itimeSurface2], tGeoAv["flux"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="--", 
+			label="t = $(time[itimeSurface2]) s, "*teff_str(tGeoAv["flux"][itimeSurface2][end]), lw=2.
+		) 
+
+		ax.set_yscale("log")
+		ax.set_xlabel(L"\rm z\ [cm]")
 		ax.set_ylabel(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
 		ax.legend()
 
@@ -1868,38 +2159,6 @@ md"## Upper Boundary"
 # ╔═╡ ccf5f4e6-adc6-419d-a717-4b3b597c2233
 ttopgeo = timeevolution(monitoring, "geometricalAverages")
 
-# ╔═╡ 913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(5, 6))
-
-	surfaceT = (ttopgeo["T"] .|> last)
-	surfaceMa = (tGeoMax["T"] .|> last)
-	surfaceMi = (tGeoMin["T"] .|> last)
-	
-	ax.plot(
-		time./(60*60), surfaceMi, 
-		color="magenta", marker="s", markerfacecolor="w", ls="-"
-	) 
-	ax.plot(
-		time./(60*60), surfaceMa, 
-		color="cyan", marker="s", markerfacecolor="w", ls="-"
-	) 
-	ax.plot(
-		time./(60*60), surfaceT, 
-		color="k", marker="s", markerfacecolor="w", ls="-"
-	) 
-
-	#ax.set_title("Upper Boundary")
-	ax.set_xlabel("time [h]")
-	ax.set_ylabel(L"\rm <T_{top}>\ [K]")
-
-	plot_time_selector!(ax)
-	
-	gcf()
-end
-
 # ╔═╡ 2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
 let
 	plt.close()
@@ -1926,6 +2185,38 @@ let
 	#ax.set_title("Upper Boundary")
 	ax.set_xlabel("time [h]")
 	ax.set_ylabel(L"\rm  <\rho_{top}>\ [g\ cm^{-3}]")
+
+	plot_time_selector!(ax)
+	
+	gcf()
+end
+
+# ╔═╡ 913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	surfaceT = (ttopgeo["T"] .|> last)
+	surfaceMa = (tGeoMax["T"] .|> last)
+	surfaceMi = (tGeoMin["T"] .|> last)
+	
+	ax.plot(
+		time./(60*60), surfaceMi, 
+		color="magenta", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
+		time./(60*60), surfaceMa, 
+		color="cyan", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
+		time./(60*60), surfaceT, 
+		color="k", marker="s", markerfacecolor="w", ls="-"
+	) 
+
+	#ax.set_title("Upper Boundary")
+	ax.set_xlabel("time [h]")
+	ax.set_ylabel(L"\rm <T_{top}>\ [K]")
 
 	plot_time_selector!(ax)
 	
@@ -2922,6 +3213,8 @@ end
 # ╟─9758eaf6-9d57-4847-a608-2ba81e1192d0
 # ╟─80cf7a65-87c6-48d1-89d9-90f07ec25d51
 # ╟─5817821d-67f5-4e41-a0d3-7ca12961b0c7
+# ╟─c924f995-1586-498d-8f8a-909192f64117
+# ╟─cd1f47e3-2849-429b-8794-75bba85fc468
 # ╟─7f77f259-505d-4344-8ee4-8628387f2401
 # ╟─cc5fbd5a-c8a0-471a-a56b-0512e4c3989b
 # ╟─495e3733-d290-40ab-af63-0eb10a033b53
@@ -2930,6 +3223,8 @@ end
 # ╟─ef776fe2-5f0f-49a8-b2d5-2e1235d41ec1
 # ╟─ff3d827b-a0dd-4d86-bfd4-d25fc5f4ab3e
 # ╟─0e3d2723-1ecb-4e5a-8125-78f6f27407e2
+# ╟─ce073ce3-12f3-45f8-a86f-b1d08f16acce
+# ╟─f809f2ad-4f3e-4ad4-87ba-584e44585e7b
 # ╟─3403a014-2441-4ad2-95f6-2e686ae99ba8
 # ╟─77f5cb10-ce91-44c2-91c6-c01432655121
 # ╟─7532d800-c183-42d5-8bd0-9970ca507cfd
@@ -2948,6 +3243,7 @@ end
 # ╟─d9546636-2dbb-4b14-9954-76872b95fd06
 # ╟─7fd50fcd-8a9d-417d-a28a-febd9f0f68f3
 # ╟─cdfb5217-e298-4ee1-ac5d-f294d04f5abc
+# ╟─3a18524e-46bb-4874-8646-c6414dc92471
 # ╟─274d42e7-20eb-4560-a0f0-e4a631aedcec
 # ╟─46db420f-2f46-4989-846e-145a70001ddf
 # ╟─b046b3a0-05d4-4b6c-be80-7396f475be3d
@@ -2967,6 +3263,7 @@ end
 # ╟─4c3b9b8a-03a5-494d-a321-7f5c400ed054
 # ╟─dc0315d8-0616-433b-8182-33840afb0b0f
 # ╟─aef86067-68b0-48b8-8bb2-0d410a7521c2
+# ╟─1189fb71-29a2-4f51-98d8-44298e269227
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─643eaee3-a1f8-4be2-b032-08fcb325fbe8
 # ╟─aae74666-7fdd-4db9-8869-68e4597f6940
@@ -2978,12 +3275,12 @@ end
 # ╟─cb3e21b3-0197-4685-a9ae-fe4040106222
 # ╟─eb335a4d-e662-499c-bb80-8bf38c84329f
 # ╟─35b4aa7e-e41b-4444-af3b-74684c723d5c
+# ╟─2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
 # ╟─87d43815-9733-40ac-b4e7-81a2c5dbd0d1
 # ╟─c8492ca5-893f-4939-a256-f0872f351c5d
 # ╟─df9b58cf-fe4f-4858-a296-879bb0385ba7
 # ╟─ccf5f4e6-adc6-419d-a717-4b3b597c2233
 # ╟─913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
-# ╟─2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
 # ╟─aa0376dc-5982-4274-9b4d-4aef1d1de896
 # ╟─0378dcdf-0291-4e9c-a30b-5dacd346707c
 # ╟─b4fd0320-74b2-4ed4-b7b0-beca4eccd553

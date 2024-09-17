@@ -240,6 +240,7 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     fluxplane = haskey(b.data, :flux) ? b[:flux][:, :, end] : nothing
     qrplane = haskey(b.data, :qr) ? b[:qr][:, :, end] : nothing
     kapparhoplane = haskey(b.data, :kapparho) ? b[:kapparho][:, :, end] : nothing
+    sourcefunctionplane = haskey(b.data, :sourcefunction) ? b[:sourcefunction][:, :, end] : nothing
 
 
     d = Dict(
@@ -263,6 +264,9 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     end
     if !isnothing(kapparhoplane)
         d["kapparhoplane"] = kapparhoplane[:, :]
+    end
+    if !isnothing(sourcefunctionplane)
+        d["sourcefunctionplane"] = sourcefunctionplane[:, :]
     end
 
     d
@@ -408,6 +412,9 @@ opticalSurfaces(w::WatchDog, b, bτ) = begin
     dtplane = haskey(b.data, :dt_rt) ? interpolate_to(b, :dt_rt; logspace=true, τ_ross=0.0)[:dt_rt] : nothing
     fluxplane = haskey(b.data, :flux) ? interpolate_to(b, :flux; logspace=true, τ_ross=0.0)[:flux] : nothing
     qrplane = haskey(b.data, :qr) ? interpolate_to(b, :qr; logspace=true, τ_ross=0.0)[:qr] : nothing
+    kapparhoplane = haskey(b.data, :kapparho) ? interpolate_to(b, :kapparho; logspace=true, τ_ross=0.0)[:kapparho] : nothing
+    sourcefunctionplane = haskey(b.data, :sourcefunction) ? interpolate_to(b, :sourcefunction; logspace=true, τ_ross=0.0)[:sourcefunction] : nothing
+
 
     d = Dict(
         "uzplane" => uzplane[:, :, 1],
@@ -427,6 +434,12 @@ opticalSurfaces(w::WatchDog, b, bτ) = begin
     end
     if !isnothing(qrplane)
         d["qrplane"] = qrplane[:, :, 1]
+    end
+    if !isnothing(kapparhoplane)
+        d["kapparhoplane"] = kapparhoplane[:, :, 1]
+    end
+    if !isnothing(sourcefunctionplane)
+        d["sourcefunctionplane"] = sourcefunctionplane[:, :, 1]
     end
 
     d
