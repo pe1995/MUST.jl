@@ -1806,7 +1806,6 @@ function converted_snapshots(folder)
 	for file in files_converted
 		snname = basename(file)
 
-		
 		if occursin("tau", snname) 
 			continue 
 		end 
