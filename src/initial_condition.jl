@@ -290,7 +290,7 @@ function prepare(
         dxdz_max=dxdz_max
     )
 
-    fromT_toE.(grid.info[!, "binned_tables"], grid.info[!, "binned_E_tables"], upsample=4096)
+    fromT_toE.(grid.info[!, "binned_tables"], grid.info[!, "binned_E_tables"], grid.info[!, "av_path"], upsample=2048, lnEi_stretch=0.5)
 
     # Copy the average model in the same folder so that we can link it all to the right place
     for i in 1:nrow(grid.info)

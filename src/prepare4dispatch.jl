@@ -341,7 +341,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
 
     # the friction should be scaled to the nu_max value compared to the sun
     friction_scaling = 1.0 / (exp10(logg) / exp10(4.44) * (5777.0 / teff)^0.5) * 100.0/tscale
-    @info friction_scaling
+    #@info friction_scaling
 
     stellar_w = 0.1 # round(0.1 * velocity_ratio, sigdigits=3)
     strength = 0.1 #round(0.1 * velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)

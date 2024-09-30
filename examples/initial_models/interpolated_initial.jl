@@ -322,12 +322,14 @@ end
 
 # binning opacities
 begin
+    # Default binning for all cases
     Nbins = 8
     make_quadrants = (name, eos_root, opa_path) -> begin
         qlim = round(
             iniCond.quadrantlimit(name, eos_root, opa_path, λ_lim=5.0), 
             sigdigits=3
         )
+        # log10(lambda) range <-> -log10(tau_formation) range
         quadrants = [ 
             TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
             TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
@@ -335,6 +337,15 @@ begin
             TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
         ]
     end
+
+    # Grey
+    #=Nbins = 1
+    make_quadrants = (name, eos_root, opa_path) -> begin
+        quadrants = [ 
+            TSO.Quadrant((0.0, 100.0), (-100, 100), 1)
+        ]
+    end
+    =#
 
     iniCond.prepare(
 	    grid,

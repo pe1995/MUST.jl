@@ -18,7 +18,7 @@ end
 plt = matplotlib.pyplot
 
 # ╔═╡ c43315b6-dda2-43a2-946b-6bdb5b814306
-eospath = "interpolatedModels/M14.1_E_t57.50g45.00m-7.000_v1.0"
+eospath = "MainSequenceInterpolated/ST3_E_t57.77g44.40m0.000_v1.0"
 
 # ╔═╡ 11a17019-7728-406a-a170-a2c4a64283e2
 eos = reload(SqEoS, joinpath(eospath, "eos.hdf5"))
@@ -83,7 +83,7 @@ end
 
 # ╔═╡ 64b85589-1974-4361-9dc5-9b9f68fe1592
 function smooth(opa::SqOpacity)
-	kernel = ImageFiltering.Kernel.gaussian((1,))
+	kernel = ImageFiltering.Kernel.gaussian((20,))
 	#T_conv = ImageFiltering.imfilter(eos.lnT, kernel)
 	k_conv = similar(opa.κ)
 	kr_conv = similar(opa.κ_ross)
@@ -117,13 +117,47 @@ let
 	f, ax = plt.subplots()
 
 	#for i in 1:size(κ, 2)
-		i=4
+		i=7
 		ax.plot(log10.(model.τ), log10.(κ[:, i]), label="bin $(i)")
 		ax.plot(log10.(model.τ), log10.(κ_filter[:, i]), label="bin $(i) filter")
 	#end
 
 	ax.legend(bbox_to_anchor=(1, 1), loc="upper left", framealpha=0)
 
+	f
+end
+
+# ╔═╡ 10f3c03e-ab8f-4805-96f8-10f0798cb453
+
+
+# ╔═╡ 96100d99-523b-445e-8b09-22fded071a9e
+lnE, ρ = TSO.meshgrid(@axed(eos_filter));
+
+# ╔═╡ 58b9636e-388b-4c71-9017-712dfa34c2ba
+let
+	f, ax = plt.subplots(1, 1)
+
+	im = ax.pcolormesh(lnE, log10.(exp.(ρ)), log10.(opa_filter.κ[:, :, 7]), rasterized=true)
+	cbar = f.colorbar(im, ax=ax)
+
+	cbar.set_label("opacity (bin $(7))")
+	ax.set_xlabel("ln internal energy")
+	ax.set_ylabel("ln density")
+	
+	f
+end
+
+# ╔═╡ 317e0995-e620-482f-8731-342efddd82cd
+let
+	f, ax = plt.subplots(1, 1)
+
+	im = ax.pcolormesh(lnE, log10.(exp.(ρ)), eos_filter.lnT[:, :], rasterized=true)
+	cbar = f.colorbar(im, ax=ax)
+
+	cbar.set_label("temperature")
+	ax.set_xlabel("ln internal energy")
+	ax.set_ylabel("ln density")
+	
 	f
 end
 
@@ -155,7 +189,11 @@ TSO.for_dispatch(eos_filter, opa_filter, joinpath(eospath, "filter/"))
 # ╠═64b85589-1974-4361-9dc5-9b9f68fe1592
 # ╠═68ab1a38-eeeb-4db0-9c78-a1e5ce2481bb
 # ╠═44ff77bf-f4b7-4da8-9a8d-656760c07378
-# ╠═722c4ec0-90cd-49a1-a4c2-bbfbc8300081
+# ╟─722c4ec0-90cd-49a1-a4c2-bbfbc8300081
+# ╟─10f3c03e-ab8f-4805-96f8-10f0798cb453
+# ╠═96100d99-523b-445e-8b09-22fded071a9e
+# ╟─58b9636e-388b-4c71-9017-712dfa34c2ba
+# ╟─317e0995-e620-482f-8731-342efddd82cd
 # ╟─409542fb-b5d3-4f51-9907-e21f701ff893
 # ╠═5ee29b4c-9456-469a-ae0d-b224c5abedb4
 # ╠═5b1807dc-470d-4a4d-926f-18764bae76f1
