@@ -163,7 +163,11 @@ function analyse(w::WatchDog, snapshot; save_box=false)
 
     monitoring = Dict()
     for (fname, f) in w.functions
-        monitoring[fname] = f(w, b, bτ)
+        try
+            monitoring[fname] = f(w, b, bτ)
+        catch
+            @warn "Monitoring statistic $(fname) failed for snapshot $(snapshot)."
+        end
     end
 
     b = nothing
@@ -216,9 +220,13 @@ _geostatistic(f, b) = begin
     
     results = Dict()
     for v in variables
-        x, y = profile(f, b, :z, v) 
-        results[:z] = x
-        results[v] = y
+        try
+            x, y = profile(f, b, :z, v) 
+            results[:z] = x
+            results[v] = y
+        catch
+            @warn "Statistic $(string(f)) failed for variable $(v)."
+        end
     end
 
     results
