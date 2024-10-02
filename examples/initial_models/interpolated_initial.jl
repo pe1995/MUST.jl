@@ -172,6 +172,12 @@ s = ArgParseSettings()
         help = "Additional courant coundition for RT diffusion."
         arg_type = Float64
         default = 1.0
+    "--grey"
+        help = "Use grey opacities (Rosseland mean)."
+        action = :store_true
+    "--muram"
+        help = "Use MURaM solar bins (Beeck et al. 2012)"
+        action = :store_true
 end
 
 # read and parse command line arguments
@@ -322,37 +328,63 @@ end
 
 # binning opacities
 begin
-    # Default binning for all cases
-    Nbins = 8
-    make_quadrants = (name, eos_root, opa_path) -> begin
-        qlim = round(
-            iniCond.quadrantlimit(name, eos_root, opa_path, λ_lim=5.0), 
-            sigdigits=3
-        )
-        # log10(lambda) range <-> -log10(tau_formation) range
-        quadrants = [ 
-            TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
-            TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
-            TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
-            TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
-        ]
+    # Pre-defined binning cases. This can be modified as needed.
+    Nbins, make_quadrants = if arguments["grey"]
+        # Grey
+        Nbins = 1
+        make_quadrants = (name, eos_root, opa_path) -> begin
+            [ 
+                # log10(lambda) range <-> -log10(tau_formation) range
+                TSO.Quadrant((0.0, 100.0), (-100, 100), 1)
+            ]
+        end
+
+        Nbins, make_quadrants
+    elseif arguments["muram"]
+        # 4 MURaM bins (sun)
+        Nbins = 4
+        make_quadrants = (name, eos_root, opa_path) -> begin
+            [ 
+                TSO.Quadrant((0.0, 100.0), (-100, 0.0), 1, stripes=:κ),
+                TSO.Quadrant((0.0, 100.0), (0.0, 2.0), 1, stripes=:κ),
+                TSO.Quadrant((0.0, 100.0), (2.0, 4.0), 1, stripes=:κ),
+                TSO.Quadrant((0.0, 100.0), (4.0, 100.0), 1, stripes=:κ)
+            ]
+        end
+
+        Nbins, make_quadrants
+    else
+        # Default binning for all cases with 8 bins
+        Nbins = 8
+        make_quadrants = (name, eos_root, opa_path) -> begin
+            qlim = round(
+                iniCond.quadrantlimit(name, eos_root, opa_path, λ_lim=5.0), 
+                sigdigits=3
+            )
+            [ 
+                TSO.Quadrant((0.0, 4.0), (qlim, 4.5), 2, stripes=:κ),
+                TSO.Quadrant((0.0, 4.0), (4.5, 100), 1, stripes=:κ),
+                TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
+                TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
+            ]
+        end
+
+        Nbins, make_quadrants
     end
 
-    # Grey
-    #=Nbins = 1
-    make_quadrants = (name, eos_root, opa_path) -> begin
-        quadrants = [ 
-            TSO.Quadrant((0.0, 100.0), (-100, 100), 1)
-        ]
+    # If we don't use bins, we don't need formation opacities
+    skip_formation = if Nbins == 1
+        true
+    else 
+        arguments["skip_formation"]
     end
-    =#
 
     iniCond.prepare(
 	    grid,
 	    name_extension=modelFolder,
         version=arguments["version"],
         skip_binning=arguments["skip_binning"],
-        skip_formation=arguments["skip_formation"],
+        skip_formation=skip_formation,
         clean_formation=!arguments["dont_clean_formation"],
         patch_size=patch_size,
         τ_up=τ_up,

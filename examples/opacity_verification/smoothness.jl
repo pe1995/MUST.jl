@@ -44,7 +44,7 @@ md"And the corresponding EoS + opacity table"
 
 # ╔═╡ 920b14be-dc82-4a23-b93f-67efc7ba9068
 begin
-	eosdir = "input_data/grd/MainSequenceInterpolated/ST1_E_t57.77g44.40m0.000_v1.0"
+	eosdir = "input_data/grd/MainSequenceInterpolated/ST4_E_t57.77g44.40m0.000_v1.0"
 	eospath = @in_dispatch(joinpath(eosdir, "eos.hdf5"))
 	opapath = @in_dispatch(joinpath(eosdir, "binned_opacities.hdf5"))
 	
@@ -200,7 +200,7 @@ end
 begin
 	eosT_limit = deepcopy(eosT)
 	lgEE = log.(b[:ee])
-	E_limit = maximum(lgEE) + (maximum(lgEE) - minimum(lgEE)) *1.
+	E_limit = maximum(lgEE) + (maximum(lgEE) - minimum(lgEE)) *0.2
 
 	mask = eosT_limit.lnEi .> E_limit
 	@show count(mask)/length(mask) minimum(lgEE) maximum(lgEE)
@@ -232,8 +232,8 @@ let
 	f
 end
 
-# ╔═╡ e606c8e5-52e9-45a4-be1c-79d363c4c56e
-#eos_test, opa_test = TSO.switch_energy(eosT_limit, opaT, upsample=2048, conservative=false)
+# ╔═╡ e2b9d760-1906-4cce-a8a4-208f5fcb207c
+
 
 # ╔═╡ a48f4088-8372-4db3-938c-05f102e042fc
 eos_test, opa_test = TSO.switch_energy(eosT_limit, opaT, upsample=2048, conservative=false)
@@ -248,7 +248,14 @@ lnE_test, ρ_test = TSO.meshgrid(@axed(eos_test));
 let
 	f, ax = plt.subplots(1, 1)
 
-	im = ax.pcolormesh(lnE_test, ρ_test, log10.(opa_test.κ[:, :, bin]), rasterized=true)
+	#im = ax.pcolormesh(lnE_test, ρ_test, log10.(opa_test.κ[:, :, bin]), rasterized=true)
+	#cbar = f.colorbar(im, ax=ax)
+	#cbar.set_label("opacity (bin $(bin))")
+
+
+	im2 = ax.contourf(lnE_test, ρ_test, log10.(opa_test.κ[:, :, bin]), cmap="rainbow", levels=15, alpha=1)
+	cbar2 = f.colorbar(im2, ax=ax)
+	cbar2.set_label("opacity (bin $(bin))")
 
 	eb, rb = profile(MUST.mean, b, :logee, :logd)
 	ax.scatter(eb, rb, color="white", marker="x", s=10)
@@ -259,9 +266,35 @@ let
 	eb, rb = profile(MUST.minimum, b, :logee, :logd)
 	ax.scatter(eb, rb, color="red", marker="x", s=10)
 	
+
+	ax.set_xlabel("ln internal energy")
+	ax.set_ylabel("ln density")
+	
+	f
+end
+
+# ╔═╡ 2eddd579-27c4-4f70-91ed-5605fab741a4
+let
+	f, ax = plt.subplots(1, 1)
+
+	im = ax.pcolormesh(lnE_test, ρ_test, log10.(opa_test.src[:, :, bin]), rasterized=true)
 	cbar = f.colorbar(im, ax=ax)
 
-	cbar.set_label("opacity (bin $(bin))")
+	#im2 = ax.contourf(lnE_test, ρ_test, log10.(opa_test.src[:, :, bin]), cmap="rainbow", levels=15, alpha=1)
+	#cbar2 = f.colorbar(im2, ax=ax)
+
+	cbar.set_label("src (bin $(bin))")
+
+	eb, rb = profile(MUST.mean, b, :logee, :logd)
+	ax.scatter(eb, rb, color="white", marker="x", s=10)
+
+	eb, rb = profile(MUST.maximum, b, :logee, :logd)
+	ax.scatter(eb, rb, color="cyan", marker="x", s=10)
+
+	eb, rb = profile(MUST.minimum, b, :logee, :logd)
+	ax.scatter(eb, rb, color="red", marker="x", s=10)
+	
+
 	ax.set_xlabel("ln internal energy")
 	ax.set_ylabel("ln density")
 	
@@ -300,8 +333,9 @@ end
 # ╟─20d4b759-f7ad-4bd9-8359-cbc7acc16c91
 # ╠═4ca429e0-70d2-4111-bf23-edc4e4200ff0
 # ╟─736d1ad8-88ac-4ee5-9879-f353c5cd681d
-# ╠═e606c8e5-52e9-45a4-be1c-79d363c4c56e
+# ╟─e2b9d760-1906-4cce-a8a4-208f5fcb207c
 # ╠═a48f4088-8372-4db3-938c-05f102e042fc
 # ╟─753a40e2-5edb-4434-92e1-530c8b1e3d22
 # ╠═0a2b57f9-ece6-4a6d-b5dc-cc3dbc5f4478
 # ╟─6e389367-eb59-4fee-9ccc-76277c91d714
+# ╟─2eddd579-27c4-4f70-91ed-5605fab741a4
