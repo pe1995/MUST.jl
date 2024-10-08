@@ -1,0 +1,12 @@
+&TABPAR
+EOSTableFile = 'eostable.dat'
+RhoEiRadTableFile = 'rhoei_radtab.dat'
+NeTgRadTableFile = 'netg_radtab.dat'
+nRhoBin = 151
+RhoMin = 9.9999849E-19
+RhoMax = 9.9999849E-03
+nEiBin = 1000
+EiMin =  1.4620474E-06
+EiMax =  1.9919271E+12
+nRadBins = 4
+/

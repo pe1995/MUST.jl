@@ -86,12 +86,14 @@ begin
 	maxρ = 1e-2
 	nT = 150
 	nρ = 150
+	#tmolim = 100000.0
+	tmolim = 0.0
 	
 	# Wavelength coverage and resolution
 	λs = 1000
 	λe = 200000
 	nλ = 100000
-	vmic = 2.0
+	vmic = 1.0
 
 	# pick linelists you want to use
 	linelists = String[
@@ -99,22 +101,22 @@ begin
 		"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/1000-2490-vald.list",
 		"/home/eitner/shared/StAt/LINE-LISTS/25500-200000_cut-4/atom_25500-200000.list",
 		"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
-		"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/12CH_multi.list",
-		"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/13CH_multi.list",
-		"/home/eitner/shared/StAt/LINE-LISTS/combined_molecules/H2O_multi.list",
-		MUST.glob("*.list", "/home/eitner/shared/StAt/LINE-LISTS/combined_molecules/most_relevant/")...
+		#"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/12CH_multi.list",
+		#"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/13CH_multi.list",
+		#"/home/eitner/shared/StAt/LINE-LISTS/combined_molecules/H2O_multi.list",
+		#MUST.glob("*.list", "/home/eitner/shared/StAt/LINE-LISTS/combined_molecules/most_relevant/")...
 	]
 
 	# modify chemical composition by element name (beyond [Fe/H] with abund file, give as [X/Fe])
-	FeH = -7.0
+	FeH = 0.0
 	abund_file = absdat_abundances(
-		α=0.4, 
+		α=0.0, 
 		default="./input_multi3d/abund_magg"
 	)
 
 	# name of the new EoS table
-	extension = "magg_m7_a4_vmic2"
-	version = "v5.1"
+	extension = "magg_m0_a0_vmic1"
+	version = "v5.1.0"
 
 	# computation setup
 	compute = true  # set to false if you only want to collect the output from M3D
@@ -191,7 +193,7 @@ eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10
                 :abund_file=>abund_file,
 				:ldtemp=>δlnT,
 				:ldrho=>δlnρ,
-				:tmolim=>100000.0,
+				:tmolim=>tmolim,
 				:mhd_eos=>true
 			),
             kwargs...
@@ -250,6 +252,7 @@ md"EoS Versions:
 	v5.X: with molecules, OP formalism for H in EoS 
 -v5.0: 50,000 K
 -v5.1: 100,000 K
+	-v5.1.0: No molecules
 -------------------------------------------------------
 "
 

@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.41
+# v0.19.46
 
 using Markdown
 using InteractiveUtils
@@ -81,7 +81,9 @@ end
 md"Click 'Submit' again to look for new snapshots."
 
 # ╔═╡ 3c05fe1e-1c19-4c30-b34e-a874f63b91bc
-
+if isnothing(selectedRun)
+	@warn "Please select a run from the list of available runs."
+end
 
 # ╔═╡ ed9cc79f-0161-4178-b6f0-81a2bccbf188
 md"## Load Monitoring"
@@ -694,6 +696,100 @@ let
 	
 	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
 	cb.set_label(L"\rm T\ [K]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ 1a02decc-153e-44b5-9c00-818e1b8e7edf
+let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(exp.(tuppersurfaces["lnEplane"][itimeSurface])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(exp.(tuppersurfaces["lnEplane"][itimeSurface2])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm log_{10}\ E_i\ [erg\ cm^{-3}]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ c4262ea1-f6f1-4321-9fb1-9b674a6af49d
+let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(exp.(tuppersurfaces["lnEplane"][itimeSurface]) ./ exp.(tuppersurfaces["lnDplane"][itimeSurface])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(exp.(tuppersurfaces["lnEplane"][itimeSurface2]) ./exp.(tuppersurfaces["lnDplane"][itimeSurface2])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm log_{10}\ E_i\ [erg\ g^{-1}]")
 
 	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
 	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
@@ -2159,38 +2255,6 @@ md"## Upper Boundary"
 # ╔═╡ ccf5f4e6-adc6-419d-a717-4b3b597c2233
 ttopgeo = timeevolution(monitoring, "geometricalAverages")
 
-# ╔═╡ 2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(5, 6))
-
-	surfaceT = (ttopgeo["d"] .|> last)
-	surfaceMa = (tGeoMax["d"] .|> last)
-	surfaceMi = (tGeoMin["d"] .|> last)
-
-	ax.plot(
-		time./(60*60), log10.(surfaceMi), 
-		color="magenta", marker="s", markerfacecolor="w", ls="-"
-	) 
-	ax.plot(
-		time./(60*60), log10.(surfaceMa), 
-		color="cyan", marker="s", markerfacecolor="w", ls="-"
-	) 
-	ax.plot(
-		time./(60*60), log10.(surfaceT), 
-		color="k", marker="s", markerfacecolor="w", ls="-"
-	) 
-
-	#ax.set_title("Upper Boundary")
-	ax.set_xlabel("time [h]")
-	ax.set_ylabel(L"\rm  <\rho_{top}>\ [g\ cm^{-3}]")
-
-	plot_time_selector!(ax)
-	
-	gcf()
-end
-
 # ╔═╡ 913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
 let
 	plt.close()
@@ -2217,6 +2281,38 @@ let
 	#ax.set_title("Upper Boundary")
 	ax.set_xlabel("time [h]")
 	ax.set_ylabel(L"\rm <T_{top}>\ [K]")
+
+	plot_time_selector!(ax)
+	
+	gcf()
+end
+
+# ╔═╡ 8fd9cfaf-27f1-42da-b2e3-f72c8caeaafc
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	surfaceT = (ttopgeo["d"] .|> last)
+	surfaceMa = (tGeoMax["d"] .|> last)
+	surfaceMi = (tGeoMin["d"] .|> last)
+
+	ax.plot(
+		time./(60*60), log10.(surfaceMi), 
+		color="magenta", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
+		time./(60*60), log10.(surfaceMa), 
+		color="cyan", marker="s", markerfacecolor="w", ls="-"
+	) 
+	ax.plot(
+		time./(60*60), log10.(surfaceT), 
+		color="k", marker="s", markerfacecolor="w", ls="-"
+	) 
+
+	#ax.set_title("Upper Boundary")
+	ax.set_xlabel("time [h]")
+	ax.set_ylabel(L"\rm  <\rho_{top}>\ [g\ cm^{-3}]")
 
 	plot_time_selector!(ax)
 	
@@ -2740,6 +2836,12 @@ begin
 				end
 				cb = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 				cb.set_label(labelsurfaceMovie)
+
+				#Nx = range(minimum(x), maximum(x), length=5) |> collect
+				#for sep in Nx
+				#	ax.axvline(sep, color="k")
+				#	ax.axhline(sep, color="k")
+				#end
 			
 				
 				ax.set_title("t = $(MUST.@sprintf("%.2f", time[i]/(60*60))) h")
@@ -3220,6 +3322,8 @@ end
 # ╟─495e3733-d290-40ab-af63-0eb10a033b53
 # ╟─ed29d53f-00bc-4295-93f6-864a44f92ccb
 # ╟─fa8161aa-0e1c-404f-8c7e-0e3914917df4
+# ╟─1a02decc-153e-44b5-9c00-818e1b8e7edf
+# ╟─c4262ea1-f6f1-4321-9fb1-9b674a6af49d
 # ╟─ef776fe2-5f0f-49a8-b2d5-2e1235d41ec1
 # ╟─ff3d827b-a0dd-4d86-bfd4-d25fc5f4ab3e
 # ╟─0e3d2723-1ecb-4e5a-8125-78f6f27407e2
@@ -3275,12 +3379,12 @@ end
 # ╟─cb3e21b3-0197-4685-a9ae-fe4040106222
 # ╟─eb335a4d-e662-499c-bb80-8bf38c84329f
 # ╟─35b4aa7e-e41b-4444-af3b-74684c723d5c
-# ╟─2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
 # ╟─87d43815-9733-40ac-b4e7-81a2c5dbd0d1
 # ╟─c8492ca5-893f-4939-a256-f0872f351c5d
 # ╟─df9b58cf-fe4f-4858-a296-879bb0385ba7
 # ╟─ccf5f4e6-adc6-419d-a717-4b3b597c2233
 # ╟─913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
+# ╟─8fd9cfaf-27f1-42da-b2e3-f72c8caeaafc
 # ╟─aa0376dc-5982-4274-9b4d-4aef1d1de896
 # ╟─0378dcdf-0291-4e9c-a30b-5dacd346707c
 # ╟─b4fd0320-74b2-4ed4-b7b0-beca4eccd553

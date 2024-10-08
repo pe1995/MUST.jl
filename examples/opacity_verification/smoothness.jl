@@ -44,7 +44,7 @@ md"And the corresponding EoS + opacity table"
 
 # ╔═╡ 920b14be-dc82-4a23-b93f-67efc7ba9068
 begin
-	eosdir = "input_data/grd/MainSequenceInterpolated/ST4_E_t57.77g44.40m0.000_v1.0"
+	eosdir = "input_data/grd/MainSequenceInterpolated/ST9_E_t57.77g44.40m0.000_v1.0"
 	eospath = @in_dispatch(joinpath(eosdir, "eos.hdf5"))
 	opapath = @in_dispatch(joinpath(eosdir, "binned_opacities.hdf5"))
 	
@@ -190,6 +190,31 @@ let
 	f
 end
 
+# ╔═╡ af9a7bd0-f9a3-4987-a22b-196db027ca84
+let
+	f, ax = plt.subplots(1, 1)
+
+	im = ax.pcolormesh(lnT, ρT, log10.(opaT.src[:,:,bin]), rasterized=true)
+	cbar = f.colorbar(im, ax=ax)
+
+	#eb = log.(b[:T][:,:,end])
+	#rb = log.(b[:d][:,:,end])
+	eb, rb = profile(MUST.mean, b, :logT, :logd)
+	ax.scatter(eb, rb, color="white", marker="x", s=10)
+
+	eb, rb = profile(MUST.maximum, b, :logT, :logd)
+	ax.scatter(eb, rb, color="cyan", marker="x", s=10)
+
+	eb, rb = profile(MUST.minimum, b, :logT, :logd)
+	ax.scatter(eb, rb, color="red", marker="x", s=10)
+	
+	cbar.set_label("source function (bin $(bin))")
+	ax.set_xlabel("ln temperature")
+	ax.set_ylabel("ln density")
+	
+	f
+end
+
 # ╔═╡ 2cda99b3-6679-4fc8-b2dc-982025a2c714
 
 
@@ -329,6 +354,7 @@ end
 # ╠═a5941f53-3ba0-4bec-87e1-86a4ad249147
 # ╠═a276d38f-a74b-4116-a251-629d9934a6b8
 # ╟─217b0b1b-ab2f-470e-88fc-434ff70fe844
+# ╟─af9a7bd0-f9a3-4987-a22b-196db027ca84
 # ╟─2cda99b3-6679-4fc8-b2dc-982025a2c714
 # ╟─20d4b759-f7ad-4bd9-8359-cbc7acc16c91
 # ╠═4ca429e0-70d2-4111-bf23-edc4e4200ff0

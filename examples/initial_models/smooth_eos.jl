@@ -18,7 +18,7 @@ end
 plt = matplotlib.pyplot
 
 # ╔═╡ c43315b6-dda2-43a2-946b-6bdb5b814306
-eospath = "MainSequenceInterpolated/ST4_E_t57.77g44.40m0.000_v1.0"
+eospath = "MainSequenceInterpolated/ST10_E_t57.77g44.40m0.000_v1.0"
 
 # ╔═╡ 11a17019-7728-406a-a170-a2c4a64283e2
 eos = reload(SqEoS, joinpath(eospath, "eos.hdf5"))
@@ -38,12 +38,28 @@ model = @optical Average3D(eos, joinpath(eospath, "inim.dat")) eos
 # ╔═╡ cbd08511-3443-4f11-9f50-736181d54f7c
 κ = lookup(eos, opa, :κ, model.lnρ, model.lnEi)
 
+# ╔═╡ 8ef841d8-c8d6-4f02-9feb-e697c1bc5aed
+s = lookup(eos, opa, :src, model.lnρ, model.lnEi)
+
 # ╔═╡ 5ebaf49b-93b4-44c4-9313-a24184d11f1d
 let
 	f, ax = plt.subplots()
 
 	for i in 1:size(κ, 2)
 		ax.plot(log10.(model.τ), log10.(κ[:, i]), label="bin $(i)")
+	end
+
+	ax.legend(bbox_to_anchor=(1, 1), loc="upper left", framealpha=0)
+
+	f
+end
+
+# ╔═╡ 6ae9e043-3653-4c76-9afb-28b9d164b8e1
+let
+	f, ax = plt.subplots()
+
+	for i in 1:size(κ, 2)
+		ax.plot(log10.(model.τ), log10.(s[:, i]), label="bin $(i)")
 	end
 
 	ax.legend(bbox_to_anchor=(1, 1), loc="upper left", framealpha=0)
@@ -133,7 +149,7 @@ end
 
 
 # ╔═╡ 68ab1a38-eeeb-4db0-9c78-a1e5ce2481bb
-eos_filter, opa_filter = smooth(eos, 30),  smooth(opa, 20)
+eos_filter, opa_filter = smooth(eos, 40),  smooth(opa, 40)
 
 # ╔═╡ 44ff77bf-f4b7-4da8-9a8d-656760c07378
 κ_filter = lookup(eos_filter, opa_filter, :κ, model.lnρ, model.lnEi)
@@ -143,7 +159,7 @@ let
 	f, ax = plt.subplots()
 
 	#for i in 1:size(κ, 2)
-		i=7
+		i=3
 		ax.plot(log10.(model.τ), log10.(κ[:, i]), label="bin $(i)")
 		ax.plot(log10.(model.τ), log10.(κ_filter[:, i]), label="bin $(i) filter")
 	#end
@@ -163,10 +179,10 @@ lnE, ρ = TSO.meshgrid(@axed(eos_filter));
 let
 	f, ax = plt.subplots(1, 1)
 
-	im = ax.pcolormesh(lnE, log10.(exp.(ρ)), log10.(opa_filter.κ[:, :, 7]), rasterized=true)
+	im = ax.pcolormesh(lnE, log10.(exp.(ρ)), log10.(opa_filter.κ[:, :, 3]), rasterized=true)
 	cbar = f.colorbar(im, ax=ax)
 
-	cbar.set_label("opacity (bin $(7))")
+	cbar.set_label("opacity (bin $(3))")
 	ax.set_xlabel("ln internal energy")
 	ax.set_ylabel("ln density")
 	
@@ -225,7 +241,9 @@ end
 # ╠═4982dff0-0b1d-404b-acfa-0b26bdc7a541
 # ╟─a7f5f9c8-956d-462c-9c3f-9700efbfae02
 # ╠═cbd08511-3443-4f11-9f50-736181d54f7c
+# ╠═8ef841d8-c8d6-4f02-9feb-e697c1bc5aed
 # ╟─5ebaf49b-93b4-44c4-9313-a24184d11f1d
+# ╟─6ae9e043-3653-4c76-9afb-28b9d164b8e1
 # ╟─2d978fc9-9083-4ce6-8d05-8c776e8c0f96
 # ╠═746e9e94-1779-4797-b74f-70f7212b81a0
 # ╠═64b85589-1974-4361-9dc5-9b9f68fe1592
@@ -236,7 +254,7 @@ end
 # ╟─722c4ec0-90cd-49a1-a4c2-bbfbc8300081
 # ╟─10f3c03e-ab8f-4805-96f8-10f0798cb453
 # ╠═96100d99-523b-445e-8b09-22fded071a9e
-# ╠═58b9636e-388b-4c71-9017-712dfa34c2ba
+# ╟─58b9636e-388b-4c71-9017-712dfa34c2ba
 # ╟─317e0995-e620-482f-8731-342efddd82cd
 # ╟─67de20cc-343f-494d-b499-176f5ecf372b
 # ╟─fa554409-dae1-4f63-8348-71a5908dc66e

@@ -178,6 +178,10 @@ s = ArgParseSettings()
     "--muram"
         help = "Use MURaM solar bins (Beeck et al. 2012)"
         action = :store_true
+    "--gaussian_filter_radius"
+        help = "Additional courant coundition for RT diffusion."
+        arg_type = Float64
+        default = -1.0
 end
 
 # read and parse command line arguments
@@ -398,6 +402,7 @@ begin
         scale_resolution=scale_resolution,
         namelist_kwargs=namelist_kwargs,
         make_quadrants=make_quadrants,
+        gaussian_filter_radius=arguments["gaussian_filter_radius"],
         Nbins=Nbins
     )
 end

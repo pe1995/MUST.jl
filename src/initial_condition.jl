@@ -24,7 +24,8 @@ opacityguess(name, root) = begin
     if length(all) >= 1
         first(all)
     else
-        error("There is no table with name, root: $(name),$(root)")
+        @warn("There is no table with name, root: $(name),$(root)")
+        ""
     end
 end
 
@@ -169,6 +170,7 @@ function prepare(
 	clean_formation = true,
 	clean_namelists = false,
     clean_logs = false,
+    gaussian_filter_radius=-1,
 	make_quadrants = (name, eos_root, opa_path) -> begin
 		qlim = round(
 			quadrantlimit(name, eos_root, opa_path, λ_lim=5.0), 
@@ -290,7 +292,12 @@ function prepare(
         dxdz_max=dxdz_max
     )
 
-    fromT_toE.(grid.info[!, "binned_tables"], grid.info[!, "binned_E_tables"], grid.info[!, "av_path"], upsample=2048, lnEi_stretch=0.5)
+    fromT_toE.(
+        grid.info[!, "binned_tables"], grid.info[!, "binned_E_tables"], grid.info[!, "av_path"], 
+        upsample=2048, lnEi_stretch=0.5, 
+        eos_radius=gaussian_filter_radius,
+        opa_radius=gaussian_filter_radius
+    )
 
     # Copy the average model in the same folder so that we can link it all to the right place
     for i in 1:nrow(grid.info)
