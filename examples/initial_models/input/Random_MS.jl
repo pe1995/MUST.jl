@@ -4,13 +4,13 @@ begin
     dispatch_location = "../../../dispatch2"
 
     # Under what name should the binned opacities be saved
-    name_extension    = "MainSequence/R7"
+    name_extension    = "MS/R7"
 
     # PLATO models
-    initial_grid_path = "MainSequence/random_MS7_magg_m0_a0.mgrid"
-    initial_cl_path   = "MainSequence/random_MS7_avail.mgrid"
-    initial_mod_path  = "MainSequence/random_MS7_solar.mgrid"
-    final_grid_path   = "MainSequence/random_MS7_180524.mgrid"
+    initial_grid_path = "MS/random_MS7_magg_m0_a0.mgrid"
+    initial_cl_path   = "MS/random_MS7_avail.mgrid"
+    initial_mod_path  = "MS/random_MS7_solar.mgrid"
+    final_grid_path   = "MS/random_MS7_180524.mgrid"
 
     # clean namelists in dispatch folder (other than new ones)
     clean_namelists = false
@@ -26,24 +26,25 @@ end
 
 #= Dispatch setup =#
 begin
-    patch_size = 18                 # Points per patch
-    τ_up = -5.75                    # Upper limit of simulation domain
+    patch_size = 14                 # Points per patch
+    τ_up = -6.0                     # Upper limit of simulation domain
     τ_surf = 0.0                    # Optical surface of simulation domain
     τ_down = 6.0                    # Lower limit of simulation domain
-    τ_ee0 = -2.25                   # Newton cooling placement (energy)
+    τ_ee0 = -4.5                    # Newton cooling placement (energy)
     τ_eemin = τ_up                  # Mininmum energy of initial condition
-    τ_zee0 = -1.75                  # Newton cooling placement (height)
+    τ_zee0 = -4.25                   # Newton cooling placement (height)
     τ_rho0 =  0.0                   # Density normaliztion height
     dxdz_max = 3.0                  # how much bigger is box in x than z (max)
-    scale_resolution = 0.65         # Down or upsampling of simulation domain
+    scale_resolution = 0.70         # Down or upsampling of simulation domain
     namelist_kwargs = Dict(         # Additional modifications in namelist
-        :newton_time=>80.0,        
-        :friction_time=>100.0,     
-        :newton_decay_scale=>20.0,  
-        :friction_decay_scale=>20.0,  
-        :courant_target=>0.26,
-        :courant_rt=>0.3,
-        :courant_hd=>0.1,
+        :newton_time=>100.0,        
+        :friction_time=>120.0,     
+        :newton_decay_scale=>15.0,  
+        :friction_decay_scale=>15.0,  
+        :courant_target=>0.25,
+        :courant_hd=>0.25,
+        :courant_rt=>0.25,
+        :duration=>720,
         :newton_params=>(           #   Optional: Give namelist field = NamedTuple 
             :on=>true,              #   for direct namelist replacement
             :delay_rt=>true
@@ -51,31 +52,37 @@ begin
         :io_params=>(
             :out_time=>1.0,
         ),
-        :aux_params=>(
-            :select=>["dt_rt", "flux"],
-        ),
+        #:aux_params=>(
+        #    :select=>["dt_rt", "flux", "qr"],
+        #),
         :boundary_params=>(
             :upper_bc=>7,
-            :smallr=>1e-7
+            :radiation_bc=>3,
+            :smallr=>1e-8
         ),
         :an_params=>(
-            :smallr=>1e-7,
+            :smallr=>1e-8,
             :smallc=>0.1, 
-            :dlnr_limit=>0.5
+            :dlnr_limit=>0.7
         ),
         :patch_params=>(
             :grace=>0.01,
-            :nt=>5
+            :nt=>5,
+            :dt_small=>1e-10
         ),
         :sc_rt_params=>(
             :rt_grace=>0.01,
-            :rt_freq=>2.0,
-            :timestep_limiter=>1.5
+            :rt_freq=>0.0,
+            :cdtd=>1.0
+            #:timestep_limiter=>1.1 
         ),
-        :friction_params=>(
-            :slope_factor=>0.7,
-            :slope_decay_scale=>30.0
-        )
+        :dispatcher0_params=>(
+            :retry_stalled=>60,
+        ),
+        #:friction_params=>(
+        #    :slope_factor=>0.7,
+        #    :slope_decay_scale=>55.0
+        #)
     )
 end
 
