@@ -16,28 +16,43 @@ begin
 end
 
 # ╔═╡ db28e099-4c6f-4786-94ad-14ab71767353
-ext1 = "magg_m1_a0_c0"
+#ext1 = "magg_m0_a0"
+
+# ╔═╡ 2013feaa-c461-450f-8365-982c205fa1df
+ext1 = "magg_m7_a4_c5_vmic2"
 
 # ╔═╡ 6e6d4927-afd1-450c-ad02-a62802d143c3
-ext2 = "magg_m4_a4_c3"
+ext2 = "magg_m5_a4_c3_vmic2"
 
 # ╔═╡ 789f821a-be1c-4fa3-8b75-b888f9eeed1f
-eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext1)_v3.0/combined_eos_$(ext1).hdf5")
-
-# ╔═╡ 5c113664-a163-4a54-9949-21634e50df55
-scat1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext1)_v3.0/combined_sopacities_$(ext1).hdf5", mmap=true)
+#eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext1)_v1.8/combined_eos_$(ext1).hdf5")
 
 # ╔═╡ 54cd6e9e-c4e7-4512-bd5e-59c05840dfbf
-opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext1)_v3.0/combined_opacities_$(ext1).hdf5", mmap=true)
+#opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext1)_v1.8/combined_opacities_$(ext1).hdf5", mmap=true)
+
+# ╔═╡ eca1793a-a4eb-4937-bf03-75d3d6472329
+eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext1)_v5.1/combined_eos_$(ext1).hdf5")
+
+# ╔═╡ c67235eb-69c2-49b6-afe7-5f9d8315e480
+opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext1)_v5.1/combined_opacities_$(ext1).hdf5", mmap=true)
 
 # ╔═╡ bdf0a7ba-d30d-40f2-92f4-b9dd791a9ba9
-eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v4.0/combined_eos_$(ext2).hdf5")
+eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v5.1/combined_eos_$(ext2).hdf5")
 
 # ╔═╡ 7cd8df75-c5e5-4ce3-b3af-cb54a7ec8cce
-opa2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v4.0/combined_opacities_$(ext2).hdf5", mmap=true)
+opa2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v5.1/combined_opacities_$(ext2).hdf5", mmap=true)
 
-# ╔═╡ 91c07140-e22f-4522-b2c2-8e2362946ddc
-scat2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(ext2)_v4.0/combined_sopacities_$(ext2).hdf5", mmap=true)
+# ╔═╡ 5f34751e-382d-4bb3-8c00-fb6c4a4eb8bd
+solar_model1 = @optical Average3D(eos1, "sun_stagger.dat") eos1 opa1
+
+# ╔═╡ d034e8f4-9882-4e36-bb2e-7cb4fee51305
+solar_model2 = @optical Average3D(eos2, "sun_stagger.dat") eos2 opa2
+
+# ╔═╡ 9cfd2420-2351-4d45-824a-87d71a9b297d
+
+
+# ╔═╡ 315cc5f0-6e5e-43cd-94b9-64f650a02792
+md"# EoS"
 
 # ╔═╡ dc956c31-3c2c-4ee9-8b21-11a3411cf18b
 let
@@ -55,8 +70,12 @@ let
 	vmin = min(minimum(c1), minimum(c2))
 	vmax = maximum(eos1.lnEi)#40 #max(maximum(c1), maximum(c2))
 	
-	im = ax[0].scatter(tt1, rr1, label="FeH=-1, CFe=0", c=c1, vmin=vmin, vmax=vmax)
-	ax[1].scatter(tt2, rr2, label="FeH=-4, CFe=4", c=c2, vmin=vmin, vmax=vmax)
+	im = ax[0].pcolormesh(tt1, rr1, c1, vmin=vmin, vmax=vmax)
+	ax[1].pcolormesh(tt2, rr2, c2, vmin=vmin, vmax=vmax)
+
+	ax[0].set_title("[C/Fe]=0.4")
+	ax[1].set_title("[C/Fe]=3.0")
+	
 
 	f.colorbar(im, ax=ax)
 
@@ -66,85 +85,41 @@ let
 	gcf()
 end
 
-# ╔═╡ e54494f1-fd6c-43ba-aa75-d55323b001af
-let 
-	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+# ╔═╡ ae45577e-01a8-4976-8c09-e33534c6d438
 
-	ax.plot(eos1.lnT, eos1.lnEi[:, end], label="M3D")
-	ax.plot(eos2.lnT, eos2.lnEi[:, end], label="TS")
-	
-	gcf()
-end
 
-# ╔═╡ 7e077307-b759-4265-8d2f-50f3479b3842
-minimum(eos1.lnEi), maximum(eos1.lnEi)
+# ╔═╡ c3313f20-74a1-4157-9bd4-ccca1ae7ad16
+md"# Opacity"
 
-# ╔═╡ 013fb284-882b-4e07-a3e1-66afb1280fa0
-minimum(eos2.lnEi), maximum(eos2.lnEi)
-
-# ╔═╡ 6588a02b-c206-4aa2-b54f-836e1778e552
-exp.(eos1.lnT)
-
-# ╔═╡ 4a29299b-0ed8-4617-b044-2a7e06afa105
-#ross = TSO.rosseland_opacity(eos1, opa1)
-
-# ╔═╡ 55a6be86-5678-4d20-a8cb-3dc88e6a9a21
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 2, figsize=(10, 6))
-
-	c1 = eos1.lnRoss
-	c2 = eos2.lnRoss
-	
-	vmin = min(minimum(c1), minimum(c2))
-	vmax = max(maximum(c1), maximum(c2))
-	
-	xx, yy = TSO.meshgrid(@axed(eos1))
-	ax[0].scatter(xx, yy, c=c1)
-
-	xx, yy = TSO.meshgrid(@axed(eos2))
-	im = ax[1].scatter(xx, yy, c=c2)
-	plt.colorbar(im, ax=ax)
-	
-	gcf()
-end
-
-# ╔═╡ 65e6937c-221a-4db5-a4f3-e2bbc45470db
+# ╔═╡ d536627e-6355-491b-8955-f7012b545b5a
 begin
-	ρ = 1e-6
-	T = 5000
-
-	κ1 = lookup(eos1, opa1, :κ, log.(ρ), log.(T))
-	κ2 = lookup(eos2, opa2, :κ, log.(ρ), log.(T))
-
-	s1 = lookup(eos1, scat1, :κ, log.(ρ), log.(T))
-	s2 = lookup(eos2, scat2, :κ, log.(ρ), log.(T))
+	optical_surface1 = TSO.optical_surface(solar_model1)
+	isurf1 = TSO.interpolate_to(solar_model1, z=[optical_surface1], in_log=false)
 end
 
-# ╔═╡ 382eece9-ca88-46c1-8936-871f96513358
+# ╔═╡ 2edee1f3-d5ea-45ad-9656-ffa34b32427e
+begin
+	optical_surface2 = TSO.optical_surface(solar_model2)
+	isurf2 = TSO.interpolate_to(solar_model2, z=[optical_surface2], in_log=false)
+end
+
+# ╔═╡ b70728c9-d046-4db2-945c-015443c00b44
+κ1 = lookup(eos1, opa1, :κ, isurf1.lnρ[1], isurf1.lnT[1])
+
+# ╔═╡ fe9ac9ee-80be-4a47-b2e4-5e7a95662ab4
+κ2 = lookup(eos2, opa2, :κ, isurf2.lnρ[1], isurf2.lnT[1])
+
+# ╔═╡ fddc345a-94ed-4bfb-b78c-b316be4390f0
 let
 	plt.close()
+	f, ax = plt.subplots(1, 1)
 
-	f, ax = plt.subplots(1, 1, figsize=(5, 6))
-
-	x1 = log10.(opa1.λ)
-	y1 = log10.(κ1)
-	x2 = log10.(opa2.λ)
-	y2 = log10.(κ2)
-	plt.plot(x2, y2, label="FeH=-4, CFe=3")
-	plt.plot(x1, y1, label="FeH=-1, CFe=0")
-	
-	x1 = log10.(opa1.λ)
-	y1 = log10.(s1)
-	x2 = log10.(opa2.λ)
-	y2 = log10.(s2)
-	plt.plot(x2, y2, label="FeH=-4, CFe=3")
-	plt.plot(x1, y1, label="FeH=-1, CFe=0")
-
-	#plt.xlim(4, 4.1)
-
-	plt.legend()
+	ax.plot(opa1.λ, log10.(κ1) .- log10.(κ2))
+	#ax.plot(opa1.λ, log10.(κ2))
+	ax.set_xlim(0, 25000)
+	#ax.set_xlim(3500, 18000)
+	ax.set_ylabel("log10 [C/Fe]=0.4 / [C/Fe]=3.0")
+	ax.set_xlabel("log10 wavelength")
 	
 	gcf()
 end
@@ -152,19 +127,23 @@ end
 # ╔═╡ Cell order:
 # ╠═0dbac1c4-d566-11ee-0ad0-cf2cf182e68a
 # ╠═db28e099-4c6f-4786-94ad-14ab71767353
+# ╠═2013feaa-c461-450f-8365-982c205fa1df
 # ╠═6e6d4927-afd1-450c-ad02-a62802d143c3
 # ╠═789f821a-be1c-4fa3-8b75-b888f9eeed1f
-# ╠═5c113664-a163-4a54-9949-21634e50df55
 # ╠═54cd6e9e-c4e7-4512-bd5e-59c05840dfbf
+# ╠═eca1793a-a4eb-4937-bf03-75d3d6472329
+# ╠═c67235eb-69c2-49b6-afe7-5f9d8315e480
 # ╠═bdf0a7ba-d30d-40f2-92f4-b9dd791a9ba9
 # ╠═7cd8df75-c5e5-4ce3-b3af-cb54a7ec8cce
-# ╠═91c07140-e22f-4522-b2c2-8e2362946ddc
-# ╠═dc956c31-3c2c-4ee9-8b21-11a3411cf18b
-# ╠═e54494f1-fd6c-43ba-aa75-d55323b001af
-# ╠═7e077307-b759-4265-8d2f-50f3479b3842
-# ╠═013fb284-882b-4e07-a3e1-66afb1280fa0
-# ╠═6588a02b-c206-4aa2-b54f-836e1778e552
-# ╠═4a29299b-0ed8-4617-b044-2a7e06afa105
-# ╠═55a6be86-5678-4d20-a8cb-3dc88e6a9a21
-# ╠═65e6937c-221a-4db5-a4f3-e2bbc45470db
-# ╠═382eece9-ca88-46c1-8936-871f96513358
+# ╠═5f34751e-382d-4bb3-8c00-fb6c4a4eb8bd
+# ╠═d034e8f4-9882-4e36-bb2e-7cb4fee51305
+# ╟─9cfd2420-2351-4d45-824a-87d71a9b297d
+# ╟─315cc5f0-6e5e-43cd-94b9-64f650a02792
+# ╟─dc956c31-3c2c-4ee9-8b21-11a3411cf18b
+# ╟─ae45577e-01a8-4976-8c09-e33534c6d438
+# ╟─c3313f20-74a1-4157-9bd4-ccca1ae7ad16
+# ╠═d536627e-6355-491b-8955-f7012b545b5a
+# ╠═2edee1f3-d5ea-45ad-9656-ffa34b32427e
+# ╠═b70728c9-d046-4db2-945c-015443c00b44
+# ╠═fe9ac9ee-80be-4a47-b2e4-5e7a95662ab4
+# ╠═fddc345a-94ed-4bfb-b78c-b316be4390f0

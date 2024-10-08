@@ -389,11 +389,11 @@ new_namelist_params = if length(selectedRunList) > 0
 	) for i in eachindex(runnameList)]
 else
 	new_namelist_params = Dict(
-		#:friction_params=>(
-		#	:on=>true,
-		#	:end_time=>50,
-		#	:decay_scale=>5
-		#),
+		:friction_params=>(
+			:on=>true,
+			:end_time=>50,
+			:decay_scale=>5
+		),
 		#:boundary_params=>(
 		#	:htop_scale=>7.0,
 		#),
@@ -518,7 +518,7 @@ end
 # ╟─cf03da3f-8a94-4697-a4e4-0e0f9c13b803
 # ╟─b64ad2d7-78d4-49dd-9998-4d58166a649d
 # ╟─0f2b46ac-9317-4d23-be32-e7d0265f6258
-# ╠═3efea52b-cafa-4440-90fe-d6b226847a2d
+# ╟─3efea52b-cafa-4440-90fe-d6b226847a2d
 # ╟─ac0f2184-e817-432a-860b-36cd2a03af3e
 # ╟─28d04061-0040-45b5-9490-54c4cdb943f4
 # ╟─1e1e380f-9684-496c-8bf4-158f281a679b

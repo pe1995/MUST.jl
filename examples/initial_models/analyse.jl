@@ -180,6 +180,8 @@ if convert_given
 	
 	#MUST.deactivate_timing!.(MUST.timers)
 	#MUST.deactivate_timing!.(MUST.detailedBoxingTimers)
+else
+	new_converted = false
 end
 
 # ╔═╡ 53706541-27d7-4093-b37f-3e384c6c8a7c
@@ -195,8 +197,14 @@ end
 # ╔═╡ 40124987-2dc6-452d-87d7-33f935854b55
 
 
+# ╔═╡ ea71ff63-77a8-465c-9287-5838b1989212
+
+
 # ╔═╡ 3778a669-69fc-47e6-9d0b-c514b31c8c79
 md"### Loading the models"
+
+# ╔═╡ 61d9a819-4f42-4a12-aba5-19245e5f2380
+md"Click here to additionally convert them to the MULTI3D format: $(@bind alsom3d2 CheckBox(default=false))"
 
 # ╔═╡ b9f82f31-f25e-4cad-abb4-aac2d4d0e584
 begin
@@ -209,6 +217,11 @@ begin
 			snapshot, snapshot_τ = pick_snapshot(
 				converted_snapshots(p), v
 			)
+			if alsom3d2
+				snapshot.data[:ne] = snapshot.data[:Ne]
+	    		multiBox(snapshot, joinpath(p, "m3dis_$(name)_$(v)"))
+				@info "M3D cube saved at $(joinpath(p, "m3dis_$(name)_$(v)"))"
+			end
 			append!(snapshots[name], [snapshot])
 			append!(snapshots_τ[name], [snapshot_τ])
 		end
@@ -279,13 +292,13 @@ eos_folders = NamedTuple(
 
 # ╔═╡ 4d0c7aa4-2a13-429a-88f2-14df415aa5ec
 eos = NamedTuple(
-	name=>reload(SqEoS, joinpath(eos_folders[name], "eos.hdf5"))
+	name=>reload(SqEoS, joinpath(eos_folders[name], "eos_T.hdf5"))
 	for name in keys(eos_folders)
 )
 
 # ╔═╡ 27d0d01a-c8c8-422b-a893-36948b908fb0
 opa = NamedTuple(
-	name=>reload(SqOpacity, joinpath(eos_folders[name], "binned_opacities.hdf5"))
+	name=>reload(SqOpacity, joinpath(eos_folders[name], "binned_opacities_T.hdf5"))
 	for name in keys(eos_picks)
 )
 
@@ -430,7 +443,86 @@ let
 	end
 end
 
+# ╔═╡ d5dd6b0a-5117-4b28-8fc4-6d9f61bebc20
+function new_zscale(eos, model; common_size=1000, saveat=nothing, kwargs...)
+	aos = @axed eos
+	mnew = TSO.flip(model, depth=true)
+
+    a = if maximum(log10.(mnew.τ)) < 0.0
+        @warn "New Z scale could not be computed for $(basename(av_path))."
+        mnew
+    else
+        # recompute z scale from opacity
+        znew = TSO.rosseland_depth(aos, mnew)
+        mnew.z .= znew
+
+        # find the optical surface
+        TSO.optical_surface!(mnew)
+        TSO.flip!(mnew)
+
+        # We now can interpolate everthing to this new z scale
+        TSO.flip(
+            TSO.interpolate_to(
+                mnew, 
+                z=collect(range(maximum(mnew.z), minimum(mnew.z), length=common_size))
+            ), 
+            depth=false
+        )
+    end
+
+    a
+end
+
 # ╔═╡ bdb0930c-dc11-4030-bbc6-2b332184a2b4
+begin
+	ztot, Ttot, dtot = [] , [], []
+	for name in keys(snapshots)
+		for (j, snap) in enumerate(snapshots_τ[name])
+			aos = @axed eos[name]
+
+			τ, T = profile(mean, snap, :log10τ_ross, :T)
+			_, d = profile(mean, snap, :log10τ_ross, :d)
+			_, z = profile(mean, snap, :log10τ_ross, :z)
+			
+			v = ones(length(τ)*2 -1)
+
+			pe = exp.(lookup(eos[name], :lnNe, log.(snap[:d]), log.(snap[:T]))) .* (MUST.KBoltzmann .* snap[:T])
+			snap[:pe] = pe
+			_, pe = profile(mean, snap, :log10τ_ross, :pe)
+
+			mnew = TSO.OpticalModel1D(
+				exp10.(τ),
+				z,
+				log.(d),
+				log.(T),
+				exp.(lookup(eos[name], :lnEi, log.(d), log.(T))),
+				Float32(log10(2.75e4))
+			)
+			mnew = new_zscale(eos[name], mnew, common_size=length(τ)*2 -1)
+
+			penew = exp.(lookup(eos[name], :lnNe, mnew.lnρ, mnew.lnT)) .* (MUST.KBoltzmann .* exp.(mnew.lnT))
+
+			z, T, pe, d, v = -reverse(mnew.z), reverse(exp.(mnew.lnT)), reverse(penew), reverse(exp.(mnew.lnρ)), v
+
+			ztot = z
+			Ttot = T
+			dtot = d
+
+			open("$(name)_av.dat", "w") do f
+		        write(f, "$(name)_av.dat\n")
+		        write(f, "$(length(v))\n")
+		        writedlm(f, [z T pe d v], "  ")
+		    end
+		end
+	end
+
+	plt.close()
+	plt.plot(ztot, Ttot)
+
+	gcf()
+end
+
+# ╔═╡ eddd8aa8-3ac1-4981-9c02-6d5452d67978
 
 
 # ╔═╡ f3ffa698-bcea-4ab3-9b63-84d518c14068
@@ -914,7 +1006,7 @@ begin
 	fluxSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			flux_i_surf = snap[:flux][:, :, end]
+			flux_i_surf = snap[:flux][:, :, end-3]
 			append!(fluxSurf[name], [flux_i_surf])
 		end
 	end
@@ -984,6 +1076,70 @@ end
 # ╔═╡ 11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
 
 
+# ╔═╡ 4c6a8975-c2a7-43ac-a5da-4b1714d923e3
+md"## Opacity"
+
+# ╔═╡ 59a389f7-382d-4540-8d49-ded5cd0f9895
+begin
+	opaSurf = Dict(name=>[] for name in keys(snapshots_τ))
+	for name in keys(snapshots_τ)
+		for (j, snap) in enumerate(snapshots[name])
+			eos_plot = eos[name]
+			opa_plot = opa[name]
+
+			ip = 3
+			opa_i_surf = log10.(exp.(lookup(
+				eos_plot, :lnRoss,
+				log.(snap[:d][:, :, end-ip]), 
+				log.(snap[:T][:, :, end-ip])
+			) .+ log.(snap[:d][:, :, end-ip])))
+			append!(opaSurf[name], [opa_i_surf])
+		end
+	end
+	opaSurf
+end
+
+# ╔═╡ 0b93eda7-ea74-4969-a68c-60022cd1f69e
+let
+	if (nmodels > 0) && plot_given
+		fDs, axDs = [], []
+	
+		vmin = minimum([minimum(u) for name in keys(opaSurf) for u in opaSurf[name]]) 
+		vmax = maximum([maximum(u) for name in keys(opaSurf) for u in opaSurf[name]]) 
+	
+		for name in keys(snapshots)
+			for (j, snap) in enumerate(snapshots[name])
+				plt.close()
+				
+				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+				
+				i = axD.imshow(
+					opaSurf[name][j],
+					origin="lower",
+					vmin=vmin, vmax=vmax,
+					extent=extent(snap),
+					cmap="jet"
+				)
+		
+				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				cb.set_label(L"\rm \kappa\ \rho\ [cm^{-1}]")
+				#cb.set_label(L"\rm T\ [K]")
+		
+				axD.set_xlabel("x [cm]")
+				axD.set_ylabel("y [cm]")	
+		
+				append!(fDs, [fD])
+				append!(axDs, [axD])
+			end
+		end
+		
+		gcf()
+	end
+end
+
+# ╔═╡ 0446831c-3e40-45e1-b10b-c37532c879e1
+
+
 # ╔═╡ 4d0ce543-d551-481b-97c4-2585d3befd0a
 md"## Density"
 
@@ -992,7 +1148,7 @@ begin
 	dSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			d_i_surf = snap[:d][:, :, end]
+			d_i_surf = snap[:d][:, :, end-3]
 			append!(dSurf[name], [d_i_surf])
 		end
 	end
@@ -1042,6 +1198,13 @@ let
 					extent=extent(snap),
 					cmap="jet"
 				)
+
+			 	#=axD.imshow(
+					TSurf[name][j],
+					origin="lower",
+					extent=extent(snap),
+					cmap="Greys", alpha=0.4
+				)=#
 		
 				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
 				cb.set_label(L"\rm density\ [g\ cm^{-3}]")
@@ -1070,7 +1233,7 @@ begin
 	TSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			d_i_surf = snap[:T][:, :, end]
+			d_i_surf = snap[:T][:, :, end-3]
 			append!(TSurf[name], [d_i_surf])
 		end
 	end
@@ -1148,7 +1311,7 @@ begin
 	uzSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			uz_i_surf = snap[:uz][:, :, end] ./1e5
+			uz_i_surf = snap[:uz][:, :, end-3] ./1e5
 			append!(uzSurf[name], [uz_i_surf])
 		end
 	end
@@ -1198,6 +1361,13 @@ let
 					extent=extent(snap),
 					cmap="jet"
 				)
+
+				#=axD.imshow(
+					TSurf[name][j],
+					origin="lower",
+					extent=extent(snap),
+					cmap="Greys", alpha=0.7
+				)=#
 		
 				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
 				cb.set_label(L"\rm u_z\ [km\ s^{-1}]")
@@ -1415,8 +1585,10 @@ begin
 	dtSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			dt_i_surf = snap[:dt_rt][:, :, end]
-			append!(dtSurf[name], [dt_i_surf])
+			if (haskey(snap.data, :dt_rt))
+				dt_i_surf = snap[:dt_rt][:, :, end]
+				append!(dtSurf[name], [dt_i_surf])
+			end
 		end
 	end
 	dtSurf
@@ -1442,36 +1614,39 @@ end
 let
 	if (nmodels > 0) && plot_given
 		fDs, axDs = [], []
-	
-		vmin = minimum([minimum(u) for name in keys(dtSurf) for u in dtSurf[name]]) 
-		vmax = maximum([maximum(u) for name in keys(dtSurf) for u in dtSurf[name]]) 
-	
-		for name in keys(snapshots)
-			for (j, snap) in enumerate(snapshots[name])
-				plt.close()
-				
-				fD, axD = plt.subplots(1, 1, figsize=(5, 6))
-				
-				i = axD.imshow(
-					dtSurf[name][j],
-					origin="lower",
-					vmin=vmin, vmax=vmax,
-					extent=extent(snap),
-					cmap="coolwarm_r"
-				)
+
+		if all([length(d)>0 for (name, d) in dtSurf])
+			
+			vmin = minimum([minimum(u) for name in keys(dtSurf) for u in dtSurf[name]]) 
+			vmax = maximum([maximum(u) for name in keys(dtSurf) for u in dtSurf[name]]) 
 		
-				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
-				cb.set_label(L"\rm dt\ [s]")
-		
-				axD.set_xlabel("x [cm]")
-				axD.set_ylabel("y [cm]")	
-		
-				append!(fDs, [fD])
-				append!(axDs, [axD])
+			for name in keys(snapshots)
+				for (j, snap) in enumerate(snapshots[name])
+					plt.close()
+					
+					fD, axD = plt.subplots(1, 1, figsize=(5, 6))
+					
+					i = axD.imshow(
+						dtSurf[name][j],
+						origin="lower",
+						vmin=vmin, vmax=vmax,
+						extent=extent(snap),
+						cmap="coolwarm_r"
+					)
+			
+					cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+					cb.set_label(L"\rm dt\ [s]")
+			
+					axD.set_xlabel("x [cm]")
+					axD.set_ylabel("y [cm]")	
+			
+					append!(fDs, [fD])
+					append!(axDs, [axD])
+				end
 			end
+			
+			gcf()
 		end
-		
-		gcf()
 	end
 end
 
@@ -1833,7 +2008,9 @@ end
 # ╟─53706541-27d7-4093-b37f-3e384c6c8a7c
 # ╟─ddcbcf4d-eb85-4cde-b2ac-a4b7e93ed809
 # ╟─40124987-2dc6-452d-87d7-33f935854b55
+# ╟─ea71ff63-77a8-465c-9287-5838b1989212
 # ╟─3778a669-69fc-47e6-9d0b-c514b31c8c79
+# ╟─61d9a819-4f42-4a12-aba5-19245e5f2380
 # ╟─b9f82f31-f25e-4cad-abb4-aac2d4d0e584
 # ╟─cfa74be4-06c9-4911-ac29-2a17809391e6
 # ╟─ba8bded9-f13b-477e-a9fc-bd88e4f01e35
@@ -1874,7 +2051,9 @@ end
 # ╟─3508e2bc-7fd1-4a46-a68d-a3f16774db4e
 # ╟─ea323dfd-6fdd-4754-9000-10c980c5db7e
 # ╟─e346c195-441e-4bb9-aee4-e531921ed5cd
+# ╟─d5dd6b0a-5117-4b28-8fc4-6d9f61bebc20
 # ╟─bdb0930c-dc11-4030-bbc6-2b332184a2b4
+# ╟─eddd8aa8-3ac1-4981-9c02-6d5452d67978
 # ╟─f3ffa698-bcea-4ab3-9b63-84d518c14068
 # ╟─ce691c30-5025-4ffc-8185-eced3087ca13
 # ╟─5e882897-d396-470c-ad46-37a39326225c
@@ -1905,25 +2084,29 @@ end
 # ╟─359bc89f-0077-4b44-9330-305856dd1fb3
 # ╟─b881f838-86bd-4948-a940-be3204264974
 # ╟─3948852a-e40c-4851-880b-36c0cb5893f0
-# ╟─737fe8bd-65d3-4b3b-9d67-f7e61b93d238
+# ╠═737fe8bd-65d3-4b3b-9d67-f7e61b93d238
 # ╟─9dcc79e0-afee-40d0-a3a7-17381bca0252
 # ╟─f50a0387-40c3-440a-b439-8448822bf47c
 # ╟─d00fd506-3847-4deb-898c-cf29b765fd7e
 # ╟─11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
+# ╟─4c6a8975-c2a7-43ac-a5da-4b1714d923e3
+# ╠═59a389f7-382d-4540-8d49-ded5cd0f9895
+# ╟─0b93eda7-ea74-4969-a68c-60022cd1f69e
+# ╟─0446831c-3e40-45e1-b10b-c37532c879e1
 # ╟─4d0ce543-d551-481b-97c4-2585d3befd0a
-# ╟─99f5fdef-8c58-4ac5-a00c-2d5af409284d
+# ╠═99f5fdef-8c58-4ac5-a00c-2d5af409284d
 # ╟─2783c9a7-8e39-45ce-b823-8d26e94b99d9
 # ╟─e9f71534-e9a2-47ac-95a4-10717c1a38f8
 # ╟─b3b13fff-3006-4b2c-90cc-b4c793dc30a0
 # ╟─c4a4e8e9-e14b-4ce7-b574-1e4547c31a41
 # ╟─75293185-4d04-4b31-8dd9-cde3b180b13d
-# ╟─eb5ce6ae-bf45-483a-9354-506ebf38186c
+# ╠═eb5ce6ae-bf45-483a-9354-506ebf38186c
 # ╟─0fa21289-7e28-44e5-8cb2-d3cbf548b668
 # ╟─6642e0e4-84fb-486d-8849-41ae7ecae5af
 # ╟─72cc91ff-1b94-4366-974b-d4a68e9db24a
 # ╟─4d438b21-b613-4a9b-97b0-d8451cdfff48
 # ╟─c7cacafa-a9a6-4709-947f-f9c6ea6d38fc
-# ╟─d5435b08-f2b2-4c45-92a8-94c3fc52f6c2
+# ╠═d5435b08-f2b2-4c45-92a8-94c3fc52f6c2
 # ╟─a7b44610-1c5d-41d7-9795-710ff4ac8347
 # ╟─31f1cf65-1590-4b62-a613-17f8f21ccfd1
 # ╟─79dd7e6f-5662-4588-a605-a8b4770fc234

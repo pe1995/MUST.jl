@@ -2,6 +2,8 @@
 
 /.CondaPkg
 examples/*/.CondaPkg
+initial_grids/.CondaPkg
+
 
 examples/*/Manifest.toml
 examples/*/slurm*
@@ -14,6 +16,10 @@ examples/*/*.msh
 examples/*/*.snap
 examples/*/*.hdf5
 examples/running_dispatch/*.csv
+examples/running_multi/*.tar
+examples/running_multi/*.mod
+examples/running_multi/*.gz
+
 *.pyc
 **/__pycache__/
 examples/dispatch2multi/*atmos
@@ -29,6 +35,11 @@ examples/Muram/*
 examples/solar_model/*.txt
 examples/solar_model/*.npz
 examples/dispatch2space/data
+
+examples/MainSequence/*/
+examples/CEMP/*.txt
+examples/CEMP/*_rho
+examples/CEMP/*_T
 
 examples/initial_models/*
 examples/initial_models/*.dat

@@ -11,11 +11,11 @@ begin
 	using TSO
 	using MUST
 	using Plots
-	using Printf
+	using Printf 
 	using DataFrames 
-	using DelimitedFiles 
-	using LazySets
-	using Polyhedra
+	using DelimitedFiles  
+	using LazySets 
+	using Polyhedra 
 end
 
 # ╔═╡ d3b3d5a1-82ac-494f-ad15-684be62555d3
@@ -43,11 +43,17 @@ md"## Interpolation Grid"
 # ╔═╡ 4ce94434-db5a-4323-81e8-c0c5340bab18
 grid = MUST.StaggerGrid("stagger_grid_full.mgrid")
 
+# ╔═╡ 5165efd2-ecbd-486d-acba-a11e555184d8
+#grid = MUST.StaggerGrid("MARCS_z0/marcs_grid_z0.mgrid")
+
 # ╔═╡ b3b31521-9967-4ab8-9bf0-3bde45e2db6b
-deleteat!(grid.info, .!isfile.(grid["av_path"]))
+deleteat!(grid.info, .!isfile.(grid["av_path"]));
 
 # ╔═╡ d3dd31b5-237e-4b51-9706-8b33269ce5dd
-deleteat!(grid.info, grid["feh"] .< -1.0)
+deleteat!(grid.info, grid["logg"] .<= 2.0);
+
+# ╔═╡ f5ff3e9c-44ca-4442-b587-064272205dcc
+#deleteat!(grid.info, grid["feh"] .<= -0.1);
 
 # ╔═╡ 5701903e-59f3-4495-9dcc-4e730ed2e15f
 md"## Get any model within
@@ -173,20 +179,37 @@ begin
 
 	# select a few special stars
 	
-	paras = zeros(2, 3)
-	paras[:, 1] = [6300, 5800]
-	paras[:, 2] = [4.015, 4.264]
-	paras[:, 3] = [0.0, 0.0]
+	#=paras = zeros(2, 3)
+	paras[:, 1] = [6250.0, 5250.0]
+	paras[:, 2] = [4.0, 4.0]
+	paras[:, 3] = [0.0, 0.0]=#
+
+
+	# test case for MARCS
+	
+	paras = random_paramters(
+		grid, 
+		5, 
+		teff=[4500, 7000], 
+		logg=[3.0, 4.5], 
+		feh=[-4.0, -4.0]
+	)
 	
 end
 
 # ╔═╡ 0bffe69d-50fa-4b1c-adba-de962e8f38cc
 begin
-	# add hot Jupyter testcase
-	#paras_extended = zeros(eltype(paras), size(paras, 1)+1, 3)
-	#paras_extended[1:end-1, :] .= paras
-	#paras_extended[end, :] = [4500.0, 4.8, 0.0]
-	paras_extended = paras
+	#= add hot Jupyter testcase
+	paras_extended = zeros(eltype(paras), size(paras, 1)+1, 3)
+	paras_extended[1:end-1, :] .= paras
+	paras_extended[end, :] = [4500.0, 4.8, 0.0]=#
+
+	# add solar test case
+	paras_extended = zeros(eltype(paras), size(paras, 1)+1, 3)
+	paras_extended[1:end-1, :] .= paras
+	paras_extended[end, :] = [5777.0, 4.44, -4.0]
+	
+	#paras_extended = paras
 end
 
 # ╔═╡ 5fbd389f-9ea5-4b09-839b-59aad0c72a0d
@@ -209,12 +232,15 @@ begin
 		markersize=8
 	)
 
-	x = range(4000, 7000, length=100)
-	plot!(x, lowerLimit.(x), color=:blue, lw=3, label=nothing)
-	plot!(x, upperLimit.(x), color=:blue, lw=3, label=nothing)
+	x = range(3000, 8000, length=100)
+	#plot!(x, lowerLimit.(x), color=:blue, lw=3, label=nothing)
+	#plot!(x, upperLimit.(x), color=:blue, lw=3, label=nothing)
 	plot!(ylabel="log g")
 	plot!(xlabel="T"*L"\textrm{\textbf{_{eff}}}")
 end
+
+# ╔═╡ ed48ac99-eb46-4386-b1a5-31f3e78c2574
+
 
 # ╔═╡ 8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
 md"## EoS
@@ -229,11 +255,14 @@ extension="magg_m0_a0"
 # ╔═╡ cb7d1e6e-5462-44e9-88d0-96a27a85990c
 #extension="magg_m10_vmic2"
 
+# ╔═╡ e2598dbe-f097-428f-987c-5c36f62845e7
+extension="magg_m10_a4_c3_vmic2"
+
 # ╔═╡ 1ebff512-8f72-48e0-9cb6-c97f23073893
 
 
 # ╔═╡ e17316a1-a29e-4ce7-b651-65a75881180f
-#=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(extension)_v1.8"=#
+#mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(extension)_v1.8"
 
 # ╔═╡ 1191c34a-c27e-4eff-875a-57f7fc043ee9
 mother_table_path = "../../../opacity_tables/TSO_MARCS_$(extension)_v1.8"
@@ -243,6 +272,9 @@ mother_table_path = "../../../opacity_tables/TSO_MARCS_$(extension)_v1.8"
 
 # ╔═╡ ad7d6660-fea7-4808-bff3-7288c20966b2
 #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v4.0"
+
+# ╔═╡ 453fc753-4298-4909-97fa-5624783d9ef6
+mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v5.0"
 
 # ╔═╡ 775aff22-9bb6-4171-aa9d-3b8daff4c248
 
@@ -265,6 +297,29 @@ eos = [
 	for _ in 1:size(paras_extended, 1)
 ]
 
+# ╔═╡ 2b9e746b-94c9-4a5a-9838-9cccaf96e406
+
+
+# ╔═╡ 5bc6df18-c39d-4cc3-9010-7de7b986935d
+let
+	plot()
+	for i in 1:nrow(grid.info)
+		m = TSO.Average3D(grid.info[i, "av_path"]; logg=grid.info[i, "logg"]) 
+		m = @optical m eos[1]
+		znew = TSO.rosseland_depth(eos[1], m)
+		m.z .= znew
+		TSO.optical_surface!(m)
+		TSO.flip!(m)
+		
+		plot!(m.z, m.lnT, label=nothing)
+	end
+
+	plot!()
+end
+
+# ╔═╡ 52bdf098-3209-4703-b74d-3de5886ad8fe
+
+
 # ╔═╡ ee45e7db-2fc3-43f3-83cf-bd2dca6d52e7
 md"## Interpolation"
 
@@ -272,16 +327,22 @@ md"## Interpolation"
 md"We can add a matching eos for each of the grid nodes. In the case of non-existing optical depth averaged models, this will be used to determine the optical dept."
 
 # ╔═╡ 2dee306a-531f-4eb2-bac7-e4a5c8a219a7
-grid.info[!, "matching_eos"] = [
-	joinpath(mother_table_path, eos_mother_path) 
-	for _ in 1:nrow(grid.info)
-]
+if !("matching_eos" in names(grid.info))
+	@info "Add matching EoS."
+	
+	grid.info[!, "matching_eos"] = [
+		joinpath(mother_table_path, eos_mother_path) 
+		for _ in 1:nrow(grid.info)
+	]
+else
+	@info "Matching EoS already present."
+end
 
 # ╔═╡ 4aedcbe9-ee05-48d7-8919-51514b09f018
 begin
-	newModelCollection = "MS"
-	newdir = "MS/av_$(extension)/"
-	newSet = "hotTest1"
+	newModelCollection = "StaggerExtrapolated"
+	newdir = "StaggerExtrapolated/av_$(extension)/"
+	newSet = "SE2"
 end
 
 # ╔═╡ 268b93aa-b610-467e-be1c-0306ca8ac31e
@@ -301,7 +362,9 @@ ig = modelgrids.interpolate_from_grid(
 	logg=round.(paras_extended[:, 2], sigdigits=4), 
 	feh=paras_extended[:, 3],
 	eos=eos,
-	folder=newdir
+	folder=newdir,
+	adiabatic_extrapolation=true,
+	τbottom=2
 )
 
 # ╔═╡ a47fa3e9-bd97-45e4-bf55-8de2e0d75c64
@@ -310,9 +373,12 @@ ig.info[!, "eos_root"] = [mother_table_path for _ in 1:size(paras_extended, 1)]
 # ╔═╡ 47f9397e-a5fc-4c7a-a2f6-cf2eb45653e0
 md"## Validate interpolation"
 
+# ╔═╡ 2536778d-66e7-4c08-a5a4-541f4ad46795
+i_select = 1
+
 # ╔═╡ 213cb3c7-7e08-4929-9c7c-fee75f004ded
 begin
-	m1 = Average3D(ig["av_path", 1])
+	m1 = @optical Average3D(ig["av_path", i_select]) eos[i_select]
 	other_models = [Average3D(grid["av_path", i]) for i in 1:nrow(grid.info)]
 end
 
@@ -320,8 +386,13 @@ end
 begin
 	plot(framestyle=:box, grid=false)
 
+	plot!(
+		-m1.z, m1.lnT, linewidth=3, color=:red, 
+		label="T:$(ig["teff", i_select]) G:$(ig["logg", i_select]) M:$(ig["feh", i_select])"
+	)
+
 	for i in eachindex(other_models)
-		if i == 1
+		#=if i == 1
 			plot!(
 				-other_models[i].z, other_models[i].lnT, linewidth=1, color=:black,
 				label="grid nodes"
@@ -331,16 +402,90 @@ begin
 				-other_models[i].z, other_models[i].lnT, linewidth=1, color=:black,
 				label=nothing
 			)
+		end=#
+		g = grid
+		t = paras[i_select, 1]
+		mask = (g["teff", i] == t+250) && (g["logg", i] == 4.0) && (g["feh", i] == 0.0)
+		mask2 = (g["teff", i] == t-250) && (g["logg", i] == 4.0) && (g["feh", i] == 0.0)
+		
+		mask = mask | mask2
+		if mask
+			m = @optical other_models[i] eos[i_select]
+			znew = TSO.rosseland_depth(eos[i_select], m)
+			m = deepcopy(m)
+			m.z .= znew
+			TSO.optical_surface!(m)
+			plot!(
+				-m.z, m.lnT, linewidth=1, color=:black,
+				label="T:$(g["teff", i]) G:$(g["logg", i]) M:$(g["feh", i])"
+			)
 		end
 	end
 
+	
+
+	#plot!(xlim=[minimum(-m1.z), maximum(-m1.z)])
+	#plot!(ylim=[minimum(m1.lnT), maximum(m1.lnT)])
+	plot!(xlabel="z", ylabel="log T")
+	
+	
+	plot!()
+end
+
+# ╔═╡ dbee67e3-ee0a-4954-9ead-033141c8bf2f
+begin
+	plot(framestyle=:box, grid=false)
+
+	
+
+	#plot!(xlim=[minimum(-m1.z), maximum(-m1.z)])
+	#plot!(ylim=[minimum(m1.lnT), maximum(m1.lnT)])
+	plot!(xlabel="z", ylabel="log T")
+	
+	
+	plot!()
+end
+
+# ╔═╡ dbee67e3-ee0a-4954-9ead-033141c8bf2f
+begin
+	plot(framestyle=:box, grid=false)
+
 	plot!(
-		-m1.z, m1.lnT, linewidth=7, color=:red, 
-		label="T:$(ig["teff", 1]) G:$(ig["logg", 1]) M:$(ig["feh", 1])"
+		log10.(m1.τ), m1.lnT, linewidth=3, color=:red, 
+		label="T:$(ig["teff", i_select]) G:$(ig["logg", i_select]) M:$(ig["feh", i_select])"
 	)
 
-	plot!(xlim=[minimum(-m1.z), maximum(-m1.z)])
-	plot!(ylim=[minimum(m1.lnT), maximum(m1.lnT)])
+	for i in eachindex(other_models)
+		#=if i == 1
+			plot!(
+				-other_models[i].z, other_models[i].lnT, linewidth=1, color=:black,
+				label="grid nodes"
+			)
+		else
+			plot!(
+				-other_models[i].z, other_models[i].lnT, linewidth=1, color=:black,
+				label=nothing
+			)
+		end=#
+		g = grid
+		t = paras[i_select, 1]
+		mask = (g["teff", i] == t+250) && (g["logg", i] == 4.0) && (g["feh", i] == 0.0)
+		mask2 = (g["teff", i] == t-250) && (g["logg", i] == 4.0) && (g["feh", i] == 0.0)
+		
+		mask = mask | mask2
+		if mask
+			ml = @optical other_models[i] eos[i_select]
+			plot!(
+				log10.(ml.τ), ml.lnT, linewidth=1, color=:black,
+				label="T:$(g["teff", i]) G:$(g["logg", i]) M:$(g["feh", i])"
+			)
+		end
+	end
+
+
+
+	#plot!(xlim=[minimum(-m1.z), maximum(-m1.z)])
+	#plot!(ylim=[minimum(m1.lnT), maximum(m1.lnT)])
 	plot!(xlabel="z", ylabel="log T")
 	
 	plot!()
@@ -389,8 +534,10 @@ MUST.save(ig, joinpath(newModelCollection, "$(newSet)_$(extension).mgrid"))
 # ╠═fb5cf860-1fbd-472a-acf1-ad66ea43cddb
 # ╟─4e200464-64d6-48d2-9c80-b4e91e5b2d3b
 # ╠═4ce94434-db5a-4323-81e8-c0c5340bab18
+# ╠═5165efd2-ecbd-486d-acba-a11e555184d8
 # ╠═b3b31521-9967-4ab8-9bf0-3bde45e2db6b
 # ╠═d3dd31b5-237e-4b51-9706-8b33269ce5dd
+# ╠═f5ff3e9c-44ca-4442-b587-064272205dcc
 # ╟─5701903e-59f3-4495-9dcc-4e730ed2e15f
 # ╠═c72e1a5a-d13a-481a-b732-3b6be3326326
 # ╟─6dffcedb-ae0b-4bb4-9490-94c22ec3e953
@@ -398,32 +545,37 @@ MUST.save(ig, joinpath(newModelCollection, "$(newSet)_$(extension).mgrid"))
 # ╠═d1415b10-403e-4736-9930-14c451f4f366
 # ╠═0bffe69d-50fa-4b1c-adba-de962e8f38cc
 # ╟─5fbd389f-9ea5-4b09-839b-59aad0c72a0d
+# ╟─ed48ac99-eb46-4386-b1a5-31f3e78c2574
 # ╟─8ab3ea9f-8c5e-4ff2-8b5b-631beb9f6438
 # ╠═78e843fc-42c1-49ba-8d8b-0a8ada2b2a3a
 # ╠═6dd1a861-7654-4f5a-b871-3f2526154d26
 # ╠═cb7d1e6e-5462-44e9-88d0-96a27a85990c
+# ╠═e2598dbe-f097-428f-987c-5c36f62845e7
 # ╟─1ebff512-8f72-48e0-9cb6-c97f23073893
 # ╠═e17316a1-a29e-4ce7-b651-65a75881180f
 # ╠═1191c34a-c27e-4eff-875a-57f7fc043ee9
 # ╠═5e777d3b-2db8-4e82-a125-564c7db64281
 # ╠═ad7d6660-fea7-4808-bff3-7288c20966b2
+# ╠═453fc753-4298-4909-97fa-5624783d9ef6
 # ╟─775aff22-9bb6-4171-aa9d-3b8daff4c248
 # ╠═1ca259f3-54b6-4c96-8930-eab6454a2cd2
 # ╠═b40c3cee-303b-4a24-9692-fc92a69a9b50
 # ╠═03cde4ab-bd80-4476-a27a-750a13935a96
 # ╟─af910237-0a7d-4b58-a870-1fbcfd5e883e
-# ╠═2f101c34-f3f7-46d8-b1e3-fb855281c6ac
+# ╟─2f101c34-f3f7-46d8-b1e3-fb855281c6ac
+# ╟─2b9e746b-94c9-4a5a-9838-9cccaf96e406
+# ╟─5bc6df18-c39d-4cc3-9010-7de7b986935d
+# ╟─52bdf098-3209-4703-b74d-3de5886ad8fe
 # ╟─ee45e7db-2fc3-43f3-83cf-bd2dca6d52e7
 # ╟─0364f91e-e768-4126-b347-ec6684b9c033
-# ╠═2dee306a-531f-4eb2-bac7-e4a5c8a219a7
+# ╟─2dee306a-531f-4eb2-bac7-e4a5c8a219a7
 # ╠═4aedcbe9-ee05-48d7-8919-51514b09f018
 # ╟─268b93aa-b610-467e-be1c-0306ca8ac31e
 # ╠═27f3dc38-c32c-4e35-b5a6-cce2443e64d3
 # ╠═a47fa3e9-bd97-45e4-bf55-8de2e0d75c64
 # ╟─47f9397e-a5fc-4c7a-a2f6-cf2eb45653e0
-# ╠═213cb3c7-7e08-4929-9c7c-fee75f004ded
-# ╠═6618d5a5-3c28-4b73-8fd9-a386c4e422d6
-# ╠═ba92c5a2-fc64-431f-bb0f-0e8af8437b0f
-# ╠═1d80590e-fca6-4200-a9e2-c6e2299330a2
-# ╠═d9e75d15-d74c-4d7a-8f8b-c71380d3bd44
+# ╠═2536778d-66e7-4c08-a5a4-541f4ad46795
+# ╟─213cb3c7-7e08-4929-9c7c-fee75f004ded
+# ╟─6618d5a5-3c28-4b73-8fd9-a386c4e422d6
+# ╟─dbee67e3-ee0a-4954-9ead-033141c8bf2f
 # ╠═db086ed6-641b-47df-a5df-bcc6df2cbd84

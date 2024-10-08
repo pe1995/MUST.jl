@@ -56,6 +56,7 @@ find_integer_simple(dxdz_approx, desired_n_patches; step=0.1) = begin
     a = dxdz_approx * desired_n_patches
 
     [p, m][argmin([abs(p - a), abs(m - a)])]
+    p
 end
 
 @inline patches(res, patch_size) = Int(floor(res / patch_size))
@@ -264,7 +265,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         newton_scale=0.1, newton_decay_scale=15.0, friction_decay_scale=10.0,
                         duration=360,
                         courant_target=0.25, kwargs...)
-    dummy_nml = MUST.StellarNamelist("stellar_default.nml")
+    dummy_nml = MUST.StellarNamelist(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "stellar_default.nml")))
 
     # name of namelists
     name = "grid_$(name).nml"
@@ -317,7 +318,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     Δt(R, u, c=1.0) = c * R / u
 
     velocity_ratio = max(abs(vmax), abs(vmin)) / 1e6
-    velocity_max = round(max(abs(vmax), abs(vmin)), sigdigits=4)
+    velocity_max = round(max(abs(vmax), abs(vmin)), sigdigits=4) / 3.5
     dynamic_scale_ratio = velocity_ratio / larger_than_sun
 
     tscale = if test_tscale
@@ -340,7 +341,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
 
     # the friction should be scaled to the nu_max value compared to the sun
     friction_scaling = 1.0 / (exp10(logg) / exp10(4.44) * (5777.0 / teff)^0.5) * 100.0/tscale
-    @info friction_scaling
+    #@info friction_scaling
 
     stellar_w = 0.1 # round(0.1 * velocity_ratio, sigdigits=3)
     strength = 0.1 #round(0.1 * velocity_ratio, sigdigits=5)  #round(0.1 / velocity_ratio, sigdigits=3)
@@ -465,8 +466,6 @@ end
 
 
 #= adiabats =#
-
-#================================================================== Adiabats =#
 
 function adiabat(eospath, av_path, logg; common_size=1000, saveat=nothing, kwargs...)
 	eos = reload(
@@ -663,7 +662,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     nothing
 end
 
-create_namelist!(grid::MUST.StaggerGrid; kwargs...) = begin
+create_namelist!(grid::MUST.Atmos1DGrid; kwargs...) = begin
     g(i, v) = grid.info[i, v]
 
     names = []

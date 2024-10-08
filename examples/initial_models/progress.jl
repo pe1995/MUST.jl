@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.41
+# v0.19.46
 
 using Markdown
 using InteractiveUtils
@@ -68,7 +68,7 @@ md"Press the button to check for new monitored runs: $(@bind reload_data Button(
 availableRuns(folder) = begin
 	allruns = MUST.glob("*/", folder)
 	mask = isdir.(joinpath.(allruns, "monitoring"))
-	split.(allruns[mask], "/", keepempty=false) .|> last
+	[nothing, (split.(allruns[mask], "/", keepempty=false) .|> last)...]
 end;
 
 # ╔═╡ 8af0c339-237c-42ca-bda5-0b0e44f11c30
@@ -82,19 +82,18 @@ end
 md"Click 'Submit' again to look for new snapshots."
 
 # ╔═╡ 3c05fe1e-1c19-4c30-b34e-a874f63b91bc
-
+if isnothing(selectedRun)
+	@warn "Please select a run from the list of available runs."
+end
 
 # ╔═╡ ed9cc79f-0161-4178-b6f0-81a2bccbf188
-md"## Load monitoring"
+md"## Load Monitoring"
 
 # ╔═╡ 28d708db-45a7-4fad-a226-e907ebf88b43
 wd = MUST.WatchDog(selectedRun, folder=datafolder)
 
 # ╔═╡ 6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
-monitoring = MUST.reload!(wd; mmap=true)
-
-# ╔═╡ 62e93fea-6600-4619-bb66-5908be8c26e3
-
+monitoring = MUST.reload!(wd; mmap=true);
 
 # ╔═╡ 1fcefd1e-1c50-43b5-b203-62920944344a
 begin
@@ -191,10 +190,10 @@ end
 md"## Resolution"
 
 # ╔═╡ 4eef1012-c8cd-4579-9a7e-ac2b4d4c7af6
-let
-	z = timeevolution(monitoring, "geometricalAverages", "z") |> first
-	HD_dims = (length(z)*2, length(z)*2, length(z))
-	HD_res = maximum(diff(z)) / 1e5
+begin
+	z_HD = timeevolution(monitoring, "geometricalAverages", "z") |> first
+	HD_dims = (length(z_HD)*2, length(z_HD)*2, length(z_HD))
+	HD_res = maximum(diff(z_HD)) / 1e5
 	
 	@info "[$selectedRun] HD Resolution (Nx, Ny, Nz), dz [km]" HD_dims HD_res
 end
@@ -466,6 +465,98 @@ haskey(topticalsurfaces, "qrplane") && let
 end
 
 # ╔═╡ 5817821d-67f5-4e41-a0d3-7ca12961b0c7
+haskey(topticalsurfaces, "kapparhoplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = topticalsurfaces["x"][itimeSurface] ./1e8
+	y = topticalsurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(topticalsurfaces["kapparhoplane"][itimeSurface]* HD_res/2*1e5),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = topticalsurfaces["x"][itimeSurface2] ./1e8
+	y = topticalsurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(topticalsurfaces["kapparhoplane"][itimeSurface2]* HD_res/2*1e5),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \log_{10}{\Delta\tau}")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ c924f995-1586-498d-8f8a-909192f64117
+haskey(topticalsurfaces, "sourcefunctionplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = topticalsurfaces["x"][itimeSurface] ./1e8
+	y = topticalsurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(topticalsurfaces["sourcefunctionplane"][itimeSurface]),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = topticalsurfaces["x"][itimeSurface2] ./1e8
+	y = topticalsurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(topticalsurfaces["sourcefunctionplane"][itimeSurface2]),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \log_{10}{S}\ [erg\ s^{-1}\ cm^{-2}]")
+	
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ cd1f47e3-2849-429b-8794-75bba85fc468
 
 
 # ╔═╡ 7f77f259-505d-4344-8ee4-8628387f2401
@@ -528,6 +619,7 @@ let
 
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
+	
 	i = ax[0].imshow(
 		log10.(exp.(tuppersurfaces["lnDplane"][itimeSurface])),
 		origin="lower",
@@ -546,9 +638,11 @@ let
 	y = tuppersurfaces["y"][itimeSurface2] ./1e8
 
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
-	
+	v = log10.(exp.(tuppersurfaces["lnDplane"][itimeSurface2]))
+	#mask = v .<= -10.8
+	#v[.!mask] .= 1
 	i = ax[1].imshow(
-		log10.(exp.(tuppersurfaces["lnDplane"][itimeSurface2])),
+		v,
 		origin="lower",
 		extent=extent,
 		cmap="gist_heat_r"
@@ -612,8 +706,8 @@ let
 	gcf()
 end
 
-# ╔═╡ ef776fe2-5f0f-49a8-b2d5-2e1235d41ec1
-haskey(topticalsurfaces, "fluxplane") && let 
+# ╔═╡ 1a02decc-153e-44b5-9c00-818e1b8e7edf
+let 
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(10, 6))
 
@@ -623,11 +717,109 @@ haskey(topticalsurfaces, "fluxplane") && let
 	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
 	
 	i = ax[0].imshow(
+		log10.(exp.(tuppersurfaces["lnEplane"][itimeSurface])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(exp.(tuppersurfaces["lnEplane"][itimeSurface2])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm log_{10}\ E_i\ [erg\ cm^{-3}]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ c4262ea1-f6f1-4321-9fb1-9b674a6af49d
+let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(exp.(tuppersurfaces["lnEplane"][itimeSurface]) ./ exp.(tuppersurfaces["lnDplane"][itimeSurface])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(exp.(tuppersurfaces["lnEplane"][itimeSurface2]) ./exp.(tuppersurfaces["lnDplane"][itimeSurface2])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm log_{10}\ E_i\ [erg\ g^{-1}]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ ef776fe2-5f0f-49a8-b2d5-2e1235d41ec1
+haskey(topticalsurfaces, "fluxplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	#xx, yy = MUST.meshgrid(x[1:14:end], y[1:14:end])
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
 		tuppersurfaces["fluxplane"][itimeSurface],
 		origin="lower",
 		extent=extent,
 		cmap="jet"
 	)
+
+	#ax[0].scatter(xx, yy, s=0.1)
 	
 	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
 
@@ -660,7 +852,7 @@ haskey(topticalsurfaces, "fluxplane") && let
 end
 
 # ╔═╡ ff3d827b-a0dd-4d86-bfd4-d25fc5f4ab3e
-haskey(topticalsurfaces, "qrplane") && let 
+haskey(tuppersurfaces, "qrplane") && let 
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(10, 6))
 
@@ -759,6 +951,100 @@ if haskey(tuppersurfaces, "dtplane")
 		
 		gcf()
 	end
+end
+
+# ╔═╡ ce073ce3-12f3-45f8-a86f-b1d08f16acce
+haskey(tuppersurfaces, "kapparhoplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(tuppersurfaces["kapparhoplane"][itimeSurface] * HD_res/2*1e5),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(tuppersurfaces["kapparhoplane"][itimeSurface2]* HD_res/2*1e5),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \log_{10}{\Delta\tau}")
+	
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
+# ╔═╡ f809f2ad-4f3e-4ad4-87ba-584e44585e7b
+haskey(tuppersurfaces, "sourcefunctionplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(tuppersurfaces["sourcefunctionplane"][itimeSurface]),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(tuppersurfaces["sourcefunctionplane"][itimeSurface2]),
+		origin="lower",
+		extent=extent,
+		cmap="jet"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm \log_{10}{S}\ [erg\ s^{-1}\ cm^{-2}]")
+	
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
 end
 
 # ╔═╡ 3403a014-2441-4ad2-95f6-2e686ae99ba8
@@ -1005,7 +1291,7 @@ end
 end
 
 # ╔═╡ 97e5e57c-3828-4781-b93e-172a1c3c2cce
-("lowerBoundarySurface" in keys(monitoring[1])) && haskey(tlowersurfaces, "qrplane") && let 
+("lowerBoundarySurface" in keys(monitoring[1])) && haskey(tlowersurfaces, "dtplane") && let 
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(10, 6))
 
@@ -1273,6 +1559,55 @@ let
 end
 
 # ╔═╡ cdfb5217-e298-4ee1-ac5d-f294d04f5abc
+let
+	if haskey(tGeoMax, "qr")
+		plt.close()
+	
+		f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	
+		x, y = tGeoMax["z"][itimeSurface] ./1e8, tGeoMax["qr"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="-"
+		)
+		x, y = tGeoMin["z"][itimeSurface] ./1e8, tGeoMin["qr"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="-"
+		)
+		x, y = tGeoAv["z"][itimeSurface] ./1e8, tGeoAv["qr"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
+		) 
+	
+	
+	
+		x, y = tGeoMax["z"][itimeSurface2] ./1e8, tGeoMax["qr"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="--",
+		) 
+		x, y = tGeoMin["z"][itimeSurface2] ./1e8, tGeoMin["qr"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="--",
+		) 
+		x, y = tGeoAv["z"][itimeSurface2] ./1e8, tGeoAv["qr"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
+		) 
+	
+		ax.set_xlabel("z [Mm]")
+		ax.set_ylabel(L"\rm Q_r\ [erg\ s^{-1}\ cm^{-3}]")
+		ax.legend()
+	
+		gcf()
+	end
+end
+
+# ╔═╡ 3a18524e-46bb-4874-8646-c6414dc92471
 
 
 # ╔═╡ 274d42e7-20eb-4560-a0f0-e4a631aedcec
@@ -1690,8 +2025,6 @@ if haskey(tOptAv, "flux")
 			label="t = $(time[itimeSurface]) s, "*teff_str(tGeoAv["flux"][itimeSurface][end]), lw=2.5
 		) 
 	
-	
-	
 		
 		x, y = tOptMax["log10τ_ross"][itimeSurface2], tOptMax["flux"][itimeSurface2]
 		ax.plot(
@@ -1712,6 +2045,57 @@ if haskey(tOptAv, "flux")
 
 		ax.set_yscale("log")
 		ax.set_xlabel(L"\rm \log \tau_{ross}")
+		ax.set_ylabel(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
+		ax.legend()
+
+		gcf()
+	end
+end
+
+# ╔═╡ 1189fb71-29a2-4f51-98d8-44298e269227
+if haskey(tOptAv, "flux")
+	let
+		plt.close()
+	
+		f, ax = plt.subplots(1, 1, figsize=(5, 6))
+	
+		x, y = tGeoMax["z"][itimeSurface], tGeoMax["flux"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="-"
+		) 
+		x, y = tGeoMin["z"][itimeSurface], tGeoMin["flux"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="-"
+		) 
+		x, y = tGeoAv["z"][itimeSurface], tGeoAv["flux"][itimeSurface]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="-", 
+			label="t = $(time[itimeSurface]) s, "*teff_str(tGeoAv["flux"][itimeSurface][end]), lw=2.5
+		) 
+	
+		
+		x, y = tGeoMax["z"][itimeSurface2], tGeoMax["flux"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="cyan", marker="", ls="--"
+		) 
+		x, y = tGeoMin["z"][itimeSurface2], tGeoMin["flux"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="magenta", marker="", ls="--"
+		) 
+		x, y = tGeoAv["z"][itimeSurface2], tGeoAv["flux"][itimeSurface2]
+		ax.plot(
+			x, y,
+			color="k", marker="", ls="--", 
+			label="t = $(time[itimeSurface2]) s, "*teff_str(tGeoAv["flux"][itimeSurface2][end]), lw=2.
+		) 
+
+		ax.set_yscale("log")
+		ax.set_xlabel(L"\rm z\ [cm]")
 		ax.set_ylabel(L"\rm F_{bol}\ [erg\ s^{-1}\ cm^{-2}]")
 		ax.legend()
 
@@ -1904,7 +2288,7 @@ let
 	gcf()
 end
 
-# ╔═╡ 2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
+# ╔═╡ 8fd9cfaf-27f1-42da-b2e3-f72c8caeaafc
 let
 	plt.close()
 
@@ -2138,6 +2522,12 @@ md"You can select any number of snapshots you want to include in the Fourier tra
 md"__First snapshot to include:__ $(@bind start_fft confirm(Slider(snapshots, default=snapshots[max(length(snapshots)-200, 1)], show_value=true)))"
 
 # ╔═╡ 7a1d3d74-fea2-402b-aee1-728ff89eb548
+md"__Frequency limit [μHz]:__ $(@bind fft_xlim confirm(TextField(default=\"5000\")))"
+
+# ╔═╡ e9b7dfd5-1034-4b95-941c-df003436e26e
+md"__Frequency selector [μHz]:__ $(@bind freqSelect confirm(TextField(default=\"3000\")))"
+
+# ╔═╡ 39d3636d-1161-4cbd-a11e-b900e75e77ce
 
 
 # ╔═╡ c5550bd5-725d-4d3e-9990-324860af7f67
@@ -2183,7 +2573,7 @@ let
 		x = timeFFT[sortmask] .* 1e6
 		y = surfaceFFT[sortmask] ./ maximum(surfaceFFT[sortmask])
 
-		first_half = floor(Int, length(x) /2) 
+		first_half = 1#floor(Int, length(x) /2) 
 		ax.plot(x[first_half:end], y[first_half:end], color="k")
 
 		if haskey(tGeoAv, "flux")
@@ -2192,9 +2582,14 @@ let
 		
 		ax.set_xlabel(L"\rm frequency\ [\mu Hz]")
 		ax.set_ylabel(ylabel)
-		ax.set_xlim(1, last(x))
+		#ax.set_xlim(1, last(x))
+		#ax.set_xlim(-parse(Float64, fft_xlim), parse(Float64, fft_xlim))
+		ax.set_xlim(1, parse(Float64, fft_xlim))
+		#ax.set_ylim(0, 0.01)
+		
 
 		#ax.set_xscale("log")
+		ax.set_yscale("log")
 		xpos = x[x.>100.0]
 		ypos = y[x.>100.0]
 
@@ -2203,6 +2598,9 @@ let
 		@info "Fourier transformation including $(length(t)) snapshots."
 		@info "Time spacing [min], time sequence length [h]" Δt t_max
 		@info "Peak around $(xpos[argmax(ypos)]) μHz = $(1.0/(1e-6*xpos[argmax(ypos)])) s"
+
+		ax.axvline(parse(Float64, freqSelect), ls=":", alpha=0.5, color="r")
+		
 
 		f
 	end
@@ -2239,9 +2637,11 @@ end
 
 # ╔═╡ 9d0348a6-24a1-447c-9af4-5b648a381370
 md"""
-__Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))\
-From snapshot $(startTimeMovie) to $(endTimeMovie) with $(fps) FPS.
+__Click to create GIFs__: $(@bind createGifImages CheckBox(default=false))
 """
+
+# ╔═╡ c30611f4-1d2e-41c9-b8db-f85b3c99990d
+md"From snapshot $(startTimeMovie) to $(endTimeMovie) with $(fps) FPS."
 
 # ╔═╡ 4564cbd9-34bb-4b21-9fca-1027d5c95518
 
@@ -2437,6 +2837,12 @@ begin
 				end
 				cb = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 				cb.set_label(labelsurfaceMovie)
+
+				#Nx = range(minimum(x), maximum(x), length=5) |> collect
+				#for sep in Nx
+				#	ax.axvline(sep, color="k")
+				#	ax.axhline(sep, color="k")
+				#end
 			
 				
 				ax.set_title("t = $(MUST.@sprintf("%.2f", time[i]/(60*60))) h")
@@ -2874,7 +3280,6 @@ end
 # ╟─ed9cc79f-0161-4178-b6f0-81a2bccbf188
 # ╟─28d708db-45a7-4fad-a226-e907ebf88b43
 # ╟─6b68e1e5-fe97-4485-9c7b-c3e821f23a7c
-# ╟─62e93fea-6600-4619-bb66-5908be8c26e3
 # ╟─1fcefd1e-1c50-43b5-b203-62920944344a
 # ╟─60199001-8f0e-44a6-ae50-e829687c045c
 # ╟─0e4df1b3-52ef-4fce-8f32-bddc966b0516
@@ -2911,14 +3316,20 @@ end
 # ╟─9758eaf6-9d57-4847-a608-2ba81e1192d0
 # ╟─80cf7a65-87c6-48d1-89d9-90f07ec25d51
 # ╟─5817821d-67f5-4e41-a0d3-7ca12961b0c7
+# ╟─c924f995-1586-498d-8f8a-909192f64117
+# ╟─cd1f47e3-2849-429b-8794-75bba85fc468
 # ╟─7f77f259-505d-4344-8ee4-8628387f2401
 # ╟─cc5fbd5a-c8a0-471a-a56b-0512e4c3989b
 # ╟─495e3733-d290-40ab-af63-0eb10a033b53
 # ╟─ed29d53f-00bc-4295-93f6-864a44f92ccb
 # ╟─fa8161aa-0e1c-404f-8c7e-0e3914917df4
+# ╟─1a02decc-153e-44b5-9c00-818e1b8e7edf
+# ╟─c4262ea1-f6f1-4321-9fb1-9b674a6af49d
 # ╟─ef776fe2-5f0f-49a8-b2d5-2e1235d41ec1
 # ╟─ff3d827b-a0dd-4d86-bfd4-d25fc5f4ab3e
 # ╟─0e3d2723-1ecb-4e5a-8125-78f6f27407e2
+# ╟─ce073ce3-12f3-45f8-a86f-b1d08f16acce
+# ╟─f809f2ad-4f3e-4ad4-87ba-584e44585e7b
 # ╟─3403a014-2441-4ad2-95f6-2e686ae99ba8
 # ╟─77f5cb10-ce91-44c2-91c6-c01432655121
 # ╟─7532d800-c183-42d5-8bd0-9970ca507cfd
@@ -2937,6 +3348,7 @@ end
 # ╟─d9546636-2dbb-4b14-9954-76872b95fd06
 # ╟─7fd50fcd-8a9d-417d-a28a-febd9f0f68f3
 # ╟─cdfb5217-e298-4ee1-ac5d-f294d04f5abc
+# ╟─3a18524e-46bb-4874-8646-c6414dc92471
 # ╟─274d42e7-20eb-4560-a0f0-e4a631aedcec
 # ╟─46db420f-2f46-4989-846e-145a70001ddf
 # ╟─b046b3a0-05d4-4b6c-be80-7396f475be3d
@@ -2956,6 +3368,7 @@ end
 # ╟─4c3b9b8a-03a5-494d-a321-7f5c400ed054
 # ╟─dc0315d8-0616-433b-8182-33840afb0b0f
 # ╟─aef86067-68b0-48b8-8bb2-0d410a7521c2
+# ╟─1189fb71-29a2-4f51-98d8-44298e269227
 # ╟─321e3dda-cd15-4787-95e6-f928125535d5
 # ╟─643eaee3-a1f8-4be2-b032-08fcb325fbe8
 # ╟─aae74666-7fdd-4db9-8869-68e4597f6940
@@ -2972,7 +3385,7 @@ end
 # ╟─df9b58cf-fe4f-4858-a296-879bb0385ba7
 # ╟─ccf5f4e6-adc6-419d-a717-4b3b597c2233
 # ╟─913c1cbe-fedc-4e7d-a8a7-c2ad416a21e6
-# ╟─2f76eaac-0793-4fa8-9ee1-67dc81e9a1ac
+# ╟─8fd9cfaf-27f1-42da-b2e3-f72c8caeaafc
 # ╟─aa0376dc-5982-4274-9b4d-4aef1d1de896
 # ╟─0378dcdf-0291-4e9c-a30b-5dacd346707c
 # ╟─b4fd0320-74b2-4ed4-b7b0-beca4eccd553
@@ -2990,6 +3403,8 @@ end
 # ╟─dbeee710-c9f3-4561-969a-321f256f99f5
 # ╟─408f2044-cac0-48b2-8b33-f7ddf9b66849
 # ╟─7a1d3d74-fea2-402b-aee1-728ff89eb548
+# ╟─e9b7dfd5-1034-4b95-941c-df003436e26e
+# ╟─39d3636d-1161-4cbd-a11e-b900e75e77ce
 # ╟─c5550bd5-725d-4d3e-9990-324860af7f67
 # ╟─43ab1632-3df6-4b76-9385-627452ce97aa
 # ╟─587cd5a6-2117-4a65-b50e-c8d2107adfd9
@@ -3001,6 +3416,7 @@ end
 # ╟─2e99b941-935b-4379-89bf-55a4635df686
 # ╟─48b4180b-6891-4c2a-a22e-7761b8e1f439
 # ╟─9d0348a6-24a1-447c-9af4-5b648a381370
+# ╟─c30611f4-1d2e-41c9-b8db-f85b3c99990d
 # ╟─4564cbd9-34bb-4b21-9fca-1027d5c95518
 # ╟─40bf37a4-318b-4263-8705-a566a3321f87
 # ╟─c1faa953-4b76-43fa-a958-a5476e325afc

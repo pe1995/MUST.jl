@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -25,15 +25,6 @@ MUST.@import_m3dis "../../../Multi3D"
 # ╔═╡ 82c1bb90-8647-4091-9d19-f522d76dcd05
 MUST.@import_dispatch "../../../dispatch2"
 
-# ╔═╡ 8d43e13b-5033-4e23-b9a7-24bf42f34aa9
-linelists = String[
-	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/vald_2490-25540.list",
-	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/1000-2490-vald.list",
-	"/home/eitner/shared/StAt/LINE-LISTS/25500-200000_cut-4/atom_25500-200000.list",
-	"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
-	#"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/12CH_multi.list"
-]
-
 # ╔═╡ 61b5121d-670c-4baf-b021-c1ed259d8b4c
 md"# Creating opacity table input"
 
@@ -43,21 +34,97 @@ md"Creating opacity tables with the new Multi design is more straigt forward. Th
 # ╔═╡ ab618049-b942-4ae3-b2a7-703e5f36df1a
 modelatmosfolder = "input_multi3d/test_opac_table/"
 
+# ╔═╡ fb801c36-1de2-49a8-847e-99f05bc1e2cc
+function absdat_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...)
+	# read the default abundances
+	abund_default = MUST.readdlm(@in_m3dis(default))
+	abund_new = deepcopy(abund_default)
+	new_name = default
+	if α != 0.0
+		for ele in TSO.α_elements
+			iele = findfirst(ele .== abund_new[:, 1])
+			if !isnothing(iele)
+				abund_new[iele, 2] = abund_default[iele, 2] + α
+			else
+				@warn "element $(ele) not found in absdat $(default)."
+			end
+		end
+		new_name *= "_a$(α)"
+	end
+
+	for (eleS, val) in eles
+		ele = string(eleS)
+		iele = findfirst(ele .== abund_new[:, 1])
+		if !isnothing(iele)
+			abund_new[iele, 2] = abund_default[iele, 2] + val
+			new_name *= "_$(ele)$(val)"
+		else
+			@warn "element $(ele) not found in absdat $(default)."
+		end
+	end
+
+	if new_name != default
+		open(@in_m3dis(new_name), "w") do f
+			for i in axes(abund_new, 1)
+				line = MUST.@sprintf "%-4s %-.3f\n" abund_new[i, 1] abund_new[i, 2]
+				write(f, line)
+			end
+		end
+	else
+		default
+	end
+
+	new_name
+end
+
 # ╔═╡ e9e182bd-e296-43ce-a309-2c89df055cbc
 begin
+	# Dimensions of the EoS Table
 	minT = 1000.
-	maxT = 50000.
-	minρ = 1e-15
+	maxT = 100000.
+	minρ = 1e-18
 	maxρ = 1e-2
-	nT   = 150
-	nρ   = 150
-
+	nT = 150
+	nρ = 150
+	#tmolim = 100000.0
+	tmolim = 0.0
+	
+	# Wavelength coverage and resolution
 	λs = 1000
 	λe = 200000
 	nλ = 100000
+	vmic = 1.0
 
-	vmic = 2.0
-end
+	# pick linelists you want to use
+	linelists = String[
+		"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/vald_2490-25540.list",
+		"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/1000-2490-vald.list",
+		"/home/eitner/shared/StAt/LINE-LISTS/25500-200000_cut-4/atom_25500-200000.list",
+		"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
+		#"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/12CH_multi.list",
+		#"/home/eitner/shared/StAt/LINE-LISTS/ADDITIONAL-LISTS/13CH_multi.list",
+		#"/home/eitner/shared/StAt/LINE-LISTS/combined_molecules/H2O_multi.list",
+		#MUST.glob("*.list", "/home/eitner/shared/StAt/LINE-LISTS/combined_molecules/most_relevant/")...
+	]
+
+	# modify chemical composition by element name (beyond [Fe/H] with abund file, give as [X/Fe])
+	FeH = 0.0
+	abund_file = absdat_abundances(
+		α=0.0, 
+		default="./input_multi3d/abund_magg"
+	)
+
+	# name of the new EoS table
+	extension = "magg_m0_a0_vmic1"
+	version = "v5.1.0"
+
+	# computation setup
+	compute = true  # set to false if you only want to collect the output from M3D
+	nν = 34
+	threads = 34
+	slurm = false
+	outputname = "TSO-M3D3"
+end;
 
 # ╔═╡ b87b7824-bd8d-43f2-ae88-b454d293acaa
 function eosTableInput(wheretosave; minT=1000., maxT=5.5e5, minρ=1e-30, maxρ=1e-3, vmic=1.0)
@@ -69,17 +136,18 @@ function eosTableInput(wheretosave; minT=1000., maxT=5.5e5, minρ=1e-30, maxρ=1
 	end
 	mkdir(path)
 
-	z = [-1.0, 0.0, 1.0]
+	z = [-1.0, 1.0]
 	TSO.saveAsText(
-		joinpath(path, "TSO-M3D"), 
+		joinpath(path, outputname), 
 		z=z, 
-		T=[minT, (maxT-minT)/2, maxT], 
-		ρ=[minρ, (maxρ-minρ)/2, maxρ],
+		T=[minT, maxT], 
+		ρ=[minρ, maxρ],
 		vmic=vmic
 	)
 
-	"TSO-M3D"
+	outputname
 end
+
 
 # ╔═╡ 930978f2-f898-420d-8da8-d395be0748e9
 model = eosTableInput(
@@ -91,9 +159,6 @@ model = eosTableInput(
 
 # ╔═╡ 6e98979c-c748-4272-b4a9-dd7c2dbaeb96
 md"# Run M3D"
-
-# ╔═╡ 18f2d770-4803-4ee7-860b-aa87db9245f7
-compute = true
 
 # ╔═╡ 15a2ab2c-71e1-4778-8d22-759ad16a0bbe
 eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10,
@@ -112,21 +177,24 @@ eosTable(model; folder, linelist, λs, λe, δλ, δlnT, δlnρ, FeH=0.0, nν=10
 				:atmos_format=>"Text",
 				:use_density=>true, 
 				:use_ne=>false,
-				:FeH=>FeH
+				:FeH=>FeH,
+				:nz=>2,
+				:amr=>false
 			),
 			:m3d_params=>(
 				:n_nu=>nν, 
 				:ilambd=>0,
-				:quad_scheme=>"disk_center",
+				:short_scheme=>"disk_center",
 				:long_scheme=>"none",
 				:make_eos=>true
 			),
 			:composition_params=>(
 				:absdat_file=>"./input_multi3d/TS_absdat.dat",
-                :abund_file=>"./input_multi3d/abund_fe10",
+                :abund_file=>abund_file,
 				:ldtemp=>δlnT,
 				:ldrho=>δlnρ,
-				:tmolim=>10000.0
+				:tmolim=>tmolim,
+				:mhd_eos=>true
 			),
             kwargs...
 		),
@@ -147,24 +215,18 @@ if compute
 		in_log=true,
 		δlnT=(log(maxT)-log(minT))/nT, 
 		δlnρ=(log(maxρ)-log(minρ))/nρ,
-		slurm=true,
-		nν=20,
-		FeH=0.0,
+		slurm=slurm,
+		nν=nν,
+		FeH=FeH,
 		m3dis_kwargs=Dict(
-			:threads=>32,
-			:memMB=>90000
+			:threads=>threads,
+			#:memMB=>90000
 		)
 	)
 end
 
 # ╔═╡ cf6b3809-a161-4093-8285-2cb303c380f4
 md"# Read EoS Table"
-
-# ╔═╡ fe9f9763-0b3e-4a47-9a2c-e5a24d2bfd67
-md"Decide where to save the table"
-
-# ╔═╡ 270b37a1-d0c9-48b1-bd05-891a8c83cf72
-extension = "magg_m10_vmic2"
 
 # ╔═╡ e3f7e4bf-17c2-4c7d-b086-8ef846fdff32
 md"EoS Versions:
@@ -186,16 +248,24 @@ md"EoS Versions:
 -------------------------------------------------------
 	v4.X: FeH = -X, still no molecular lines!
 - v4.0:	Carbon enhanced <-> Carbon solar
+-------------------------------------------------------
+	v5.X: with molecules, OP formalism for H in EoS 
+-v5.0: 50,000 K
+-v5.1: 100,000 K
+	-v5.1.0: No molecules
+-------------------------------------------------------
 "
 
 # ╔═╡ 934be5d3-a7c5-46f2-870d-8ba7d8c134dc
-eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_v4.0"
+eos_folder = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_$(extension)_$(version)"
 
 # ╔═╡ d84c4140-1702-4fa4-8fc5-955a1e9c0d78
 !isdir(eos_folder) && mkdir(eos_folder)
 
 # ╔═╡ 4611660d-f561-457a-80d4-fd37630e5c3b
-run = MUST.M3DISRun("data/$(model)")
+begin
+	run = MUST.M3DISRun("data/$(model)", read_atmos=false)
+end
 
 # ╔═╡ e44b4fab-f33f-4d93-afea-c80b4a1849e1
 eos, opa, scat = TSO.collect_opacity(
@@ -203,9 +273,15 @@ eos, opa, scat = TSO.collect_opacity(
 	compute_ross=true
 )
 
+# ╔═╡ 05c98599-76e6-4747-8689-1cc4cc249994
+begin
+	eos_mono = deepcopy(eos)
+	TSO.smoothAccumulate!(eos_mono)
+end
+
 # ╔═╡ da9cbcec-5e3d-47e6-8b52-e9aad755de20
 begin
-	save(eos, joinpath(eos_folder, "combined_eos_$(extension).hdf5"))
+	save(eos_mono, joinpath(eos_folder, "combined_eos_$(extension).hdf5"))
 	save(opa, joinpath(eos_folder, "combined_opacities_$(extension).hdf5"))
 	if !isnothing(scat)
 		save(scat, joinpath(eos_folder, "combined_sopacities_$(extension).hdf5"))
@@ -216,7 +292,7 @@ end
 size(eos)
 
 # ╔═╡ f06e07d1-7989-4e45-bbe2-e4b25f77c36b
-aos = @axed eos
+aos = @axed eos_mono
 
 # ╔═╡ 1f320b5e-30d5-4275-a99a-e2ac07eaa910
 let
@@ -224,9 +300,15 @@ let
 	
 	plt.close()
 	
-	im = plt.scatter(tt, dd, s=1.0, c=eos.lnRoss)
+	im = plt.pcolormesh(log10.(exp.(tt)), log10.(exp.(dd)), log10.(exp.(eos_mono.lnEi)))
 
-	plt.colorbar(im)
+	c = plt.colorbar(im)
+	c.set_label("log E")
+
+	plt.xlabel("log T")
+	plt.ylabel("log ρ")
+	
+	plt.savefig("internalenergy.png")
 
 	gcf()
 end
@@ -235,8 +317,8 @@ end
 let
 	plt.close()
 
-	plt.title("ρ=$(exp(eos.lnRho[10]))")
-	im = plt.plot(eos.lnT, eos.lnEi[:, 10])
+	plt.title("ρ=$(exp(eos_mono.lnRho[100]))")
+	im = plt.plot(eos_mono.lnT, eos_mono.lnEi[:, 100])
 
 	plt.ylim(28, 35)
 
@@ -258,6 +340,7 @@ let
 	#plt.xlim(1000, 10000)
 	#plt.ylim(-1, 100)
 	
+	plt.savefig("opacity.png")
 
 	gcf()
 end
@@ -272,21 +355,21 @@ end
 # ╟─61b5121d-670c-4baf-b021-c1ed259d8b4c
 # ╟─77792400-dabb-4dbe-a0cd-36b80ebbe25b
 # ╠═ab618049-b942-4ae3-b2a7-703e5f36df1a
+# ╟─fb801c36-1de2-49a8-847e-99f05bc1e2cc
 # ╠═e9e182bd-e296-43ce-a309-2c89df055cbc
-# ╠═b87b7824-bd8d-43f2-ae88-b454d293acaa
-# ╠═930978f2-f898-420d-8da8-d395be0748e9
+# ╟─b87b7824-bd8d-43f2-ae88-b454d293acaa
+# ╟─930978f2-f898-420d-8da8-d395be0748e9
 # ╟─6e98979c-c748-4272-b4a9-dd7c2dbaeb96
 # ╠═18f2d770-4803-4ee7-860b-aa87db9245f7
 # ╟─15a2ab2c-71e1-4778-8d22-759ad16a0bbe
 # ╠═d88497d9-d66a-492f-90f1-2581688ce5ec
 # ╟─cf6b3809-a161-4093-8285-2cb303c380f4
-# ╟─fe9f9763-0b3e-4a47-9a2c-e5a24d2bfd67
-# ╠═270b37a1-d0c9-48b1-bd05-891a8c83cf72
 # ╟─e3f7e4bf-17c2-4c7d-b086-8ef846fdff32
 # ╠═934be5d3-a7c5-46f2-870d-8ba7d8c134dc
 # ╠═d84c4140-1702-4fa4-8fc5-955a1e9c0d78
 # ╠═4611660d-f561-457a-80d4-fd37630e5c3b
 # ╠═e44b4fab-f33f-4d93-afea-c80b4a1849e1
+# ╠═05c98599-76e6-4747-8689-1cc4cc249994
 # ╠═da9cbcec-5e3d-47e6-8b52-e9aad755de20
 # ╠═8c4c378c-0d0a-4d01-bcff-0b8201fdd402
 # ╠═f06e07d1-7989-4e45-bbe2-e4b25f77c36b

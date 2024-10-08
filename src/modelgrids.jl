@@ -9,7 +9,8 @@ using Polyhedra
 function initial_model(grid::MUST.AbstractMUSTGrid, point::Int; kwargs...)
 	try
 		eos, opa = equation_of_state(grid, point; kwargs...)
-		@optical Average3D(eos, grid.info[point, "av_path"]; logg=grid.info[point, "logg"]) eos opa
+		a = Average3D(eos, grid.info[point, "av_path"]; logg=grid.info[point, "logg"])
+		@optical a eos opa
 	catch
 		Average3D(grid.info[point, "av_path"]; logg=grid.info[point, "logg"]) 
 	end
@@ -19,6 +20,8 @@ function initial_model(grid::MUST.AbstractMUSTGrid, point::String; kwargs...)
 	i = findfirst(grid.info[!, "name"] .== point)
 	initial_model(grid, i; kwargs...)
 end
+
+
 
 
 
@@ -43,8 +46,8 @@ function equation_of_state(grid::MUST.AbstractMUSTGrid, point::String; kwargs...
 	equation_of_state(grid, i; kwargs...)
 end
 
-find_closest_eos(grid::MUST.AbstractMUSTGrid, teff, feh) = begin
-	mother_tables = grid["eos_root"]
+find_closest_eos(grid::MUST.AbstractMUSTGrid, teff, feh; from="eos_root") = begin
+	mother_tables = grid[from]
 	path = if all(mother_tables .== mother_tables[1])
 		mother_tables[1]
 	else
@@ -70,24 +73,23 @@ find_closest_eos(grid::MUST.AbstractMUSTGrid, teff, feh) = begin
 		else
 			# pick the one where the temp is closest
 			tempminall = tempall[matchingtables]
-			mothertablesminall = mother_tables[fehminall]
+			mothertablesminall = mother_tables[matchingtables]
 			imin = argmin(abs.(tempminall .- teff))
 
 			mothertablesminall[imin]
 		end
 	end
 
-	reload(
-			SqEoS,
-			joinpath(path, "combined_eos.hdf5")
-		)
+	path
 end
+
+
 
 
 
 #================================================ interpolate average models =#
 
-read_models_from_grid(grid::MUST.AbstractMUSTGrid; adiabats=nothing, eos=nothing, opa=nothing, common_size=1000, τbottom=8, τtop=-6) = begin
+read_models_from_grid(grid::MUST.AbstractMUSTGrid; adiabats=nothing, eos=nothing, opa=nothing, common_size=1000, τbottom=8, τtop=-6, kwargs...) = begin
 	# read all average models and interpolate them to the same number of points
 	models = Any[initial_model(grid, String(name))
 					for name in grid.info[!, "name"]]
@@ -147,6 +149,14 @@ read_models_from_grid(grid::MUST.AbstractMUSTGrid; adiabats=nothing, eos=nothing
 	models, models_t
 end
 
+add_vres_from_grid!(grid::MUST.AbstractMUSTGrid) = begin
+	models = Any[initial_model(grid, String(name)) for name in grid.info[!, "name"]]
+	r_models = [minimum(abs.(diff(m.z))) for m in models]
+	grid.info[!, "vres"] = r_models
+end
+
+
+
 
 function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, common_size=1000, models=nothing, models_mod=nothing, kwargs...)
 	@info "Interpolating $teff, $logg, $feh point by point."
@@ -162,7 +172,7 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 			grid; 
 			adiabats=adiabats, eos=eos, opa=opa, 
 			common_size=common_size, 
-			τbottom=τbottom, τtop=τtop
+			kwargs...
 		) 
 	else
 		models, models_mod
@@ -191,20 +201,21 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 		d[i] = scatter_int(points[femask, 3], teff, logg)
 	end
 
-	r_target = scatter_int(r_models[femask], teff, logg)
+	#r_target = scatter_int(r_models[femask], teff, logg)
+	r_target = MUST.interpolate_quantity(grid, "vres"; teff=teff, logg=logg, feh=feh)
 	npoints  = ceil(Int, abs(maximum(z) - minimum(z)) / r_target)
 
 	TSO.upsample(Model1D(z=z, lnT=t, lnρ=d, logg=logg), npoints)
 end
 
 function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothing; 
-	teff, logg, feh, common_size=1000, τbottom=8, τtop=-6, adiabats=nothing, models=nothing, models_mod=nothing, τ_extrapolate=nothing)
+	teff, logg, feh, common_size=1000, τbottom=8, τtop=-6, adiabats=nothing, models=nothing, models_mod=nothing, τ_extrapolate=nothing, kwargs...)
 	@info "Interpolating $teff, $logg, $feh on optical depth scale."
 	
 	logg_gr = grid.info[!, "logg"]
 	teff_gr = grid.info[!, "teff"]
 	feh_gr  = grid.info[!, "feh"]
-	femask = trues(length(logg_gr)) #feh_gr .≈ feh_gr[argmin(abs.(feh .- feh_gr))]
+	femask = feh_gr .≈ feh_gr[argmin(abs.(feh .- feh_gr))]
 	
 	# read all average models and interpolate them to the same number of points
 	models, models_mod = if isnothing(models)
@@ -212,7 +223,7 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 			grid; 
 			adiabats=adiabats, eos=eos, opa=opa, 
 			common_size=common_size, 
-			τbottom=τbottom, τtop=τtop
+			τbottom=τbottom, τtop=τtop, kwargs...
 		) 
 	else
 		models, models_mod
@@ -222,8 +233,8 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 	ltscale = log10.(first(models_mod).τ)
 
 	# now we interpolate all points to one common point, for every point
-	scatter_int(v, x, y, z) = MUST.pyconvert(typeof(x),
-		first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask],  feh_gr[femask]), v, ([x], [y], [z]), method="linear"))
+	scatter_int(v, x, y) = MUST.pyconvert(typeof(x),
+		first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask]), v, ([x], [y]), method="linear"))
 	)
 	
 	points = zeros(eltype(models_mod[1].z), length(models), 3)
@@ -238,15 +249,16 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 			points[j, 2] = models_mod[j].lnT[i]
 			points[j, 3] = models_mod[j].lnρ[i]
 		end
-		z[i] = scatter_int(points[femask, 1], teff, logg, feh)
-		t[i] = scatter_int(points[femask, 2], teff, logg, feh)
-		d[i] = scatter_int(points[femask, 3], teff, logg, feh)
+		z[i] = scatter_int(points[femask, 1], teff, logg)
+		t[i] = scatter_int(points[femask, 2], teff, logg)
+		d[i] = scatter_int(points[femask, 3], teff, logg)
 	end
 	
 	# interpolate to equally spaced in z
 	# for this we need to construct a new z scale 
 	mnew = TSO.flip(Model1D(z=z, lnT=t, lnρ=d, logg=logg, τ=exp10.(ltscale)), depth=true)
-	mnew = if !isnothing(τ_extrapolate)
+	mnew = if (!isnothing(τ_extrapolate)) && (τ_extrapolate>τtop)
+		@info "Extrapolating to log10τ=$(τ_extrapolate)"
 		TSO.interpolate_to(mnew, τ=range(maximum(log10.(mnew.τ)), τ_extrapolate, length=length(mnew.τ))|>collect, in_log=true)
 	else
 		mnew
@@ -261,7 +273,8 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 	TSO.flip!(mnew)
 
 	# upsample to match the desired interpolated resolution
-	r_target = scatter_int(r_models[femask], teff, logg, feh)
+	#r_target = scatter_int(r_models[femask], teff, logg)
+	r_target = MUST.interpolate_quantity(grid, "vres"; teff=teff, logg=logg, feh=feh) 
 	npoints  = ceil(Int, abs(maximum(mnew.z) - minimum(mnew.z)) / r_target)
 
 	# We now can interpolate everthing to this new z scale
@@ -279,6 +292,8 @@ adiabat_from_model(model, eos) = begin
 		s, e, eos
 	)
 end
+
+
 
 
 #========================================================= Select Parameters =#
@@ -335,23 +350,70 @@ function random_paramters(grid, N;
 	rand_points
 end
 
+"""
+	random_paramters(grid, N, lowerlimit, upperlimit; [teff, logg, feh])
+
+Random set of parameters within the convex hull of the grid.
+Ranges for teff, logg and feh can be given as kwargs.
+Random points will be within the give grid, so that a scatter interpolation
+(e.g. scipy.griddata) can be used on them. Limit the selection between the functions
+`lowerlimit` and `upperlimit`, which will are functions teff->logg setting the selection domain.
+"""
+function random_paramters(grid, N, lowerlimit, upperlimit; 
+	teff=[minimum(grid["teff"]), maximum(grid["teff"])], 
+	logg=[minimum(grid["logg"]), maximum(grid["logg"])], 
+	feh=[minimum(grid["feh"]), maximum(grid["feh"])])
+	
+	points = [[t, l, f] for (t, l, f) in zip(grid["teff"], grid["logg"], grid["feh"])]
+	hull = convex_hull(points)
+	P = VPolytope(hull)
+	
+	rand_points = zeros(N, 3)
+	found = 0
+	while found < N
+		t = MUST.randrange(teff...)
+		l = MUST.randrange(logg...) 
+		f = MUST.randrange(feh...)
+	
+		if [t, l, f] ∈ P
+			# check if it is below the lower or above the upper limit
+			lgLowLim = min(lowerlimit(t), upperlimit(t))
+			lgUpLim = max(lowerlimit(t), upperlimit(t))
+
+			if (l>=lgLowLim) & (l<=lgUpLim)
+				found += 1
+				rand_points[found, 1] = t
+				rand_points[found, 2] = l
+				rand_points[found, 3] = f
+			end
+		end
+	end
+
+	rand_points
+end
+
+lineLimit(teff, x1, x2) = begin
+	m = (x2[2] - x1[2]) / (x2[1] - x1[1]) 
+	m* teff + x2[2] - m*x2[1]
+end
+
+checkparameters(grid; teff, logg, feh) = begin
+	points = [[t, l, f] for (t, l, f) in zip(grid["teff"], grid["logg"], grid["feh"])]
+	hull = convex_hull(points)
+	P = VPolytope(hull)
+	[p ∈ P for p in points]
+end
+
+checkparameters(grid, paras) = checkparameters(grid, teff=paras[:, 1], logg=paras[:, 2], feh=paras[:, 3])
+
+
 
 
 
 #===========================================================interpolate grid =#
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
-	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", τ_extrapolate=nothing) where {F<:AbstractFloat}
-	# create the initial model from interpolating the average snapshots
-	model = if isnothing(models)
-		isnothing(eos) ? 
-		interpolate_average(grid, teff=teff, logg=logg, feh=feh) : 
-		interpolate_average(grid, eos, opa, teff=teff, logg=logg, feh=feh, adiabats=adiabat)
-	else
-		isnothing(eos) ? 
-		interpolate_average(grid, teff=teff, logg=logg, feh=feh, models=models, models_mod=models_mod) : 
-		interpolate_average(grid, eos, opa, teff=teff, logg=logg, feh=feh, adiabats=adiabats, models=models, models_mod=models_mod, τ_extrapolate=τ_extrapolate)
-	end
+	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", τ_extrapolate=nothing, adiabatic_extrapolation=false, kwargs...) where {F<:AbstractFloat}
 
 	folder_name = "interpolated"
 	mesh   = "interpolated"
@@ -364,26 +426,59 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	snapshot = "interpolated"
 	ma_x = MUST.interpolate_quantity(grid, "ma_x"; teff=teff, logg=logg, feh=feh)
 	ma_y = MUST.interpolate_quantity(grid, "ma_y"; teff=teff, logg=logg, feh=feh)
-	mi_z = minimum(model.z)
-	ma_z = maximum(model.z)
 	vmin = MUST.interpolate_quantity(grid, "vmin"; teff=teff, logg=logg, feh=feh)
 	vmax = MUST.interpolate_quantity(grid, "vmax"; teff=teff, logg=logg, feh=feh)
-	
+	hres = MUST.interpolate_quantity(grid, "hres"; teff=teff, logg=logg, feh=feh)
 	tscale = round(
 		MUST.interpolate_quantity(grid, "tscale"; teff=teff, logg=logg, feh=feh),
 		sigdigits=1
 	)
-	
-	hres = MUST.interpolate_quantity(grid, "hres"; teff=teff, logg=logg, feh=feh)
 
+	if !("vres" in names(grid.info))
+		add_vres_from_grid!(grid)
+	end
+	vres = MUST.interpolate_quantity(grid, "vres"; teff=teff, logg=logg, feh=feh)
+
+
+	# create the initial model from interpolating the average snapshots
+	model = if isnothing(models)
+		isnothing(eos) ? 
+		interpolate_average(grid; teff=teff, logg=logg, feh=feh, kwargs...) : 
+		interpolate_average(grid, eos, opa; teff=teff, logg=logg, feh=feh, adiabats=adiabat, kwargs...)
+	else
+		isnothing(eos) ? 
+		interpolate_average(grid; teff=teff, logg=logg, feh=feh, models=models, models_mod=models_mod, kwargs...) : 
+		interpolate_average(grid, eos, opa; teff=teff, logg=logg, feh=feh, adiabats=adiabats, models=models, models_mod=models_mod, τ_extrapolate=τ_extrapolate, kwargs...)
+	end
+
+
+	# optionally extrapolate adiabatically on this new zscale
+	model = if adiabatic_extrapolation
+		mi_z = MUST.interpolate_quantity(grid, "mi_z"; teff=teff, logg=logg, feh=feh)
+		ma_z = MUST.interpolate_quantity(grid, "ma_z"; teff=teff, logg=logg, feh=feh)
+		model_extra = TSO.adiabatic_extrapolation(model, eos, abs(ma_z - mi_z)*1.02)
+		uniform_z = range(
+			minimum(model_extra.z), maximum(model_extra.z), step=abs(vres)
+		) |> collect
+
+		TSO.flip(TSO.interpolate_to(model_extra, in_log=false, z=uniform_z), depth=true)
+	else
+		model
+	end
+
+	mi_z = minimum(model.z)
+	ma_z = maximum(model.z)
+	
+	
 	av_path = abspath(joinpath(folder, "$(name)_99999_av.dat"))
 	TSO.flip!(model)
 	open(av_path, "w") do f
 		MUST.writedlm(f, [model.z exp.(model.lnT) model.lnρ])
 	end
 	
-	MUST.StaggerGrid(
+	MUST.Atmos1DGrid(
         "interpolated",
+		abspath(joinpath(pwd(), "interpolated.mgrid")),
         MUST.DataFrame(
 		Dict(
 			"name"     => name,
@@ -400,7 +495,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 			"vmax"     => vmax,
 			"tscale"   => tscale,
 			"hres"     => hres,
-			"av_path"  => joinpath(folder, "$(name)_99999_av.dat"),
+			"av_path"  => av_path,
 			"abs_av_path" => av_path,
 			"teff"     => teff,
 			"logg"     => logg,
@@ -410,19 +505,25 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
     )
 end
 
-function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
-	eos::F2=[nothing for _ in teff], opa::F3=[nothing for _ in teff], adiabats=nothing, folder="", τ_extrapolate=nothing) where {F<:AbstractArray, F2<:AbstractArray, F3<:AbstractArray}
+function interpolate_from_grid(grid_in::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
+	eos::F2=[nothing for _ in teff], opa::F3=[nothing for _ in teff], adiabats=nothing, folder="", τ_extrapolate=nothing, kwargs...) where {F<:AbstractArray, F2<:AbstractArray, F3<:AbstractArray}
 	subgrids = []
 
-	models, models_mod = read_models_from_grid(grid; eos=first(eos), opa=first(opa), adiabats=adiabats)
+	grid = deepcopy(grid_in)
+	models, models_mod = read_models_from_grid(grid; eos=first(eos), opa=first(opa), adiabats=adiabats, kwargs...)
+	
+	if !("vres" in names(grid.info))
+		@info "Vertical resolution is computed from spacing in average models of the grid."
+		add_vres_from_grid!(grid)
+	end
 
 	for i in eachindex(teff)
 		append!(subgrids, [
 			interpolate_from_grid(
-				grid, teff[i], logg[i], feh[i], 
+				grid, teff[i], logg[i], feh[i]; 
 				eos=eos[i], opa=opa[i], 
 				adiabats=adiabats, 
-				models=models, models_mod=models_mod, folder=folder, τ_extrapolate=τ_extrapolate
+				models=models, models_mod=models_mod, folder=folder, τ_extrapolate=τ_extrapolate, kwargs...
 			)
 		])
 	end
@@ -446,7 +547,7 @@ with an interpolated resolution and resamples accordingly.
 # Examples
 
 ```julia
-grid = MUST.StaggerGrid("dispatch_grid.mgrid")
+grid = MUST.Atmos1DGrid("dispatch_grid.mgrid")
 new_gridpoints = interpolate_from_grid(grid, teff=[4000, 5000], logg=[4.0, 4.5], feh=[0.5, 0.0])
 ```
 """
@@ -461,7 +562,7 @@ with an interpolated resolution and resamples accordingly. Also include old grid
 # Examples
 
 ```julia
-grid = MUST.StaggerGrid("dispatch_grid.mgrid")
+grid = MUST.Atmos1DGrid("dispatch_grid.mgrid")
 new_and_old_gridpoints = interpolate_from_grid!(grid, teff=[4000, 5000], logg=[4.0, 4.5], feh=[0.5, 0.0])
 ```
 """

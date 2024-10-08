@@ -173,7 +173,7 @@ function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
 	end
 
 	if length(submodules) == 0
-		PythonCall.pycopy!(m3dis, pyimport("m3dis"))
+		PythonCall.pycopy!(m3dis, pyimport("m3dis.m3dis"))
 		return m3dis
 	else
 		return [pyimport("$(String(m))") for m in submodules]

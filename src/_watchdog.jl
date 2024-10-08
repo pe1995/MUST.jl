@@ -36,7 +36,7 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
         # list snapshots
         updatesnaps!(w)
 
-        # check how many snapshots we have comleted
+        # check how many snapshots we have completed
         # delete the snapshots if they are older than keeplast
         if keeplast > 0
             n_snapsCompleted = length(w.snapshotsCompleted)
@@ -46,6 +46,7 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
                    deleteSnapshot(w, snap2remove)
                 end
             end
+            updatesnaps!(w)
         end
 
         # check if there is a new snapshot
@@ -100,6 +101,20 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
                     ibatch += 1
                     time_current = time()
                 end
+            else
+                # If it is already completed, we may check as well if it should 
+                # be saved or has already been saved
+                if save_box
+                    if !(snapf in keys(convertedBoxes(w)))
+                        @info "Converting snapshot $(snapf)..."
+                        try
+                            convert(w, snapf, save_box=true)
+                            @info "...snapshot $(snapf) converted."
+                        catch
+                            @info "...snapshot $(snapf) failed."
+                        end
+                    end
+                end
             end
 
             if ibatch>=batch
@@ -143,20 +158,16 @@ They can compute whatever, but they need to return a Dict with whatever they com
 and the corresponding data.
 """
 function analyse(w::WatchDog, snapshot; save_box=false)
-    b, bτ = snapshotBox(
-        snapshot; 
-        folder=w.folder, 
-        optical_depth_scale=true, 
-        save_snapshot=save_box, 
-        to_multi=false,
-        is_box=true, 
-        use_mmap=false,
-        legacy=false
-    )
+    # convert the snapshot to a box
+    b, bτ = convert(w, snapshot; save_box=save_box)
 
     monitoring = Dict()
     for (fname, f) in w.functions
-        monitoring[fname] = f(w, b, bτ)
+        try
+            monitoring[fname] = f(w, b, bτ)
+        catch
+            @warn "Monitoring statistic $(fname) failed for snapshot $(snapshot)."
+        end
     end
 
     b = nothing
@@ -171,6 +182,19 @@ function analyse(w::WatchDog, snapshot; save_box=false)
 
     # save the data
     save(w, monitoring)
+end
+
+convert(w::WatchDog, snapshot; save_box=false) = begin
+    snapshotBox(
+        snapshot; 
+        folder=w.folder, 
+        optical_depth_scale=true, 
+        save_snapshot=save_box, 
+        to_multi=save_box,
+        is_box=true, 
+        use_mmap=false,
+        legacy=false
+    )
 end
 
 
@@ -196,9 +220,13 @@ _geostatistic(f, b) = begin
     
     results = Dict()
     for v in variables
-        x, y = profile(f, b, :z, v) 
-        results[:z] = x
-        results[v] = y
+        try
+            x, y = profile(f, b, :z, v) 
+            results[:z] = x
+            results[v] = y
+        catch
+            @warn "Statistic $(string(f)) failed for variable $(v)."
+        end
     end
 
     results
@@ -236,9 +264,13 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     uyplane = b[:uy][:, :, end]
     Tplane = b[:T][:, :, end]
     Dplane = log.(b[:d][:, :, end])
+    Eplane = log.(b[:e][:, :, end])
     dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, end] : nothing
     fluxplane = haskey(b.data, :flux) ? b[:flux][:, :, end] : nothing
     qrplane = haskey(b.data, :qr) ? b[:qr][:, :, end] : nothing
+    kapparhoplane = haskey(b.data, :kapparho) ? b[:kapparho][:, :, end] : nothing
+    sourcefunctionplane = haskey(b.data, :sourcefunction) ? b[:sourcefunction][:, :, end] : nothing
+
 
     d = Dict(
         "uzplane" => uzplane,
@@ -246,6 +278,7 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
         "uyplane" => uyplane,
         "Tplane" => Tplane,
         "lnDplane" => Dplane,
+        "lnEplane" => Eplane,
         "x" => b.x[:, :, end],
         "y" => b.y[:, :, end]
     )
@@ -258,6 +291,12 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     end
     if !isnothing(qrplane)
         d["qrplane"] = qrplane[:, :]
+    end
+    if !isnothing(kapparhoplane)
+        d["kapparhoplane"] = kapparhoplane[:, :]
+    end
+    if !isnothing(sourcefunctionplane)
+        d["sourcefunctionplane"] = sourcefunctionplane[:, :]
     end
 
     d
@@ -403,6 +442,9 @@ opticalSurfaces(w::WatchDog, b, bτ) = begin
     dtplane = haskey(b.data, :dt_rt) ? interpolate_to(b, :dt_rt; logspace=true, τ_ross=0.0)[:dt_rt] : nothing
     fluxplane = haskey(b.data, :flux) ? interpolate_to(b, :flux; logspace=true, τ_ross=0.0)[:flux] : nothing
     qrplane = haskey(b.data, :qr) ? interpolate_to(b, :qr; logspace=true, τ_ross=0.0)[:qr] : nothing
+    kapparhoplane = haskey(b.data, :kapparho) ? interpolate_to(b, :kapparho; logspace=true, τ_ross=0.0)[:kapparho] : nothing
+    sourcefunctionplane = haskey(b.data, :sourcefunction) ? interpolate_to(b, :sourcefunction; logspace=true, τ_ross=0.0)[:sourcefunction] : nothing
+
 
     d = Dict(
         "uzplane" => uzplane[:, :, 1],
@@ -422,6 +464,12 @@ opticalSurfaces(w::WatchDog, b, bτ) = begin
     end
     if !isnothing(qrplane)
         d["qrplane"] = qrplane[:, :, 1]
+    end
+    if !isnothing(kapparhoplane)
+        d["kapparhoplane"] = kapparhoplane[:, :, 1]
+    end
+    if !isnothing(sourcefunctionplane)
+        d["sourcefunctionplane"] = sourcefunctionplane[:, :, 1]
     end
 
     d
@@ -615,6 +663,8 @@ availableSnaps(w) = begin
 
     l[m]
 end
+
+convertedBoxes(w) = converted_snapshots(w.folder)
 
 
 

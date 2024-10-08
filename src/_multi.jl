@@ -4,15 +4,15 @@ struct M3DISRun{P<:PythonCall.Py}
     run::P
 end
 
-M3DISRun(path::String) = begin
+M3DISRun(path::String; kwargs...) = begin
     isnothing(multi_location) && error("No Multi module has been loaded.")
     p = @in_m3dis(path)
     @assert isdir(p)
-    M3DISRun(m3dis.read(p))
+    M3DISRun(m3dis.m3dis.read(p; kwargs...))
 end
 
-M3DISRun(path::String, folder::String) = begin
-    M3DISRun(joinpath(folder, path))
+M3DISRun(path::String, folder::String; kwargs...) = begin
+    M3DISRun(joinpath(folder, path); kwargs...)
 end
 
 
@@ -137,6 +137,60 @@ end
 #= running M3DIS =#
 
 """
+    abund_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...)
+
+Create an absdat file with the given abundance ratios.
+"""
+function abund_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...)
+	# read the default abundances
+	abund_default = readdlm(@in_m3dis(default))
+	abund_new = deepcopy(abund_default)
+    ele_names = lowercase.(abund_new[:, 1])
+	new_name = default
+	if α != 0.0
+		for ele in ["c", "o", "ne", "mg", "si", "s", "ar", "ca"]
+			iele = findfirst(lowercase(ele) .== ele_names)
+			if !isnothing(iele)
+				abund_new[iele, 2] = abund_default[iele, 2] + α
+			else
+				@warn "element $(ele) not found in absdat $(default)."
+			end
+		end
+		new_name *= "_a$(α)"
+	end
+
+	for (eleS, val) in eles
+		ele = lowercase(string(eleS))
+		iele = findfirst(ele .== ele_names)
+		if !isnothing(iele)
+			abund_new[iele, 2] = abund_default[iele, 2] + val
+			new_name *= "_$(ele)$(val)"
+		else
+			@warn "element $(string(eleS)) not found in absdat $(default)."
+		end
+	end
+
+	if new_name != default
+		open(@in_m3dis(new_name), "w") do f
+			for i in axes(abund_new, 1)
+				line = @sprintf "%-4s %-.3f\n" abund_new[i, 1] abund_new[i, 2]
+				write(f, line)
+			end
+		end
+	else
+		default
+	end
+
+	new_name
+end
+
+
+
+
+
+
+
+"""
 	whole_spectrum(model_name; [namelist_kwargs, m3dis_kwargs])
 
 Submit a job to the M3DIS code, which will compute the outgoing flux across the entire wavelength range.
@@ -157,7 +211,7 @@ function whole_spectrum(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs
     end
 
     # read the output
-    M3DISRun(joinpath(nml.io_params["datadir"], model_name))
+    M3DISRun(joinpath(nml.io_params["datadir"], model_name), read_atmos=false)
 end
 
 """
@@ -196,7 +250,7 @@ function whole_spectrum(model_names::AbstractVector{String}; namelist_kwargs=Dic
     end
 
     # read the output
-    [M3DISRun(joinpath(data_dir, model_name)) for model_name in model_names]
+    [M3DISRun(joinpath(data_dir, model_name), read_atmos=false) for model_name in model_names]
 end
 
 opacityTable(models; folder, linelist, λs, λe, δλ, H_atom="input_multi3d/atoms/atom.h20",

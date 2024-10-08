@@ -143,6 +143,16 @@ function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="p
 				force=true
 			)
 		end
+
+		specpath = MUST.glob("spectra*", joinpath(datadir, name))
+		for sp in specpath
+			spname = basename(sp)
+			cp(
+				sp, 
+				joinpath(saveat, spname),
+				force=true
+			)
+		end
 	end
 
 	# check for converted snapshots
