@@ -24,6 +24,7 @@ begin
 	using Images
 	using PlutoUI
 	using ProgressLogging
+	using DelimitedFiles
 end
 
 # ╔═╡ c7dc3b15-6555-4824-872a-d487fe5145ea
@@ -1739,8 +1740,8 @@ md"### Averages"
 let
 	plt.close()
 
-	f, ax = plt.subplots(1, 1, figsize=(5, 6))
-
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))	
+	
 	# First one
 	x, y = tOptMin["log10τ_ross"][itimeSurface], tOptMin["T"][itimeSurface]
 	ax.plot(

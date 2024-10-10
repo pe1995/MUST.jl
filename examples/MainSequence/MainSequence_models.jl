@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.42
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -64,7 +64,7 @@ end
 
 
 # ╔═╡ 0f4989c9-2c2b-4733-8f35-324e74749b11
-allRuns = availableRuns(gridfolder, "R5", "R6")
+allRuns = availableRuns(gridfolder, "R7")
 
 # ╔═╡ 6ce10bb3-1fbb-4d25-a1b9-cd25eea974de
 
@@ -984,7 +984,7 @@ end
 # ╟─095d5c29-d828-409c-afd9-2384d1bb3a83
 # ╟─2dd0de7c-028b-43f2-960e-e0839d3fa7b7
 # ╟─720ff7c3-66d5-4dfc-89fb-4a385e7bfd9e
-# ╟─c3b9f946-4fae-4aca-9722-a80dc999b95d
+# ╠═c3b9f946-4fae-4aca-9722-a80dc999b95d
 # ╟─4e9f26c6-001c-4d90-b9b3-ef4f259e0ae9
 # ╠═9b659650-b91d-4229-a811-6802f7d56966
 # ╠═6df1c2d5-850c-4af8-b29d-25d7a0f7666c

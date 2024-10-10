@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.42
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -181,8 +181,8 @@ function shipBox(name, snapshots; copymonitoring=true, copysnaps=true, saveat="p
 				snapshotsresample = MUST.gresample(
 	                b_s, 
 	                nz=size(b_s, 3) * 2 - 1, 
-	                nx=size(b_s, 1), 
-	                ny=size(b_s, 2),
+	                nx=40, 
+	                ny=40,
 	            )
             	snapshotsresample.data[:ne] = snapshotsresample.data[:Ne]
             	multiBox(

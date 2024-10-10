@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.19.41
 
 using Markdown
 using InteractiveUtils
@@ -299,10 +299,10 @@ in_folder = [
 
 # ╔═╡ f78e1d7f-6756-47d9-bb6c-5b6c623dc899
 eos_folder = [
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_v1.6.3"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t55g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t60g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_E_t65g45m00_v0.1"),
@@ -311,10 +311,10 @@ eos_folder = [
 
 # ╔═╡ 8b046999-9214-468b-8b6f-90df998ecebd
 eos_folder_T = [
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
-	MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_v1.6.3"),
+	MUST.@in_dispatch("input_data/grd/DIS_MARCS_v1.6.3"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t55g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t60g45m00_v0.1"),
 	MUST.@in_dispatch("input_data/grd/DIS_MARCS_t65g45m00_v0.1"),
@@ -521,6 +521,7 @@ begin
 	#visual.basic_plot!.(axA)
 
 	m3disA = pick_snapshot(out_folder[modelA], :recent) |> last
+	m3disAz = pick_snapshot(out_folder[modelA], :recent) |> first
 	m3disA_x, m3disA_y, m3disA_yerr = time_average_profiles(
 		mean, 
 		out_folder[modelA], 
@@ -686,7 +687,7 @@ end
 # ╔═╡ d77216a7-038d-491f-b7c2-ba74d627e2a2
 begin
 	mergewithfolder(path) = joinpath(
-		MUST.@in_dispatch("input_data/binned/DIS_MARCS_v1.6.3"), path
+		MUST.@in_dispatch("input_data/grd/DIS_MARCS_v1.6.3"), path
 	)
 	eosT = reload(SqEoS, mergewithfolder("eos.hdf5"))
 	opaT = reload(SqOpacity, mergewithfolder("binned_opacities.hdf5"))
@@ -697,6 +698,22 @@ begin
 		exp.(lookup(eosT, :lnPg, log.(m3disA[:d]),  log.(m3disA[:T]))),
 		:pg
 	)
+	MUST.add!(
+		m3disA, 
+		exp.(lookup(eosT, :lnNe, log.(m3disA[:d]),  log.(m3disA[:T]))),
+		:ne
+	)
+	MUST.add!(
+		m3disAz, 
+		exp.(lookup(eosT, :lnPg, log.(m3disAz[:d]),  log.(m3disAz[:T]))),
+		:pg
+	)
+	MUST.add!(
+		m3disAz, 
+		exp.(lookup(eosT, :lnNe, log.(m3disAz[:d]),  log.(m3disAz[:T]))),
+		:ne
+	)
+
 	MUST.add!(
 		stagger_τ, 
 		exp.(lookup(eosT, :lnPg, log.(stagger_τ[:d]),  log.(stagger_τ[:T]))),
@@ -763,7 +780,7 @@ begin
 		label=L"\rm Co5bold"
 	)
 	axA2.plot(
-		marcs_models[5].structure["lgTauR"], marcs_models[5].structure["T"],
+		log10.(marcs_models[5].structure["Density"]), marcs_models[5].structure["T"],
 		color="k",
 		ls=":",
 		label=L"\rm MARCS"
@@ -856,12 +873,41 @@ end
 
 # ╔═╡ 13b57468-6d36-4413-95c6-0743e2633924
 let
-	open("average_sun.txt", "w") do f
-		z, t = profile(mean, m3disA, :z, :T)
-		z, r = profile(mean, m3disA, :z, :log10d)
-		z, p = profile(mean, m3disA, :z, :log10pg)
+	open("average_sun_log.txt", "w") do f
+		z, t = profile(mean, m3disA, :log10τ_ross, :T)
+		z, r = profile(mean, m3disA, :log10τ_ross, :log10d)
+		z, p = profile(mean, m3disA, :log10τ_ross, :log10pg)
+		z, ne = profile(mean, m3disA, :log10τ_ross, :log10ne)
+		z, uz = profile(rms5, m3disA, :log10τ_ross, :uz)
 		
-		MUST.writedlm(f, [z t exp10.(r) exp10.(p)], ',')
+		MUST.writedlm(f, [z t exp10.(r) exp10.(p) exp10.(ne) uz], ',')
+	end
+	open("average_sun.txt", "w") do f
+		z, t = profile(mean, m3disA, :log10τ_ross, :T)
+		z, r = profile(mean, m3disA, :log10τ_ross, :d)
+		z, p = profile(mean, m3disA, :log10τ_ross, :pg)
+		z, ne = profile(mean, m3disA, :log10τ_ross, :ne)
+		z, uz = profile(rms5, m3disA, :log10τ_ross, :uz)
+
+		MUST.writedlm(f, [z t r p ne uz], ',')
+	end
+	open("average_sun_log_z.txt", "w") do f
+		z, t = profile(mean, m3disAz, :z, :T)
+		z, r = profile(mean, m3disAz, :z, :log10d)
+		z, p = profile(mean, m3disAz, :z, :log10pg)
+		z, ne = profile(mean, m3disAz, :z, :log10ne)
+		z, uz = profile(rms5, m3disAz, :z, :uz)
+		
+		MUST.writedlm(f, [z t exp10.(r) exp10.(p) exp10.(ne) uz], ',')
+	end
+	open("average_sun_z.txt", "w") do f
+		z, t = profile(mean, m3disAz, :z, :T)
+		z, r = profile(mean, m3disAz, :z, :d)
+		z, p = profile(mean, m3disAz, :z, :pg)
+		z, ne = profile(mean, m3disAz, :z, :ne)
+		z, uz = profile(rms5, m3disAz, :z, :uz)
+
+		MUST.writedlm(f, [z t r p ne uz], ',')
 	end
 end
 
@@ -1684,6 +1730,7 @@ begin
 		s=1,
 		cmap=cD,
 		norm=normD,
+		rasterized=true
 	)
 	cbarD = fD.colorbar(
 		im, 
@@ -1702,7 +1749,7 @@ begin
 		L"\rm opacity\ bins"
 	)
 	
-	fD.savefig("formation_opacities.pdf", bbox_inches="tight")
+	fD.savefig("formation_opacities.pdf", bbox_inches="tight", dpi=600)
 	fD.savefig("formation_opacities.png", bbox_inches="tight", dpi=600)
 	
 	gcf()
@@ -1782,6 +1829,24 @@ begin
 	#fG.savefig("vertical_velocity_surface.pdf", bbox_inches="tight")
 	fG.savefig("vertical_velocity_surface.png", bbox_inches="tight", dpi=600)
 	
+	gcf()
+end
+
+# ╔═╡ 8324d6c9-f46a-4724-be76-5eb92f753e21
+let
+	modelG = models["lres"]
+	m3disG = pick_snapshot(out_folder[modelG], -1) |> first
+	
+	fG, axG = plt.subplots(1, 1, figsize=(5, 6))
+
+	# plot the surface in uz
+	imG = axG.imshow(
+		m3disG[:T][:,:,end],
+		origin="lower",
+		cmap="coolwarm",
+		extent=extent(m3disG)
+	)
+
 	gcf()
 end
 
@@ -2827,7 +2892,7 @@ end
 # ╟─ae765c38-1c13-4914-85a1-41c41bff4f3f
 # ╠═0ef33323-1d6a-484c-9292-3485b4871b38
 # ╟─381be17e-b257-4e51-aa79-941db153f398
-# ╟─e1517fd6-523f-4083-bb74-ebf666813002
+# ╠═e1517fd6-523f-4083-bb74-ebf666813002
 # ╟─e73c5a0e-ae3b-4bbd-b098-d8e6ff215c2e
 # ╟─f6f45939-55f8-42c3-b0d2-79c1cefb645c
 # ╟─d77216a7-038d-491f-b7c2-ba74d627e2a2
@@ -2842,7 +2907,7 @@ end
 # ╟─792cd263-3322-4a1f-9c1c-babcdcd88fe1
 # ╟─e02162d4-6345-43e2-bb3f-2a453cc1b9eb
 # ╟─b9890085-fcca-472d-b192-da7abf349b45
-# ╟─b14da0d1-63da-44aa-b1fd-4340ec64528e
+# ╠═b14da0d1-63da-44aa-b1fd-4340ec64528e
 # ╟─516fe726-9d67-44dd-bbdb-f0ec17841185
 # ╟─dc93e1ef-c947-465c-ab37-b1fd251b695d
 # ╟─64213279-f47a-4b46-b1ac-730945d5b8f1
@@ -2853,6 +2918,7 @@ end
 # ╠═4935697c-974b-4de8-8182-b5c33f3628f4
 # ╟─acf85ab7-3d8b-4e83-8a73-1ed00598882f
 # ╟─4ae6b55e-952a-4b70-937f-c81a2f790e83
+# ╠═8324d6c9-f46a-4724-be76-5eb92f753e21
 # ╟─faccedff-2a3a-40b1-ae88-c42a69112d16
 # ╟─1634883c-2a93-4b31-bc3a-662a894733c4
 # ╟─f409f3e8-ef97-4fb9-a8e6-7a8f1e2b2d22

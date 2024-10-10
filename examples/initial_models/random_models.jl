@@ -177,7 +177,7 @@ begin
 	)=#
 
 
-	# select a few ulta-low metallicity stars
+	# select a few special stars
 	
 	#=paras = zeros(2, 3)
 	paras[:, 1] = [6250.0, 5250.0]
@@ -250,7 +250,7 @@ We can add information about the EoS. This will make the interpolation better be
 #extension="magg_m4_a4_c3_vmic2"
 
 # ╔═╡ 6dd1a861-7654-4f5a-b871-3f2526154d26
-#extension="magg_m0_a0"
+extension="magg_m0_a0"
 
 # ╔═╡ cb7d1e6e-5462-44e9-88d0-96a27a85990c
 #extension="magg_m10_vmic2"
@@ -265,7 +265,7 @@ extension="magg_m10_a4_c3_vmic2"
 #mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(extension)_v1.8"
 
 # ╔═╡ 1191c34a-c27e-4eff-875a-57f7fc043ee9
-#mother_table_path = "../../../opacity_tables/TSO_MARCS_$(extension)_v1.8"
+mother_table_path = "../../../opacity_tables/TSO_MARCS_$(extension)_v1.8"
 
 # ╔═╡ 5e777d3b-2db8-4e82-a125-564c7db64281
 #=mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_M3D_magg_m1_a0_c1_v3.0"=#
@@ -280,13 +280,13 @@ mother_table_path = "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/op
 
 
 # ╔═╡ 1ca259f3-54b6-4c96-8930-eab6454a2cd2
-#eos_mother_path = "ross_combined_eos_$(extension).hdf5"
+eos_mother_path = "ross_combined_eos_$(extension).hdf5"
 
 # ╔═╡ b40c3cee-303b-4a24-9692-fc92a69a9b50
 #eos_mother_path = "combined_eos_magg_m1_a0_c1.hdf5"
 
 # ╔═╡ 03cde4ab-bd80-4476-a27a-750a13935a96
-eos_mother_path = "combined_eos_$(extension).hdf5"
+#eos_mother_path = "combined_eos_$(extension).hdf5"
 
 # ╔═╡ af910237-0a7d-4b58-a870-1fbcfd5e883e
 
@@ -436,6 +436,20 @@ end
 begin
 	plot(framestyle=:box, grid=false)
 
+	
+
+	#plot!(xlim=[minimum(-m1.z), maximum(-m1.z)])
+	#plot!(ylim=[minimum(m1.lnT), maximum(m1.lnT)])
+	plot!(xlabel="z", ylabel="log T")
+	
+	
+	plot!()
+end
+
+# ╔═╡ dbee67e3-ee0a-4954-9ead-033141c8bf2f
+begin
+	plot(framestyle=:box, grid=false)
+
 	plot!(
 		log10.(m1.τ), m1.lnT, linewidth=3, color=:red, 
 		label="T:$(ig["teff", i_select]) G:$(ig["logg", i_select]) M:$(ig["feh", i_select])"
@@ -474,8 +488,39 @@ begin
 	#plot!(ylim=[minimum(m1.lnT), maximum(m1.lnT)])
 	plot!(xlabel="z", ylabel="log T")
 	
-
 	plot!()
+end
+
+# ╔═╡ ba92c5a2-fc64-431f-bb0f-0e8af8437b0f
+begin
+	m1t = @optical Average3D(eos[1], ig["av_path", 1]) eos[1]
+	m2t = @optical Average3D(eos[2], ig["av_path", 2]) eos[2]
+end
+
+# ╔═╡ 1d80590e-fca6-4200-a9e2-c6e2299330a2
+let
+	plot(framestyle=:box, grid=false)
+
+	plot!(log10.(m1t.τ), exp.(m1t.lnT), label="interpolated")
+
+	Tselect = [6500.0, 6000.0, 5777.]
+	loggselect = [4.0, 4.0, 4.44]
+	for (t, l) in zip(Tselect, loggselect)
+		mask = (grid["teff", !] .== t) .& (grid["logg", !] .== l) .& (grid["feh", !] .== 0.0) 
+		i = findfirst(mask)
+		mi = @optical other_models[i] eos[1]
+		plot!(log10.(mi.τ), exp.(mi.lnT), label="T:$(t), logg:$(l)")
+	end
+	
+	plot!(xlim=(-6, 6.5), ylim=(1000,40000))
+end
+
+# ╔═╡ d9e75d15-d74c-4d7a-8f8b-c71380d3bd44
+let 
+	mask = (grid["teff", !] .== 5777.0) .& (grid["logg", !] .== 4.44) .& (grid["feh", !] .== 0.0) 
+	i = findfirst(mask)
+	mi = @optical other_models[i] eos[1]
+	writedlm("test_sun.csv", [log10.(mi.τ) exp.(mi.lnT) mi.lnρ mi.z])
 end
 
 # ╔═╡ db086ed6-641b-47df-a5df-bcc6df2cbd84
