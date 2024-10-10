@@ -662,7 +662,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     nothing
 end
 
-create_namelist!(grid::MUST.Atmos1DGrid; kwargs...) = begin
+create_namelist!(grid::MUST.Atmos1DGrid, eos_dispatch_root="input_data/grd/"; kwargs...) = begin
     g(i, v) = grid.info[i, v]
 
     names = []
@@ -686,11 +686,11 @@ create_namelist!(grid::MUST.Atmos1DGrid; kwargs...) = begin
                                 g(i, "ee0"),
                                 g(i, "zee0"),
                                 g(i, "initial_model_size"),
-                                joinpath("input_data/grd/", 
+                                joinpath(eos_dispatch_root, 
                                             g(i, "binned_E_tables"), 
                                             "inim.dat"),
                                 g(i, "rad_bins"),
-                                joinpath("input_data/grd/", 
+                                joinpath(eos_dispatch_root, 
                                             g(i, "binned_E_tables")),
                                 g(i, "tscale"),
                                 g(i, "vmax"),

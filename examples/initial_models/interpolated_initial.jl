@@ -135,7 +135,7 @@ s = ArgParseSettings()
     "--upper_bc"
         help = "Upper boundary condition."
         arg_type = Int
-        default = 7
+        default = 2
     "--lower_bc"
         help = "Upper boundary condition."
         arg_type = Int
@@ -143,7 +143,7 @@ s = ArgParseSettings()
     "--radiation_bc"
         help = "Upper RT boundary condition."
         arg_type = Int
-        default = 3
+        default = 1
     "--smallr"
         help = "Lower density limit."
         arg_type = Float64
@@ -155,7 +155,7 @@ s = ArgParseSettings()
     "--dtau_min"
         help = "Minimum optical depth increment for RT solver."
         arg_type = Float64
-        default = 1.0e-7
+        default = 1.0e-3
     "--dtau_max"
         help = "Maximum optical depth increment for RT solver."
         arg_type = Float64
@@ -246,6 +246,8 @@ begin
             :solver=>arguments["rt_solver"],
             :dtau_min=>arguments["dtau_min"],
             :dtau_max=>arguments["dtau_max"],
+            :linearize=>true,
+            :kappa_limit=>false
         ),
         :dispatcher0_params=>(
             :retry_stalled=>60,

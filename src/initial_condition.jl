@@ -171,6 +171,7 @@ function prepare(
 	clean_namelists = false,
     clean_logs = false,
     gaussian_filter_radius=-1,
+    eos_dispatch_root="input_data/grd/",
 	make_quadrants = (name, eos_root, opa_path) -> begin
 		qlim = round(
 			quadrantlimit(name, eos_root, opa_path, λ_lim=5.0), 
@@ -343,7 +344,7 @@ function prepare(
         )
     end
 
-    create_namelist!(grid; namelist_kwargs...)
+    create_namelist!(grid, eos_dispatch_root; namelist_kwargs...)
     for i in 1:nrow(grid.info)
         cp(grid.info[i, "namelist_name"], joinpath(grid.info[i, "binned_E_tables"], "ininml.dat"), force=true)
         cp(joinpath(grid.info[i, "binned_tables"], "bin_assignment.hdf5"), joinpath(grid.info[i, "binned_E_tables"], "bin_assignment.hdf5"), force=true)
