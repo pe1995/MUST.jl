@@ -89,20 +89,20 @@ absolute_path!(grid; from=@__FILE__) = begin
 	end
 end
 
-relative_path(from, to) = begin
-	fstag = basename(from)
-	feos = basename(to)
-	stag_path = split(dirname(from), "/", keepempty=false)
-	eos_path = split(dirname(to), "/", keepempty=false)
+relative_path(relative_to, abs_path) = begin
+	filename = basename(abs_path)
 
-	i = findfirst(x->!(x in eos_path), stag_path)
-	i = isnothing(i) ? length(stag_path) + 1 : i
-	ieos = findfirst(eos_path .== stag_path[i-1]) + 1 
+	relative_to_components = split(dirname(relative_to), "/", keepempty=false)
+	abs_path_components = split(dirname(abs_path), "/", keepempty=false)
 
-	path_difference = i > length(stag_path) ? [] : stag_path[i:end]
-	eos_path_difference = eos_path[ieos:end]
-	
-	joinpath([".." for _ in path_difference]..., eos_path_difference..., feos)
+	n_components = length(abs_path_components)
+	n_new_components = length(relative_to_components)
+	i = findfirst(x->!(x in relative_to_components), abs_path_components)
+	i = isnothing(i) ? n_components + 1 : i
+	different_components = i>n_components ? [] : abs_path_components[i:end]
+	from_node_to_new_path_components = i>n_new_components ? [] : relative_to_components[i:end]
+
+	joinpath([".." for i in from_node_to_new_path_components]..., different_components..., filename)
 end
 
 """
