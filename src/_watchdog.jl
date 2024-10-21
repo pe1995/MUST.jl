@@ -265,6 +265,7 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     Tplane = b[:T][:, :, end]
     Dplane = log.(b[:d][:, :, end])
     Eplane = log.(b[:e][:, :, end])
+    Pgplane = log.(b[:Pg][:, :, end])
     dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][:, :, end] : nothing
     fluxplane = haskey(b.data, :flux) ? b[:flux][:, :, end] : nothing
     qrplane = haskey(b.data, :qr) ? b[:qr][:, :, end] : nothing
@@ -279,6 +280,7 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
         "Tplane" => Tplane,
         "lnDplane" => Dplane,
         "lnEplane" => Eplane,
+        "lnPgplane" => Pgplane,
         "x" => b.x[:, :, end],
         "y" => b.y[:, :, end]
     )
@@ -591,8 +593,7 @@ resolvedSpectraGaiaESOHR10(w::WatchDog, b, bτ) = resolvedSpectra(5339.0, 5619.0
 resolvedSpectraGaiaRVS(w::WatchDog, b, bτ) = resolvedSpectra(8470.0, 8740.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 resolvedSpectraGaiaRVSCATriplet(w::WatchDog, b, bτ) = resolvedSpectra(8480.0, 8560.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 resolvedSpectraHalpha(w::WatchDog, b, bτ) = resolvedSpectra(6562.8-20.0, 6562.8+20.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
-
-
+resolvedSpectraGBand(w::WatchDog, b, bτ) = resolvedSpectra(4297.0, 4303.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 
 
 
@@ -632,9 +633,9 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     geometrical90thQuantile = geometrical90thQuantile,
     centerVerticalCut = centerVerticalCut,
     #resolvedSpectraAPOGEESDSSV = resolvedSpectraAPOGEESDSSV,
-    resolvedSpectraGaiaESOHR10 = resolvedSpectraGaiaESOHR10,
-    resolvedSpectraGaiaRVS = resolvedSpectraGaiaRVS,
-    resolvedSpectraGaiaRVSCATriplet = resolvedSpectraGaiaRVSCATriplet,
+    #resolvedSpectraGaiaESOHR10 = resolvedSpectraGaiaESOHR10,
+    #resolvedSpectraGaiaRVS = resolvedSpectraGaiaRVS,
+    #resolvedSpectraGaiaRVSCATriplet = resolvedSpectraGaiaRVSCATriplet,
     resolvedSpectraHalpha = resolvedSpectraHalpha,
     additional_functions...
 )

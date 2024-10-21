@@ -230,7 +230,7 @@ begin
         ),
         :an_params=>(
             :smallr=>arguments["smallr"],
-            :dlnr_limit=>7.7
+            #:dlnr_limit=>7.7
         ),
         :patch_params=>(
             :grace=>0.01,
