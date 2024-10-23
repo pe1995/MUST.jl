@@ -481,6 +481,7 @@ end
 
 
 
+
 #= Spectrum synthesis =#
 
 resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ=nothing) = begin
@@ -586,7 +587,6 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
     d
 end
 
-
 resolvedSpectra4MOST3(w::WatchDog, b, bτ) = resolvedSpectra(6200.0, 6790.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 resolvedSpectraAPOGEESDSSV(w::WatchDog, b, bτ) = resolvedSpectra(15140.0, 17000.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 resolvedSpectraGaiaESOHR10(w::WatchDog, b, bτ) = resolvedSpectra(5339.0, 5619.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
@@ -667,6 +667,29 @@ end
 
 convertedBoxes(w) = converted_snapshots(w.folder)
 
+
+"""
+    add!(w::WatchDog, snapshot; stats...)
+
+Add the given statistics to the watchdog data after the creation of the monitoring.
+
+# Examples
+```jl
+
+```
+"""
+function add!(w::WatchDog, snapshot; stats...)
+    # Make sure the data of this snapshot is loaded
+    data = reload(w, snapshot, mmap=false, groups=nothing)
+
+    # Add every statistic that is wanted
+    for (name, stat) in stats
+        data[String(name)] = stat
+    end
+
+    # save the updated monitoring
+    save(w, data)
+end
 
 
 
