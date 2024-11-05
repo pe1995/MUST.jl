@@ -18,7 +18,7 @@ function srun_dispatch(nml_name; threads::Int, memMB::Int, timeout::String, wait
 	# Do an export script before
 	open(exec_path, "w") do f
 		write(f, "#!/bin/bash\n")
-		write(f, "source ~/.bashrc\n")
+		#write(f, "source ~/.bashrc\n")
 		write(f, "export KMP_NUM_THREADS=$(threads)\n")
 		write(f, "export OMP_NUM_THREADS=$(threads)\n")
 		write(f, "./dispatch.x $(nml_name)")
@@ -44,7 +44,7 @@ function run_dispatch(nml_name; threads=70, wait=true, ddir=@in_dispatch(""))
     # Do an export script before
     open(exec_path, "w") do f
     write(f, "#!/bin/bash\n")
-    write(f, "source ~/.bashrc\n")
+    #write(f, "source ~/.bashrc\n")
     write(f, "export KMP_NUM_THREADS=$(threads)\n")
     write(f, "export OMP_NUM_THREADS=$(threads)\n")
     write(f, "./dispatch.x $(nml_name)")
@@ -84,7 +84,7 @@ function srun_m3dis(nml_name;
 	# Do an export script before
 	open(exec_path, "w") do f
 		write(f, "#!/bin/bash\n")
-		write(f, "source ~/.bashrc\n")
+		#write(f, "source ~/.bashrc\n")
 		write(f, "export KMP_NUM_THREADS=$(threads)\n")
 		write(f, "export OMP_NUM_THREADS=$(threads)\n")
 		write(f, "./dispatch.x $(nml_name)")
@@ -110,7 +110,7 @@ function run_m3dis(nml_name; threads=70, wait=true, ddir=@in_m3dis(""))
     # Do an export script before
     open(exec_path, "w") do f
     write(f, "#!/bin/bash\n")
-    write(f, "source ~/.bashrc\n")
+    #write(f, "source ~/.bashrc\n")
     write(f, "export KMP_NUM_THREADS=$(threads)\n")
     write(f, "export OMP_NUM_THREADS=$(threads)\n")
     write(f, "./dispatch.x $(nml_name)")
