@@ -636,7 +636,7 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     #resolvedSpectraGaiaESOHR10 = resolvedSpectraGaiaESOHR10,
     #resolvedSpectraGaiaRVS = resolvedSpectraGaiaRVS,
     #resolvedSpectraGaiaRVSCATriplet = resolvedSpectraGaiaRVSCATriplet,
-    resolvedSpectraHalpha = resolvedSpectraHalpha,
+    #resolvedSpectraHalpha = resolvedSpectraHalpha,
     additional_functions...
 )
 
