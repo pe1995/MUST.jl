@@ -89,52 +89,70 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
     ax_3d = fig_3d.add_subplot(111, projection="3d")
 
 
-    mask_x1 = (X .>= limx) .& (Z .>= limz) .& (Y .<= limy)
-    data[mask_x1] .= NaN
+    #mask_x1 = (X .>= limx) .& (Z .>= limz) .& (Y .<= limy)
+    #data[mask_x1] .= NaN
 
-
-    # The cube faces
-    im_3d = ax_3d.scatter(X[:,   1,  :],   
-    Y[:,   1, :],   
-    Z[:,   1, :],   
-    c=data[:,   1, :],   
-    s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap)
-    im_3d = ax_3d.scatter(X[end, :,  :],   
-    Y[end, :, :],   
-    Z[end, :, :],   
-    c=data[end, :, :],   
-    s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap)
-    im_3d = ax_3d.scatter(X[:,   :,  end], 
-    Y[:,   :, end], 
-    Z[:,   :, end], 
-    c=data[:,   :, end], 
-    s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap)
-
-
-
-
-    # Draw the cut out part
+    # cut out part
     i_startx = findfirst(X[:, 1, 1] .> limx) 
     i_starty = findlast(Y[1, :, 1]  .<= limy)
     i_startz = findfirst(Z[1, 1, :] .> limz) 
 
+
+    # The cube faces
+    # X Face
+    im_3d = ax_3d.scatter(X[:, 1, 1:i_startz-1],   # all x until z window
+                          Y[:, 1, 1:i_startz-1],   
+                          Z[:, 1, 1:i_startz-1],   
+                     c=data[:, 1, 1:i_startz-1],   
+                        s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
+    im_3d = ax_3d.scatter(X[1:i_startx, 1, :],   
+                          Y[1:i_startx, 1, :],  # all z until x window
+                          Z[1:i_startx, 1, :],   
+                     c=data[1:i_startx, 1, :],   
+                        s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
+
+    # Y Face
+    im_3d = ax_3d.scatter(X[end, i_starty+1:end, :],   
+                          Y[end, i_starty+1:end, :],   
+                          Z[end, i_starty+1:end, :],   
+                     c=data[end, i_starty+1:end, :],   
+                        s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
+    im_3d = ax_3d.scatter(X[end, :, 1:i_startz-1],   
+                          Y[end, :, 1:i_startz-1],  
+                          Z[end, :, 1:i_startz-1],   
+                     c=data[end, :, 1:i_startz-1],   
+                        s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
+
+    # Z Face
+    im_3d = ax_3d.scatter(X[1:i_startx, :, end],   
+                          Y[1:i_startx, :, end],   
+                          Z[1:i_startx, :, end],   
+                     c=data[1:i_startx, :, end],   
+                        s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
+    im_3d = ax_3d.scatter(X[:, i_starty+1:end, end],   
+                          Y[:, i_starty+1:end, end], 
+                          Z[:, i_starty+1:end, end],   
+                     c=data[:, i_starty+1:end, end],   
+                        s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
+
+    # Draw the cut out part
     im_3d = ax_3d.scatter(  X[i_startx,   1:i_starty, i_startz:end],   
                             Y[i_startx,   1:i_starty, i_startz:end],   
                             Z[i_startx,   1:i_starty, i_startz:end],   
-                            c=m_3d[var][i_startx,   1:i_starty, i_startz:end],   
-                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=0)
+                  c=m_3d[var][i_startx,   1:i_starty, i_startz:end],   
+                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=1, rasterized=true, marker="s")
 
     im_3d = ax_3d.scatter(  X[i_startx:end,   1:i_starty, i_startz],   
                             Y[i_startx:end,   1:i_starty, i_startz],   
                             Z[i_startx:end,   1:i_starty, i_startz],   
-                            c=m_3d[var][i_startx:end,   1:i_starty, i_startz],   
-                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=0)
+                  c=m_3d[var][i_startx:end,   1:i_starty, i_startz],   
+                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=1, rasterized=true, marker="s")
 
     im_3d = ax_3d.scatter(  X[i_startx:end,   i_starty, i_startz:end],   
                             Y[i_startx:end,   i_starty, i_startz:end],   
                             Z[i_startx:end,   i_starty, i_startz:end],   
-                            c=m_3d[var][i_startx:end,   i_starty, i_startz:end],   
-                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=0)
+                  c=m_3d[var][i_startx:end,   i_starty, i_startz:end],   
+                            s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=1, rasterized=true, marker="s")
 
 
 

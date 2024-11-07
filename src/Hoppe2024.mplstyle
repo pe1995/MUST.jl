@@ -335,14 +335,14 @@ font.size:    10.0
 #axes.grid.which:    major   # gridlines at {major, minor, both} ticks
 #axes.titlelocation: center  # alignment of the title: {left, right, center}
 axes.titlesize:     medium   # fontsize of the axes title
-axes.titleweight:   bold  # font weight of title
+axes.titleweight:   normal  # font weight of title
 #axes.titlecolor:    auto    # color of the axes title, auto falls back to
                              # text.color as default value
 #axes.titley:        None    # position title (axes relative units).  None implies auto
 #axes.titlepad:      6.0     # pad between axes and title in points
 #axes.labelsize:     medium  # fontsize of the x any y labels
 #axes.labelpad:      4.0     # space between label and axis
-axes.labelweight:   bold  # weight of the x and y labels
+axes.labelweight:   normal  # weight of the x and y labels
 #axes.labelcolor:    black
 #axes.axisbelow:     line    # draw axis gridlines and ticks:
                              #     - below patches (True)
