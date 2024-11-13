@@ -103,23 +103,31 @@ function interpolation_weights(ingrid, outgrid)
 	indices = zeros(Int, length(outgrid))
 
 	for i in eachindex(outgrid)
-		if outgrid[i] < first(ingrid)
-			indices[i] = 1
-			weights[i, 1] = 1.0
-			weights[i, 2] = 0.0
+		x0, x1 = if outgrid[i] < first(ingrid)
+            # Extrapolate below the first point
+            indices[i] = 1
+            x0, x1 = ingrid[1], ingrid[2]
+
+			#weights[i, 1] = 1.0
+			#weights[i, 2] = 0.0
 		elseif outgrid[i] >= last(ingrid)
-			indices[i] = length(ingrid)-1
-			weights[i, 1] = 0.0
-			weights[i, 2] = 1.0
+			# Extrapolate above the last point
+            indices[i] = length(ingrid) - 1
+            x0, x1 = ingrid[end-1], ingrid[end]
+
+			#weights[i, 1] = 0.0
+			#weights[i, 2] = 1.0
 		else
 			indices[i] = findfirst(x->x>outgrid[i], ingrid) -1	
 
-			x0 = ingrid[indices[i]]
-			x1 = ingrid[indices[i]+1]
+			x0, x1 = ingrid[indices[i]], ingrid[indices[i]+1]
 			
-			weights[i, 1] = (x1-outgrid[i]) / (x1-x0)
-			weights[i, 2] = (outgrid[i]-x0) / (x1-x0)
+			#weights[i, 1] = (x1-outgrid[i]) / (x1-x0)
+			#weights[i, 2] = (outgrid[i]-x0) / (x1-x0)
 		end
+
+        weights[i, 1] = (x1-outgrid[i]) / (x1-x0)
+	    weights[i, 2] = (outgrid[i]-x0) / (x1-x0)
 	end
 
 	weights, indices
