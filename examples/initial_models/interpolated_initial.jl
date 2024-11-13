@@ -99,7 +99,7 @@ s = ArgParseSettings()
     "--newton_time"
         help = "End time of Newton cooling."
         arg_type = Float64
-        default = 100.0
+        default = 50.0
     "--friction_time"
         help = "End time of artifical friction."
         arg_type = Float64

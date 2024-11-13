@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.41
+# v0.20.0
 
 using Markdown
 using InteractiveUtils
@@ -255,8 +255,8 @@ md"Enter the folder where EoS tables can be found:"
 # ╔═╡ 91ddaf2d-abd6-4e2d-92eb-cfa7d0ba79bc
 function eos_input(simulation_names::Vector)
 	all_eos = glob("*/", @in_dispatch(eosfolder))
-	all_eos = convert.(String, last.(split.(all_eos, "/", keepempty=false)))
-	all_eos = [a for a in all_eos if isfile(joinpath(a, "eos.hdf5"))]
+	all_eos = dirname.(all_eos)
+	all_eos = [basename(a) for a in all_eos if isfile(joinpath(a, "eos.hdf5"))]
 	simulation_names = convert.(String, simulation_names)
 
 	return combine() do Child
@@ -395,7 +395,7 @@ md"# Figure layout"
 md"### Colors"
 
 # ╔═╡ 9ea4e08e-62aa-44c3-bbf0-78b1954a9c4f
-cmap = plt.get_cmap("rainbow")
+cmap = plt.get_cmap("hsv")
 
 # ╔═╡ c4015f47-d670-4c5d-885c-cf32b6f15829
 cmap_initial = plt.get_cmap("hsv")
@@ -801,9 +801,9 @@ plot_given && (length(eos)>0) && let
 	xx, yy = TSO.meshgrid(@axed(eos_plot))
 	yy = log10.(exp.(yy))
 	xx = log10.(exp.(xx))
-	im = axA.scatter(yy, xx, c=log10.(exp.(eos_plot.lnRoss)), cmap="rainbow", s=2)
+	im = axA.pcolormesh(yy, xx, log10.(opa_plot.κ[:,:,4]./exp10.(yy)), cmap="hsv", rasterized=true)
 	c = fA.colorbar(im, ax=axA)
-	c.set_label("rosseland opacity")
+	c.set_label("opacity")
 	
 	for name in keys(snapshots)
 		for (j, snap) in enumerate(snapshots[name])
@@ -827,6 +827,40 @@ plot_given && (length(eos)>0) && let
 				color=colors[name][j], 
 				label=labels[name][j] *" max(T)-min(ρ) "
 			)
+
+			_, T = profile(minimum, snap, :z, :log10T)
+			_, d = profile(maximum, snap, :z, :log10d)
+	
+			axA.plot(
+				d, T,
+				lw=2.5, 
+				ls=":",
+				color=colors[name][j], 
+				label=labels[name][j] *" min(T)-max(ρ) "
+			)
+
+			T = log10.(snap[:T][:,:,end])
+			d = log10.(snap[:d][:,:,end])
+	
+			#=axA.scatter(
+				d, T,
+				s = 0.01, marker="X",
+				color="k", 
+				label="upper boundary"
+			)=#
+
+			T = log10.(snap[:T][13:19, 52:65, end])
+			d = log10.(snap[:d][13:19, 52:65, end])
+	
+			#=axA.scatter(
+				d, T,
+				s = 0.01, marker="X",
+				color="magenta", 
+				label="artefact"
+			)=#
+
+			
+			
 		end
 	end
 
@@ -1087,12 +1121,13 @@ begin
 			eos_plot = eos[name]
 			opa_plot = opa[name]
 
-			ip = 3
-			opa_i_surf = log10.(exp.(lookup(
-				eos_plot, :lnRoss,
+			ip = 0
+			opa_i_surf = log10.(lookup(
+				eos_plot, opa_plot, :κ,
 				log.(snap[:d][:, :, end-ip]), 
-				log.(snap[:T][:, :, end-ip])
-			) .+ log.(snap[:d][:, :, end-ip])))
+				log.(snap[:T][:, :, end-ip]),
+				4
+			))
 			append!(opaSurf[name], [opa_i_surf])
 		end
 	end
@@ -1122,7 +1157,9 @@ let
 				)
 		
 				cb = fD.colorbar(i, ax=axD, fraction=0.046, pad=0.04)
+				#cb.set_label(L"\rm \kappa\ [cm^{2}/g]")
 				cb.set_label(L"\rm \kappa\ \rho\ [cm^{-1}]")
+				#cb.set_label(L"\rm src")
 				#cb.set_label(L"\rm T\ [K]")
 		
 				axD.set_xlabel("x [cm]")
@@ -1148,7 +1185,7 @@ begin
 	dSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			d_i_surf = snap[:d][:, :, end-3]
+			d_i_surf = snap[:d][:, :, end]
 			append!(dSurf[name], [d_i_surf])
 		end
 	end
@@ -1233,7 +1270,7 @@ begin
 	TSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			d_i_surf = snap[:T][:, :, end-3]
+			d_i_surf = snap[:T][13:19, 52:65, end]
 			append!(TSurf[name], [d_i_surf])
 		end
 	end
@@ -1311,7 +1348,7 @@ begin
 	uzSurf = Dict(name=>[] for name in keys(snapshots_τ))
 	for name in keys(snapshots_τ)
 		for (j, snap) in enumerate(snapshots[name])
-			uz_i_surf = snap[:uz][:, :, end-3] ./1e5
+			uz_i_surf = snap[:uz][:, :, end] ./1e5
 			append!(uzSurf[name], [uz_i_surf])
 		end
 	end
@@ -2043,7 +2080,7 @@ end
 # ╟─ca654dd1-e8d6-4082-bf11-ab92e91b450f
 # ╟─bb0cb1ab-7e03-4a5e-bfd8-60bf17e007d5
 # ╟─b7c0a489-b7f7-4105-bce3-ae0c1074c650
-# ╟─9ea4e08e-62aa-44c3-bbf0-78b1954a9c4f
+# ╠═9ea4e08e-62aa-44c3-bbf0-78b1954a9c4f
 # ╠═c4015f47-d670-4c5d-885c-cf32b6f15829
 # ╟─13a647a4-3d71-4afb-ba31-867e108a8154
 # ╟─17ca4c8c-9563-4be4-8ab7-a7446ba28dec
@@ -2070,7 +2107,7 @@ end
 # ╟─4d623d6f-7366-468b-930e-71878b72aa5f
 # ╟─3bf11523-ad8f-49c9-84dc-5554364a8b3b
 # ╟─743e2ce6-2310-4162-aacb-dfddee677d44
-# ╟─0b9f46ed-4c03-4deb-8ca9-717c25df2516
+# ╠═0b9f46ed-4c03-4deb-8ca9-717c25df2516
 # ╟─434e3e6e-94d0-4e3f-ba04-59029a39c85d
 # ╟─292e9c4b-10d9-4cf9-b5e7-2594eec4bcfd
 # ╟─795357b7-4d73-4bb6-899a-574183fc97e1
@@ -2091,12 +2128,12 @@ end
 # ╟─11f2ffcb-3bcb-4e9e-b0d0-cc1070029648
 # ╟─4c6a8975-c2a7-43ac-a5da-4b1714d923e3
 # ╠═59a389f7-382d-4540-8d49-ded5cd0f9895
-# ╟─0b93eda7-ea74-4969-a68c-60022cd1f69e
+# ╠═0b93eda7-ea74-4969-a68c-60022cd1f69e
 # ╟─0446831c-3e40-45e1-b10b-c37532c879e1
 # ╟─4d0ce543-d551-481b-97c4-2585d3befd0a
 # ╠═99f5fdef-8c58-4ac5-a00c-2d5af409284d
 # ╟─2783c9a7-8e39-45ce-b823-8d26e94b99d9
-# ╟─e9f71534-e9a2-47ac-95a4-10717c1a38f8
+# ╠═e9f71534-e9a2-47ac-95a4-10717c1a38f8
 # ╟─b3b13fff-3006-4b2c-90cc-b4c793dc30a0
 # ╟─c4a4e8e9-e14b-4ce7-b574-1e4547c31a41
 # ╟─75293185-4d04-4b31-8dd9-cde3b180b13d

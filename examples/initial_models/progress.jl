@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.46
+# v0.19.47
 
 using Markdown
 using InteractiveUtils
@@ -42,8 +42,11 @@ TableOfContents()
 # ╔═╡ 78c88a26-1e84-4ba2-a8f2-d4c7f6468dd3
 @import_dispatch "../../../dispatch2"
 
-# ╔═╡ e2e0b39b-9c60-4630-817b-f180c2631a08
+# ╔═╡ 62ea4c1a-e536-4cd0-b0dc-75e9890830a1
 datafolder = @in_dispatch "data" 
+
+# ╔═╡ e2e0b39b-9c60-4630-817b-f180c2631a08
+#datafolder = @in_dispatch "../../../../stat_test/StAt/stellar_atmospheres/data" 
 
 # ╔═╡ 409ff57f-8d9d-419b-b448-fdf40c0843b4
 begin
@@ -609,6 +612,52 @@ let
 	gcf()
 end
 
+# ╔═╡ 766ac014-c756-4398-85d7-98da4e352262
+haskey(tuppersurfaces, "lnPgplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+
+	cs = sqrt.(1.2 .* exp.(tuppersurfaces["lnPgplane"][itimeSurface])./ exp.(tuppersurfaces["lnDplane"][itimeSurface]))
+	i = ax[0].imshow(
+		tuppersurfaces["uzplane"][itimeSurface] ./ cs,
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm_r"
+	)
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+
+	cs = sqrt.(1.2 .* exp.(tuppersurfaces["lnPgplane"][itimeSurface2])./ exp.(tuppersurfaces["lnDplane"][itimeSurface2]))
+	i = ax[1].imshow(
+		tuppersurfaces["uzplane"][itimeSurface2] ./ cs,
+		origin="lower",
+		extent=extent,
+		cmap="coolwarm_r"
+	)
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm v_z\ /\ c_s")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[1].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+	
+	gcf()
+end
+
 # ╔═╡ ed29d53f-00bc-4295-93f6-864a44f92ccb
 let 
 	plt.close()
@@ -898,6 +947,53 @@ haskey(tuppersurfaces, "qrplane") && let
 	gcf()
 end
 
+# ╔═╡ 459fbdeb-047b-43a2-a5fd-0d74f1fce177
+haskey(tuppersurfaces, "qrplane") && let 
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 6))
+
+	x = tuppersurfaces["x"][itimeSurface] ./1e8
+	y = tuppersurfaces["y"][itimeSurface] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[0].imshow(
+		log10.(exp.(tuppersurfaces["lnEplane"][itimeSurface]) ./ abs.(tuppersurfaces["qrplane"][itimeSurface])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[0], fraction=0.046, pad=0.04)
+
+	ax[0].set_xlabel("x [Mm]")
+	ax[0].set_ylabel("y [Mm]")
+
+
+
+	x = tuppersurfaces["x"][itimeSurface2] ./1e8
+	y = tuppersurfaces["y"][itimeSurface2] ./1e8
+
+	extent = [minimum(x), maximum(x), minimum(y), maximum(y)]
+	
+	i = ax[1].imshow(
+		log10.(exp.(tuppersurfaces["lnEplane"][itimeSurface2]) ./ abs.(tuppersurfaces["qrplane"][itimeSurface2])),
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat"
+	)
+	
+	cb = f.colorbar(i, ax=ax[1], fraction=0.046, pad=0.04)
+	cb.set_label(L"\rm log_{10}\ E_i/Q\ [s]")
+
+	ax[0].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface])) s")
+	ax[1].set_title("t = $(MUST.@sprintf("%i", time[itimeSurface2])) s")
+
+	ax[1].set_xlabel("x [Mm]")
+	
+	gcf()
+end
+
 # ╔═╡ 0e3d2723-1ecb-4e5a-8125-78f6f27407e2
 if haskey(tuppersurfaces, "dtplane") 
 	let 
@@ -1046,6 +1142,9 @@ haskey(tuppersurfaces, "sourcefunctionplane") && let
 	
 	gcf()
 end
+
+# ╔═╡ 03c4c73e-2209-44d9-9c3b-59ee99857c3d
+
 
 # ╔═╡ 3403a014-2441-4ad2-95f6-2e686ae99ba8
 
@@ -1553,6 +1652,58 @@ let
 
 	ax.set_xlabel("z [Mm]")
 	ax.set_ylabel(L"\rm rms\ v_z\ [km\ s^{-1}]")
+	ax.legend()
+
+	gcf()
+end
+
+# ╔═╡ 1d8cdfe1-24fa-4159-aac5-c850ea83083f
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	cs_mean = sqrt.(1.2 .* tGeoAv["Pg"][itimeSurface] ./ tGeoAv["d"][itimeSurface])./1e5
+	cs_max = sqrt.(1.2 .* tGeoMax["Pg"][itimeSurface] ./ tGeoMin["d"][itimeSurface])./1e5
+	cs_min = sqrt.(1.2 .* tGeoMin["Pg"][itimeSurface] ./ tGeoMax["d"][itimeSurface])./1e5
+	x, y = tGeoMax["z"][itimeSurface] ./1e8, tGeoMax["uz"][itimeSurface]./1e5
+	ax.plot(
+		x, y./cs_mean,
+		color="cyan", marker="", ls="-"
+	)
+	x, y = tGeoMin["z"][itimeSurface] ./1e8, tGeoMin["uz"][itimeSurface]./1e5
+	ax.plot(
+		x, y./cs_mean,
+		color="magenta", marker="", ls="-"
+	)
+	x, y = tGeoRms["z"][itimeSurface] ./1e8, tGeoRms["uz"][itimeSurface] ./1e5
+	ax.plot(
+		x, y./cs_mean,
+		color="k", marker="", ls="-", label="t = $(time[itimeSurface]) s", lw=2.5
+	) 
+
+
+	cs_mean = sqrt.(1.2 .* tGeoAv["Pg"][itimeSurface2] ./ tGeoAv["d"][itimeSurface2])./1e5
+	cs_max = sqrt.(1.2 .* tGeoMax["Pg"][itimeSurface2] ./ tGeoMin["d"][itimeSurface2])./1e5
+	cs_min = sqrt.(1.2 .* tGeoMin["Pg"][itimeSurface2] ./ tGeoMax["d"][itimeSurface2])./1e5
+	x, y = tGeoMax["z"][itimeSurface2] ./1e8, tGeoMax["uz"][itimeSurface2]./1e5
+	ax.plot(
+		x, y./cs_mean,
+		color="cyan", marker="", ls="--",
+	) 
+	x, y = tGeoMin["z"][itimeSurface2] ./1e8, tGeoMin["uz"][itimeSurface2]./1e5
+	ax.plot(
+		x, y./cs_mean,
+		color="magenta", marker="", ls="--",
+	) 
+	x, y = tGeoRms["z"][itimeSurface2] ./1e8, tGeoRms["uz"][itimeSurface2] ./1e5
+	ax.plot(
+		x, y./cs_mean,
+		color="k", marker="", ls="--", label="t = $(time[itimeSurface2]) s", lw=2.
+	) 
+
+	ax.set_xlabel("z [Mm]")
+	ax.set_ylabel(L"\rm rms\ v_z\ / <c_s>")
 	ax.legend()
 
 	gcf()
@@ -3269,6 +3420,7 @@ end
 # ╠═2f1edd2a-b56e-11ee-29e7-c353938e7088
 # ╟─7cd7d6f0-8498-44ff-b59c-d298365d6416
 # ╠═78c88a26-1e84-4ba2-a8f2-d4c7f6468dd3
+# ╠═62ea4c1a-e536-4cd0-b0dc-75e9890830a1
 # ╠═e2e0b39b-9c60-4630-817b-f180c2631a08
 # ╟─409ff57f-8d9d-419b-b448-fdf40c0843b4
 # ╟─6754b2c3-d205-4a12-88b3-53fe62c5637f
@@ -3321,15 +3473,18 @@ end
 # ╟─7f77f259-505d-4344-8ee4-8628387f2401
 # ╟─cc5fbd5a-c8a0-471a-a56b-0512e4c3989b
 # ╟─495e3733-d290-40ab-af63-0eb10a033b53
+# ╟─766ac014-c756-4398-85d7-98da4e352262
 # ╟─ed29d53f-00bc-4295-93f6-864a44f92ccb
 # ╟─fa8161aa-0e1c-404f-8c7e-0e3914917df4
 # ╟─1a02decc-153e-44b5-9c00-818e1b8e7edf
 # ╟─c4262ea1-f6f1-4321-9fb1-9b674a6af49d
 # ╟─ef776fe2-5f0f-49a8-b2d5-2e1235d41ec1
 # ╟─ff3d827b-a0dd-4d86-bfd4-d25fc5f4ab3e
+# ╟─459fbdeb-047b-43a2-a5fd-0d74f1fce177
 # ╟─0e3d2723-1ecb-4e5a-8125-78f6f27407e2
 # ╟─ce073ce3-12f3-45f8-a86f-b1d08f16acce
 # ╟─f809f2ad-4f3e-4ad4-87ba-584e44585e7b
+# ╟─03c4c73e-2209-44d9-9c3b-59ee99857c3d
 # ╟─3403a014-2441-4ad2-95f6-2e686ae99ba8
 # ╟─77f5cb10-ce91-44c2-91c6-c01432655121
 # ╟─7532d800-c183-42d5-8bd0-9970ca507cfd
@@ -3347,6 +3502,7 @@ end
 # ╟─8ef763ae-d1bd-40de-a26a-f91f529c03bf
 # ╟─d9546636-2dbb-4b14-9954-76872b95fd06
 # ╟─7fd50fcd-8a9d-417d-a28a-febd9f0f68f3
+# ╟─1d8cdfe1-24fa-4159-aac5-c850ea83083f
 # ╟─cdfb5217-e298-4ee1-ac5d-f294d04f5abc
 # ╟─3a18524e-46bb-4874-8646-c6414dc92471
 # ╟─274d42e7-20eb-4560-a0f0-e4a631aedcec
