@@ -1076,8 +1076,8 @@ c = yb19[4:end, 8]
 
 # ╔═╡ b5896895-1bd7-40de-b86b-b326d502e587
 begin
-	p1 = (-4.0, 0.7-4+8.560, -0.55)
-	p2 = (-5.0, 3.5-5+8.560, -0.79+0.15)
+	p1 = (-4.0, 0.75-4+8.560, -0.55)
+	p2 = (-5.0, 3.0-5+8.560, -0.79+0.15)
 	
 	#=scatter_int(x, y) = MUST.pyconvert(typeof(x),
 		MUST.scipy_interpolate.griddata(
@@ -1247,24 +1247,19 @@ end
 
 Plot profile function of optical depth cube (500).
 """
-plot_profile(s, q; ax, kwargs...) = begin
-	krs = MUST.pyconvert(Array, s.run.nml["line_mask"]["cntrbf_lines"]) .-1
-	line = s.run.atom.trans[krs[1]]
-	xtau, ycontr = line.get_cntrbf(df=0)
-
+plot_profile(s, q; ax=nothing, kwargs...) = begin
 	x = MUST.pyconvert(Array, s.run.xx)
 	y = MUST.pyconvert(Array, s.run.yy)
 	z = MUST.pyconvert(Array, s.run.zz)
 	data = Dict(
 		:τ500 => exp10.(MUST.pyconvert(Array, s.run.ltau)),
-		:cont => MUST.pyconvert(Array, ycontr),
 		:T => MUST.pyconvert(Array, s.run.temp),
 		:d => MUST.pyconvert(Array, s.run.rho),
 	)
 
 	xx, yy, zz = MUST.meshgrid(x, y, z)
 	b = MUST.Box(xx, yy, zz, data, MUST.AtmosphericParameters())
-	bt = MUST.height_scale_fast(b, :τ500, logspace=true, dont_log=[:T, :cont])
+	bt = MUST.height_scale_fast(b, :τ500, logspace=true)
 
 	qs, logq = MUST.is_log(q)
 	
@@ -1272,17 +1267,19 @@ plot_profile(s, q; ax, kwargs...) = begin
 	h, x, y, p = plt.hist2d(
 		reshape(log10.(b[:τ500]), :), reshape(logq.(b[qs]), :), bins=200
 	)
-	ax.imshow(
-		h.T, 
-		origin="lower",
-		interpolation = "bicubic", 
-		extent=[minimum(x), maximum(x), minimum(y), maximum(y)],
-		cmap="GnBu", norm=matplotlib.colors.LogNorm(vmin=1), aspect="auto"
-	)
+	if !isnothing(ax)
+		ax.imshow(
+			h.T, 
+			origin="lower",
+			interpolation = "bicubic", 
+			extent=[minimum(x), maximum(x), minimum(y), maximum(y)],
+			cmap="GnBu", norm=matplotlib.colors.LogNorm(vmin=1), aspect="auto"
+		)
+	end
 	
 	#ax.hist2d(reshape(log10.(b[:τ500]), :), reshape(b[:T], :), rasterized=true, cmap="YlGnBu", bins=300, norm=matplotlib.colors.LogNorm())
 
-	ax.plot(profile(MUST.mean, bt, :log10τ500, q)...; kwargs...)
+	x, y = profile(MUST.mean, bt, :log10τ500, q)
 end
 
 # ╔═╡ 294fa362-da67-4a22-8a68-8619e185df6c
@@ -1295,6 +1292,13 @@ md"## [Fe/H]=-5, [C/Fe]=3.0"
 spectra_p8 = [
 	PlotDesign("t57.50g45.00m-5.000 CEMP - contr", "DISPATCH <3D>", "-", 2, "k"),
 	PlotDesign("MARCS t57.50g45.00m-5.000 no-CEMP - contr", "MARCS", "--", 2.5, "tomato"),
+]
+
+# ╔═╡ d5af99b0-8e95-4037-af01-1437f9aa0e04
+differences_p8 = [
+	PlotDesign("t57.50g45.00m-5.000 no-CEMP - C3.0", "DISPATCH <3D>", "-", 2, "k"),
+	PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0", L"\rm not\ CEMP - CEMP", "-", 2., "k"),
+	PlotDesign("MARCS t57.50g45.00m-5.000 no-CEMP - C3.0", L"\rm 3D - 1D", "--", 2., "tomato"),
 ]
 
 # ╔═╡ 43b4cf33-7efd-48b8-af90-66555c827b52
@@ -1408,27 +1412,65 @@ end
 let
 	f, ax = plt.subplots(1, 1, figsize=(6,5))
 	plt.close()
-	
+
 	for (i, p) in enumerate(spectra_p8)
 		k = p.key
 		if haskey(spectra3D, k)
 			s = spectra3D[k]
-			im = plot_profile(s, :T, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+			x, y = plot_profile(s, :T, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+
+			ax.plot(x, y; ls=p.ls, lw=p.lw, label=p.label, color=p.color)
 		else
 			s = spectra1D[k]
 			x = s.run.ltau
 			y = s.run.temp
 			ax.plot(x, y, color=p.color, lw=p.lw, label=p.label, ls=p.ls)
 		end
-		
 	end
 
+	left, bottom, width, height = [0.22, 0.52, 0.35, 0.3]
+	ax2 = f.add_axes([left, bottom, width, height], sharex=ax)
+
+	k = differences_p8[1].key
+	xref, yref = if haskey(spectra3D, k)
+		s = spectra3D[k]
+		plot_profile(s, :T)
+	else
+		s = spectra1D[k]
+		s.run.ltau, s.run.temp
+	end
+	
+	for (i, p) in enumerate(differences_p8)
+		(i == 1) && continue 
+		k = p.key
+		x, y = if haskey(spectra3D, k)
+			s = spectra3D[k]
+			plot_profile(s, :T)
+		else
+			s = spectra1D[k]
+			MUST.pyconvert(Array, s.run.ltau), MUST.pyconvert(Array, s.run.temp)
+		end
+		mask = sortperm(x)
+		fref = MUST.linear_interpolation(x[mask], y[mask], extrapolation_bc=MUST.Line())
+
+		ax2.plot(
+			xref, yref .- fref.(xref), 
+			color=p.color, lw=p.lw, label=p.label, ls=p.ls
+		)
+	end
+
+	ax2.set_title(L"\rm \Delta T\ [K]")
+	ax2.legend()
+
+	ax.axvline(-3.5, ls="-", color="k", alpha=0.1, lw=4)
+	ax.axvline(-1.2, ls="-", color="tomato", alpha=0.1, lw=4)
 	ax.set_xlim(-4.5, 3)
+	ax2.set_xlim(-4.5, 3)
 	ax.set_ylim(3000, 11000)
 	ax.set_ylabel(L"\rm temperature\ [K]")
 	ax.set_xlabel(L"\rm optical\ depth\ [log\ \tau_{500}]")
 
-	ax.legend(loc="upper left")
+	ax.legend(loc="lower right")
 
 	f.savefig(name4_p8)
 
@@ -1476,6 +1518,13 @@ md"## [Fe/H]=-4, [C/Fe]=0.75"
 spectra_p9 = [
 	PlotDesign("t57.50g45.00m-4.000 CEMP - contr", "DISPATCH <3D>", "-", 2, "k"),
 	PlotDesign("MARCS t57.50g45.00m-4.000 no-CEMP - contr", "MARCS", "--", 2.5, "tomato"),
+]
+
+# ╔═╡ 901d430e-254b-4774-b7cc-4dcbd8ea1772
+differences_p9 = [
+	PlotDesign("t57.50g45.00m-4.000 no-CEMP - C0.75", "DISPATCH <3D>", "-", 2, "k"),
+	PlotDesign("t57.50g45.00m-4.000 CEMP - C0.75", L"\rm not\ CEMP - CEMP", "-", 2., "k"),
+	PlotDesign("MARCS t57.50g45.00m-4.000 no-CEMP - C0.75", L"\rm 3D - 1D", "--", 2., "tomato"),
 ]
 
 # ╔═╡ 479b4bca-166c-43c2-8199-04218a24fb12
@@ -1589,27 +1638,65 @@ end
 let
 	f, ax = plt.subplots(1, 1, figsize=(6,5))
 	plt.close()
-	
+
 	for (i, p) in enumerate(spectra_p9)
 		k = p.key
 		if haskey(spectra3D, k)
 			s = spectra3D[k]
-			im = plot_profile(s, :T, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+			x, y = plot_profile(s, :T, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+
+			ax.plot(x, y; ls=p.ls, lw=p.lw, label=p.label, color=p.color)
 		else
 			s = spectra1D[k]
 			x = s.run.ltau
 			y = s.run.temp
 			ax.plot(x, y, color=p.color, lw=p.lw, label=p.label, ls=p.ls)
 		end
-		
 	end
 
+	left, bottom, width, height = [0.22, 0.52, 0.35, 0.3]
+	ax2 = f.add_axes([left, bottom, width, height], sharex=ax)
+
+	k = differences_p9[1].key
+	xref, yref = if haskey(spectra3D, k)
+		s = spectra3D[k]
+		plot_profile(s, :T)
+	else
+		s = spectra1D[k]
+		s.run.ltau, s.run.temp
+	end
+	
+	for (i, p) in enumerate(differences_p9)
+		(i == 1) && continue 
+		k = p.key
+		x, y = if haskey(spectra3D, k)
+			s = spectra3D[k]
+			plot_profile(s, :T)
+		else
+			s = spectra1D[k]
+			MUST.pyconvert(Array, s.run.ltau), MUST.pyconvert(Array, s.run.temp)
+		end
+		mask = sortperm(x)
+		fref = MUST.linear_interpolation(x[mask], y[mask], extrapolation_bc=MUST.Line())
+
+		ax2.plot(
+			xref, yref .- fref.(xref), 
+			color=p.color, lw=p.lw, label=p.label, ls=p.ls
+		)
+	end
+
+	ax2.set_title(L"\rm \Delta T\ [K]")
+	ax2.legend()
+
+	ax.axvline(-3.0, ls="-", color="k", alpha=0.1, lw=4)
+	ax.axvline(-1.2, ls="-", color="tomato", alpha=0.1, lw=4)
 	ax.set_xlim(-4.5, 3)
+	ax2.set_xlim(-4.5, 3)
 	ax.set_ylim(3000, 11000)
 	ax.set_ylabel(L"\rm temperature\ [K]")
 	ax.set_xlabel(L"\rm optical\ depth\ [log\ \tau_{500}]")
 
-	ax.legend(loc="upper left")
+	ax.legend(loc="lower right")
 
 	f.savefig(name4_p9)
 
@@ -1643,6 +1730,96 @@ let
 	ax.legend(loc="upper left")
 
 	f.savefig(name5_p9)
+
+	f
+end
+
+# ╔═╡ 3fdeaaaf-2f00-4ef8-b6bd-cc1d29dbcb74
+
+
+# ╔═╡ 04ea0005-24c6-4c39-816e-94a142fe65b8
+md"# SAGA Data"
+
+# ╔═╡ a215c938-11e3-495d-92cb-dc0559ed86f1
+saga_paths = Dict(
+	"CEMP" => "../cgisess_486fcb28413b27ba518e2836eea91aa5_CEMP_MS.dat",
+	"CEMP-no" => "../cgisess_486fcb28413b27ba518e2836eea91aa5_CEMP-no_MS.dat",
+	"CEMP-s" => "../cgisess_486fcb28413b27ba518e2836eea91aa5_CEMP-s_MS.dat",
+	"EMP" => "../cgisess_486fcb28413b27ba518e2836eea91aa5_EMP_MS.dat",
+	"MP" => "../cgisess_486fcb28413b27ba518e2836eea91aa5_MP.dat"
+)
+
+# ╔═╡ fd0357ee-086b-4394-add3-fdff0de4cd39
+saga_data = Dict(k=>MUST.readdlm(p, skipstart=1) for (k, p) in saga_paths)
+
+# ╔═╡ 29d58861-8237-4cc9-a05a-c37b8228efaf
+
+
+# ╔═╡ 6f3f7e16-5611-43a6-a5ca-5d25bd3f29f5
+md"## Correction"
+
+# ╔═╡ 6b2af110-702a-4572-9ead-24d2b90db0f6
+begin
+	p1_saga = (-4.0, 0.75-4+8.560, -0.55)
+	p2_saga = (-5.0, 3.0-5+8.560, -0.79+0.15)
+	
+	scatter_int_saga(x, y) = MUST.pyconvert(typeof(x),
+		MUST.scipy_interpolate.griddata(
+		([p1_saga[1], p2_saga[1]], 
+		[p1_saga[2], p2_saga[2]]), 
+		[p1_saga[3], p2_saga[3]], 
+		(x, y), method="nearest")
+	)
+	corrections_saga = Dict(
+		k=>scatter_int_saga(saga_data[k][:, 1], saga_data[k][:, 2])
+		for k in keys(saga_data)
+	)
+end
+
+# ╔═╡ b120b287-060f-417f-902b-3ef4bc26148b
+
+
+# ╔═╡ 80b491c3-7c54-4a8c-8460-c76a82ee7b86
+design_p10 = [
+	#PlotDesign("MP", "MP", "s", 20, "nothing"),
+	#PlotDesign("EMP", "EMP", "s", 20, "k"),
+	PlotDesign("CEMP", "CEMP", "s", 20, "tomato"),
+	PlotDesign("CEMP-no", "CEMP-no", "s", 20, "k"),
+	PlotDesign("CEMP-s", "CEMP-s", "s", 20, "lime"),
+]
+
+# ╔═╡ bd6060f6-0e09-4ccd-a9ed-12d7b63b54f2
+name1_p10 = "saga_corrected.pdf"
+
+# ╔═╡ dfe42b5b-9c74-426e-bfdc-b21748179f59
+let
+	f, ax = plt.subplots(1, 2, figsize=(8, 5), sharey=true, sharex=true)
+	plt.subplots_adjust(wspace=0)
+
+	for p in design_p10
+		d = saga_data[p.key]
+		x = d[:, 1]
+		y = d[:, 2] 
+		ax[0].scatter(x, y, label=p.label, s=p.lw, marker=p.ls, color=p.color)
+		y = d[:, 2] .+ corrections_saga[p.key]
+		ax[1].scatter(x, y, label=p.label, s=p.lw, marker=p.ls, color=p.color)
+	end
+
+	ax[0].axhline(0.75, ls=":", color="0.2", lw=2, alpha=0.7)
+	#ax[0].text(-5.5, 0.76, "CEMP", color="0.2", alpha=0.7, ha="left", va="bottom")
+	#ax[0].text(-5.5, 0.72, "not-CEMP", color="0.2", alpha=0.7, ha="left", va="top")
+
+	ax[1].axhline(0.75, ls=":", color="0.2", lw=2, alpha=0.7)
+	ax[1].text(-5.7, 0.76, "CEMP", color="0.2", alpha=0.7, ha="left", va="bottom")
+	ax[1].text(-5.7, 0.72, "not-CEMP", color="0.2", alpha=0.7, ha="left", va="top")
+
+	ax[0].set_ylabel("[C/Fe]")
+	ax[0].set_xlabel("[Fe/H]")
+	ax[1].set_xlabel("[Fe/H]")
+	
+	ax[0].legend(loc="upper right")
+
+	f.savefig(name1_p10)
 
 	f
 end
@@ -1762,6 +1939,7 @@ end
 # ╟─294fa362-da67-4a22-8a68-8619e185df6c
 # ╟─6addc6c2-ad44-4310-a39a-292acf6b0dac
 # ╠═9962676e-40cb-4fe8-ab50-8abb5a854612
+# ╠═d5af99b0-8e95-4037-af01-1437f9aa0e04
 # ╠═43b4cf33-7efd-48b8-af90-66555c827b52
 # ╠═71545110-8314-45c7-9e83-e15035c3f60d
 # ╠═266c3319-78c1-4a2b-b06c-386f54907ecc
@@ -1775,6 +1953,7 @@ end
 # ╟─67aab606-2b0e-44f8-90ab-99d63830742d
 # ╟─6225b614-dc48-4158-8abe-55a1c07b651e
 # ╠═b04303d1-bd59-4104-bc7c-8fdef9477fee
+# ╠═901d430e-254b-4774-b7cc-4dcbd8ea1772
 # ╠═479b4bca-166c-43c2-8199-04218a24fb12
 # ╠═7a734c2e-175e-4300-8152-718669ce8137
 # ╠═77bb0169-c777-425a-a8b5-041cb01279f1
@@ -1785,3 +1964,14 @@ end
 # ╟─3d1174e7-01ba-4e1d-bbce-cf8d28642ca2
 # ╟─576ddad7-10a6-4549-80cc-18d0c6793024
 # ╟─fad7f786-7f00-4c99-a208-dcafcb50ef56
+# ╟─3fdeaaaf-2f00-4ef8-b6bd-cc1d29dbcb74
+# ╟─04ea0005-24c6-4c39-816e-94a142fe65b8
+# ╠═a215c938-11e3-495d-92cb-dc0559ed86f1
+# ╠═fd0357ee-086b-4394-add3-fdff0de4cd39
+# ╟─29d58861-8237-4cc9-a05a-c37b8228efaf
+# ╟─6f3f7e16-5611-43a6-a5ca-5d25bd3f29f5
+# ╠═6b2af110-702a-4572-9ead-24d2b90db0f6
+# ╟─b120b287-060f-417f-902b-3ef4bc26148b
+# ╠═80b491c3-7c54-4a8c-8460-c76a82ee7b86
+# ╠═bd6060f6-0e09-4ccd-a9ed-12d7b63b54f2
+# ╟─dfe42b5b-9c74-426e-bfdc-b21748179f59
