@@ -1444,7 +1444,7 @@ function interpolate_to(box; logspace=true, kwargs...)
 
     ips = interpolate_by_column(box, z, logspace=logspace)
 
-    cols_new = Dict(p=>zeros(eltype(box.x), size(box.x)[1:2]..., 1) for p in keys(b.data))
+    cols_new = Dict(p=>zeros(eltype(box.x), size(box.x)[1:2]..., 1) for p in keys(box.data))
     col_z   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
     col_x   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
     col_y   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
@@ -1468,7 +1468,7 @@ end
 
 
 
-"""
+#="""
 Switch the height scale of a box. Creates a new box by reducing the old box by column for every new height value.
 """
 function height_scale_slow(b::MUST.Box, new_scale, limits=nothing, logspace=true)
@@ -1574,28 +1574,44 @@ function height_scale(b::MUST.Box, new_scale, limits=nothing, logspace=true)
     end 
 
     new_box
-end
+end=#
+
+
 
 """
+    height_scale_fast(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, :ux, :uy, :uz, :ee, :e])
+
 Switch the height scale of a box. Creates a new box by reducing the old box by column for every new height value.
 """
 function height_scale_fast(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, :ux, :uy, :uz, :ee, :e])
     N_points = size(b.z, 3)
     TT = eltype(b.z)
+    new_box = deepcopy(b)
 
     # create a new height scale 
-    min_plane = MUST.plane_statistic(minimum, b, new_scale)
+    #=min_plane = MUST.plane_statistic(minimum, b, new_scale)
     max_plane = MUST.plane_statistic(maximum, b, new_scale)
     low_lim   = maximum(min_plane)
     high_lim  = minimum(max_plane)
-
     if !logspace
         h_scale = range( TT(low_lim), TT(high_lim); length=N_points)
     else
         h_scale = Base.convert.(TT, 10.0 .^ range( log(10, TT(low_lim)), log(10, TT(high_lim)); length=N_points))
+    end=#
+    h_scale = if !logspace
+        mean_plane = MUST.plane_statistic(mean, b, new_scale)
+        low_lim   = maximum(mean_plane)
+        high_lim  = minimum(mean_plane)
+        range( TT(low_lim), TT(high_lim); length=N_points)
+    else
+        new_box[:logscale] = log10.(b[new_scale])
+        mean_plane = MUST.plane_statistic(mean, new_box, :logscale)
+        pop!(new_box.data, :logscale)
+        low_lim   = maximum(mean_plane)
+        high_lim  = minimum(mean_plane)
+        Base.convert.(TT, exp10.(range(TT(low_lim), TT(high_lim); length=N_points)))
     end
 
-    new_box = deepcopy(b)
     sorting, interps = interpolators(log.(10, b[new_scale]), log.(10, h_scale))
 
     # Save loop allocations
@@ -1638,6 +1654,8 @@ function height_scale_fast(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, 
     end
     new_box
 end
+
+height_scale = height_scale_fast
 
 function interpolators(old_cube, new_scale)
     sorting = zeros(Int, size(old_cube)...)
