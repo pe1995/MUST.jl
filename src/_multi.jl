@@ -267,7 +267,7 @@ opacityTable(models; folder, linelist, λs, λe, δλ, H_atom="input_multi3d/ato
 			:atmos_params=>(
 				:dims=>1, 
 				:atmos_format=>"Text",
-				:use_density=>true, 
+				:use_rho=>true, 
 				:use_ne=>false
 			),
 			:m3d_params=>(

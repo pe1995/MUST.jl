@@ -55,6 +55,7 @@ mutable struct M3DNamelist <: MUST.AbstractNamelist
     dispatcher0_params ::Dict{String,Any}  
     task_list_params   ::Dict{String,Any}   
     composition_params ::Dict{String,Any}   
+    line_mask          ::Dict{String,Any}   
 end
 
 """
@@ -493,7 +494,7 @@ end
 _whole_spectrum_namelist!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
-	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_density=>true),
+	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
@@ -562,7 +563,7 @@ end
 _spectrum_namelist_lte!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
-	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_density=>true),
+	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
@@ -582,7 +583,7 @@ end
 _spectrum_namelist_nlte!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
-	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_density=>true),
+	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true,
                 :convlim=>1e-2),

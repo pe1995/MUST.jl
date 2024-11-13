@@ -539,7 +539,7 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
                 :atmos_params=>(
                     :dims=>30, 
                     :atmos_format=>"must",
-                    :use_density=>true, 
+                    :use_rho=>true, 
                     :use_ne=>false,
                     :FeH=>feh
                 ),
