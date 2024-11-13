@@ -40,6 +40,7 @@ examples/MainSequence/*/
 examples/CEMP/*.txt
 examples/CEMP/*_rho
 examples/CEMP/*_T
+examples/CEMP/Paper/*.pdf
 
 examples/initial_models/*
 examples/initial_models/*.dat
