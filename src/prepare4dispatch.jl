@@ -258,7 +258,7 @@ end
 #= Namelist generation =#
 
 function create_namelist(name, x_resolution, z_resolution, x_size, z_size, 
-                        patch_size, rt_patch_size, δz, zs, zh, z_lo, l_cgs, d_cgs, logg, teff, 
+                        patch_size, rt_patch_size, δz, zs, zh, z_lo, l_cgs, d_cgs, d_up, logg, teff, 
                         eemin, ee0, zee0, nz, initial_path, n_bin, eos_table, 
                         tscale, vmax, vmin; 
                         courant_rt=0.2, courant_hd=0.2, newton_time=100, friction_time=150,
@@ -318,7 +318,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     Δt(R, u, c=1.0) = c * R / u
 
     velocity_ratio = max(abs(vmax), abs(vmin)) / 1e6
-    velocity_max = round(max(abs(vmax), abs(vmin)), sigdigits=4) / 3.5
+    velocity_max = round(max(abs(vmax), abs(vmin)), sigdigits=4) #/ sqrt(3.0)
     dynamic_scale_ratio = velocity_ratio / larger_than_sun
 
     tscale = if test_tscale
@@ -413,6 +413,9 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
             :end_time=>round(friction_time*t_scaling*duration_scaling, sigdigits=4), 
             :decay_scale=>round(friction_decay_scale*t_scaling*duration_scaling, sigdigits=4), 
             :time=>strength*t_scaling*friction_scaling,
+            #:slope_factor=>0.85,
+            #:slope_factor_smallr=>d_up/d_cgs,
+            #:slope_factor_boundary=>true,
         ),
         gravity_params=(
             :constant=>-round(exp10(logg), digits=3),
@@ -573,6 +576,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     z_s = zeros(nrow(grid.info))
     z_h = zeros(nrow(grid.info))
     d_lo = zeros(nrow(grid.info))
+    d_up = zeros(nrow(grid.info))
     T_lo = zeros(nrow(grid.info))
 
     for i in 1:nrow(grid.info)
@@ -626,6 +630,9 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         z_s[i] = ip_z(τ_surf)
         z_h[i] = ip_z(tu)
 
+        # test: save density at upper boundary as a guide for slope limiters
+        d_up[i] = exp.(ip_r(tu))
+
         ee0[i] = exp.(ip_E(τ_ee0))
         zee0[i] = ip_z(τ_zee0)
         eemin[i] = exp.(ip_E(τ_eemin)) 
@@ -657,6 +664,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
 
     grid.info[!, "z_lo"] = z_lo
     grid.info[!, "d_lo"] = d_lo
+    grid.info[!, "d_up"] = d_up
     grid.info[!, "T_lo"] = T_lo
 
     nothing
@@ -680,6 +688,7 @@ create_namelist!(grid::MUST.Atmos1DGrid, eos_dispatch_root="input_data/grd/"; kw
                                 g(i, "z_lo"),
                                 g(i, "l_norm"),
                                 g(i, "rho_norm"),
+                                g(i, "d_up"),
                                 g(i, "logg"),
                                 g(i, "teff"),
                                 g(i, "ee_min"),
