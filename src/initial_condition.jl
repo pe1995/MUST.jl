@@ -13,7 +13,7 @@ using Dates
 #==============================================================================#
 
 # global grid files that can be used for interpolation
-staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_grid_v5.1.mgrid")))
+staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v1.1_r.mgrid")))
 staggergrid_alphamod = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_grid_a0-4_vmic1-2.mgrid")))
 marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_grid.mgrid")))
 marcsgrid_alphamod = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_grid_a0-4_vmic1-2.mgrid")))

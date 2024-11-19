@@ -66,26 +66,27 @@ Base.dirname(g::Atmos1DGrid) = dirname(g.path)
 """
 	absolute_path!(grid; from=@__FILE__)
 
-Convert grid paths from relative to absolute. Assume they are relative to `from`
+Convert grid paths from relative to absolute. Assume they are relative to `from`.
+First check if the path is not already absolute.
 """
 absolute_path!(grid; from=@__FILE__) = begin
     if "av_path" in names(grid.info) 
-		grid.info[!, "av_path"] .= abspath.(joinpath.(dirname(from), grid.info[!, "av_path"]))
+		grid.info[!, "av_path"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "av_path"]]
 	end
 	if "avo_path" in names(grid.info) 
-    	grid.info[!, "avo_path"] .= abspath.(joinpath.(dirname(from), grid.info[!, "avo_path"]))
+    	grid.info[!, "avo_path"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "avo_path"]]
     end
 	if "eos_root" in names(grid.info) 
-		grid.info[!, "eos_root"] .= abspath.(joinpath.(dirname(from), grid.info[!, "eos_root"]))
+		grid.info[!, "eos_root"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "eos_root"]]
 	end
 	if "matching_eos" in names(grid.info) 
-		grid.info[!, "matching_eos"] .= abspath.(joinpath.(dirname(from), grid.info[!, "matching_eos"]))
+		grid.info[!, "matching_eos"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "matching_eos"]]
 	end
 	if "matching_opa" in names(grid.info) 
-		grid.info[!, "matching_opa"] .= abspath.(joinpath.(dirname(from), grid.info[!, "matching_opa"]))
+		grid.info[!, "matching_opa"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "matching_opa"]]
 	end
 	if "matching_sopa" in names(grid.info) 
-		grid.info[!, "matching_sopa"] .= abspath.(joinpath.(dirname(from), grid.info[!, "matching_sopa"]))
+		grid.info[!, "matching_sopa"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "matching_sopa"]]
 	end
 end
 

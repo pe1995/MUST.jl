@@ -318,7 +318,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     Δt(R, u, c=1.0) = c * R / u
 
     velocity_ratio = max(abs(vmax), abs(vmin)) / 1e6
-    velocity_max = round(max(abs(vmax), abs(vmin)), sigdigits=4) #/ sqrt(3.0)
+    velocity_max = round(max(abs(vmax), abs(vmin)), sigdigits=4) / sqrt(3.0)
     dynamic_scale_ratio = velocity_ratio / larger_than_sun
 
     tscale = if test_tscale
