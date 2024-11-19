@@ -125,6 +125,7 @@ begin
 		rundir, "spectra_$(dimension)_lam_4297-4303$(extension)"
 	)
 	spectraPath(k, extension) = spectraPath(runs3D[k], snapshots3D[k], extension)
+	spectraPathSnap(k, snapshot, extension) = spectraPath(runs3D[k], snapshot, extension)
 	spectraPath1D(k, extension) = spectraPath(dirname(runs1D[k]), "", extension, basename(runs1D[k]))
 end
 
@@ -188,6 +189,24 @@ spectrapath3D = Dict(
 	spectraPath("t57.50g45.00m-5.000 CEMP" ,"contr"),
 	"t57.50g45.00m-4.000 CEMP - contr" => 
 	spectraPath("t57.50g45.00m-4.000 CEMP" ,"contr"),
+
+	# Spectra of other snapshots
+	"t57.50g45.00m-5.000 CEMP - C3.0 - 375" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",375,"C_3.0"),
+	"t57.50g45.00m-5.000 CEMP - C3.0 - 374" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",374,"C_3.0"),
+	"t57.50g45.00m-5.000 CEMP - C3.0 - 373" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",373,"C_3.0"),
+	"t57.50g45.00m-5.000 CEMP - C3.0 - 372" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",372,"C_3.0"),
+	"t57.50g45.00m-5.000 CEMP - C3.0 - 369" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",369,"C_3.0"),
+	"t57.50g45.00m-5.000 CEMP - C3.0 - 368" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",368,"C_3.0"),
+	"t57.50g45.00m-5.000 CEMP - C3.0 - 367" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",367,"C_3.0"),
+
+	"t57.50g45.00m-4.000 CEMP - C0.75 - 373" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",373,"C_0.75"),
+	"t57.50g45.00m-4.000 CEMP - C0.75 - 372" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",372,"C_0.75"),
+	"t57.50g45.00m-4.000 CEMP - C0.75 - 370" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",370,"C_0.75"),
+	"t57.50g45.00m-4.000 CEMP - C0.75 - 369" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",369,"C_0.75"),
+	"t57.50g45.00m-4.000 CEMP - C0.75 - 368" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",368,"C_0.75"),
+	"t57.50g45.00m-4.000 CEMP - C0.75 - 367" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",367,"C_0.75"),
+	"t57.50g45.00m-4.000 CEMP - C0.75 - 366" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",366,"C_0.75"),
+	
 )
 
 # ╔═╡ e67fed9e-3a82-45ed-9865-1c5862ebba2c
@@ -378,6 +397,19 @@ design_p3 = [
 	PlotDesign("t57.50g45.00m-5.000 no-CEMP - C3.0", "not carbon enhanced", "--", 1.5, "k")
 ]
 
+# ╔═╡ b97665fe-1536-4047-b3e9-d6176d47f3c1
+other_spectra_p3 = Dict(
+	"t57.50g45.00m-5.000 CEMP - C3.0"=>[
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 375", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 374", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 373", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 372", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 369", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 368", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 367", "", "-", 1.5, "0.5"), 
+	],
+)
+
 # ╔═╡ a04336bf-9cdf-401e-b237-a41f44987320
 name1_p3 = "CEMP_vs_noCEMP_spectrum_t57.50g45.00m-5.000.pdf"
 
@@ -389,6 +421,15 @@ let
 	
 	for p in design_p3
 		k = p.key
+
+		if k in keys(other_spectra_p3)
+			for p2 in other_spectra_p3[k]
+				k2 = p2.key
+				s = spectra3D[k2]
+				λ, F = flux(s, norm=true)
+				ax.plot(λ, F, color=p2.color, ls=p2.ls, lw=p2.lw, label=p2.label)
+			end
+		end
 		
 		s = spectra3D[k]
 		λ, F = flux(s, norm=true)
@@ -1749,8 +1790,116 @@ saga_paths = Dict(
 	"MP" => "../cgisess_486fcb28413b27ba518e2836eea91aa5_MP.dat"
 )
 
+# ╔═╡ e45f8e09-b588-4e84-98c0-602f96f2c649
+saga_all_path = "../cgisess_32aefcdc405d0a0c9fb7936f6f1324aa_data.tsv"
+
+# ╔═╡ 284b014d-1cfe-45c6-9c58-2a7144eee417
+
+
+# ╔═╡ b669a28e-642f-44ad-94bf-8e61af14d2be
+
+
+# ╔═╡ fa1bdf35-c482-4869-b195-10b6e4861a2f
+md"We can also download the un-split dataset"
+
 # ╔═╡ fd0357ee-086b-4394-add3-fdff0de4cd39
 saga_data = Dict(k=>MUST.readdlm(p, skipstart=1) for (k, p) in saga_paths)
+
+# ╔═╡ 2c6fbe92-5a73-4360-8ed2-f51f59dc5e3f
+begin
+	saga_all_data = MUST.readdlm(saga_all_path, '\t', String, skipstart=1)
+
+	teff_all, logg_all, z_all = saga_all_data[:, 5], saga_all_data[:, 6], saga_all_data[:, 7]
+
+	cfe_all, eufe_all, bafe_all, feh_all = saga_all_data[:, 9], saga_all_data[:, 10], saga_all_data[:, 11], saga_all_data[:, 12]
+
+	parameters_all = Dict{Any, Any}(
+		"teff" => teff_all, 
+		"logg" => logg_all, 
+		"z"    => z_all, 
+		"cfe"  => cfe_all, 
+		"eufe" => eufe_all, 
+		"bafe" => bafe_all, 
+		"feh"  => feh_all
+	)
+
+	for (i, p) in parameters_all
+		d = zeros(length(p))
+
+		for (j, pj) in enumerate(p)
+			d[j] = if pj == ""
+				NaN
+			elseif (pj[1] == '<') |  (pj[1] == '>')
+				parse(Float64, pj[2:end])
+			else
+				try
+					parse(Float64, pj)
+				catch
+					NaN
+				end
+			end
+		end
+		
+		parameters_all[i] = d
+	end
+
+	mask = (parameters_all["feh"].>0.0) 
+	parameters_all["feh"][mask] .= NaN
+
+	parameters_all
+end
+
+# ╔═╡ c1d54755-4b3f-4ad8-aac5-af7b365500c5
+
+
+# ╔═╡ bc8ada92-8975-403e-a94e-ddc2d9ead536
+md"To isolate the giant stars, one has to define a limiting log(g)."
+
+# ╔═╡ 9e88185c-9c1f-4485-b465-30b3140b0e58
+logg_limit = 3.5
+
+# ╔═╡ 92293f19-535a-4b35-8d58-bf99cddabcd3
+selection_mask = parameters_all["logg"] .>= logg_limit;
+
+# ╔═╡ 60b1f1ac-4fa5-48f6-b1fa-1c50a00447b3
+let
+	f, ax = plt.subplots(figsize=(6, 5))
+
+	ax.scatter(
+		parameters_all["teff"][.!selection_mask], 
+		parameters_all["logg"][.!selection_mask], 
+		color="0.5", alpha=0.1,
+		s=10, rasterized=true
+	)
+	
+	im = ax.scatter(
+		parameters_all["teff"][selection_mask], 
+		parameters_all["logg"][selection_mask], 
+		c=parameters_all["feh"][selection_mask], 
+		s=5, cmap="rainbow_r",
+		rasterized=true
+	)
+	cbar = f.colorbar(im, ax=ax)
+
+	xlim = MUST.pyconvert(Array, ax.get_xlim())
+	ylim = MUST.pyconvert(Array, ax.get_ylim())
+	ax.set_xlim(xlim[end:-1:1])
+	ax.set_ylim(ylim[end:-1:1])
+
+	ax.axhline(logg_limit, color="0.5", ls="--", alpha=0.5, lw=2)
+
+	ax.set_xlabel(L"\rm T_{eff}\ [K]")
+	ax.set_ylabel(L"\rm log(g)\ [K]")
+	cbar.set_label(L"\rm [Fe/H]")
+	
+	f
+end
+
+# ╔═╡ 65d7b527-baa6-4af2-972f-1960c0072d10
+begin
+	@info "Number of stars in the Main Sequence: $(count(selection_mask))"
+	@info "Number of stars outside the Main Sequence: $(count(.!selection_mask))"
+end
 
 # ╔═╡ 29d58861-8237-4cc9-a05a-c37b8228efaf
 
@@ -1805,13 +1954,13 @@ let
 		ax[1].scatter(x, y, label=p.label, s=p.lw, marker=p.ls, color=p.color)
 	end
 
-	ax[0].axhline(0.75, ls=":", color="0.2", lw=2, alpha=0.7)
+	ax[0].axhline(0.7, ls=":", color="0.2", lw=2, alpha=0.7)
 	#ax[0].text(-5.5, 0.76, "CEMP", color="0.2", alpha=0.7, ha="left", va="bottom")
 	#ax[0].text(-5.5, 0.72, "not-CEMP", color="0.2", alpha=0.7, ha="left", va="top")
 
-	ax[1].axhline(0.75, ls=":", color="0.2", lw=2, alpha=0.7)
-	ax[1].text(-5.7, 0.76, "CEMP", color="0.2", alpha=0.7, ha="left", va="bottom")
-	ax[1].text(-5.7, 0.72, "not-CEMP", color="0.2", alpha=0.7, ha="left", va="top")
+	ax[1].axhline(0.7, ls=":", color="0.2", lw=2, alpha=0.7)
+	ax[1].text(-5.7, 0.71, "CEMP", color="0.2", alpha=0.7, ha="left", va="bottom")
+	ax[1].text(-5.7, 0.67, "not-CEMP", color="0.2", alpha=0.7, ha="left", va="top")
 
 	ax[0].set_ylabel("[C/Fe]")
 	ax[0].set_xlabel("[Fe/H]")
@@ -1821,6 +1970,95 @@ let
 
 	f.savefig(name1_p10)
 
+	f
+end
+
+# ╔═╡ 8b807632-3dd5-4b03-a539-1f348af4852c
+
+
+# ╔═╡ 740ebde2-5ae2-476d-a7c8-b6541be938f5
+md"Correction of the big dataset"
+
+# ╔═╡ 99598049-9494-4a72-afd4-13dd12a09ff4
+begin
+	p1_saga_all = (-4.0, -0.55)
+	p2_saga_all = (-5.0, -0.79+0.15)
+	
+	ip_saga_all = MUST.linear_interpolation(
+		[p2_saga_all[1],p1_saga_all[1]],
+		[p2_saga_all[2],p1_saga_all[2]],
+		extrapolation_bc=MUST.Flat()
+	)
+	
+	corrections_saga_all = ip_saga_all.(parameters_all["cfe"])
+end
+
+# ╔═╡ d9b1abef-4cae-4171-904f-6e4a046a9bf0
+
+
+# ╔═╡ 210a4e3c-6998-400f-9e0a-3da3e0efe557
+md"## Galactic CEMP Distribution"
+
+# ╔═╡ 0e5c7037-aa27-44f2-b563-94aca1da290b
+metallicity_bin_edges = [-7, -6, -5, -4, -3.5, -3, -2.5, -2., -1.5, -1., -0.5, 0.0]
+
+# ╔═╡ 775ac5e9-6933-4d6d-a1a2-e40ec840cae4
+begin
+	metallicity_bin_centers = (metallicity_bin_edges[2:end] .+ metallicity_bin_edges[1:end-1]) ./ 2
+	bin_masks = falses(size(saga_all_data, 1), length(metallicity_bin_centers))
+	for i in eachindex(metallicity_bin_centers)
+		bin_masks[:, i] .= (metallicity_bin_edges[i] .< parameters_all["feh"]) .&
+		(parameters_all["feh"] .< metallicity_bin_edges[i+1])
+
+		bin_masks[:, i] .= bin_masks[:, i] .& selection_mask
+	end
+	count_bins = count.([bin_masks[:, i] for i in axes(bin_masks, 2)])
+	@info "Bin counts (all): $(count_bins)"
+
+	# now the same for the CEMP stars
+	bin_masks_CEMP = falses(size(saga_all_data, 1), length(metallicity_bin_centers))
+	for i in eachindex(metallicity_bin_centers)
+		bin_masks_CEMP[:, i] .= bin_masks[:, i] .& (parameters_all["cfe"] .> 0.7)
+	end
+
+	count_bins_CEMP = count.([bin_masks_CEMP[:, i] for i in axes(bin_masks_CEMP, 2)])
+	@info "Bin counts (CEMP): $(count_bins_CEMP)"
+
+
+	# now the same for the CEMP stars (after correction)
+	bin_masks_CEMP2 = falses(size(saga_all_data, 1), length(metallicity_bin_centers))
+	for i in eachindex(metallicity_bin_centers)
+		bin_masks_CEMP2[:, i] .= bin_masks[:, i] .& (parameters_all["cfe"] .+ corrections_saga_all .> 0.7)
+	end
+
+	count_bins_CEMP2 = count.([bin_masks_CEMP2[:, i] for i in axes(bin_masks_CEMP2, 2)])
+	@info "Bin counts (CEMP corrected): $(count_bins_CEMP2)"
+end
+
+# ╔═╡ 921e3b89-4baf-4984-85b1-087af8e8fc2c
+let
+	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+
+	ax.plot(metallicity_bin_centers, count_bins_CEMP ./ count_bins, zorder=10, color="k", lw=2.0, label=L"\rm SAGA\ (MS)", marker="s")
+	ax.plot(metallicity_bin_centers, count_bins_CEMP2 ./ count_bins, zorder=10, color="tomato", lw=2.0, label=L"\rm SAGA\ (MS)\ -\ corrected", marker="s")
+
+	ax2 = ax.twinx()
+	ax.set_zorder(10)
+	ax.patch.set_visible(false)
+	
+	ax2.scatter(parameters_all["feh"][selection_mask], parameters_all["cfe"][selection_mask], s=10, rasterized=true, alpha=0.2, marker="o", color="0.5", zorder=0)
+	
+	ax2.axhline(0.7, ls="--", color="k", alpha=0.3, lw=1.5)
+	ax2.text(-0.2, 0.71, "CEMP", color="k", alpha=1, ha="right", va="bottom", fontsize=11)
+	ax2.text(-0.2, 0.67, "not-CEMP", color="k", alpha=1, ha="right", va="top", fontsize=11)
+
+	ax.set_xlabel(L"\rm [Fe/H]")
+	ax2.set_ylabel(L"\rm [C/Fe]")
+	ax.set_ylabel(L"\rm N_{\Delta[Fe/H], CEMP}\ /\ N_{\Delta[Fe/H]}")
+	ax.legend(loc="lower left")
+
+	ax.set_xlim(-6.8, 0.1)
+	ax2.set_ylim(-0.75, 5.)
 	f
 end
 
@@ -1874,6 +2112,7 @@ end
 # ╟─1f6dfdaf-b82e-46ee-989f-dbeb685d72ff
 # ╟─391e98d1-344e-4ec3-837b-58327c02c74b
 # ╠═10d7d97f-5c54-4066-9618-c78983c6c18c
+# ╠═b97665fe-1536-4047-b3e9-d6176d47f3c1
 # ╠═a04336bf-9cdf-401e-b237-a41f44987320
 # ╟─1deeb995-4fda-4071-8d1f-fe9a9bc8a09c
 # ╟─2aa33bb2-3cd3-4104-a6a2-0f1b12fe2960
@@ -1967,7 +2206,18 @@ end
 # ╟─3fdeaaaf-2f00-4ef8-b6bd-cc1d29dbcb74
 # ╟─04ea0005-24c6-4c39-816e-94a142fe65b8
 # ╠═a215c938-11e3-495d-92cb-dc0559ed86f1
+# ╠═e45f8e09-b588-4e84-98c0-602f96f2c649
+# ╟─284b014d-1cfe-45c6-9c58-2a7144eee417
+# ╟─b669a28e-642f-44ad-94bf-8e61af14d2be
+# ╟─fa1bdf35-c482-4869-b195-10b6e4861a2f
 # ╠═fd0357ee-086b-4394-add3-fdff0de4cd39
+# ╟─2c6fbe92-5a73-4360-8ed2-f51f59dc5e3f
+# ╟─c1d54755-4b3f-4ad8-aac5-af7b365500c5
+# ╟─bc8ada92-8975-403e-a94e-ddc2d9ead536
+# ╠═9e88185c-9c1f-4485-b465-30b3140b0e58
+# ╟─92293f19-535a-4b35-8d58-bf99cddabcd3
+# ╟─60b1f1ac-4fa5-48f6-b1fa-1c50a00447b3
+# ╟─65d7b527-baa6-4af2-972f-1960c0072d10
 # ╟─29d58861-8237-4cc9-a05a-c37b8228efaf
 # ╟─6f3f7e16-5611-43a6-a5ca-5d25bd3f29f5
 # ╠═6b2af110-702a-4572-9ead-24d2b90db0f6
@@ -1975,3 +2225,11 @@ end
 # ╠═80b491c3-7c54-4a8c-8460-c76a82ee7b86
 # ╠═bd6060f6-0e09-4ccd-a9ed-12d7b63b54f2
 # ╟─dfe42b5b-9c74-426e-bfdc-b21748179f59
+# ╟─8b807632-3dd5-4b03-a539-1f348af4852c
+# ╟─740ebde2-5ae2-476d-a7c8-b6541be938f5
+# ╠═99598049-9494-4a72-afd4-13dd12a09ff4
+# ╟─d9b1abef-4cae-4171-904f-6e4a046a9bf0
+# ╟─210a4e3c-6998-400f-9e0a-3da3e0efe557
+# ╠═0e5c7037-aa27-44f2-b563-94aca1da290b
+# ╟─775ac5e9-6933-4d6d-a1a2-e40ec840cae4
+# ╟─921e3b89-4baf-4984-85b1-087af8e8fc2c
