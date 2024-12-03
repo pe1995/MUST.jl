@@ -264,7 +264,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
                         courant_rt=0.2, courant_hd=0.2, newton_time=100, friction_time=150,
                         newton_scale=0.1, newton_decay_scale=15.0, friction_decay_scale=10.0,
                         duration=360,
-                        courant_target=0.25, kwargs...)
+                        courant_target=0.25, time_scaling=1.0, kwargs...)
     dummy_nml = MUST.StellarNamelist(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "stellar_default.nml")))
 
     # name of namelists
@@ -318,7 +318,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
     Δt(R, u, c=1.0) = c * R / u
 
     velocity_ratio = max(abs(vmax), abs(vmin)) / 1e6
-    velocity_max = round(max(abs(vmax), abs(vmin)), sigdigits=4) / sqrt(3.0)
+    velocity_max = round(max(abs(vmax), abs(vmin)), sigdigits=4) / sqrt(3.0) / time_scaling
     dynamic_scale_ratio = velocity_ratio / larger_than_sun
 
     tscale = if test_tscale
@@ -583,8 +583,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         ## interpolator
         m = TSO.flip(models[i])
         mask = sortperm(m.τ)
-        td = min(τ_down, maximum(log10.(m.τ[5:end-5])))
-        tu = τ_up #max(τ_up, minimum(log10.(m.τ[5:end-5])))
+        td = min(τ_down, maximum(log10.(m.τ[2:end-2])))
+        tu = max(τ_up, minimum(log10.(m.τ[2:end-2])))
 
         xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
             m, 
