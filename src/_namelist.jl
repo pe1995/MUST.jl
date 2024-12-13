@@ -566,7 +566,7 @@ _spectrum_namelist_lte!(nml::M3DNamelist;
 	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
-	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
+	m3d_params=(:verbose=>1, :fcheck=>1, :linecheck=>1, 
 				:lvlcheck=>1, :short_scheme=>"set_a2", :long_scheme=>"lobatto",
                 :n_nu=>32, :maxiter=>0, :ilambd=>0)) = begin
     # :decouple_continuum=>true
@@ -587,7 +587,7 @@ _spectrum_namelist_nlte!(nml::M3DNamelist;
     atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true,
                 :convlim=>1e-2),
-	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
+	m3d_params=(:verbose=>1, :fcheck=>1, :linecheck=>1, 
 				:lvlcheck=>1, :short_scheme=>"set_a2", :long_scheme=>"lobatto",
                 :n_nu=>32, :maxiter=>100)) = begin
     # :decouple_continuum=>true
@@ -660,6 +660,46 @@ heating_namelist(model_name::String, opacity_table=nothing, args...; kwargs...) 
 
     set!(nml, m3d_params=(:save_patch_kind=>"mean_rad", :save_Qrad=>true, :n_nu=>1))
     set!(nml, atmos_params=(:dims=>1,))
+
+    nml
+end
+
+
+
+
+
+
+#= Namelist for simple tau500 computation =#
+
+_tau500_namelist!(nml::M3DNamelist,
+    io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
+    timer_params=(:sec_per_report=>1e8, :verbose=>2),
+    atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
+    m3d_params=(:verbose=>2, :long_scheme=>"none")) = begin
+    set!(
+        nml; 
+        io_params=io_params, 
+        timer_params=timer_params,
+        atmos_params=atmos_params,
+        m3d_params=m3d_params,
+    )
+end
+
+function tau500_namelist(model_name::String; model_folder="./input_multi3d/MUST", kwargs...)	
+    # Create an empty Namelist
+    nml = M3DNamelist()
+
+    # Fill in the defaults for this, they can be modified
+    _tau500_namelist!(nml)
+
+    # path of the model
+    model_path = joinpath(model_folder, model_name)
+
+    # additionally apply the model specific fields
+    set!(nml; atmos_params=(:atmos_file=>model_path,))
+
+    # apply custom input parameters
+    set!(nml; kwargs...)
 
     nml
 end

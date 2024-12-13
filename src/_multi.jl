@@ -562,6 +562,42 @@ end
 
 
 
+"""
+    multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dict(), name="", cleanup=true)
+
+Submit a job to the M3D code, which will compute the chi500 and store the atmosphere.
+IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis macro.
+"""
+function multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dict(), name="", cleanup=true)
+    isnothing(multi_location) && error("No Multi module has been loaded.")
+
+    # Create the default namelist (with adjustments)
+    mn(n) = join([n, name], "_")
+
+    # Check if NLTE and twostep, in that case we follow up with an LTE run
+    nml = tau500_namelist(model_name; namelist_kwargs...)  
+    write(nml, @in_m3dis("$(mn(model_name)).nml"))
+
+    # run multi (with waiting)
+    @info "Running M3D."
+    run_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
+    @info "M3D completed."
+
+    if cleanup
+        nmls_created = glob("$(mn(model_name)).nml*", @in_m3dis(""))
+        rm.(nmls_created)
+    end
+
+    # read the output
+    M3DISRun(joinpath(nml.io_params["datadir"], mn(model_name)))
+end
+
+
+
+
+
+
+
 
 
 
