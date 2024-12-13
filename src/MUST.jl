@@ -118,6 +118,9 @@ include("_atmos2multi.jl")
 include("_read_marcs.jl")
 include("_convert.jl")
 
+# co5bold reader
+#include("_co5bold.jl")
+
 # physical utilities
 include("_physical_quantities.jl")
 
