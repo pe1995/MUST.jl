@@ -56,16 +56,22 @@ runs3D = Dict(
 	#"t57.50g45.00m-4.000 no-CEMP" => dispatchPath("shipped_P6G_E_t57.50g45.00m-4.000_v1.0"),
 
 	# After fixing molecular opacities in 3D models
+	"t50.00g25.00m-5.000 CEMP" => dispatchPath("shipped_PC6B_E_t50.00g25.00m-5.000_v1.0"),
 	"t57.50g45.00m-5.000 CEMP" => dispatchPath("shipped_PC2A_E_t57.50g45.00m-5.000_v1.0"),
 	"t52.50g30.00m-5.000 CEMP" => dispatchPath("shipped_PC2A_E_t52.50g30.00m-5.000_v1.0"),
+	"t50.00g25.00m-5.000 no-CEMP" => dispatchPath("shipped_PS6B_E_t50.00g25.00m-5.000_v1.0"),
 	"t57.50g45.00m-5.000 no-CEMP" => dispatchPath("shipped_PS2A_E_t57.50g45.00m-5.000_v1.0"),
 	"t52.50g30.00m-5.000 no-CEMP" => dispatchPath("shipped_PS2A_E_t52.50g30.00m-5.000_v1.0"),
+	"t50.00g25.00m-4.000 CEMP" => dispatchPath("shipped_PC6C_E_t50.00g25.00m-4.000_v1.0"),
 	"t57.50g45.00m-4.000 CEMP" => dispatchPath("shipped_PC2B_E_t57.50g45.00m-4.000_v1.0"),
 	"t52.50g30.00m-4.000 CEMP" => dispatchPath("shipped_PC2B_E_t52.50g30.00m-4.000_v1.0"),
+	"t50.00g25.00m-4.000 no-CEMP" => dispatchPath("shipped_PS6C_E_t50.00g25.00m-4.000_v1.0"),
 	"t57.50g45.00m-4.000 no-CEMP" => dispatchPath("shipped_PS2B_E_t57.50g45.00m-4.000_v1.0"),
 	"t52.50g30.00m-4.000 no-CEMP" => dispatchPath("shipped_PS2B_E_t52.50g30.00m-4.000_v1.0"),
+	"t50.00g25.00m-3.000 CEMP" => dispatchPath("shipped_PC6D_E_t50.00g25.00m-3.000_v1.0"),
 	"t57.50g45.00m-3.000 CEMP" => dispatchPath("shipped_PC2C_E_t57.50g45.00m-3.000_v1.0"),
 	"t52.50g30.00m-3.000 CEMP" => dispatchPath("shipped_PC2C_E_t52.50g30.00m-3.000_v1.0"),
+	"t50.00g25.00m-3.000 no-CEMP" => dispatchPath("shipped_PS6D_E_t50.00g25.00m-3.000_v1.0"),
 	"t57.50g45.00m-3.000 no-CEMP" => dispatchPath("shipped_PS2C_E_t57.50g45.00m-3.000_v1.0"),
 	"t52.50g30.00m-3.000 no-CEMP" => dispatchPath("shipped_PS2C_E_t52.50g30.00m-3.000_v1.0"),
 	"t57.50g45.00m-2.000 no-CEMP" => dispatchPath("shipped_PS2D_E_t57.50g45.00m-2.000_v1.0"),
@@ -80,16 +86,22 @@ snapshots3D = Dict(
 	#"t57.50g45.00m-4.000 no-CEMP" => 371,
 
 	# After fixing molecular opacities in 3D models
+	"t50.00g25.00m-5.000 CEMP" => -1,
 	"t57.50g45.00m-5.000 CEMP" => -1,
 	"t52.50g30.00m-5.000 CEMP" => -1,
+	"t50.00g25.00m-5.000 no-CEMP" => -1,
 	"t57.50g45.00m-5.000 no-CEMP" => -1,
 	"t52.50g30.00m-5.000 no-CEMP" => -1,
+	"t50.00g25.00m-4.000 CEMP" => -1,
 	"t57.50g45.00m-4.000 CEMP" => -1,
 	"t52.50g30.00m-4.000 CEMP" => -1,
+	"t50.00g25.00m-4.000 no-CEMP" => -1,
 	"t57.50g45.00m-4.000 no-CEMP" => -1,
 	"t52.50g30.00m-4.000 no-CEMP" => -1,
+	"t50.00g25.00m-3.000 CEMP" => -1,
 	"t57.50g45.00m-3.000 CEMP" => -1,
 	"t52.50g30.00m-3.000 CEMP" => -1,
+	"t50.00g25.00m-3.000 no-CEMP" => -1,
 	"t57.50g45.00m-3.000 no-CEMP" => -1,
 	"t52.50g30.00m-3.000 no-CEMP" => -1,
 	"t57.50g45.00m-2.000 no-CEMP" => -1,
@@ -113,14 +125,17 @@ md"## 1D Models"
 # ╔═╡ 9d8761fd-4880-4ff3-855f-f3713a55a6e5
 runs1D = Dict(
 	# feh = -5
+	"MARCS t50.00g25.00m-5.000 no-CEMP" => dispatchPath("shipped_PS6B_E_t50.00g25.00m-5.000_v1.0/s5000_g+2.5_m1.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 	"MARCS t57.50g45.00m-5.000 no-CEMP" => dispatchPath("shipped_PS2A_E_t57.50g45.00m-5.000_v1.0/p5750_g+4.5_m0.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 	"MARCS t52.50g30.00m-5.000 no-CEMP" => dispatchPath("shipped_PS2A_E_t52.50g30.00m-5.000_v1.0/p5250_g+3.0_m0.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 
 	# feh = -4
+	"MARCS t50.00g25.00m-4.000 no-CEMP" => dispatchPath("shipped_PS6C_E_t50.00g25.00m-4.000_v1.0/s5000_g+2.5_m1.0_t05_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 	"MARCS t57.50g45.00m-4.000 no-CEMP" => dispatchPath("shipped_PS2B_E_t57.50g45.00m-4.000_v1.0/p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 	"MARCS t52.50g30.00m-4.000 no-CEMP" => dispatchPath("shipped_PS2B_E_t52.50g30.00m-4.000_v1.0/p5250_g+3.0_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 
 	# feh = -3
+	"MARCS t50.00g25.00m-3.000 no-CEMP" => dispatchPath("shipped_PS6D_E_t50.00g25.00m-3.000_v1.0/s5000_g+2.5_m1.0_t02_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 	"MARCS t57.50g45.00m-3.000 no-CEMP" => dispatchPath("shipped_PS2C_E_t57.50g45.00m-3.000_v1.0/p5750_g+4.5_m0.0_t02_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 	"MARCS t52.50g30.00m-3.000 no-CEMP" => dispatchPath("shipped_PS2C_E_t52.50g30.00m-3.000_v1.0/p5250_g+3.0_m0.0_t02_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 
@@ -269,6 +284,10 @@ spectrapath3D = Dict(
 
 	# After fixing molecular opacities
 	# FeH = -5
+	"t50.00g25.00m-5.000 CEMP - C3.0" => 
+	spectraPath("t50.00g25.00m-5.000 CEMP","C_3.0"),
+	"t50.00g25.00m-5.000 no-CEMP - C3.0" => 
+	spectraPath("t50.00g25.00m-5.000 no-CEMP","C_3.0"),
 	"t57.50g45.00m-5.000 CEMP - C3.0" => 
 	spectraPath("t57.50g45.00m-5.000 CEMP","C_3.0"),
 	"t57.50g45.00m-5.000 no-CEMP - C3.0" => 
@@ -304,9 +323,26 @@ spectrapath3D = Dict(
 	spectraPath("t52.50g30.00m-5.000 CEMP","C_2.2"),
 	"t52.50g30.00m-5.000 CEMP - C2.0" => 
 	spectraPath("t52.50g30.00m-5.000 CEMP","C_2.0"),
+
+	"t50.00g25.00m-5.000 CEMP - C3.2" => 
+	spectraPath("t50.00g25.00m-5.000 CEMP","C_3.2"),
+	"t50.00g25.00m-5.000 CEMP - C2.8" => 
+	spectraPath("t50.00g25.00m-5.000 CEMP","C_2.8"),
+	"t50.00g25.00m-5.000 CEMP - C2.6" => 
+	spectraPath("t50.00g25.00m-5.000 CEMP","C_2.6"),
+	"t50.00g25.00m-5.000 CEMP - C2.4" => 
+	spectraPath("t50.00g25.00m-5.000 CEMP","C_2.4"),
+	"t50.00g25.00m-5.000 CEMP - C2.2" => 
+	spectraPath("t50.00g25.00m-5.000 CEMP","C_2.2"),
+	"t50.00g25.00m-5.000 CEMP - C2.0" => 
+	spectraPath("t50.00g25.00m-5.000 CEMP","C_2.0"),
 	
 
 	# FeH = -4
+	"t50.00g25.00m-4.000 CEMP - C2.0" => 
+	spectraPath("t50.00g25.00m-4.000 CEMP","C_2.0"),
+	"t50.00g25.00m-4.000 no-CEMP - C2.0" => 
+	spectraPath("t50.00g25.00m-4.000 no-CEMP","C_2.0"),
 	"t57.50g45.00m-4.000 CEMP - C2.0" => 
 	spectraPath("t57.50g45.00m-4.000 CEMP","C_2.0"),
 	"t57.50g45.00m-4.000 no-CEMP - C2.0" => 
@@ -341,9 +377,24 @@ spectrapath3D = Dict(
 	spectraPath("t52.50g30.00m-4.000 CEMP","C_1.2"),
 	#"t52.50g30.00m-4.000 CEMP - C1.0" => 
 	#spectraPath("t52.50g30.00m-4.000 CEMP","C_1.0"),
+
+	"t50.00g25.00m-4.000 CEMP - C2.2" => 
+	spectraPath("t50.00g25.00m-4.000 CEMP","C_2.2"),
+	"t50.00g25.00m-4.000 CEMP - C1.8" => 
+	spectraPath("t50.00g25.00m-4.000 CEMP","C_1.8"),
+	"t50.00g25.00m-4.000 CEMP - C1.6" => 
+	spectraPath("t50.00g25.00m-4.000 CEMP","C_1.6"),
+	"t50.00g25.00m-4.000 CEMP - C1.4" => 
+	spectraPath("t50.00g25.00m-4.000 CEMP","C_1.4"),
+	"t50.00g25.00m-4.000 CEMP - C1.2" => 
+	spectraPath("t50.00g25.00m-4.000 CEMP","C_1.2"),
 	
 
 	# FeH = -3
+	"t50.00g25.00m-3.000 CEMP - C1.0" => 
+	spectraPath("t50.00g25.00m-3.000 CEMP","C_1.0"),
+	"t50.00g25.00m-3.000 no-CEMP - C1.0" => 
+	spectraPath("t50.00g25.00m-3.000 no-CEMP","C_1.0"),
 	"t57.50g45.00m-3.000 CEMP - C1.0" => 
 	spectraPath("t57.50g45.00m-3.000 CEMP","C_1.0"),
 	"t57.50g45.00m-3.000 no-CEMP - C1.0" => 
@@ -378,6 +429,19 @@ spectrapath3D = Dict(
 	spectraPath("t52.50g30.00m-3.000 CEMP","C_0.2"),
 	"t52.50g30.00m-3.000 CEMP - C0.0" => 
 	spectraPath("t52.50g30.00m-3.000 CEMP","C_0.0"),
+
+	"t50.00g25.00m-3.000 CEMP - C1.2" => 
+	spectraPath("t50.00g25.00m-3.000 CEMP","C_1.2"),
+	"t50.00g25.00m-3.000 CEMP - C0.8" => 
+	spectraPath("t50.00g25.00m-3.000 CEMP","C_0.8"),
+	"t50.00g25.00m-3.000 CEMP - C0.6" => 
+	spectraPath("t50.00g25.00m-3.000 CEMP","C_0.6"),
+	"t50.00g25.00m-3.000 CEMP - C0.4" => 
+	spectraPath("t50.00g25.00m-3.000 CEMP","C_0.4"),
+	"t50.00g25.00m-3.000 CEMP - C0.2" => 
+	spectraPath("t50.00g25.00m-3.000 CEMP","C_0.2"),
+	"t50.00g25.00m-3.000 CEMP - C0.0" => 
+	spectraPath("t50.00g25.00m-3.000 CEMP","C_0.0"),
 
 	
 	# FeH = -2
@@ -414,6 +478,8 @@ spectrapath3D = Dict(
 
 
 	# Contribution functions
+	"t50.00g25.00m-5.000 CEMP - contr" => 
+	spectraPath("t50.00g25.00m-5.000 CEMP" ,"contr"),
 	"t57.50g45.00m-5.000 CEMP - contr" => 
 	spectraPath("t57.50g45.00m-5.000 CEMP" ,"contr"),
 	"t52.50g30.00m-5.000 CEMP - contr" => 
@@ -457,14 +523,17 @@ spectrapath1D = Dict(
 
 	# After fixing molecular opacities
 	# Feh = -5
+	"MARCS t50.00g25.00m-5.000 no-CEMP - C3.0" => spectraPath1D("MARCS t50.00g25.00m-5.000 no-CEMP","C_3.0"),
 	"MARCS t57.50g45.00m-5.000 no-CEMP - C3.0" => spectraPath1D("MARCS t57.50g45.00m-5.000 no-CEMP","C_3.0"),
 	"MARCS t52.50g30.00m-5.000 no-CEMP - C3.0" => spectraPath1D("MARCS t52.50g30.00m-5.000 no-CEMP","C_3.0"),
 
 	# Feh = -4
+	"MARCS t50.00g25.00m-4.000 no-CEMP - C2.0" => spectraPath1D("MARCS t50.00g25.00m-4.000 no-CEMP","C_2.0"),
 	"MARCS t57.50g45.00m-4.000 no-CEMP - C2.0" => spectraPath1D("MARCS t57.50g45.00m-4.000 no-CEMP","C_2.0"),
 	"MARCS t52.50g30.00m-4.000 no-CEMP - C2.0" => spectraPath1D("MARCS t52.50g30.00m-4.000 no-CEMP","C_2.0"),
 
 	# Feh = -3
+	"MARCS t50.00g25.00m-3.000 no-CEMP - C1.0" => spectraPath1D("MARCS t50.00g25.00m-3.000 no-CEMP","C_1.0"),
 	"MARCS t57.50g45.00m-3.000 no-CEMP - C1.0" => spectraPath1D("MARCS t57.50g45.00m-3.000 no-CEMP","C_1.0"),
 	"MARCS t52.50g30.00m-3.000 no-CEMP - C1.0" => spectraPath1D("MARCS t52.50g30.00m-3.000 no-CEMP","C_1.0"),
 
@@ -473,6 +542,7 @@ spectrapath1D = Dict(
 	"MARCS t52.50g30.00m-2.000 no-CEMP - C1.0" => spectraPath1D("MARCS t52.50g30.00m-2.000 no-CEMP","C_1.0"),
 
 	# contribution functions
+	"MARCS t50.00g25.00m-5.000 no-CEMP - contr" => spectraPath1D("MARCS t50.00g25.00m-5.000 no-CEMP","contr"),
 	"MARCS t57.50g45.00m-5.000 no-CEMP - contr" => spectraPath1D("MARCS t57.50g45.00m-5.000 no-CEMP","contr"),
 	"MARCS t52.50g30.00m-5.000 no-CEMP - contr" => spectraPath1D("MARCS t52.50g30.00m-5.000 no-CEMP","contr"),
 	"MARCS t57.50g45.00m-4.000 no-CEMP - contr" => spectraPath1D("MARCS t57.50g45.00m-4.000 no-CEMP","contr"),
@@ -485,6 +555,7 @@ spectrapath1D = Dict(
 begin
 	spectra1D = Dict()
 	for (k, v) in spectrapath1D 
+		!isdir(v) && @show(v)
 		spectra1D[k] = M3DISRun(v)
 	end	
 end
@@ -856,6 +927,229 @@ let
 	f
 end
 
+# ╔═╡ b0d6cf77-7197-4c1a-a59a-679dca8ddf7e
+
+
+# ╔═╡ d40dd522-128d-4407-a53e-62977f43b27d
+md"## Optical surface slices"
+
+# ╔═╡ 0b060c44-9da6-46d5-9c8d-4a6d0285c2a2
+md"### [Fe/H] = -5"
+
+# ╔═╡ 07c86b08-0181-491e-952b-2e468ea8896c
+design_p2E = PlotDesign("t50.00g25.00m-5.000 CEMP", L"\rm T_{eff}=5\,000\ K, log(g)=2.5,\ [Fe/H]=-5", "-", 2.5, "tomato")
+
+# ╔═╡ 87581ad4-4fe8-4e46-9529-9255448f22fd
+name1_p2E = "optical_surface_t50.00g25.00m-5.000.pdf" 
+
+# ╔═╡ 1ef702b2-1a94-4794-acd7-4b5516595203
+let
+	b = models3D[design_p2E.key][2]
+	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ_ross=0.0)[:T]
+	
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
+	im = ax.imshow(
+		Tplane, 
+		rasterized=true, 
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat",
+		aspect="equal"
+	)
+	cbar = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+	cbar.set_label(L"\rm temperature\ [K]")
+
+	ax.set_xlabel(L"\rm x\ [Mm]")
+	ax.set_ylabel(L"\rm y\ [Mm]")
+	ax.set_title(design_p2E.label)
+
+	f.savefig(name1_p2E)
+	f
+end
+
+# ╔═╡ 26e9ea76-9c43-471e-a195-73150208ae19
+design_p2F = PlotDesign("t52.50g30.00m-5.000 CEMP", L"\rm T_{eff}=5\,250\ K, log(g)=3.0,\ [Fe/H]=-5 ", "-", 2.5, "tomato")
+
+# ╔═╡ f8461a99-8d27-4293-bdc4-9afe19728a4e
+name1_p2F = "optical_surface_t52.50g30.00m-5.000.pdf"
+
+# ╔═╡ 86e48b71-a6a9-4c3a-9227-7f013324c813
+let
+	b = models3D[design_p2F.key][2]
+	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ_ross=0.0)[:T]
+	
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
+	im = ax.imshow(
+		Tplane, 
+		rasterized=true, 
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat",
+		aspect="equal"
+	)
+	cbar = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+	cbar.set_label(L"\rm temperature\ [K]")
+
+	ax.set_xlabel(L"\rm x\ [Mm]")
+	ax.set_ylabel(L"\rm y\ [Mm]")
+	ax.set_title(design_p2F.label)
+
+	f.savefig(name1_p2F)
+	
+	f
+end
+
+# ╔═╡ 228cda78-3c92-41fa-bd8d-74b8714ce094
+design_p2G = PlotDesign("t57.50g45.00m-5.000 CEMP", L"\rm T_{eff}=5\,750\ K, log(g)=4.5,\ [Fe/H]=-5 ", "-", 2.5, "tomato")
+
+# ╔═╡ 2158c40c-a464-45a3-a0c9-2fc69fe635da
+name1_p2G = "optical_surface_t57.50g45.00m-5.000.pdf"
+
+# ╔═╡ 326ee706-2b03-4fd5-bc16-e396e2ec4a1d
+let
+	b = models3D[design_p2G.key][2]
+	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ_ross=0.0)[:T]
+	
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
+	im = ax.imshow(
+		Tplane, 
+		rasterized=true, 
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat",
+		aspect="equal"
+	)
+	cbar = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+	cbar.set_label(L"\rm temperature\ [K]")
+
+	ax.set_xlabel(L"\rm x\ [Mm]")
+	ax.set_ylabel(L"\rm y\ [Mm]")
+	ax.set_title(design_p2G.label)
+
+	f.savefig(name1_p2G)
+	
+	f
+end
+
+# ╔═╡ 96e30c0f-9493-42b0-9c38-888b653723d1
+
+
+# ╔═╡ 59566cb5-45c3-41a6-977c-b6af33e15c1f
+md"### [Fe/H] = -3"
+
+# ╔═╡ 30fa8414-9468-49ac-9c9e-8e61823a0263
+design_p2E_2 = PlotDesign("t50.00g25.00m-3.000 CEMP", L"\rm T_{eff}=5\,000\ K, log(g)=2.5,\ [Fe/H]=-3", "-", 2.5, "tomato")
+
+# ╔═╡ d95e2320-31bb-4e50-8292-d7c713d58a87
+name1_p2E_2 = "optical_surface_t50.00g25.00m-3.000.pdf"
+
+# ╔═╡ 1ed777ae-6b23-4bdf-8a6b-5336e88fddde
+let
+	b = models3D[design_p2E_2.key][2]
+	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ_ross=0.0)[:T]
+	
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
+	im = ax.imshow(
+		Tplane, 
+		rasterized=true, 
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat",
+		aspect="equal"
+	)
+	cbar = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+	cbar.set_label(L"\rm temperature\ [K]")
+
+	ax.set_xlabel(L"\rm x\ [Mm]")
+	ax.set_ylabel(L"\rm y\ [Mm]")
+	ax.set_title(design_p2E_2.label)
+
+	f.savefig(name1_p2E_2)
+	f
+end
+
+# ╔═╡ 5c7630d5-e305-467c-87d2-1caebd62c1f2
+design_p2F_2 = PlotDesign("t52.50g30.00m-3.000 CEMP", L"\rm T_{eff}=5\,250\ K, log(g)=3.0,\ [Fe/H]=-3 ", "-", 2.5, "tomato")
+
+# ╔═╡ 234cfaf6-099c-4fc1-a776-c44de65620c0
+name1_p2F_2 = "optical_surface_t52.50g30.00m-3.000.pdf"
+
+# ╔═╡ bfdcd5c1-621f-49b5-b597-fef0d87d30d9
+let
+	b = models3D[design_p2F_2.key][2]
+	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ_ross=0.0)[:T]
+	
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
+	im = ax.imshow(
+		Tplane, 
+		rasterized=true, 
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat",
+		aspect="equal"
+	)
+	cbar = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+	cbar.set_label(L"\rm temperature\ [K]")
+
+	ax.set_xlabel(L"\rm x\ [Mm]")
+	ax.set_ylabel(L"\rm y\ [Mm]")
+	ax.set_title(design_p2F_2.label)
+
+	f.savefig(name1_p2F_2)
+	
+	f
+end
+
+# ╔═╡ c2c504e6-8f4d-4220-9a2a-099c17a06565
+design_p2G_2 = PlotDesign("t57.50g45.00m-3.000 CEMP", L"\rm T_{eff}=5\,750\ K, log(g)=4.5,\ [Fe/H]=-3 ", "-", 2.5, "tomato")
+
+# ╔═╡ 0265aaca-4836-4082-9d21-c11a5f0fde86
+name1_p2G_2 = "optical_surface_t57.50g45.00m-3.000.pdf"
+
+# ╔═╡ 11a5eed7-b234-4d42-81b8-b415c8679ff5
+let
+	b = models3D[design_p2G_2.key][2]
+	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ_ross=0.0)[:T]
+	
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 6))
+
+	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
+	im = ax.imshow(
+		Tplane, 
+		rasterized=true, 
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat",
+		aspect="equal"
+	)
+	cbar = f.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+	cbar.set_label(L"\rm temperature\ [K]")
+
+	ax.set_xlabel(L"\rm x\ [Mm]")
+	ax.set_ylabel(L"\rm y\ [Mm]")
+	ax.set_title(design_p2G_2.label)
+
+	f.savefig(name1_p2G_2)
+	
+	f
+end
+
 # ╔═╡ 83729ef7-9c05-4c0b-8bcf-0ecfccc48d66
 
 
@@ -1011,6 +1305,80 @@ let
 	f
 end
 
+# ╔═╡ 41367bd1-d61c-4b45-8781-6b5b71c7a511
+
+
+# ╔═╡ 1943029c-2f0c-4590-9619-89870040932c
+design_p3_3 = [
+	PlotDesign("t50.00g25.00m-5.000 CEMP - C3.0", "carbon enhanced", "-", 1.5, "tomato"),
+	PlotDesign("t50.00g25.00m-5.000 no-CEMP - C3.0", "not carbon enhanced", "--", 1.5, "k")
+]
+
+# ╔═╡ 5f7c6598-73d9-4e78-90ff-a53fa8ccf6c7
+other_spectra_p3_3 = Dict(
+	#="t57.50g45.00m-5.000 CEMP - C3.0"=>[
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 375", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 374", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 373", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 372", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 369", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 368", "", "-", 1.5, "0.5"), 
+		PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0 - 367", "", "-", 1.5, "0.5"), 
+	],=#
+)
+
+# ╔═╡ ff48212b-40ae-4bcf-8576-034cd46f4738
+name1_p3_3 = "CEMP_vs_noCEMP_spectrum_t50.00g25.00m-5.000.pdf"
+
+# ╔═╡ 7df2c30a-445e-498e-9ebd-1a206ece821e
+let
+	plt.close()
+	
+	f, ax = plt.subplots(1, 1, figsize=(10, 4))
+	
+	for p in design_p3_3
+		k = p.key
+
+		if k in keys(other_spectra_p3_3)
+			for p2 in other_spectra_p3_3[k]
+				k2 = p2.key
+				s = spectra3D[k2]
+				λ, F = flux(s, norm=true)
+				ax.plot(λ, F, color=p2.color, ls=p2.ls, lw=p2.lw, label=p2.label)
+			end
+		end
+		
+		s = spectra3D[k]
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		EW = sum(w .* (1 .- F))
+		@info k*" [Å]" EW
+	
+		#name = replace(k, ' '=>'_')
+		#name = name * "_4297_4303.txt"
+		#MUST.writedlm(name, [λ F])
+
+		ax.plot(λ, F, color=p.color, ls=p.ls, lw=p.lw, label=p.label)
+	end
+	
+	
+	ax.set_ylim(-0.05, 1.01)
+	ax.set_xlim(4297, 4303)
+	
+	#ax.axhline(1.0, color="k", ls=":", alpha=0.5, lw=0.8)
+	ax.set_ylabel("flux [normalized]")
+	ax.set_xlabel("wavelength [Å]")
+	#ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
+	ax.legend(loc="lower center", ncol=2)
+
+	ax.set_title(L"\rm [Fe/H]=-5,\ [C/Fe]=-3")
+
+	f.savefig(name1_p3_3)
+	
+	f
+end
+
 # ╔═╡ 2aa33bb2-3cd3-4104-a6a2-0f1b12fe2960
 
 
@@ -1114,6 +1482,56 @@ let
 	f
 end
 
+# ╔═╡ 136c2f2a-8902-4e05-920d-1d28c918a3f1
+
+
+# ╔═╡ dddd50fb-8044-4755-8180-647311268a91
+design_p3B_3 = [
+	PlotDesign("t50.00g25.00m-4.000 CEMP - C2.0", "CEMP model", "-", 1.5, "tomato"),
+	PlotDesign("t50.00g25.00m-4.000 no-CEMP - C2.0", "scaled-solar model", "--", 1.5, "k")
+]
+
+# ╔═╡ e551c818-ed62-4a2e-b2ac-74bfe6fb9b5f
+name2_p3_3 = "CEMP_vs_noCEMP_spectrum_t50.00g25.00m-4.000.pdf"
+
+# ╔═╡ 809c6511-ff14-47e4-80d7-4c984b3e8d3f
+let
+	plt.close()
+	
+	f, ax = plt.subplots(1, 1, figsize=(10, 4))
+	
+	for p in design_p3B_3
+		k = p.key
+		
+		s = spectra3D[k]
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		EW = sum(w .* (1 .- F))
+		@info k*" [Å]" EW
+	
+		#name = replace(k, ' '=>'_')
+		#name = name * "_4297_4303.txt"
+		#MUST.writedlm(name, [λ F])
+
+		ax.plot(λ, F, color=p.color, ls=p.ls, lw=p.lw, label=p.label)
+	end
+	
+	
+	#ax.set_ylim(0.68, 1.01)
+	ax.set_xlim(4297, 4303)
+	
+	#ax.axhline(1.0, color="k", ls=":", alpha=0.5, lw=0.8)
+	ax.set_ylabel("flux [normalized]")
+	ax.set_xlabel("wavelength [Å]")
+	ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
+	#ax.legend(loc="lower center", ncol=2)
+
+	f.savefig(name2_p3_3)
+	
+	f
+end
+
 # ╔═╡ f0ff834f-203c-460c-af2e-ee1fed8be671
 
 
@@ -1167,6 +1585,9 @@ let
 	f
 end
 
+# ╔═╡ b0d32b4a-a107-47be-b12c-b4ff6ce46b53
+
+
 # ╔═╡ 825031cd-5e40-49b6-936d-4a263a0c0378
 design_p3C_2 = [
 	PlotDesign("t52.50g30.00m-3.000 CEMP - C1.0", "CEMP model", "-", 1.5, "tomato"),
@@ -1214,6 +1635,56 @@ let
 	f
 end
 
+# ╔═╡ f42278a0-ed19-47a8-bd2e-d78d1ef83d3a
+
+
+# ╔═╡ d12753f2-9c57-4af0-9623-194955c17cb7
+design_p3C_3 = [
+	PlotDesign("t50.00g25.00m-3.000 CEMP - C1.0", "CEMP model", "-", 1.5, "tomato"),
+	PlotDesign("t50.00g25.00m-3.000 no-CEMP - C1.0", "scaled-solar model", "--", 1.5, "k")
+]
+
+# ╔═╡ 77ac5fd5-959a-452c-af88-73225291a890
+name3_p3_3 = "CEMP_vs_noCEMP_spectrum_t50.00g25.00m-3.000.pdf"
+
+# ╔═╡ aa555374-910d-4202-9862-6742cb49f0af
+let
+	plt.close()
+	
+	f, ax = plt.subplots(1, 1, figsize=(10, 4))
+	
+	for p in design_p3C_3
+		k = p.key
+		
+		s = spectra3D[k]
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		EW = sum(w .* (1 .- F))
+		@info k*" [Å]" EW
+	
+		#name = replace(k, ' '=>'_')
+		#name = name * "_4297_4303.txt"
+		#MUST.writedlm(name, [λ F])
+
+		ax.plot(λ, F, color=p.color, ls=p.ls, lw=p.lw, label=p.label)
+	end
+	
+	
+	#ax.set_ylim(0.68, 1.01)
+	ax.set_xlim(4297, 4303)
+	
+	#ax.axhline(1.0, color="k", ls=":", alpha=0.5, lw=0.8)
+	ax.set_ylabel("flux [normalized]")
+	ax.set_xlabel("wavelength [Å]")
+	ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
+	#ax.legend(loc="lower center", ncol=2)
+
+	f.savefig(name3_p3_3)
+	
+	f
+end
+
 # ╔═╡ 1397cb72-51db-45bf-8a67-cf1352f7f990
 
 
@@ -1225,8 +1696,9 @@ md"### [Fe/H]=-5, [C/Fe]=3.0"
 
 # ╔═╡ 9987b27b-2437-45a3-9e83-116a01f13d1d
 design_p4 = [
-	PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0", "DISPATCH 3D", "-", 1.5, "tomato"),
-	PlotDesign("MARCS t57.50g45.00m-5.000 no-CEMP - C3.0", "MARCS", "--", 1.5, "k")
+	PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0", "CEMP", "-", 1.7, "k"),
+	PlotDesign("t57.50g45.00m-5.000 no-CEMP - C3.0", "non-CEMP", "--", 1.7, "steelblue"),
+	PlotDesign("MARCS t57.50g45.00m-5.000 no-CEMP - C3.0", "MARCS", "-", 1.7, "tomato")
 ]
 
 # ╔═╡ 17ced5c3-080f-4d65-aa1c-b24a2950e783
@@ -1236,7 +1708,7 @@ name1_p4 = "vs_1D_spectrum_t57.50g45.00m-5.000.pdf"
 let
 	plt.close()
 	
-	f, ax = plt.subplots(1, 1, figsize=(10, 4))
+	f, ax = plt.subplots(1, 1, figsize=(8, 4))
 	
 	for p in design_p4
 		k = p.key
@@ -1260,14 +1732,17 @@ let
 	end
 	
 	
-	ax.set_ylim(-0.05, 1.01)
+	ax.set_ylim(-0.11, 1.01)
 	ax.set_xlim(4297, 4303)
 	
 	#ax.axhline(1.0, color="k", ls=":", alpha=0.5, lw=0.8)
 	ax.set_ylabel("flux [normalized]")
 	ax.set_xlabel("wavelength [Å]")
-	ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
-	#ax.legend(loc="lower center", ncol=2)
+	#ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
+	ax.legend(loc="lower center", ncol=3)
+
+	ax.set_title(L"\rm T_{eff}=5\,750\ K,\ log(g)=4.5,\ [Fe/H] = -5")
+	
 	f.savefig(name1_p4)
 	
 	f
@@ -1278,8 +1753,9 @@ end
 
 # ╔═╡ 6c428722-39e9-4f1c-851a-ee90cb617377
 design_p4_2 = [
-	PlotDesign("t52.50g30.00m-5.000 CEMP - C3.0", "DISPATCH 3D", "-", 1.5, "tomato"),
-	PlotDesign("MARCS t52.50g30.00m-5.000 no-CEMP - C3.0", "MARCS", "--", 1.5, "k")
+	PlotDesign("t52.50g30.00m-5.000 CEMP - C3.0", "CEMP", "-", 1.7, "k"),
+	PlotDesign("t52.50g30.00m-5.000 no-CEMP - C3.0", "non-CEMP", "--", 1.5, "steelblue"),
+	PlotDesign("MARCS t52.50g30.00m-5.000 no-CEMP - C3.0", "MARCS", "-", 1.7, "tomato")
 ]
 
 # ╔═╡ 059c7c73-acaa-468b-b7a4-e63a4748d358
@@ -1289,9 +1765,64 @@ name1_p4_2 = "vs_1D_spectrum_t52.50g30.00m-5.000.pdf"
 let
 	plt.close()
 	
-	f, ax = plt.subplots(1, 1, figsize=(10, 4))
+	f, ax = plt.subplots(1, 1, figsize=(8, 4))
 	
 	for p in design_p4_2
+		k = p.key
+
+		s = if haskey(spectra3D, k)
+			spectra3D[k]
+		else
+			spectra1D[k]
+		end
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		EW = sum(w .* (1 .- F))
+		@info k*" [Å]" EW
+	
+		#name = replace(k, ' '=>'_')
+		#name = name * "_4297_4303.txt"
+		#MUST.writedlm(name, [λ F])
+
+		ax.plot(λ, F, color=p.color, ls=p.ls, lw=p.lw, label=p.label)
+	end
+	
+	
+	ax.set_ylim(-0.11, 1.01)
+	ax.set_xlim(4297, 4303)
+	
+	#ax.axhline(1.0, color="k", ls=":", alpha=0.5, lw=0.8)
+	ax.set_ylabel("flux [normalized]")
+	ax.set_xlabel("wavelength [Å]")
+	#ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
+	ax.legend(loc="lower center", ncol=3)
+	ax.set_title(L"\rm T_{eff}=5\,250\ K,\ log(g)=3.0,\ [Fe/H] = -5")
+
+	f.savefig(name1_p4_2)
+	
+	f
+end
+
+# ╔═╡ 9669b2e7-396d-4e09-827b-3138c3d8f70a
+
+
+# ╔═╡ 20e610c2-9054-4dc6-a551-6f63909715ee
+design_p4_3 = [
+	PlotDesign("t50.00g25.00m-5.000 CEMP - C3.0", "DISPATCH 3D", "-", 1.5, "tomato"),
+	PlotDesign("MARCS t50.00g25.00m-5.000 no-CEMP - C3.0", "MARCS", "--", 1.5, "k")
+]
+
+# ╔═╡ 5d9fc015-4d8b-4811-8f48-c4197eb95709
+name1_p4_3 = "vs_1D_spectrum_t50.00g25.00m-5.000.pdf"
+
+# ╔═╡ e09757e6-29c2-414b-9ac8-2a5fe237e0e6
+let
+	plt.close()
+	
+	f, ax = plt.subplots(1, 1, figsize=(10, 4))
+	
+	for p in design_p4_3
 		k = p.key
 
 		s = if haskey(spectra3D, k)
@@ -1319,9 +1850,11 @@ let
 	#ax.axhline(1.0, color="k", ls=":", alpha=0.5, lw=0.8)
 	ax.set_ylabel("flux [normalized]")
 	ax.set_xlabel("wavelength [Å]")
-	ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
-	#ax.legend(loc="lower center", ncol=2)
-	f.savefig(name1_p4_2)
+	#ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
+	ax.legend(loc="lower center", ncol=2)
+	ax.set_title(L"\rm T_{eff}=5\,000\ K,\ log(g)=2.5,\ [Fe/H] = -5")
+
+	f.savefig(name1_p4_3)
 	
 	f
 end
@@ -1549,6 +2082,61 @@ let
 	#ax.legend(loc="lower center", ncol=2)
 
 	f.savefig(name3_p4_2)
+	f
+end
+
+# ╔═╡ 5924f436-2453-4b92-8b83-8e8033b86c7f
+
+
+# ╔═╡ a8ea82ac-7516-4223-9fa9-8ec93b63416d
+design_p4C_3 = [
+	PlotDesign("t50.00g25.00m-3.000 CEMP - C1.0", "DISPATCH 3D", "-", 1.5, "tomato"),
+	PlotDesign("MARCS t50.00g25.00m-3.000 no-CEMP - C1.0", "MARCS", "--", 1.5, "k")
+]
+
+# ╔═╡ 2a23cc14-6593-4f54-a42b-65ded01323af
+name3_p4_3 = "vs_1D_spectrum_t50.00g25.00m-3.000.pdf"
+
+# ╔═╡ 28e040c9-a4fb-4e58-9e00-2427c69ba268
+let
+	plt.close()
+	
+	f, ax = plt.subplots(1, 1, figsize=(10, 4))
+	
+	for p in design_p4C_3
+		k = p.key
+
+		s = if haskey(spectra3D, k)
+			spectra3D[k]
+		else
+			spectra1D[k]
+		end
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		EW = sum(w .* (1 .- F))
+		@info k*" [Å]" EW
+	
+		#name = replace(k, ' '=>'_')
+		#name = name * "_4297_4303.txt"
+		#MUST.writedlm(name, [λ F])
+
+		ax.plot(λ, F, color=p.color, ls=p.ls, lw=p.lw, label=p.label)
+	end
+	
+	
+	#ax.set_ylim(0.68, 1.01)
+	ax.set_xlim(4297, 4303)
+	#ax.set_ylim(0.94, 1.0)
+	
+	
+	#ax.axhline(1.0, color="k", ls=":", alpha=0.5, lw=0.8)
+	ax.set_ylabel("flux [normalized]")
+	ax.set_xlabel("wavelength [Å]")
+	ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
+	#ax.legend(loc="lower center", ncol=2)
+
+	f.savefig(name3_p4_3)
 	f
 end
 
@@ -2136,6 +2724,107 @@ let
 	f
 end
 
+# ╔═╡ fc260ef0-2b8b-415f-9e16-de551b281d43
+
+
+# ╔═╡ eb6f1896-6945-459f-859f-2594c76de6d8
+abundances_p6_3 = Dict(
+	2.0 => PlotDesign("t50.00g25.00m-5.000 CEMP - C2.0", "", "-", 1.5, nothing),
+	2.2 => PlotDesign("t50.00g25.00m-5.000 CEMP - C2.2", "", "-", 1.5, nothing),
+	2.4 => PlotDesign("t50.00g25.00m-5.000 CEMP - C2.4", "", "-", 1.5, nothing),
+	2.6 => PlotDesign("t50.00g25.00m-5.000 CEMP - C2.6", "", "-", 1.5, nothing),
+	2.8 => PlotDesign("t50.00g25.00m-5.000 CEMP - C2.8", "", "-", 1.5, nothing),
+	3.0 => PlotDesign("t50.00g25.00m-5.000 CEMP - C3.0", "", "-", 1.5, nothing),
+	3.2 => PlotDesign("t50.00g25.00m-5.000 CEMP - C3.2", "", "-", 1.5, nothing)
+)
+
+# ╔═╡ b742f64a-b6fe-4c6e-9368-9c4e60fc702c
+reference_p6_3 = [
+	(3.0, PlotDesign("t50.00g25.00m-5.000 no-CEMP - C3.0", "non-CEMP (3D)", "s", 8.5, "tomato")),
+	(3.0, PlotDesign("MARCS t50.00g25.00m-5.000 no-CEMP - C3.0", "MARCS", "s", 8.5, "steelblue"))
+]
+
+# ╔═╡ 4ddd121e-8b2f-4da4-9474-5cc9894fc43c
+name1_p6_3 = "cog_t50.00g25.00m-5.000.pdf"
+
+# ╔═╡ 2dae804b-ef8e-4f39-b6f6-011bb92f0384
+let
+	plt.close()
+	
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+
+	ew = []
+	abund = []
+	for (ab, p) in abundances_p6_3
+		k = p.key
+
+		s = if haskey(spectra3D, k)
+			spectra3D[k]
+		else
+			spectra1D[k]
+		end
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		append!(ew, [sum(w .* (1 .- F))])
+		append!(abund, [ab])
+	end
+
+	sortmask = sortperm(abund)
+	abund = abund[sortmask]
+	ew = ew[sortmask]
+	f_ab = MUST.linear_interpolation(ew, abund, extrapolation_bc=MUST.Line())
+	f_ew = MUST.linear_interpolation(abund, ew, extrapolation_bc=MUST.Line())
+
+	x = range(1.95, 3.4, length=100) |> collect
+	y = f_ew.(x)
+	ax.plot(x, y, lw=2, color="k", ls="-")
+	ax.plot(abund, ew, lw=2, marker="s", color="k", markersize=10, ls="", markerfacecolor="white")
+
+	corrs = []
+	for (aref, p) in reference_p6_3
+		k = p.key
+
+		s = if haskey(spectra3D, k)
+			spectra3D[k]
+		else
+			spectra1D[k]
+		end
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		EW = sum(w .* (1 .- F))
+
+		ΔC = round(f_ab(EW) - aref, sigdigits=2)
+		append!(corrs, [ΔC])
+		clab = L"\rm \Delta_{[C/Fe]}\ =\ "*"$(ΔC)" *L"\rm\ dex"
+	
+		ax.plot([aref], [EW], color=p.color, marker=p.ls, markersize=p.lw, label=p.label)
+		ax.axhline(EW, color=p.color, lw=1.5, ls="--")
+		ax.axvline(aref + ΔC, color=p.color, lw=1.5, ls="--")
+		ax.text(
+			aref + ΔC, EW + 0.07*(maximum(ew)-minimum(ew)), clab, ha="right", va="bottom", color=p.color, 
+			bbox=Dict("facecolor"=>"white", "edgecolor"=>p.color, "alpha"=>0.7)
+		)
+	end
+
+	abundance_corrections[(5000.0, 2.5, -5.0)] = corrs
+	
+	
+	#ax.set_ylim(-0.05, 1.01)
+	ax.set_xlim(1.96, 3.4)
+	
+	#ax.axhline(1.0, color="k", ls=":", alpha=0.5, lw=0.8)
+	ax.set_xlabel(L"\rm [C/Fe]")
+	ax.set_ylabel(L"\rm equivalent\ width\ [\AA]")
+	ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
+	#ax.legend(loc="lower center", ncol=2)
+
+	f.savefig(name1_p6_3)
+	
+	f
+end
+
 # ╔═╡ 38ce6bb7-f6f2-44d3-8685-8049c42ffeee
 
 
@@ -2354,6 +3043,113 @@ let
 	f
 end
 
+# ╔═╡ ee74de1f-4f7f-4c35-afb8-1186813b8a7b
+
+
+# ╔═╡ 5ce8c3a7-d12e-4a3b-a3ed-81dbcd3a6118
+abundances_p6B_3 = Dict(
+	2.2 => PlotDesign("t50.00g25.00m-4.000 CEMP - C2.2", "", "-", 1.5, nothing),
+	2.0 => PlotDesign("t50.00g25.00m-4.000 CEMP - C2.0", "", "-", 1.5, nothing),
+	1.8 => PlotDesign("t50.00g25.00m-4.000 CEMP - C1.8", "", "-", 1.5, nothing),
+	1.6 => PlotDesign("t50.00g25.00m-4.000 CEMP - C1.6", "", "-", 1.5, nothing),
+	1.4 => PlotDesign("t50.00g25.00m-4.000 CEMP - C1.4", "", "-", 1.5, nothing),
+	1.2 => PlotDesign("t50.00g25.00m-4.000 CEMP - C1.2", "", "-", 1.5, nothing),
+	#1.0 => PlotDesign("t50.00g25.00m-4.000 CEMP - C1.0", "", "-", 1.5, nothing),
+)
+
+# ╔═╡ 4df7f92c-db30-4261-b757-86f9af54c6b3
+reference_p6B_3 = [
+	(2.0, PlotDesign("t50.00g25.00m-4.000 no-CEMP - C2.0", "non-CEMP (3D)", "s", 8.5, "tomato")),
+	(2.0, PlotDesign("MARCS t50.00g25.00m-4.000 no-CEMP - C2.0", "MARCS", "s", 8.5, "steelblue"))
+]
+
+# ╔═╡ ad4dcf0b-89a9-44f9-9de9-185fce79a510
+name2_p6_3 = "cog_t50.00g25.00m-4.000.pdf"
+
+# ╔═╡ f7f9e7fd-dafc-40f3-8ce6-4af55d2a89ac
+let
+	plt.close()
+	
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+
+	ew = []
+	abund = []
+	for (ab, p) in abundances_p6B_3
+		k = p.key
+
+		s = if haskey(spectra3D, k)
+			spectra3D[k]
+		else
+			spectra1D[k]
+		end
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		append!(ew, [sum(w .* (1 .- F))])
+		append!(abund, [ab])
+	end
+
+	sortmask = sortperm(abund)
+	sortmask2 = sortperm(ew)
+	f_ab = MUST.linear_interpolation(
+		ew[sortmask2], abund[sortmask2], extrapolation_bc=MUST.Line()
+	)
+	f_ew = MUST.linear_interpolation(
+		abund[sortmask], ew[sortmask], extrapolation_bc=MUST.Line()
+	)
+
+	abund = abund[sortmask]
+	ew = ew[sortmask]
+
+	x = range(1.1, 2.4, length=100) |> collect
+	y = f_ew.(x)
+	ax.plot(x, y, lw=2, color="k", ls="-")
+	ax.plot(abund, ew, lw=2, marker="s", color="k", markersize=10, ls="", markerfacecolor="white")
+
+	corrs = []
+	for (aref, p) in reference_p6B_3
+		k = p.key
+
+		s = if haskey(spectra3D, k)
+			spectra3D[k]
+		else
+			spectra1D[k]
+		end
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		EW = sum(w .* (1 .- F))
+
+		ΔC = round(f_ab(EW) - aref, sigdigits=2)
+		append!(corrs, [ΔC])
+		clab = L"\rm \Delta_{[C/Fe]}\ =\ "*"$(ΔC)" *L"\rm\ dex"
+	
+		ax.plot([aref], [EW], color=p.color, marker=p.ls, markersize=p.lw, label=p.label)
+		ax.axhline(EW, color=p.color, lw=1.5, ls="--")
+		ax.axvline(aref + ΔC, color=p.color, lw=1.5, ls="--")
+		ax.text(
+			aref + ΔC, EW + 0.08*(maximum(ew)-minimum(ew)), clab, ha="right", va="bottom", color=p.color,
+			bbox=Dict("facecolor"=>"white", "edgecolor"=>p.color, "alpha"=>0.7)
+		)
+	end
+
+	abundance_corrections[(5000.0, 2.5, -4.0)] = [corrs[1], NaN]
+	
+	
+	#ax.set_ylim(0.08, 0.55)
+	ax.set_xlim(1.1, 2.4)
+	
+	#ax.axhline(1.0, color="k", ls=":", alpha=0.5, lw=0.8)
+	ax.set_xlabel(L"\rm [C/Fe]")
+	ax.set_ylabel(L"\rm equivalent\ width\ [\AA]")
+	ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
+	#ax.legend(loc="lower center", ncol=2)
+
+	f.savefig(name2_p6_3)
+	
+	f
+end
+
 # ╔═╡ e7f0e3ea-3204-4c2f-a464-e270baaf8db1
 
 
@@ -2565,6 +3361,114 @@ let
 	#ax.legend(loc="lower center", ncol=2)
 
 	f.savefig(name3_p6_2)
+	
+	f
+end
+
+# ╔═╡ 659cb51a-06ea-432a-91e2-9bd3f5006eb4
+
+
+# ╔═╡ c2e9d134-6bab-454c-b472-9b33965e031b
+abundances_p6C_3 = Dict(
+	1.2 => PlotDesign("t50.00g25.00m-3.000 CEMP - C1.2", "", "-", 1.5, nothing),
+	1.0 => PlotDesign("t50.00g25.00m-3.000 CEMP - C1.0", "", "-", 1.5, nothing),
+	#0.8 => PlotDesign("t50.00g25.00m-3.000 CEMP - C0.8", "", "-", 1.5, nothing),
+	0.6 => PlotDesign("t50.00g25.00m-3.000 CEMP - C0.6", "", "-", 1.5, nothing),
+	0.4 => PlotDesign("t50.00g25.00m-3.000 CEMP - C0.4", "", "-", 1.5, nothing),
+	0.2 => PlotDesign("t50.00g25.00m-3.000 CEMP - C0.2", "", "-", 1.5, nothing),
+	1.0 => PlotDesign("t50.00g25.00m-3.000 CEMP - C1.0", "", "-", 1.5, nothing),
+)
+
+# ╔═╡ b0ae8644-36f4-4f09-8602-9a36ab5ea08f
+reference_p6C_3 = [
+	(1.0, PlotDesign("t50.00g25.00m-3.000 no-CEMP - C1.0", "non-CEMP (3D)", "s", 8.5, "tomato")),
+	(1.0, PlotDesign("MARCS t50.00g25.00m-3.000 no-CEMP - C1.0", "MARCS", "s", 8.5, "steelblue"))
+]
+
+# ╔═╡ d779ed13-aa80-4844-adcb-4662f59ad0c6
+name3_p6_3 = "cog_t50.00g25.00m-3.000.pdf"
+
+# ╔═╡ 298ab49e-f1a3-431f-a9c1-6c5bcce6771b
+let
+	plt.close()
+	
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+
+	ew = []
+	abund = []
+	for (ab, p) in abundances_p6C_3
+		k = p.key
+
+		s = if haskey(spectra3D, k)
+			spectra3D[k]
+		else
+			spectra1D[k]
+		end
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		append!(ew, [sum(w .* (1 .- F))])
+		append!(abund, [ab])
+	end
+
+	sortmask = sortperm(abund)
+	sortmask2 = sortperm(ew)
+	f_ab = MUST.linear_interpolation(
+		ew[sortmask2], abund[sortmask2], extrapolation_bc=MUST.Line()
+	)
+	f_ew = MUST.linear_interpolation(
+		abund[sortmask], ew[sortmask], extrapolation_bc=MUST.Line()
+	)
+
+	abund = abund[sortmask]
+	ew = ew[sortmask]
+
+	x = range(0.0, 1.4, length=100) |> collect
+	y = f_ew.(x)
+	ax.plot(x, y, lw=2, color="k", ls="-")
+	ax.plot(abund, ew, lw=2, marker="s", color="k", markersize=10, ls="", markerfacecolor="white")
+
+	corrs = []
+	for (aref, p) in reference_p6C_3
+		k = p.key
+
+		s = if haskey(spectra3D, k)
+			spectra3D[k]
+		else
+			spectra1D[k]
+		end
+		λ, F = flux(s, norm=true)
+	
+		w = TSO.ω_midpoint(λ) 
+		EW = sum(w .* (1 .- F))
+
+		ΔC = round(f_ab(EW) - aref, sigdigits=2)
+		append!(corrs, [ΔC])
+		clab = L"\rm \Delta_{[C/Fe]}\ =\ "*"$(ΔC)" *L"\rm\ dex"
+	
+		ax.plot([aref], [EW], color=p.color, marker=p.ls, markersize=p.lw, label=p.label)
+		ax.axhline(EW, color=p.color, lw=1.5, ls="--")
+		ax.axvline(aref + ΔC, color=p.color, lw=1.5, ls="--")
+		ax.text(
+			aref + ΔC, EW + 0.08*(maximum(ew)-minimum(ew)), clab, ha="right", va="bottom", color=p.color,
+			bbox=Dict("facecolor"=>"white", "edgecolor"=>p.color, "alpha"=>0.7)
+		)
+	end
+
+	abundance_corrections[(5000.0, 2.5, -3.0)] = corrs
+	
+	
+	
+	#ax.set_ylim(0.08, 0.55)
+	ax.set_xlim(0.0, 1.4)
+	
+	#ax.axhline(1.0, color="k", ls=":", alpha=0.5, lw=0.8)
+	ax.set_xlabel(L"\rm [C/Fe]")
+	ax.set_ylabel(L"\rm equivalent\ width\ [\AA]")
+	ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 0.95))
+	#ax.legend(loc="lower center", ncol=2)
+
+	f.savefig(name3_p6_3)
 	
 	f
 end
@@ -2846,7 +3750,7 @@ end
 
 Compute the metallicity interpolation for every point in the grid of models.
 """
-function metallicity_interpolator(corrections=abundance_corrections; which=2)
+function metallicity_interpolator(corrections=abundance_corrections; which=2, skip=nothing)
 	ks = keys(corrections) |> collect
 	
 	# for all the points in the grid, compute the metallicity interpolator
@@ -2854,13 +3758,17 @@ function metallicity_interpolator(corrections=abundance_corrections; which=2)
 
 	for key in ks
 		knew = (key[1], key[2])
+		if !isnothing(skip)
+			(knew in skip) && continue
+		end
 		if !(knew in keys(interpolators))
 			metalicities = sort([m[3] for m in ks if (m[1]==key[1])&(m[2]==key[2])])
 			corrs = [corrections[(knew...,m)][which] for m in metalicities]
+			nanfilter = .!isnan.(corrs)
 			@info "Interpolate $(knew):" metalicities corrs
 			interpolators[knew] = MUST.linear_interpolation(
-				metalicities,
-				corrs,
+				metalicities[nanfilter],
+				corrs[nanfilter],
 				extrapolation_bc=MUST.Flat()
 			)
 		end
@@ -2870,10 +3778,10 @@ function metallicity_interpolator(corrections=abundance_corrections; which=2)
 end
 
 # ╔═╡ eb865dfb-b206-4daa-a1e7-d8c706ba2485
-interpolators = metallicity_interpolator()
+interpolators = metallicity_interpolator(skip=[(5000.0, 2.5)])
 
 # ╔═╡ a206fa91-09cd-4faa-b8ae-ccda70d36c16
-interpolators_carbon = metallicity_interpolator(which=1)
+interpolators_carbon = metallicity_interpolator(which=1, skip=[(5000.0, 2.5)])
 
 # ╔═╡ 4b8de50b-b68a-458b-8408-1ded9b10976c
 
@@ -2901,14 +3809,16 @@ end
 
 # ╔═╡ ae657bc5-ad83-4675-bdda-f578d7054af7
 design_pCorr = [
-	PlotDesign((5750.0, 4.5), L"\rm T_{eff} = 5750K,\ log(g)=4.5"*"\n"*L"\rm 3D-1D", "-", 1.5, "k"),
-	PlotDesign((5250.0, 3.0), L"\rm T_{eff} = 5250K,\ log(g)=3.0"*"\n"*L"\rm 3D-1D", "-", 1.5, "tomato"),
+	PlotDesign((5750.0, 4.5), L"\rm T_{eff} = 5750K,\ log(g)=4.5", "-", 1.5, "k"),
+	PlotDesign((5250.0, 3.0), L"\rm T_{eff} = 5250K,\ log(g)=3.0", "-", 1.5, "tomato"),
+	#PlotDesign((5000.0, 2.5), L"\rm T_{eff} = 5000K,\ log(g)=2.5", "-", 1.5, "steelblue"),
 ]
 
 # ╔═╡ 24c0eb4f-5dcf-48bf-b305-2e7737c1828b
 design_pCorr_c = [
-	PlotDesign((5750.0, 4.5), L"\rm T_{eff} = 5750K,\ log(g)=4.5"*"\n"*L"\rm CEMP-non\ CEMP", "--", 1.5, "k"),
-	PlotDesign((5250.0, 3.0), L"\rm T_{eff} = 5250K,\ log(g)=3.0"*"\n"*L"\rm CEMP-non\ CEMP", "--", 1.5, "tomato"),
+	PlotDesign((5750.0, 4.5), L"\rm T_{eff} = 5750K,\ log(g)=4.5", "-", 1.5, "k"),
+	PlotDesign((5250.0, 3.0), L"\rm T_{eff} = 5250K,\ log(g)=3.0", "-", 1.5, "tomato"),
+	#PlotDesign((5000.0, 2.5), L"\rm T_{eff} = 5000K,\ log(g)=2.5", "--", 1.5, "steelblue"),
 ]
 
 # ╔═╡ 6a495bfa-fc58-4cbd-89a7-1a8e198a2e91
@@ -2917,9 +3827,11 @@ name1_p62 = "abundance_correction.pdf"
 # ╔═╡ b768e044-d7fc-49a9-bc5e-1859c359f0d1
 let 
 	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+	f, ax = plt.subplots(1, 2, figsize=(9, 5), sharex=true, sharey=true)
+	plt.subplots_adjust(wspace=0)
 	
-	ax.axhline(0.0, color="0.5", lw=1, ls=":")
+	ax[0].axhline(0.0, color="0.5", lw=1, ls=":")
+	ax[1].axhline(0.0, color="0.5", lw=1, ls=":")
 
 	for p in design_pCorr
 		key = p.key
@@ -2927,9 +3839,12 @@ let
 			m[3] for m in keys(abundance_corrections) if (m[1]==key[1])&(m[2]==key[2])
 		])
 		corrs = [abundance_corrections[(key...,m)][2] for m in metalicities]
-
-		ax.plot(
-			metalicities, corrs, marker="s", ls=p.ls, lw=p.lw, markersize=9, color=p.color, label=p.label, markerfacecolor="w", markeredgecolor=p.color, markeredgewidth=2.5
+		nanfilter = .!isnan.(corrs)
+		#=ax[0].plot(
+			metalicities[nanfilter], corrs[nanfilter], marker="s", ls=p.ls, lw=p.lw, markersize=9, color=p.color, label=p.label, markerfacecolor="w", markeredgecolor=p.color, markeredgewidth=2.5
+		)=#
+		ax[0].plot(
+			metalicities[nanfilter], corrs[nanfilter], marker="s", ls=p.ls, lw=p.lw, markersize=9, color=p.color, label=p.label
 		)
 	end
 
@@ -2940,15 +3855,21 @@ let
 		])
 		corrs = [abundance_corrections[(key...,m)][1] for m in metalicities]
 
-		ax.plot(
+		ax[1].plot(
 			metalicities, corrs, marker="s", ls=p.ls, lw=p.lw, markersize=9, color=p.color, label=p.label
 		)
 	end
 
-	ax.legend(ncol=2, loc="upper center")
-	ax.set_xlabel(L"\rm [Fe/H]\ [dex]")
-	ax.set_ylabel(L"\rm \Delta\ A(C)\ [dex]")
-	ax.set_ylim(-0.72, 0.72)
+	#ax[0].legend(ncol=1, loc="upper center")
+	ax[1].legend(ncol=1, loc="lower center")
+	ax[0].set_xlabel(L"\rm [Fe/H]\ [dex]")
+	ax[1].set_xlabel(L"\rm [Fe/H]\ [dex]")
+	ax[0].set_ylabel(L"\rm \Delta\ A(C)\ [dex]")
+	#ax[1].set_ylabel(L"\rm \Delta\ A(C)\ [dex]")
+	ax[0].set_ylim(-0.77, 0.47)
+
+	ax[0].set_title(L"\rm 3D - 1D")
+	ax[1].set_title(L"\rm CEMP - non\ CEMP")
 
 	f.savefig(name1_p62)
 
@@ -3371,7 +4292,7 @@ let
 
 	ax.legend(loc="lower right")
 
-	ax.set_title(L"\rm [Fe/H] = -5,\ [C/Fe] = 3")
+	ax.set_title(L"\rm T_{eff}=5\,750\ K,\ log(g)=4.5,\ [Fe/H] = -5,\ [C/Fe] = 3")
 	
 
 	f.savefig(name4_p8)
@@ -3598,7 +4519,7 @@ let
 
 	ax.legend(loc="lower right")
 
-	ax.set_title(L"\rm [Fe/H] = -5,\ [C/Fe] = 3")
+	ax.set_title(L"\rm T_{eff}=5\,250\ K,\ log(g)=3.0,\ [Fe/H] = -5,\ [C/Fe] = 3")
 	
 
 	f.savefig(name4_p8B)
@@ -3633,6 +4554,234 @@ let
 	ax.legend(loc="upper left")
 
 	f.savefig(name5_p8B)
+
+	f
+end
+
+# ╔═╡ 75480722-5bf5-453d-9f13-690cda6cdc3f
+
+
+# ╔═╡ 009eabf7-0385-4ed7-b648-1e0b8c4cfc47
+spectra_p8C = [
+	PlotDesign("t50.00g25.00m-5.000 CEMP - contr", "DISPATCH <3D>", "-", 2, "k"),
+	PlotDesign("MARCS t50.00g25.00m-5.000 no-CEMP - contr", "MARCS", "--", 2.5, "tomato"),
+]
+
+# ╔═╡ aee45896-0f70-4bc8-8c8a-e685d92cb60a
+differences_p8C = [
+	PlotDesign("t50.00g25.00m-5.000 CEMP - C3.0", "DISPATCH <3D>", "-", 2, "k"),
+	PlotDesign("t50.00g25.00m-5.000 no-CEMP - C3.0", L"\rm CEMP - non\ CEMP", "-", 2., "k"),
+	PlotDesign("MARCS t50.00g25.00m-5.000 no-CEMP - C3.0", L"\rm 3D - 1D", "--", 2., "tomato"),
+]
+
+# ╔═╡ 9f452aaa-e239-4201-ab9f-21136f8768be
+name1_p8C = "contribution_tau_t50.00g25.00m-5.000.pdf"
+
+# ╔═╡ e1d754a5-cb5e-4fa1-9df2-fb6c806b17ea
+name2_p8C = "contribution_surface_t50.00g25.00m-5.000.pdf"
+
+# ╔═╡ 1882ff98-7c04-4909-8010-3ca0ed5f6e51
+name3_p8C = "contribution_height_t50.00g25.00m-5.000.pdf"
+
+# ╔═╡ 8e757a6a-cfc2-458f-bc10-f31e6606e3ee
+name4_p8C = "profile_tau500_T_t50.00g25.00m-5.000.pdf"
+
+# ╔═╡ b1e90b50-628c-49ef-85ea-5691cebd2243
+name5_p8C = "profile_tau500_rho_t50.00g25.00m-5.000.pdf"
+
+# ╔═╡ 6d528aab-ecc9-4907-966b-e76250f08a2d
+let
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+	plt.close()
+	
+	for (i, p) in enumerate(spectra_p8C)
+		k = p.key
+		if haskey(spectra3D, k)
+			s = spectra3D[k]
+			plot_contr_av(s, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+		else
+			@show k
+			s = spectra1D[k]
+			plot_contr_1D(s, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+		end
+		
+	end
+
+	#ax.set_xlim(-5, 4)
+	#ax.set_ylim(0.1, 7)
+	ax.set_xlabel("optical depth ["*L"\rm\tau_{500}"*"]")
+	ax.set_ylabel("contribution function [normalized]")
+
+	ax.legend(loc="upper right")
+
+	f.savefig(name1_p8C)
+
+	f
+end
+
+# ╔═╡ de50c004-56b1-4719-9a93-6543d0f75f9b
+let
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+	plt.close()
+	
+	for (i, p) in enumerate(spectra_p8C)
+		k = p.key
+		if haskey(spectra3D, k)
+			s = spectra3D[k]
+			im = plot_contr_3D(s, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+
+			cbar = f.colorbar(im, ax=ax)
+			cbar.set_label("contribution function [normalized]")
+		else
+			s = spectra1D[k]
+			
+		end
+		
+	end
+
+	ax.set_title("CH formation surface", fontsize="x-large")
+
+	#ax.set_xlim(-5, 4)
+	#ax.set_ylim(0.1, 7)
+	ax.set_xlabel("X [Mm]")
+	ax.set_ylabel("Y [Mm]")
+
+	f.savefig(name2_p8C)
+
+	f
+end
+
+# ╔═╡ 02e275ca-adf2-4497-a269-c5279bcbc5e9
+let
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+	plt.close()
+	
+	for (i, p) in enumerate(spectra_p8C)
+		k = p.key
+		if haskey(spectra3D, k)
+			s = spectra3D[k]
+			im = plot_contr_yslice(s, 10, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+
+			cbar = f.colorbar(im, ax=ax)
+			cbar.set_label("contribution function [normalized]")
+		else
+			s = spectra1D[k]
+			
+		end
+		
+	end
+
+	ax.set_title("CH formation Height", fontsize="x-large")
+
+	ax.set_ylim(4, -4.1)
+	ax.set_xlabel("X [Mm]")
+	ax.set_ylabel(L"\rm optical\ depth\ [log\ \tau_{500}]")
+
+	f.savefig(name3_p8C)
+
+	f
+end
+
+# ╔═╡ c90d990c-b17a-46d7-a145-00b5eedc0682
+let
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+	plt.close()
+
+	for (i, p) in enumerate(spectra_p8C)
+		k = p.key
+		if haskey(spectra3D, k)
+			s = spectra3D[k]
+			x, y = plot_profile(s, :T, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+
+			ax.plot(x, y; ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+		else
+			s = spectra1D[k]
+			x = s.run.ltau
+			y = s.run.temp
+			ax.plot(x, y, color=p.color, lw=p.lw, label=p.label, ls=p.ls)
+		end
+	end
+
+	left, bottom, width, height = [0.22, 0.52, 0.35, 0.3]
+	ax2 = f.add_axes([left, bottom, width, height], sharex=ax)
+
+	k = differences_p8C[1].key
+	xref, yref = if haskey(spectra3D, k)
+		s = spectra3D[k]
+		plot_profile(s, :T)
+	else
+		s = spectra1D[k]
+		s.run.ltau, s.run.temp
+	end
+	
+	for (i, p) in enumerate(differences_p8C)
+		(i == 1) && continue 
+		k = p.key
+		x, y = if haskey(spectra3D, k)
+			s = spectra3D[k]
+			plot_profile(s, :T)
+		else
+			s = spectra1D[k]
+			MUST.pyconvert(Array, s.run.ltau), MUST.pyconvert(Array, s.run.temp)
+		end
+		mask = sortperm(x)
+		fref = MUST.linear_interpolation(x[mask], y[mask], extrapolation_bc=MUST.Line())
+
+		ax2.plot(
+			xref, yref .- fref.(xref), 
+			color=p.color, lw=p.lw, label=p.label, ls=p.ls
+		)
+	end
+
+	ax2.set_title(L"\rm \Delta T\ [K]")
+	ax2.legend()
+
+	ax.axvline(-2.5, ls="-", color="k", alpha=0.1, lw=4)
+	ax.axvline(-1.5, ls="-", color="tomato", alpha=0.1, lw=4)
+	ax.set_xlim(-4.5, 3)
+	ax2.set_xlim(-4.1, 3)
+	ax.set_ylim(2800, 11000)
+	ax.set_ylabel(L"\rm temperature\ [K]")
+	ax.set_xlabel(L"\rm optical\ depth\ [log\ \tau_{500}]")
+
+	ax.legend(loc="lower right")
+
+	ax.set_title(L"\rm [Fe/H] = -5,\ [C/Fe] = 3")
+	ax.set_title(L"\rm T_{eff}=5\,000\ K,\ log(g)=2.5,\ [Fe/H] = -5,\ [C/Fe] = 3")
+	
+
+	f.savefig(name4_p8C)
+
+	f
+end
+
+# ╔═╡ 31d31e74-c494-4ea6-a28c-d2bb7afd57a4
+let
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+	plt.close()
+	
+	for (i, p) in enumerate(spectra_p8C)
+		k = p.key
+		if haskey(spectra3D, k)
+			s = spectra3D[k]
+			im = plot_profile(s, :log10d, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+		else
+			s = spectra1D[k]
+			x = MUST.pyconvert(Array, s.run.ltau)
+			y = log10.(MUST.pyconvert(Array, s.run.rho))
+			ax.plot(x, y, color=p.color, lw=p.lw, label=p.label, ls=p.ls)
+		end
+		
+	end
+
+	ax.set_xlim(-4.5, 3)
+	ax.set_ylim(-8.5, -5.7)
+	ax.set_ylabel(L"\rm log\ density\ [g\ cm^{-3}]")
+	ax.set_xlabel(L"\rm optical\ depth\ [log\ \tau_{500}]")
+
+	ax.legend(loc="upper left")
+
+	f.savefig(name5_p8C)
 
 	f
 end
@@ -4625,9 +5774,6 @@ begin
 	parameters_all
 end
 
-# ╔═╡ 036a1683-c97e-4bff-87b3-f3e7b3435e4c
-@show size(parameters_all["teff"])
-
 # ╔═╡ c1d54755-4b3f-4ad8-aac5-af7b365500c5
 
 
@@ -5250,19 +6396,47 @@ end
 # ╠═85d716f2-542a-4793-8fa7-a53383fb37ec
 # ╠═8992c977-8832-4102-89b7-430b4abd7e46
 # ╟─43c0fc35-8336-43ba-a2c1-c4ae2ce33d43
+# ╟─b0d6cf77-7197-4c1a-a59a-679dca8ddf7e
+# ╟─d40dd522-128d-4407-a53e-62977f43b27d
+# ╟─0b060c44-9da6-46d5-9c8d-4a6d0285c2a2
+# ╠═07c86b08-0181-491e-952b-2e468ea8896c
+# ╠═87581ad4-4fe8-4e46-9529-9255448f22fd
+# ╟─1ef702b2-1a94-4794-acd7-4b5516595203
+# ╠═26e9ea76-9c43-471e-a195-73150208ae19
+# ╠═f8461a99-8d27-4293-bdc4-9afe19728a4e
+# ╟─86e48b71-a6a9-4c3a-9227-7f013324c813
+# ╠═228cda78-3c92-41fa-bd8d-74b8714ce094
+# ╠═2158c40c-a464-45a3-a0c9-2fc69fe635da
+# ╟─326ee706-2b03-4fd5-bc16-e396e2ec4a1d
+# ╟─96e30c0f-9493-42b0-9c38-888b653723d1
+# ╟─59566cb5-45c3-41a6-977c-b6af33e15c1f
+# ╠═30fa8414-9468-49ac-9c9e-8e61823a0263
+# ╠═d95e2320-31bb-4e50-8292-d7c713d58a87
+# ╟─1ed777ae-6b23-4bdf-8a6b-5336e88fddde
+# ╠═5c7630d5-e305-467c-87d2-1caebd62c1f2
+# ╠═234cfaf6-099c-4fc1-a776-c44de65620c0
+# ╟─bfdcd5c1-621f-49b5-b597-fef0d87d30d9
+# ╠═c2c504e6-8f4d-4220-9a2a-099c17a06565
+# ╠═0265aaca-4836-4082-9d21-c11a5f0fde86
+# ╟─11a5eed7-b234-4d42-81b8-b415c8679ff5
 # ╟─83729ef7-9c05-4c0b-8bcf-0ecfccc48d66
 # ╟─0d4a0a2f-758f-44a0-9692-23c082befac8
 # ╟─1f6dfdaf-b82e-46ee-989f-dbeb685d72ff
 # ╟─391e98d1-344e-4ec3-837b-58327c02c74b
-# ╠═10d7d97f-5c54-4066-9618-c78983c6c18c
-# ╠═b97665fe-1536-4047-b3e9-d6176d47f3c1
-# ╠═a04336bf-9cdf-401e-b237-a41f44987320
-# ╠═1deeb995-4fda-4071-8d1f-fe9a9bc8a09c
+# ╟─10d7d97f-5c54-4066-9618-c78983c6c18c
+# ╟─b97665fe-1536-4047-b3e9-d6176d47f3c1
+# ╟─a04336bf-9cdf-401e-b237-a41f44987320
+# ╟─1deeb995-4fda-4071-8d1f-fe9a9bc8a09c
 # ╟─379e05ed-20db-499a-a0bd-b93f0e3e3642
 # ╠═0b18ead3-5444-4737-99a8-cd86404343d3
 # ╠═9e9ce7c5-2860-4cb0-9ddb-52323a4beb1d
 # ╠═b28b1962-34c6-49f8-973a-3f63eed6c4d0
 # ╟─c0855af1-d407-4ec2-83fc-4397330ac35c
+# ╟─41367bd1-d61c-4b45-8781-6b5b71c7a511
+# ╠═1943029c-2f0c-4590-9619-89870040932c
+# ╠═5f7c6598-73d9-4e78-90ff-a53fa8ccf6c7
+# ╠═ff48212b-40ae-4bcf-8576-034cd46f4738
+# ╟─7df2c30a-445e-498e-9ebd-1a206ece821e
 # ╟─2aa33bb2-3cd3-4104-a6a2-0f1b12fe2960
 # ╟─c905fd9a-e2f6-485c-9096-c6a588b31b4d
 # ╠═91699cc6-cb81-4382-bc5a-01931914343b
@@ -5272,14 +6446,23 @@ end
 # ╠═77bc95ff-f456-46da-a81d-5412e6be032e
 # ╠═baede960-e93b-490a-a027-1caf661428c5
 # ╟─3537629b-0766-43e3-9506-30cfe0cc4a30
+# ╟─136c2f2a-8902-4e05-920d-1d28c918a3f1
+# ╠═dddd50fb-8044-4755-8180-647311268a91
+# ╠═e551c818-ed62-4a2e-b2ac-74bfe6fb9b5f
+# ╟─809c6511-ff14-47e4-80d7-4c984b3e8d3f
 # ╟─f0ff834f-203c-460c-af2e-ee1fed8be671
 # ╟─64073a6c-f9b1-45ad-8494-b948f6ec08d2
 # ╠═c7631a99-5344-4a84-b1e1-5d9d96ddfeeb
 # ╠═fe6d9b1c-a5c3-4b03-b66a-980191b21ba8
 # ╟─00327ee0-ef59-43aa-bfe9-768f0f154f2c
+# ╟─b0d32b4a-a107-47be-b12c-b4ff6ce46b53
 # ╠═825031cd-5e40-49b6-936d-4a263a0c0378
 # ╠═948ee564-7a5f-4581-9ca5-b0787ac41823
 # ╟─18d9db1c-67b4-40f4-8548-057c7039020f
+# ╟─f42278a0-ed19-47a8-bd2e-d78d1ef83d3a
+# ╠═d12753f2-9c57-4af0-9623-194955c17cb7
+# ╠═77ac5fd5-959a-452c-af88-73225291a890
+# ╟─aa555374-910d-4202-9862-6742cb49f0af
 # ╟─1397cb72-51db-45bf-8a67-cf1352f7f990
 # ╟─bd3ee310-3f68-4e08-8ba8-d881aeecb76a
 # ╟─f064d1a4-be5b-4cfc-9bf9-67002a333d2d
@@ -5290,6 +6473,10 @@ end
 # ╠═6c428722-39e9-4f1c-851a-ee90cb617377
 # ╠═059c7c73-acaa-468b-b7a4-e63a4748d358
 # ╟─df0a0a2d-52ea-4852-b450-6fc1baf5838d
+# ╟─9669b2e7-396d-4e09-827b-3138c3d8f70a
+# ╠═20e610c2-9054-4dc6-a551-6f63909715ee
+# ╠═5d9fc015-4d8b-4811-8f48-c4197eb95709
+# ╟─e09757e6-29c2-414b-9ac8-2a5fe237e0e6
 # ╟─59ab2b58-2e38-4cce-9ba4-bc6899616a7d
 # ╟─a61f7ec3-88c9-42f7-bf5c-acc792a05fb5
 # ╠═2aa8d303-dae3-4a23-b253-c6091e2a638d
@@ -5308,6 +6495,10 @@ end
 # ╠═f5e18ac4-8058-4b25-b1f6-86ad30f68dbe
 # ╠═16a3524c-1367-4f62-a657-b0c6ed85159d
 # ╟─681fc74f-cecd-4771-a967-f28864520323
+# ╟─5924f436-2453-4b92-8b83-8e8033b86c7f
+# ╠═a8ea82ac-7516-4223-9fa9-8ec93b63416d
+# ╠═2a23cc14-6593-4f54-a42b-65ded01323af
+# ╟─28e040c9-a4fb-4e58-9e00-2427c69ba268
 # ╟─c09bfd6d-4801-4d8d-8755-147af007c93b
 # ╟─f928a5ce-3022-4dc8-a70c-75971734398c
 # ╠═0d68e17d-da25-4cb4-a89b-7465644e0f20
@@ -5347,6 +6538,11 @@ end
 # ╠═82013231-d110-4791-acc4-46bf165bec09
 # ╠═f2d61607-6728-4520-a3ef-e1b4b29b1fbb
 # ╟─a8abb2a7-687c-45a4-9c47-2273a181b6fb
+# ╟─fc260ef0-2b8b-415f-9e16-de551b281d43
+# ╠═eb6f1896-6945-459f-859f-2594c76de6d8
+# ╠═b742f64a-b6fe-4c6e-9368-9c4e60fc702c
+# ╠═4ddd121e-8b2f-4da4-9474-5cc9894fc43c
+# ╟─2dae804b-ef8e-4f39-b6f6-011bb92f0384
 # ╟─38ce6bb7-f6f2-44d3-8685-8049c42ffeee
 # ╟─2cd6317a-97b4-45bb-8e87-b09b40a470f7
 # ╠═de419d2f-eb6d-47cd-a69c-99d5cb3161a3
@@ -5358,6 +6554,11 @@ end
 # ╠═99cc258f-19df-4ba8-8947-60a730db5f39
 # ╠═c1eb200f-dd1b-40b2-8f1a-ea53908778db
 # ╟─bf484955-9cdb-4e12-99a0-bb744e977e9b
+# ╟─ee74de1f-4f7f-4c35-afb8-1186813b8a7b
+# ╠═5ce8c3a7-d12e-4a3b-a3ed-81dbcd3a6118
+# ╠═4df7f92c-db30-4261-b757-86f9af54c6b3
+# ╠═ad4dcf0b-89a9-44f9-9de9-185fce79a510
+# ╟─f7f9e7fd-dafc-40f3-8ce6-4af55d2a89ac
 # ╟─e7f0e3ea-3204-4c2f-a464-e270baaf8db1
 # ╟─1ead0a28-b327-476e-8be8-0e84ac546d2f
 # ╠═44717756-9575-47b7-a3e5-59c271f79384
@@ -5368,6 +6569,11 @@ end
 # ╠═859af4d4-1e06-4567-ae2d-2d4083da2891
 # ╠═de377555-e268-4185-82d8-588b0ee36b38
 # ╟─0140b523-2d02-4522-aab4-201c0014ae05
+# ╟─659cb51a-06ea-432a-91e2-9bd3f5006eb4
+# ╠═c2e9d134-6bab-454c-b472-9b33965e031b
+# ╠═b0ae8644-36f4-4f09-8602-9a36ab5ea08f
+# ╠═d779ed13-aa80-4844-adcb-4662f59ad0c6
+# ╟─298ab49e-f1a3-431f-a9c1-6c5bcce6771b
 # ╟─2c44e5cc-43e9-4181-ab36-d629f4c61080
 # ╟─098be297-ba34-4648-a08b-935db2bf5b7f
 # ╠═63a51e50-4cb5-4df2-92ab-c24eeb23e482
@@ -5438,6 +6644,19 @@ end
 # ╟─31c72e56-4f33-4328-be62-817a827d2161
 # ╟─d8c47e25-67c5-414f-8416-8d26030c9cde
 # ╟─896797bd-8fb0-4127-a2d6-57438ee03fae
+# ╟─75480722-5bf5-453d-9f13-690cda6cdc3f
+# ╠═009eabf7-0385-4ed7-b648-1e0b8c4cfc47
+# ╠═aee45896-0f70-4bc8-8c8a-e685d92cb60a
+# ╠═9f452aaa-e239-4201-ab9f-21136f8768be
+# ╠═e1d754a5-cb5e-4fa1-9df2-fb6c806b17ea
+# ╠═1882ff98-7c04-4909-8010-3ca0ed5f6e51
+# ╠═8e757a6a-cfc2-458f-bc10-f31e6606e3ee
+# ╠═b1e90b50-628c-49ef-85ea-5691cebd2243
+# ╟─6d528aab-ecc9-4907-966b-e76250f08a2d
+# ╟─de50c004-56b1-4719-9a93-6543d0f75f9b
+# ╟─02e275ca-adf2-4497-a269-c5279bcbc5e9
+# ╟─c90d990c-b17a-46d7-a145-00b5eedc0682
+# ╟─31d31e74-c494-4ea6-a28c-d2bb7afd57a4
 # ╟─b5cda9d6-480b-42a1-8091-7ceab841c3df
 # ╟─6225b614-dc48-4158-8abe-55a1c07b651e
 # ╠═b04303d1-bd59-4104-bc7c-8fdef9477fee
@@ -5500,7 +6719,6 @@ end
 # ╟─fa1bdf35-c482-4869-b195-10b6e4861a2f
 # ╠═fd0357ee-086b-4394-add3-fdff0de4cd39
 # ╟─2c6fbe92-5a73-4360-8ed2-f51f59dc5e3f
-# ╠═036a1683-c97e-4bff-87b3-f3e7b3435e4c
 # ╟─c1d54755-4b3f-4ad8-aac5-af7b365500c5
 # ╟─bc8ada92-8975-403e-a94e-ddc2d9ead536
 # ╠═9e88185c-9c1f-4485-b465-30b3140b0e58
