@@ -1818,8 +1818,8 @@ end
 Return a list of already converted snapshots in the convert.jl
 naming convention.
 """
-function converted_snapshots(folder)
-	files_converted = glob("*.hdf5", folder)
+function converted_snapshots(folder; box_name="box")
+	files_converted = glob("$(box_name)*.hdf5", folder)
 	snaps = Dict()
 	for file in files_converted
 		snname = basename(file)
@@ -1832,11 +1832,11 @@ function converted_snapshots(folder)
 			continue 
 		end 
 		
-		snid   = parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
-		is_τ = isfile(joinpath(folder,"box_tau_sn$(snid).hdf5"))
+		snid = parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
+		is_τ = isfile(joinpath(folder,"$(box_name)_tau_sn$(snid).hdf5"))
 
 		snname  = String(split(snname, ".hdf5") |> first)
-		sntname = "box_tau_sn$(snid)"
+		sntname = "$(box_name)_tau_sn$(snid)"
 
 		if is_τ 
 			snaps[snid] = (snname, sntname) 
