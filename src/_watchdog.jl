@@ -1,3 +1,7 @@
+abstract type AbstractWatchDog end
+abstract type DISPATCHWatchDog <:AbstractWatchDog end
+abstract type PostProcessingWatchDog <:AbstractWatchDog end
+
 """
     WatchDog
 
@@ -5,7 +9,7 @@ Monitor progress of completed or running DISPATCH simulations.
 Save statistics of snapshots available during computation. Administer
 time dependent output during runtime.
 """
-mutable struct WatchDog
+mutable struct WatchDog <: DISPATCHWatchDog
     name
     folder
     snapshots
@@ -18,6 +22,12 @@ end
 WatchDog(name; folder=@in_dispatch("data/"), functions...) = WatchDog(name, joinpath(folder, name), [], [], 0, 0, functions)
 
 
+
+
+
+
+#= Monitoring of DISPATCH runs =#
+
 """
     monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10)
 
@@ -26,7 +36,7 @@ depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10, spectra=-1, onlyrefinement=false)
+function monitor(w::DISPATCHWatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10, spectra=-1, onlyrefinement=false)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -120,7 +130,7 @@ function monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotb
             if ibatch>=batch
                 # if more than `batch` snapshots have been converted
                 # we exit the conversion loop and check for new snapshots
-                # this is usefull, because this provides more recent 
+                # This is useful, because this provides more recent 
                 # snapshots quicker
                 break
             end
@@ -157,7 +167,7 @@ You can pass any number of functions to the WatchDog, that will receive the watc
 They can compute whatever, but they need to return a Dict with whatever they computed
 and the corresponding data.
 """
-function analyse(w::WatchDog, snapshot; save_box=false)
+function analyse(w::AbstractWatchDog, snapshot; save_box=false)
     # convert the snapshot to a box
     b, bτ = convert(w, snapshot; save_box=save_box)
 
@@ -184,7 +194,7 @@ function analyse(w::WatchDog, snapshot; save_box=false)
     save(w, monitoring)
 end
 
-convert(w::WatchDog, snapshot; save_box=false) = begin
+convert(w::DISPATCHWatchDog, snapshot; save_box=false) = begin
     snapshotBox(
         snapshot; 
         folder=w.folder, 
@@ -205,7 +215,7 @@ end
 
 #= Default monitoring functions =#
 
-atmosphericParameters(w::WatchDog, b, bτ) = begin
+atmosphericParameters(w::AbstractWatchDog, b, bτ) = begin
     Dict(
         "teff" => b.parameter.teff,
         "logg" => b.parameter.logg,
@@ -233,20 +243,20 @@ _geostatistic(f, b) = begin
 end
 
 # quantiles
-geometrical15thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.15), b)
-geometrical30thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.30), b)
-geometrical45thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.45), b)
-geometrical60thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.60), b)
-geometrical75thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.75), b)
-geometrical90thQuantile(w::WatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.90), b)
+geometrical15thQuantile(w::AbstractWatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.15), b)
+geometrical30thQuantile(w::AbstractWatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.30), b)
+geometrical45thQuantile(w::AbstractWatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.45), b)
+geometrical60thQuantile(w::AbstractWatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.60), b)
+geometrical75thQuantile(w::AbstractWatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.75), b)
+geometrical90thQuantile(w::AbstractWatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.90), b)
 
-geometricalAverages(w::WatchDog, b, bτ) = _geostatistic(mean, b)
-geometricalMinimum(w::WatchDog, b, bτ) = _geostatistic(minimum, b)
-geometricalMaximum(w::WatchDog, b, bτ) = _geostatistic(maximum, b)
-geometricalRMS(w::WatchDog, b, bτ) = _geostatistic(x->sqrt(mean(x .^2)), b)
-geometricalStd(w::WatchDog, b, bτ) = _geostatistic(std, b)
+geometricalAverages(w::AbstractWatchDog, b, bτ) = _geostatistic(mean, b)
+geometricalMinimum(w::AbstractWatchDog, b, bτ) = _geostatistic(minimum, b)
+geometricalMaximum(w::AbstractWatchDog, b, bτ) = _geostatistic(maximum, b)
+geometricalRMS(w::AbstractWatchDog, b, bτ) = _geostatistic(x->sqrt(mean(x .^2)), b)
+geometricalStd(w::AbstractWatchDog, b, bτ) = _geostatistic(std, b)
 
-geoMassFlux(w::WatchDog, b, bτ) = begin
+geoMassFlux(w::AbstractWatchDog, b, bτ) = begin
     add!(b, ρuz = b[:d] .* b[:uz])
     massFlux = profile(mean, b, :z, :ρuz)
     _, d = profile(mean, b, :z, :d)
@@ -258,7 +268,7 @@ geoMassFlux(w::WatchDog, b, bτ) = begin
     )
 end
 
-upperBoundarySurface(w::WatchDog, b, bτ) = begin
+upperBoundarySurface(w::AbstractWatchDog, b, bτ) = begin
     uzplane = b[:uz][:, :, end]
     uxplane = b[:ux][:, :, end]
     uyplane = b[:uy][:, :, end]
@@ -304,7 +314,7 @@ upperBoundarySurface(w::WatchDog, b, bτ) = begin
     d
 end
 
-lowerBoundarySurface(w::WatchDog, b, bτ) = begin
+lowerBoundarySurface(w::AbstractWatchDog, b, bτ) = begin
     uzplane = b[:uz][:, :, 1]
     uxplane = b[:ux][:, :, 1]
     uyplane = b[:uy][:, :, 1]
@@ -337,7 +347,7 @@ lowerBoundarySurface(w::WatchDog, b, bτ) = begin
     d
 end
 
-minimumTempSurface(w::WatchDog, b, bτ) = begin
+minimumTempSurface(w::AbstractWatchDog, b, bτ) = begin
     # plane of minimum temperature
     iplane = argmin(b[:T])[3]
 
@@ -369,7 +379,7 @@ minimumTempSurface(w::WatchDog, b, bτ) = begin
     d
 end
 
-centerVerticalCut(w::WatchDog, b, bτ) = begin
+centerVerticalCut(w::AbstractWatchDog, b, bτ) = begin
     ixd = floor(Int, size(b, 1) /2)
 
     uzplane = b[:uz][ixd, :, :]
@@ -417,13 +427,13 @@ _optstatistic(f, bτ) = begin
     results
 end
 
-opticalAverages(w::WatchDog, b, bτ) = _optstatistic(mean, bτ)
-opticalMaximum(w::WatchDog, b, bτ) = _optstatistic(maximum, bτ)
-opticalMinimum(w::WatchDog, b, bτ) = _optstatistic(minimum, bτ)
-opticalRMS(w::WatchDog, b, bτ) = _optstatistic(x->sqrt(mean(x .^2)), bτ) 
-opticalStd(w::WatchDog, b, bτ) = _optstatistic(std, bτ)
+opticalAverages(w::AbstractWatchDog, b, bτ) = _optstatistic(mean, bτ)
+opticalMaximum(w::AbstractWatchDog, b, bτ) = _optstatistic(maximum, bτ)
+opticalMinimum(w::AbstractWatchDog, b, bτ) = _optstatistic(minimum, bτ)
+opticalRMS(w::AbstractWatchDog, b, bτ) = _optstatistic(x->sqrt(mean(x .^2)), bτ) 
+opticalStd(w::AbstractWatchDog, b, bτ) = _optstatistic(std, bτ)
 
-optMassFlux(w::WatchDog, b, bτ) = begin
+optMassFlux(w::AbstractWatchDog, b, bτ) = begin
     add!(bτ, ρuz = bτ[:d] .* bτ[:uz])
     massFlux = profile(mean, bτ, :log10τ_ross, :ρuz)
     _, d = profile(mean, bτ, :log10τ_ross, :d)
@@ -434,7 +444,7 @@ optMassFlux(w::WatchDog, b, bτ) = begin
     )
 end
 
-opticalSurfaces(w::WatchDog, b, bτ) = begin
+opticalSurfaces(w::AbstractWatchDog, b, bτ) = begin
     add!(b, lnd=log.(b[:d]))
     uzplane = interpolate_to(b, :uz; logspace=true, τ_ross=0.0)[:uz]
     uxplane = interpolate_to(b, :ux; logspace=true, τ_ross=0.0)[:ux]
@@ -587,13 +597,13 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
     d
 end
 
-resolvedSpectra4MOST3(w::WatchDog, b, bτ) = resolvedSpectra(6200.0, 6790.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
-resolvedSpectraAPOGEESDSSV(w::WatchDog, b, bτ) = resolvedSpectra(15140.0, 17000.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
-resolvedSpectraGaiaESOHR10(w::WatchDog, b, bτ) = resolvedSpectra(5339.0, 5619.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
-resolvedSpectraGaiaRVS(w::WatchDog, b, bτ) = resolvedSpectra(8470.0, 8740.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
-resolvedSpectraGaiaRVSCATriplet(w::WatchDog, b, bτ) = resolvedSpectra(8480.0, 8560.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
-resolvedSpectraHalpha(w::WatchDog, b, bτ) = resolvedSpectra(6562.8-20.0, 6562.8+20.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
-resolvedSpectraGBand(w::WatchDog, b, bτ) = resolvedSpectra(4297.0, 4303.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectra4MOST3(w::AbstractWatchDog, b, bτ) = resolvedSpectra(6200.0, 6790.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraAPOGEESDSSV(w::AbstractWatchDog, b, bτ) = resolvedSpectra(15140.0, 17000.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraGaiaESOHR10(w::AbstractWatchDog, b, bτ) = resolvedSpectra(5339.0, 5619.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraGaiaRVS(w::AbstractWatchDog, b, bτ) = resolvedSpectra(8470.0, 8740.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraGaiaRVSCATriplet(w::AbstractWatchDog, b, bτ) = resolvedSpectra(8480.0, 8560.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraHalpha(w::AbstractWatchDog, b, bτ) = resolvedSpectra(6562.8-20.0, 6562.8+20.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
+resolvedSpectraGBand(w::AbstractWatchDog, b, bτ) = resolvedSpectra(4297.0, 4303.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 
 
 
@@ -648,16 +658,16 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
 
 #= Utility functions =#
 
-updatesnaps!(w::WatchDog) = begin
+updatesnaps!(w::DISPATCHWatchDog) = begin
     w.snapshots = sort(list_of_snapshots(w.folder))
     w.snapshotsCompleted = snapshotnumber.(availableSnaps(w))
 end
 
 snapshotnumber(snap) = parse(Int, split(split(snap, "_", keepempty=false) |> last, ".hdf5", keepempty=false) |> first)
 
-monitoringPath(w) = joinpath(w.folder, "monitoring")
-monitoringPath(w, snap) = joinpath(w.folder, "monitoring", "snap_$(snap).hdf5")
-availableSnaps(w) = begin
+monitoringPath(w::AbstractWatchDog) = joinpath(w.folder, "monitoring")
+monitoringPath(w::AbstractWatchDog, snap) = joinpath(w.folder, "monitoring", "snap_$(snap).hdf5")
+availableSnaps(w::AbstractWatchDog) = begin
     l = glob("snap*", monitoringPath(w))
     ln = snapshotnumber.(l)
     m = sortperm(ln)
@@ -665,7 +675,7 @@ availableSnaps(w) = begin
     l[m]
 end
 
-convertedBoxes(w) = converted_snapshots(w.folder)
+convertedBoxes(w::AbstractWatchDog) = converted_snapshots(w.folder)
 
 
 """
@@ -678,7 +688,7 @@ Add the given statistics to the watchdog data after the creation of the monitori
 
 ```
 """
-function add!(w::WatchDog, snapshot; stats...)
+function add!(w::AbstractWatchDog, snapshot; stats...)
     # Make sure the data of this snapshot is loaded
     data = reload(w, snapshot, mmap=false, groups=nothing)
 
@@ -703,7 +713,7 @@ The function removes the snapshot data to save disk space, but
 does not remove it from the monitoring. This allows to check the progress
 without saving every snapshot.
 """
-deleteSnapshot(w, snap) = begin
+deleteSnapshot(w::DISPATCHWatchDog, snap) = begin
     # check if monitoring really exists
     if !(snap in w.snapshotsCompleted)
         @warn "Deleting requested for snapshot $(snap), which is not monitored yet."
@@ -723,7 +733,7 @@ end
 Delete the snapshot with number snap from the monitoring.
 This is usefull if you want to re-do the analysis of the given snapshot.
 """
-deleteMonitoring(w, snap) = begin
+deleteMonitoring(w::DISPATCHWatchDog, snap) = begin
     # check if monitoring really exists
     if !(snap in w.snapshotsCompleted)
         @warn "Deleting requested for snapshot $(snap), which is not monitored yet."
@@ -743,7 +753,7 @@ end
 add_to_hdf5!(fid, fname, val)       = fid["$(fname)"] = val
 add_to_hdf5!(fid, fname, val::Bool) = fid["$(fname)"] = Int(val)
 
-save(w::WatchDog, monitoring) = begin
+save(w::AbstractWatchDog, monitoring) = begin
     # check if folder exists
     if !isdir(monitoringPath(w))
         mkdir(monitoringPath(w))
@@ -771,15 +781,15 @@ end
 
 
 
-reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false, groups=nothing) where {S<:WatchDog} = begin
+reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false, groups=nothing) where {S<:AbstractWatchDog} = begin
     reload(s(name; folder=folder), snap, mmap=mmap, groups=groups)
 end
 
-reload!(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false, groups=nothing) where {S<:WatchDog} = begin
+reload!(s::Type{S}, name; folder=@in_dispatch("data/"), mmap=false, asDict=false, groups=nothing) where {S<:AbstractWatchDog} = begin
     reload!(s(name; folder=folder), mmap=mmap, asDict=asDict, groups=groups)
 end
 
-reload(w::S, snap; mmap=false, groups=nothing) where {S<:WatchDog} = begin
+reload(w::S, snap; mmap=false, groups=nothing) where {S<:AbstractWatchDog} = begin
     fid = HDF5.h5open(monitoringPath(w, snap), "r")
     fvals = Dict()
 
@@ -817,7 +827,7 @@ Load the monitoring of the given WatchDog. Optionally specify a list of groups y
 want to load, or how many snapshots you want to read from the end. This is 
 usefull when you only need a specific field of the last couple of snapshots.
 """
-reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all) where {S<:WatchDog} = begin
+reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all) where {S<:AbstractWatchDog} = begin
     listOfSnaps = availableSnaps(w)
     w.snapshotsCompleted = []
     firstSnap = lastN == :all ? 1 : max(length(listOfSnaps) - (lastN-1), 1)
