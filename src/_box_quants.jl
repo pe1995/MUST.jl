@@ -45,6 +45,9 @@ varnames(q) = [qi.name for qi in q]
 
 dQ = Quantity(:d)
 eQ = Quantity(:e)
+#BxQ = Quantity(:bx, nothing, standardConversion(:B))
+#ByQ = Quantity(:by, nothing, standardConversion(:B))
+#BzQ = Quantity(:bz, nothing, standardConversion(:B))
 uxQ = Quantity(:ux, (; d, px, kwargs...)->(px ./ d), standardConversion(:u))
 uyQ = Quantity(:uy, (; d, py, kwargs...)->(py ./ d), standardConversion(:u))
 uzQ = Quantity(:uz, (; d, pz, kwargs...)->(pz ./ d), standardConversion(:u))
@@ -58,6 +61,9 @@ srcQ = Quantity(:sourcefunction, nothing, standardConversion(:src))
 defaultQuantities = [
     dQ,
     eQ,
+    #BxQ,
+    #ByQ,
+    #BzQ,
     uxQ,
     uyQ,
     uzQ,

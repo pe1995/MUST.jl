@@ -171,7 +171,7 @@ function snapshotBox_jl(
     save_snapshot=true,
     quantites=defaultQuantities,
     eos_path=nothing,
-    eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), 
+    eos_reader=(x)->_squaregaseos(x, eos_path=eos_path, inputNamelist=joinpath(folder, "params")), 
     lookup_generator=nothing,
     kwargs...)
     folder = if !isdir(folder)

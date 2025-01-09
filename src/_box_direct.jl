@@ -246,11 +246,12 @@ consider using the TSO EoS instead, which is faster and more convenient.
 function _squaregaseos(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
 	eos_path = if isnothing(eos_path)
 		if isfile(inputNamelist*".nml")
-			inputNamelist = StellarNamelist(inputNamelist*".nml")    
+			nml = FreeNamelist(inputNamelist*".nml") #StellarNamelist(inputNamelist*".nml")    
 			@in_dispatch(replace(
-				nmlField(inputNamelist, :eos_params)["table_loc"], 
+				nmlField(nml, :eos_params)["table_loc"], 
 				"'"=>""
 			))
+			#@in_dispatch(nmlField(inputNamelist, :eos_params))
 		else
 			nothing
 		end
