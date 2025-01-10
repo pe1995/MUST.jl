@@ -188,12 +188,13 @@ function snapshotBox_jl(
             mmap=use_mmap,
             eos_reader=eos_reader,
             lookup_generator=lookup_generator,
-            save_snapshot=save_snapshot
+            save_snapshot=false
         )
         
         # Add the optical depth
         τ = @optionalTiming opticalDepthTime optical_depth(b_s, opacity=:kr, density=:d)
         add!(b_s, τ, :τ_ross)
+        save_snapshot && save(b_s; name="box_sn$(number)", folder=folder)
 
         # interpolate to optical depth scale
         b_τ = if optical_depth_scale
