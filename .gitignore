@@ -100,3 +100,5 @@ examples/initial_conditions/test
 examples/running_multi/*/*.hdf5
 examples/running_multi/*.out
 
+
+examples/MainSequence/*.txt

@@ -299,7 +299,7 @@ function prepare(
 
     fromT_toE.(
         grid.info[!, "binned_tables"], grid.info[!, "binned_E_tables"], grid.info[!, "av_path"], 
-        upsample=2048, lnEi_stretch=0.5, 
+        upsample=2048, lnEi_stretch=0.7, 
         eos_radius=gaussian_filter_radius,
         opa_radius=gaussian_filter_radius
     )
