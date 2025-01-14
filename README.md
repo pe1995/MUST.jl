@@ -358,6 +358,24 @@ plot(profile(mean, box, :log10τ_ross, :T)...)
 
 will plot the average temperature as a function of optical depth. Note that this will only be correct, if the given `Box` is indeed on the $\rm \tau$ scale. Computing the average quantites on the geometrical scale and plot against average optical depth is **not** equal to average planes in a cube interpolated to a uniform optical depth scale. One should always compute averages on planes of constant optical depth if one intents to compare on that scale.
 
+In general, you can access all data cubes stored within this `Box` by using
+
+```julia
+# x, y, z meshgrids
+b.x, b.y, b.z
+
+# data arrays are stored in the data dictionary, e.g. temperature
+b.data[:T]
+
+# or access it with indexing
+b[:T]
+
+# all fields can be shown with
+@show fieldnames(typeof(b))
+
+# all variables in data can be shown with 
+@show collect(keys(b.data))
+```
 
 ## Surfaces
 
