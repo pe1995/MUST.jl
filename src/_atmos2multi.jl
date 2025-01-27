@@ -77,7 +77,7 @@ function multiBox(name::String)
     n, x, y, z = _read_mesh_multi(mesh_path)
     ne, T, ux, uy, uz, d = _read_atmos_multi(atmos_path, n)
 
-    data = Dict{Symbol, typeof(ne)}(:Ne=>ne, :T=>T, :ux=>ux, :uy=>uy, :uz=>uz, :d=>d)
+    data = Dict{Symbol, Any}(:Ne=>ne, :T=>T, :ux=>ux, :uy=>uy, :uz=>uz, :d=>d)
 
     xx, yy, zz = meshgrid(x, y, z)
 

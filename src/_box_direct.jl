@@ -463,7 +463,7 @@ function _save_box(number, fid::Dict, time, logg, folder)
         Dict{Symbol, dtype}()
     )
 
-    data = Dict(Symbol(p)=>v for (p, v) in fid if !(p in ["x", "y", "z"]))
+    data = Dict{Symbol, Any}(Symbol(p)=>v for (p, v) in fid if !(p in ["x", "y", "z"]))
     b = Box(
         fid["x"],
         fid["y"],
@@ -488,7 +488,7 @@ function _to_box(number, fid::Dict, time, logg, folder)
         Dict{Symbol, dtype}()
     )
 
-    data = Dict(Symbol(p)=>v for (p, v) in fid if !(p in ["x", "y", "z"]))
+    data = Dict{Symbol, Any}(Symbol(p)=>v for (p, v) in fid if !(p in ["x", "y", "z"]))
     Box(
         fid["x"],
         fid["y"],

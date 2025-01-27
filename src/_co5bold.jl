@@ -42,7 +42,7 @@ function CO5BOLDBox(model_path)
 
     MUST.Box(
         xx, yy, zz,
-        Dict{Symbol, Array{Float32, 3}}(
+        Dict{Symbol, Any}(
             :ux  => px ./rho,
             :uy  => py ./rho,
             :uz  => pz ./rho,

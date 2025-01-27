@@ -124,7 +124,7 @@ function marcsBox(path::String)
 
     ne = reshape(model.structure["Pe"], 1, 1, :) ./ (KBoltzmann .* T)
 
-    data = Dict{Symbol, typeof(zz)}(
+    data = Dict{Symbol, Any}(
         :Ne=>ne, :T=>T, :d=>d, :τ_ross=>t, :Pg=>pg, :Pr=>pr
     )
 

@@ -133,7 +133,7 @@ function gresample(b::Box;
 	ip = ginterpolate(grid, target_grid, method=method)
 
 	# compute the interpolate quantities
-	data_new = Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}()
+	data_new = Dict{Symbol,Any}()
     d_tmp = permutedims(first(values(b.data)), order)
 
     TN = eltype(b.x)

@@ -6,7 +6,7 @@ mutable struct AtmosphericParameters{T<:AbstractFloat}
 end
 
 mutable struct Space <:AbstractSpace
-    data             ::Dict{Symbol,Vector{<:Union{Float32, Float64, Int16, Int32, Int64}}}
+    data             ::Dict{Symbol,Any}
     patch_dimensions ::Array{Int,2}
     parameter        ::AtmosphericParameters
 end
@@ -15,7 +15,7 @@ mutable struct Box <:AbstractSpace
     x                ::Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}
     y                ::Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}
     z                ::Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}
-    data             ::Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}
+    data             ::Dict{Symbol, Any}
     parameter        ::AtmosphericParameters
 end
 
@@ -132,7 +132,7 @@ MUST.Space type object
 
 """
 function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false) 
-    qs = Dict{Symbol,Vector{Float32}}(q=>Float32[] for q in quantities)
+    qs = Dict{Symbol,Any}(q=>Float32[] for q in quantities)
     qs[:x] = Float32[]; qs[:y] = Float32[]; qs[:z] = Float32[]
     qs[:i_patch] = Int[]
     patch_dimensions = zeros(Int,(length(snapshot.patches),3))
@@ -211,7 +211,7 @@ MUST.Space type object
 """
 function Space(snapshot::MUST.StaggerLegacySnap, quantities::Symbol...)
     snap = snapshot.snap
-    qs = Dict{Symbol,Vector{<:Union{Float32, Float64, Int16, Int32, Int64}}}(q=>Float32[] for q in quantities)
+    qs = Dict{Symbol,Any}(q=>Float32[] for q in quantities)
     qs[:x] = Float32[]; qs[:y] = Float32[]; qs[:z] = Float32[]
     qs[:i_patch] = Int[]
     patch_dimensions = zeros(Int, (1,3))
@@ -383,7 +383,7 @@ function Box(s::Space)
     #z_grid = pyconvert(Array{eltype(x)}, z_grid)
     x_grid, y_grid, z_grid = meshgrid(x, y, z)
 
-    results::Dict{Symbol, Array{<:Union{Float32, Float64, Int16, Int32, Int64}, 3}} = Dict(q=>zeros(typeof(s.data[q][1]),size(x_grid)) 
+    results::Dict{Symbol, Any} = Dict(q=>zeros(typeof(s.data[q][1]),size(x_grid)) 
                                                                                         for q in keys(s.data) if !(q in [:x,:y,:z]))
     for q in keys(results)
         q == :i_patch ? continue : nothing
@@ -511,7 +511,7 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 
 	# now we create the data arrays
 	data = if !use_mmap
-		Dict{Symbol,Array{Float32,3}}(
+		Dict{Symbol,Any}(
 			q=>Array{Float32, 3}(undef, length(x), length(y), length(z)) 
 			for q in q_and_aux
 		)
@@ -519,7 +519,7 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 		pname = tempname(pwd())
 		io = open(pname, "w+")
 		d = mmap(io, Array{Float32, 4}, (length(x), length(y), length(z), length(quantities)))
-		Dict{Symbol,Array{Float32,3}}(
+		Dict{Symbol,Any}(
 			q=>@view d[:, :, :, i] 
 			for (i, q) in enumerate(quantq_and_auxities)
 		)
@@ -929,7 +929,7 @@ function Space(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
     end
 
     fid = HDF5.h5open(path, "r")
-    res = Dict{Symbol,Vector{<:Union{Float32, Float64, Int16, Int32, Int64}}}()
+    res = Dict{Symbol, Any}()
 
     aux_fieldnames = _get_para_fieldnames(AtmosphericParameters)
     append!(aux_fieldnames, ["patch_dimensions"])
@@ -959,7 +959,7 @@ function Box(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
     end
 
     fid = HDF5.h5open(path, "r")
-    res = Dict{Symbol,Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}}()
+    res = Dict{Symbol, Any}()
 
     aux_fieldnames = _get_para_fieldnames(AtmosphericParameters)
     append!(aux_fieldnames, ["x","y","z"])
@@ -1429,7 +1429,7 @@ function interpolate_to(box, v::Symbol; logspace=true, kwargs...)
         end
     end
 
-    Box(col_x, col_y, col_z, Dict{Symbol,Array{eltype(box.x),3}}(v=>col_new), deepcopy(box.parameter))
+    Box(col_x, col_y, col_z, Dict{Symbol,Any}(v=>col_new), deepcopy(box.parameter))
 end
 
 """
@@ -1460,7 +1460,7 @@ function interpolate_to(box; logspace=true, kwargs...)
         end
     end
 
-    Box(col_x, col_y, col_z, Dict{Symbol,Array{eltype(box.x),3}}(v=>cols_new[v] for v in keys(b.data)), deepcopy(box.parameter))
+    Box(col_x, col_y, col_z, Dict{Symbol,Any}(v=>cols_new[v] for v in keys(b.data)), deepcopy(box.parameter))
 end
 
 

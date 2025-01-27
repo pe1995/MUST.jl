@@ -32,7 +32,7 @@ MUST.Space type object
 
 """
 function Space(snap::MUST.StaggerSnap, quantities::Symbol...)
-    qs = Dict{Symbol,Vector{<:Union{Float32, Float64, Int16, Int32, Int64}}}(q=>Float32[] for q in quantities)
+    qs = Dict{Symbol,Any}(q=>Float32[] for q in quantities)
     qs[:x] = Float32[]; qs[:y] = Float32[]; qs[:z] = Float32[]
     qs[:i_patch] = Int[]
     patch_dimensions = zeros(Int, (1,3))
@@ -114,12 +114,12 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
     uy = stagger_box[:py] ./ d
     uz = -1 .* stagger_box[:pz] ./ d
     
-    data = Dict{Symbol, Array{Float32, 3}}( :d=>d, :pp=>stagger_box[:pp],   :T=>stagger_box[:temp], :ne=>stagger_box[:ne],
-                                            :lne=>stagger_box[:lne],
-                                            :ross=>stagger_box[:ross] ./ d, :τ=>stagger_box[:tau],
-                                            :px=>stagger_box[:px],          :py=>stagger_box[:py], :pz=>-1 .*stagger_box[:pz],
-                                            :ux=>ux,                        :uy=>uy,               :uz=>uz,
-                                            :ee=>stagger_box[:ee],          :e=>stagger_box[:e])
+    data = Dict{Symbol, Any}( :d=>d, :pp=>stagger_box[:pp],   :T=>stagger_box[:temp], :ne=>stagger_box[:ne],
+                                     :lne=>stagger_box[:lne],
+                                     :ross=>stagger_box[:ross] ./ d, :τ=>stagger_box[:tau],
+                                     :px=>stagger_box[:px],          :py=>stagger_box[:py], :pz=>-1 .*stagger_box[:pz],
+                                     :ux=>ux,                        :uy=>uy,               :uz=>uz,
+                                     :ee=>stagger_box[:ee],          :e=>stagger_box[:e])
 
     xx,yy,zz = meshgrid(reverse(new_x), reverse(new_y), reverse(-1 .* new_z))
 
