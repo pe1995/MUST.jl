@@ -13,11 +13,14 @@ using Dates
 #==============================================================================#
 
 # global grid files that can be used for interpolation
-staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v1.2_r.mgrid")))
+staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v1.2.3_r.mgrid")))
+#staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v1.2_r.mgrid")))
 #staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v1.1_r.mgrid")))
 #staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_grid_v5.1.mgrid")))
 staggergrid_alphamod = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_grid_a0-4_vmic1-2.mgrid")))
-marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.2_r.mgrid")))
+
+marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.2.3_r.mgrid")))
+#marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.2_r.mgrid")))
 #marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.1_r.mgrid")))
 #marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_grid.mgrid")))
 marcsgrid_alphamod = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_grid_a0-4_vmic1-2.mgrid")))
@@ -299,7 +302,7 @@ function prepare(
 
     fromT_toE.(
         grid.info[!, "binned_tables"], grid.info[!, "binned_E_tables"], grid.info[!, "av_path"], 
-        upsample=2048, lnEi_stretch=0.7, 
+        upsample=2048, lnEi_stretch=1.0, 
         eos_radius=gaussian_filter_radius,
         opa_radius=gaussian_filter_radius
     )

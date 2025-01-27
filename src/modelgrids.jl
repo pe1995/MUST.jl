@@ -456,7 +456,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	model = if adiabatic_extrapolation
 		mi_z = MUST.interpolate_quantity(grid, "mi_z"; teff=teff, logg=logg, feh=feh)
 		ma_z = MUST.interpolate_quantity(grid, "ma_z"; teff=teff, logg=logg, feh=feh)
-		model_extra = TSO.adiabatic_extrapolation(model, eos, abs(ma_z - mi_z)*1.02)
+		model_extra = TSO.adiabatic_extrapolation(model, eos, abs(ma_z - mi_z)*1.1)
 		uniform_z = range(
 			minimum(model_extra.z), maximum(model_extra.z), step=abs(vres)
 		) |> collect

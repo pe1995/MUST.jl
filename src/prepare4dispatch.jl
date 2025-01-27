@@ -583,8 +583,8 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         ## interpolator
         m = TSO.flip(models[i])
         mask = sortperm(m.τ)
-        td = min(τ_down, maximum(log10.(m.τ[2:end-2])))
-        tu = max(τ_up, minimum(log10.(m.τ[2:end-2])))
+        td = τ_down #min(τ_down, maximum(log10.(m.τ[2:end-2])))
+        tu = τ_up #max(τ_up, minimum(log10.(m.τ[2:end-2])))
 
         xd[i], xr[i], zd[i], zr[i] = resolutionSimple(
             m, 
