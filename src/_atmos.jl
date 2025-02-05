@@ -860,9 +860,10 @@ function save(s::MUST.Box; folder=nothing, name=nothing, mode="w")
     fid  = HDF5.h5open(path, mode)
     for q in keys(s.data)
         sq = String(q)
-        if !haskey(fid, sq) 
-            fid[sq] = s.data[q]
+        if haskey(fid, sq) 
+            delete_object(fid, sq)
         end
+        fid[sq] = s.data[q]
     end
 
     if !haskey(fid, "x") 
@@ -904,21 +905,21 @@ end
 function save(p::AtmosphericParameters, fid)
     eles = [keys(p.composition)...]
     vals = eltype(values(p.composition))[p.composition[e] for e in eles]
-    if (!haskey(fid, "time")) 
-        fid["time"] = p.time
-    end
-    if (!haskey(fid, "teff")) 
-        fid["teff"] = p.teff
-    end
-    if (!haskey(fid, "logg")) 
-        fid["logg"] = p.logg
-    end
-    if (!haskey(fid, "composition_e")) 
-        fid["composition_e"] = String[String(e) for e in eles]
-    end
-    if (!haskey(fid, "composition_v")) 
-        fid["composition_v"] = vals
-    end
+    
+    haskey(fid, "time") && delete_object(fid, "time")
+    fid["time"] = p.time
+
+    haskey(fid, "teff") && delete_object(fid, "teff")
+    fid["teff"] = p.teff
+
+    haskey(fid, "logg") && delete_object(fid, "logg")
+    fid["logg"] = p.logg
+
+    haskey(fid, "composition_e") && delete_object(fid, "composition_e")
+    fid["composition_e"] = String[String(e) for e in eles]
+
+    haskey(fid, "composition_v") && delete_object(fid, "composition_v")
+    fid["composition_v"] = vals
 end
 
 """
