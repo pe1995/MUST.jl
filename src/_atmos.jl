@@ -855,15 +855,21 @@ function save(s::MUST.Space; folder=nothing, name=nothing)
     path
 end
 
-function save(s::MUST.Box; folder=nothing, name=nothing)
+function save(s::MUST.Box; folder=nothing, name=nothing, mode="w")
     path = _check_path(folder, name)
-    fid  = HDF5.h5open(path, "w")
+    fid  = HDF5.h5open(path, mode)
     for q in keys(s.data)
-        fid[String(q)] = s.data[q]
+        sq = String(q)
+        if !haskey(fid, sq) 
+            fid[sq] = s.data[q]
+        end
     end
-    fid["x"] = s.x
-    fid["y"] = s.y
-    fid["z"] = s.z
+
+    if !haskey(fid, "x") 
+        fid["x"] = s.x
+        fid["y"] = s.y
+        fid["z"] = s.z
+    end
 
     # Save the parameters
     save(s.parameter, fid)
@@ -898,11 +904,21 @@ end
 function save(p::AtmosphericParameters, fid)
     eles = [keys(p.composition)...]
     vals = eltype(values(p.composition))[p.composition[e] for e in eles]
-    fid["time"] = p.time
-    fid["teff"] = p.teff
-    fid["logg"] = p.logg
-    fid["composition_e"] = String[String(e) for e in eles]
-    fid["composition_v"] = vals
+    if (!haskey(fid, "time")) 
+        fid["time"] = p.time
+    end
+    if (!haskey(fid, "teff")) 
+        fid["teff"] = p.teff
+    end
+    if (!haskey(fid, "logg")) 
+        fid["logg"] = p.logg
+    end
+    if (!haskey(fid, "composition_e")) 
+        fid["composition_e"] = String[String(e) for e in eles]
+    end
+    if (!haskey(fid, "composition_v")) 
+        fid["composition_v"] = vals
+    end
 end
 
 """
@@ -946,7 +962,7 @@ function Space(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
     Space(res, patch_dimensions, params)
 end
 
-function Box(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
+function Box(name::String; folder::F=nothing, mmap=true) where {F<:Union{String,Nothing}}
     if !isfile(name)
         path = isnothing(folder) ? @in_dispatch(name*".hdf5") : joinpath(folder, name*".hdf5")
         if !isfile(path) 
@@ -966,11 +982,11 @@ function Box(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
 
     for q in keys(fid)
         q in aux_fieldnames ? continue : nothing
-        res[Symbol(q)] = HDF5.readmmap(fid[q])
+        res[Symbol(q)] = mmap ? HDF5.readmmap(fid[q]) : HDF5.read(fid[q])
     end
-    x = HDF5.readmmap(fid["x"])
-    y = HDF5.readmmap(fid["y"])
-    z = HDF5.readmmap(fid["z"])
+    x = mmap ? HDF5.readmmap(fid["x"]) : HDF5.read(fid["x"])
+    y = mmap ? HDF5.readmmap(fid["y"]) : HDF5.read(fid["y"])
+    z = mmap ? HDF5.readmmap(fid["z"]) : HDF5.read(fid["z"])
 
     params = _read_params(AtmosphericParameters, fid)
 
@@ -1861,7 +1877,7 @@ Pick the ith snapshot from the list of available snapshots.
 If ``i == :recent``, pick the most recent available snapshot. 
 If ``i == :time_average``, pick the time average, if available.
 """
-function pick_snapshot(snapshots, i; skip_last_if_missing=true, verbose=0)
+function pick_snapshot(snapshots, i; skip_last_if_missing=true, verbose=0, kwargs...)
 	i = if i == :recent 
         if ((isnothing(last(snapshots[last(list_snapshots(snapshots))]))) & 
                         skip_last_if_missing)
@@ -1886,11 +1902,11 @@ function pick_snapshot(snapshots, i; skip_last_if_missing=true, verbose=0)
 
 	if isnothing(last(snap))
 		verbose>0 && @info "snapshot $(i) loaded."
-		MUST.Box(first(snap), folder=snapshots["folder"]), nothing
+		MUST.Box(first(snap); folder=snapshots["folder"], kwargs...), nothing
 	else
 		verbose>0 && @info "snapshot $(i) + τ-shot loaded."
-		MUST.Box(first(snap), folder=snapshots["folder"]), 
-		MUST.Box(last(snap), folder=snapshots["folder"])
+		MUST.Box(first(snap); folder=snapshots["folder"], kwargs...), 
+		MUST.Box(last(snap); folder=snapshots["folder"], kwargs...)
 	end
 end
 
@@ -1899,7 +1915,7 @@ end
 
 Pick ith snapshots from all available snapshots in ``folder``.
 """
-pick_snapshot(folder::String, i; kwargs...) = pick_snapshot(converted_snapshots(folder), i; kwargs...)
+pick_snapshot(folder::String, i; box_name="box", kwargs...) = pick_snapshot(converted_snapshots(folder; box_name=box_name), i; kwargs...)
 
 
 
