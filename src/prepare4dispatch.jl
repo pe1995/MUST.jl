@@ -328,6 +328,13 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         # currants. Round to the next quater
         dx = x_size / (patches(x_resolution, patch_size) * patch_size)
         round(Δt(dx, max(abs(vmax), abs(vmin)), courant_target) / 5e-3, sigdigits=3)
+
+        # optionally, one could estimate the time scale using the convective turnover time scaling
+        pnew = teff / exp10(logg)
+        psun = 5777.0 / exp10(4.44)
+        t_convective = l_cgs / (100 * pnew / psun)
+        @info "t_velocity / t_convective = $(l_cgs / velocity_max / t_convective)."
+
         l_cgs / velocity_max
     else
         tscale
@@ -396,8 +403,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         scaling_params=(
             :l_cgs=>l_cgs, 
             :d_cgs=>d_cgs, 
-            #:t_cgs=>tscale
-            :v_cgs=>velocity_max
+            #:t_cgs=>tscale,
+            :v_cgs=>l_cgs/tscale
         ),
         experiment_params=(
             :t_bot=>tbot*t_scaling,

@@ -11,7 +11,7 @@ begin
 	using TSO
 	using MUST
 	using PythonPlot
-	using LaTeXStrings
+	using LaTeXStrings 
 	using PlutoUI
 	using KernelDensity
 end
@@ -59,66 +59,37 @@ md"To cover the relevant parameterspace in the Yoon-Beers diagram, we pick speci
 md"## 3D Models"
 
 # ╔═╡ b5b1d8c0-b67a-45d2-b21e-e0e04555a9fd
-dispatchPath(runname) = MUST.@in_dispatch(joinpath("shipped_models", runname))
+dispatchPath(runname, dir="CEMP_models2") = MUST.@in_dispatch(joinpath(dir, runname))
 
 # ╔═╡ c7a6739a-8ae7-45c0-ab4f-e800a9ab1d2e
 runs3D = Dict(
-	#"t57.50g45.00m-5.000 CEMP" => dispatchPath("shipped_P3G_E_t57.50g45.00m-5.000_v1.0"),
-	#"t57.50g45.00m-5.000 no-CEMP" => dispatchPath("shipped_P4G_E_t57.50g45.00m-5.000_v1.0"),
-	#"t57.50g45.00m-4.000 CEMP" => dispatchPath("shipped_P5G_E_t57.50g45.00m-4.000_v1.0"),
-	#"t57.50g45.00m-4.000 no-CEMP" => dispatchPath("shipped_P6G_E_t57.50g45.00m-4.000_v1.0"),
-
-	# After fixing molecular opacities in 3D models
-	"t50.00g25.00m-5.000 CEMP" => dispatchPath("shipped_PC6B_E_t50.00g25.00m-5.000_v1.0"),
-	"t57.50g45.00m-5.000 CEMP" => dispatchPath("shipped_PC2A_E_t57.50g45.00m-5.000_v1.0"),
-	"t52.50g30.00m-5.000 CEMP" => dispatchPath("shipped_PC2A_E_t52.50g30.00m-5.000_v1.0"),
-	"t50.00g25.00m-5.000 no-CEMP" => dispatchPath("shipped_PS6B_E_t50.00g25.00m-5.000_v1.0"),
-	"t57.50g45.00m-5.000 no-CEMP" => dispatchPath("shipped_PS2A_E_t57.50g45.00m-5.000_v1.0"),
-	"t52.50g30.00m-5.000 no-CEMP" => dispatchPath("shipped_PS2A_E_t52.50g30.00m-5.000_v1.0"),
-	"t50.00g25.00m-4.000 CEMP" => dispatchPath("shipped_PC6C_E_t50.00g25.00m-4.000_v1.0"),
-	"t57.50g45.00m-4.000 CEMP" => dispatchPath("shipped_PC2B_E_t57.50g45.00m-4.000_v1.0"),
-	"t52.50g30.00m-4.000 CEMP" => dispatchPath("shipped_PC2B_E_t52.50g30.00m-4.000_v1.0"),
-	"t50.00g25.00m-4.000 no-CEMP" => dispatchPath("shipped_PS6C_E_t50.00g25.00m-4.000_v1.0"),
-	"t57.50g45.00m-4.000 no-CEMP" => dispatchPath("shipped_PS2B_E_t57.50g45.00m-4.000_v1.0"),
-	"t52.50g30.00m-4.000 no-CEMP" => dispatchPath("shipped_PS2B_E_t52.50g30.00m-4.000_v1.0"),
-	"t50.00g25.00m-3.000 CEMP" => dispatchPath("shipped_PC6D_E_t50.00g25.00m-3.000_v1.0"),
-	"t57.50g45.00m-3.000 CEMP" => dispatchPath("shipped_PC2C_E_t57.50g45.00m-3.000_v1.0"),
-	"t52.50g30.00m-3.000 CEMP" => dispatchPath("shipped_PC2C_E_t52.50g30.00m-3.000_v1.0"),
-	"t50.00g25.00m-3.000 no-CEMP" => dispatchPath("shipped_PS6D_E_t50.00g25.00m-3.000_v1.0"),
-	"t57.50g45.00m-3.000 no-CEMP" => dispatchPath("shipped_PS2C_E_t57.50g45.00m-3.000_v1.0"),
-	"t52.50g30.00m-3.000 no-CEMP" => dispatchPath("shipped_PS2C_E_t52.50g30.00m-3.000_v1.0"),
-	"t57.50g45.00m-2.000 no-CEMP" => dispatchPath("shipped_PS2D_E_t57.50g45.00m-2.000_v1.0"),
-	"t52.50g30.00m-2.000 no-CEMP" => dispatchPath("shipped_PS2D_E_t52.50g30.00m-2.000_v1.0"),
+	"t50.00g25.00m-5.000 CEMP"    => dispatchPath("paper2_PC7M5_E_t50.00g25.00m-5.000_v1.0"),
+	"t57.50g45.00m-5.000 CEMP"    => dispatchPath("paper2_PC8M5_E_t57.50g45.00m-5.000_v1.0"),
+	"t52.50g30.00m-5.000 CEMP"    => dispatchPath("paper2_PC8M5_E_t52.50g30.00m-5.000_v1.0"),
+	"t50.00g25.00m-5.000 no-CEMP" => dispatchPath("paper2_PS7M5_E_t50.00g25.00m-5.000_v1.0"),
+	"t57.50g45.00m-5.000 no-CEMP" => dispatchPath("paper2_PS8M5_E_t57.50g45.00m-5.000_v1.0"),
+	"t52.50g30.00m-5.000 no-CEMP" => dispatchPath("paper2_PS8M5_E_t52.50g30.00m-5.000_v1.0"),
+	"t50.00g25.00m-4.000 CEMP"    => dispatchPath("paper2_PC7M4_E_t50.00g25.00m-4.000_v1.0"),
+	"t57.50g45.00m-4.000 CEMP"    => dispatchPath("paper2_PC8M4_E_t57.50g45.00m-4.000_v1.0"),
+	"t52.50g30.00m-4.000 CEMP"    => dispatchPath("paper2_PC8M4_E_t52.50g30.00m-4.000_v1.0"),
+	"t50.00g25.00m-4.000 no-CEMP" => dispatchPath("paper2_PS7M4_E_t50.00g25.00m-4.000_v1.0"),
+	"t57.50g45.00m-4.000 no-CEMP" => dispatchPath("paper2_PS8M4_E_t57.50g45.00m-4.000_v1.0"),
+	"t52.50g30.00m-4.000 no-CEMP" => dispatchPath("paper2_PS8M4_E_t52.50g30.00m-4.000_v1.0"),
+	"t50.00g25.00m-3.000 CEMP"    => dispatchPath("paper2_PC7M3_E_t50.00g25.00m-3.000_v1.0"),
+	"t57.50g45.00m-3.000 CEMP"    => dispatchPath("paper2_PC8M3_E_t57.50g45.00m-3.000_v1.0"),
+	"t52.50g30.00m-3.000 CEMP"    => dispatchPath("paper2_PC8M3_E_t52.50g30.00m-3.000_v1.0"),
+	"t50.00g25.00m-3.000 no-CEMP" => dispatchPath("paper2_PS7M3_E_t50.00g25.00m-3.000_v1.0"),
+	"t57.50g45.00m-3.000 no-CEMP" => dispatchPath("paper2_PS8M3_E_t57.50g45.00m-3.000_v1.0"),
+	"t52.50g30.00m-3.000 no-CEMP" => dispatchPath("paper2_PS8M3_E_t52.50g30.00m-3.000_v1.0"),
+	"t57.50g45.00m-2.000 CEMP"    => dispatchPath("paper2_PC8M2_E_t57.50g45.00m-2.000_v1.0"),
+	"t52.50g30.00m-2.000 CEMP"    => dispatchPath("paper2_PC8M2_E_t52.50g30.00m-2.000_v1.0"),
+	"t57.50g45.00m-2.000 no-CEMP" => dispatchPath("paper2_PS8M2_E_t57.50g45.00m-2.000_v1.0"),
+	"t52.50g30.00m-2.000 no-CEMP" => dispatchPath("paper2_PS8M2_E_t52.50g30.00m-2.000_v1.0"),
 )
 
 # ╔═╡ a343cf41-e425-4a59-81bd-87f8765251c0
 snapshots3D = Dict(
-	#"t57.50g45.00m-5.000 CEMP" => 371,
-	#"t57.50g45.00m-5.000 no-CEMP" => 371,
-	#"t57.50g45.00m-4.000 CEMP" => 371,
-	#"t57.50g45.00m-4.000 no-CEMP" => 371,
-
-	# After fixing molecular opacities in 3D models
-	"t50.00g25.00m-5.000 CEMP" => -1,
-	"t57.50g45.00m-5.000 CEMP" => -1,
-	"t52.50g30.00m-5.000 CEMP" => -1,
-	"t50.00g25.00m-5.000 no-CEMP" => -1,
-	"t57.50g45.00m-5.000 no-CEMP" => -1,
-	"t52.50g30.00m-5.000 no-CEMP" => -1,
-	"t50.00g25.00m-4.000 CEMP" => -1,
-	"t57.50g45.00m-4.000 CEMP" => -1,
-	"t52.50g30.00m-4.000 CEMP" => -1,
-	"t50.00g25.00m-4.000 no-CEMP" => -1,
-	"t57.50g45.00m-4.000 no-CEMP" => -1,
-	"t52.50g30.00m-4.000 no-CEMP" => -1,
-	"t50.00g25.00m-3.000 CEMP" => -1,
-	"t57.50g45.00m-3.000 CEMP" => -1,
-	"t52.50g30.00m-3.000 CEMP" => -1,
-	"t50.00g25.00m-3.000 no-CEMP" => -1,
-	"t57.50g45.00m-3.000 no-CEMP" => -1,
-	"t52.50g30.00m-3.000 no-CEMP" => -1,
-	"t57.50g45.00m-2.000 no-CEMP" => -1,
-	"t52.50g30.00m-2.000 no-CEMP" => -1
+	k=>-1 for k in keys(runs3D)
 )
 
 # ╔═╡ cd8b84b0-6891-4d3e-ba04-22fd4890e09d
@@ -137,24 +108,17 @@ md"## 1D Models"
 
 # ╔═╡ 9d8761fd-4880-4ff3-855f-f3713a55a6e5
 runs1D = Dict(
-	# feh = -5
-	"MARCS t50.00g25.00m-5.000 no-CEMP" => dispatchPath("shipped_PS6B_E_t50.00g25.00m-5.000_v1.0/s5000_g+2.5_m1.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t57.50g45.00m-5.000 no-CEMP" => dispatchPath("shipped_PS2A_E_t57.50g45.00m-5.000_v1.0/p5750_g+4.5_m0.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t52.50g30.00m-5.000 no-CEMP" => dispatchPath("shipped_PS2A_E_t52.50g30.00m-5.000_v1.0/p5250_g+3.0_m0.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-
-	# feh = -4
-	"MARCS t50.00g25.00m-4.000 no-CEMP" => dispatchPath("shipped_PS6C_E_t50.00g25.00m-4.000_v1.0/s5000_g+2.5_m1.0_t05_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t57.50g45.00m-4.000 no-CEMP" => dispatchPath("shipped_PS2B_E_t57.50g45.00m-4.000_v1.0/p5750_g+4.5_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t52.50g30.00m-4.000 no-CEMP" => dispatchPath("shipped_PS2B_E_t52.50g30.00m-4.000_v1.0/p5250_g+3.0_m0.0_t02_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-
-	# feh = -3
-	"MARCS t50.00g25.00m-3.000 no-CEMP" => dispatchPath("shipped_PS6D_E_t50.00g25.00m-3.000_v1.0/s5000_g+2.5_m1.0_t02_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t57.50g45.00m-3.000 no-CEMP" => dispatchPath("shipped_PS2C_E_t57.50g45.00m-3.000_v1.0/p5750_g+4.5_m0.0_t02_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t52.50g30.00m-3.000 no-CEMP" => dispatchPath("shipped_PS2C_E_t52.50g30.00m-3.000_v1.0/p5250_g+3.0_m0.0_t02_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-
-	# feh = -2
-	"MARCS t57.50g45.00m-2.000 no-CEMP" => dispatchPath("shipped_PS2D_E_t57.50g45.00m-2.000_v1.0/p5750_g+4.5_m0.0_t02_st_z-2.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t52.50g30.00m-2.000 no-CEMP" => dispatchPath("shipped_PS2D_E_t52.50g30.00m-2.000_v1.0/p5250_g+3.0_m0.0_t02_st_z-2.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t50.00g25.00m-5.000 no-CEMP" => dispatchPath("paper2_PS7M5_E_t50.00g25.00m-5.000_v1.0/s5000_g+2.5_m1.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t57.50g45.00m-5.000 no-CEMP" => dispatchPath("paper2_PS8M5_E_t57.50g45.00m-5.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t52.50g30.00m-5.000 no-CEMP" => dispatchPath("paper2_PS8M5_E_t52.50g30.00m-5.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t50.00g25.00m-4.000 no-CEMP" => dispatchPath("paper2_PS7M4_E_t50.00g25.00m-4.000_v1.0/s5000_g+2.5_m1.0_t05_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t57.50g45.00m-4.000 no-CEMP" => dispatchPath("paper2_PS8M4_E_t57.50g45.00m-4.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t52.50g30.00m-4.000 no-CEMP" => dispatchPath("paper2_PS8M4_E_t52.50g30.00m-4.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t50.00g25.00m-3.000 no-CEMP" => dispatchPath("paper2_PS7M3_E_t50.00g25.00m-3.000_v1.0/s5000_g+2.5_m1.0_t02_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t57.50g45.00m-3.000 no-CEMP" => dispatchPath("paper2_PS8M3_E_t57.50g45.00m-3.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t52.50g30.00m-3.000 no-CEMP" => dispatchPath("paper2_PS8M3_E_t52.50g30.00m-3.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t57.50g45.00m-2.000 no-CEMP" => dispatchPath("paper2_PS8M2_E_t57.50g45.00m-2.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-2.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t52.50g30.00m-2.000 no-CEMP" => dispatchPath("paper2_PS8M2_E_t52.50g30.00m-2.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-2.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 )
 
 # ╔═╡ b26dbd2d-85ce-41c2-a32a-c9a488f9469f
@@ -200,6 +164,7 @@ begin
 	spectraPath(rundir, snapshot, extension, dimension="m3dis_$(snapshot)") = begin
 		if snapshot < 0
 			allsnaps = MUST.glob("spectra_m3dis_*_lam_4297-4303$(extension)", rundir)
+			@show rundir snapshot extension
 			allsnaps[end + snapshot + 1]
 		else
 			joinpath(
@@ -217,294 +182,118 @@ md"## 3D spectra"
 
 # ╔═╡ 6613157c-d199-4825-b779-a477ac4f3f30
 spectrapath3D = Dict(
-	#=
-	# feh=-5 models
-	"t57.50g45.00m-5.000 CEMP - C3.0" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP","C_3.0"),
-	"t57.50g45.00m-5.000 CEMP - C0.0" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP","C_0.0"),
-	"t57.50g45.00m-5.000 no-CEMP - C3.0" => 
-	spectraPath("t57.50g45.00m-5.000 no-CEMP" ,"C_3.0"),
-	"t57.50g45.00m-5.000 no-CEMP - C0.0" => 
-	spectraPath("t57.50g45.00m-5.000 no-CEMP" ,"C_0.0"),
-
-	# feh=-5 models - 3D effect fitting
-	"t57.50g45.00m-5.000 no-CEMP - C2.8" => 
-	spectraPath("t57.50g45.00m-5.000 no-CEMP" ,"C_2.8"),
-	"t57.50g45.00m-5.000 no-CEMP - C2.6" => 
-	spectraPath("t57.50g45.00m-5.000 no-CEMP" ,"C_2.6"),
-	"t57.50g45.00m-5.000 no-CEMP - C2.4" => 
-	spectraPath("t57.50g45.00m-5.000 no-CEMP" ,"C_2.4"),
-	"t57.50g45.00m-5.000 no-CEMP - C2.2" => 
-	spectraPath("t57.50g45.00m-5.000 no-CEMP" ,"C_2.2"),
-	
-	# feh=-4 models
-	"t57.50g45.00m-4.000 CEMP - C0.75" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP","C_0.75"),
-	"t57.50g45.00m-4.000 CEMP - C0.0" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP","C_0.0"),
-	"t57.50g45.00m-4.000 no-CEMP - C0.75" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.75"),
-	"t57.50g45.00m-4.000 no-CEMP - C0.0" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.0"),
-
-	# feh=-4 models - 3D effect fitting
-	"t57.50g45.00m-4.000 no-CEMP - C0.40" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.40"),
-	"t57.50g45.00m-4.000 no-CEMP - C0.35" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.35"),
-	"t57.50g45.00m-4.000 no-CEMP - C0.30" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.30"),
-	"t57.50g45.00m-4.000 no-CEMP - C0.25" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.25"),
-	"t57.50g45.00m-4.000 no-CEMP - C0.20" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.20"),
-	"t57.50g45.00m-4.000 no-CEMP - C0.15" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.15"),
-
-	"t57.50g45.00m-4.000 no-CEMP - C0.60" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.60"),
-	"t57.50g45.00m-4.000 no-CEMP - C0.68" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.68"),
-	"t57.50g45.00m-4.000 no-CEMP - C0.70" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.70"),
-	"t57.50g45.00m-4.000 no-CEMP - C0.72" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP" ,"C_0.72"),
-
-	# Contribution functions
-	"t57.50g45.00m-5.000 CEMP - contr" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP" ,"contr"),
-	"t57.50g45.00m-4.000 CEMP - contr" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP" ,"contr"),
-
-	# Spectra of other snapshots
-	"t57.50g45.00m-5.000 CEMP - C3.0 - 375" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",375,"C_3.0"),
-	"t57.50g45.00m-5.000 CEMP - C3.0 - 374" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",374,"C_3.0"),
-	"t57.50g45.00m-5.000 CEMP - C3.0 - 373" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",373,"C_3.0"),
-	"t57.50g45.00m-5.000 CEMP - C3.0 - 372" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",372,"C_3.0"),
-	"t57.50g45.00m-5.000 CEMP - C3.0 - 369" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",369,"C_3.0"),
-	"t57.50g45.00m-5.000 CEMP - C3.0 - 368" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",368,"C_3.0"),
-	"t57.50g45.00m-5.000 CEMP - C3.0 - 367" =>spectraPathSnap("t57.50g45.00m-5.000 CEMP",367,"C_3.0"),
-
-	"t57.50g45.00m-4.000 CEMP - C0.75 - 373" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",373,"C_0.75"),
-	"t57.50g45.00m-4.000 CEMP - C0.75 - 372" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",372,"C_0.75"),
-	"t57.50g45.00m-4.000 CEMP - C0.75 - 370" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",370,"C_0.75"),
-	"t57.50g45.00m-4.000 CEMP - C0.75 - 369" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",369,"C_0.75"),
-	"t57.50g45.00m-4.000 CEMP - C0.75 - 368" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",368,"C_0.75"),
-	"t57.50g45.00m-4.000 CEMP - C0.75 - 367" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",367,"C_0.75"),
-	"t57.50g45.00m-4.000 CEMP - C0.75 - 366" =>spectraPathSnap("t57.50g45.00m-4.000 CEMP",366,"C_0.75"),
-	=#
-
-	# After fixing molecular opacities
-	# FeH = -5
-	"t50.00g25.00m-5.000 CEMP - C3.0" => 
-	spectraPath("t50.00g25.00m-5.000 CEMP","C_3.0"),
-	"t50.00g25.00m-5.000 no-CEMP - C3.0" => 
-	spectraPath("t50.00g25.00m-5.000 no-CEMP","C_3.0"),
-	"t57.50g45.00m-5.000 CEMP - C3.0" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP","C_3.0"),
-	"t57.50g45.00m-5.000 no-CEMP - C3.0" => 
-	spectraPath("t57.50g45.00m-5.000 no-CEMP","C_3.0"),
-	"t52.50g30.00m-5.000 CEMP - C3.0" => 
-	spectraPath("t52.50g30.00m-5.000 CEMP","C_3.0"),
-	"t52.50g30.00m-5.000 no-CEMP - C3.0" => 
-	spectraPath("t52.50g30.00m-5.000 no-CEMP","C_3.0"),
-	
+	"t50.00g25.00m-5.000 CEMP - C3.0"    => spectraPath("t50.00g25.00m-5.000 CEMP","C_3.0"),
+	"t50.00g25.00m-5.000 no-CEMP - C3.0" => spectraPath("t50.00g25.00m-5.000 no-CEMP","C_3.0"),
+	"t57.50g45.00m-5.000 CEMP - C3.0"    => spectraPath("t57.50g45.00m-5.000 CEMP","C_3.0"),
+	"t57.50g45.00m-5.000 no-CEMP - C3.0" => spectraPath("t57.50g45.00m-5.000 no-CEMP","C_3.0"),
+	"t52.50g30.00m-5.000 CEMP - C3.0"    => spectraPath("t52.50g30.00m-5.000 CEMP","C_3.0"),
+	"t52.50g30.00m-5.000 no-CEMP - C3.0" => spectraPath("t52.50g30.00m-5.000 no-CEMP","C_3.0"),
 	# --> 3D effect fitting
-	"t57.50g45.00m-5.000 CEMP - C3.2" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP","C_3.2"),
-	"t57.50g45.00m-5.000 CEMP - C2.8" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP","C_2.8"),
-	"t57.50g45.00m-5.000 CEMP - C2.6" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP","C_2.6"),
-	"t57.50g45.00m-5.000 CEMP - C2.4" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP","C_2.4"),
-	"t57.50g45.00m-5.000 CEMP - C2.2" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP","C_2.2"),
-	"t57.50g45.00m-5.000 CEMP - C2.0" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP","C_2.0"),
+	"t57.50g45.00m-5.000 CEMP - C3.2" => spectraPath("t57.50g45.00m-5.000 CEMP","C_3.2"), 	
+	"t57.50g45.00m-5.000 CEMP - C2.8" => spectraPath("t57.50g45.00m-5.000 CEMP","C_2.8"),
+	"t57.50g45.00m-5.000 CEMP - C2.6" => spectraPath("t57.50g45.00m-5.000 CEMP","C_2.6"),
+	"t57.50g45.00m-5.000 CEMP - C2.4" => spectraPath("t57.50g45.00m-5.000 CEMP","C_2.4"),
+	"t57.50g45.00m-5.000 CEMP - C2.2" => spectraPath("t57.50g45.00m-5.000 CEMP","C_2.2"),
+	"t57.50g45.00m-5.000 CEMP - C2.0" => spectraPath("t57.50g45.00m-5.000 CEMP","C_2.0"),
+	"t52.50g30.00m-5.000 CEMP - C3.4" => spectraPath("t52.50g30.00m-5.000 CEMP","C_3.4"),
+	"t52.50g30.00m-5.000 CEMP - C3.2" => spectraPath("t52.50g30.00m-5.000 CEMP","C_3.2"),
+	"t52.50g30.00m-5.000 CEMP - C2.8" => spectraPath("t52.50g30.00m-5.000 CEMP","C_2.8"),
+	"t52.50g30.00m-5.000 CEMP - C2.6" => spectraPath("t52.50g30.00m-5.000 CEMP","C_2.6"),
+	"t52.50g30.00m-5.000 CEMP - C2.4" => spectraPath("t52.50g30.00m-5.000 CEMP","C_2.4"),
+	"t52.50g30.00m-5.000 CEMP - C2.2" => spectraPath("t52.50g30.00m-5.000 CEMP","C_2.2"),
+	"t52.50g30.00m-5.000 CEMP - C2.0" => spectraPath("t52.50g30.00m-5.000 CEMP","C_2.0"),
+	"t50.00g25.00m-5.000 CEMP - C3.4" => spectraPath("t50.00g25.00m-5.000 CEMP","C_3.4"),
+	"t50.00g25.00m-5.000 CEMP - C3.2" => spectraPath("t50.00g25.00m-5.000 CEMP","C_3.2"),
+	"t50.00g25.00m-5.000 CEMP - C2.8" => spectraPath("t50.00g25.00m-5.000 CEMP","C_2.8"),
+	"t50.00g25.00m-5.000 CEMP - C2.6" => spectraPath("t50.00g25.00m-5.000 CEMP","C_2.6"),
+	"t50.00g25.00m-5.000 CEMP - C2.4" => spectraPath("t50.00g25.00m-5.000 CEMP","C_2.4"),
+	"t50.00g25.00m-5.000 CEMP - C2.2" => spectraPath("t50.00g25.00m-5.000 CEMP","C_2.2"),
+	"t50.00g25.00m-5.000 CEMP - C2.0" => spectraPath("t50.00g25.00m-5.000 CEMP","C_2.0"),
 	
-	"t52.50g30.00m-5.000 CEMP - C3.2" => 
-	spectraPath("t52.50g30.00m-5.000 CEMP","C_3.2"),
-	"t52.50g30.00m-5.000 CEMP - C2.8" => 
-	spectraPath("t52.50g30.00m-5.000 CEMP","C_2.8"),
-	"t52.50g30.00m-5.000 CEMP - C2.6" => 
-	spectraPath("t52.50g30.00m-5.000 CEMP","C_2.6"),
-	"t52.50g30.00m-5.000 CEMP - C2.4" => 
-	spectraPath("t52.50g30.00m-5.000 CEMP","C_2.4"),
-	"t52.50g30.00m-5.000 CEMP - C2.2" => 
-	spectraPath("t52.50g30.00m-5.000 CEMP","C_2.2"),
-	"t52.50g30.00m-5.000 CEMP - C2.0" => 
-	spectraPath("t52.50g30.00m-5.000 CEMP","C_2.0"),
-
-	"t50.00g25.00m-5.000 CEMP - C3.2" => 
-	spectraPath("t50.00g25.00m-5.000 CEMP","C_3.2"),
-	"t50.00g25.00m-5.000 CEMP - C2.8" => 
-	spectraPath("t50.00g25.00m-5.000 CEMP","C_2.8"),
-	"t50.00g25.00m-5.000 CEMP - C2.6" => 
-	spectraPath("t50.00g25.00m-5.000 CEMP","C_2.6"),
-	"t50.00g25.00m-5.000 CEMP - C2.4" => 
-	spectraPath("t50.00g25.00m-5.000 CEMP","C_2.4"),
-	"t50.00g25.00m-5.000 CEMP - C2.2" => 
-	spectraPath("t50.00g25.00m-5.000 CEMP","C_2.2"),
-	"t50.00g25.00m-5.000 CEMP - C2.0" => 
-	spectraPath("t50.00g25.00m-5.000 CEMP","C_2.0"),
-	
-
 	# FeH = -4
-	"t50.00g25.00m-4.000 CEMP - C2.0" => 
-	spectraPath("t50.00g25.00m-4.000 CEMP","C_2.0"),
-	"t50.00g25.00m-4.000 no-CEMP - C2.0" => 
-	spectraPath("t50.00g25.00m-4.000 no-CEMP","C_2.0"),
-	"t57.50g45.00m-4.000 CEMP - C2.0" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP","C_2.0"),
-	"t57.50g45.00m-4.000 no-CEMP - C2.0" => 
-	spectraPath("t57.50g45.00m-4.000 no-CEMP","C_2.0"),
-	"t52.50g30.00m-4.000 CEMP - C2.0" => 
-	spectraPath("t52.50g30.00m-4.000 CEMP","C_2.0"),
-	"t52.50g30.00m-4.000 no-CEMP - C2.0" => 
-	spectraPath("t52.50g30.00m-4.000 no-CEMP","C_2.0"),
+	"t50.00g25.00m-4.000 CEMP - C2.0"    => spectraPath("t50.00g25.00m-4.000 CEMP","C_2.0"),
+	"t50.00g25.00m-4.000 no-CEMP - C2.0" => spectraPath("t50.00g25.00m-4.000 no-CEMP","C_2.0"),
+	"t57.50g45.00m-4.000 CEMP - C2.0"    => spectraPath("t57.50g45.00m-4.000 CEMP","C_2.0"),
+	"t57.50g45.00m-4.000 no-CEMP - C2.0" => spectraPath("t57.50g45.00m-4.000 no-CEMP","C_2.0"),
+	"t52.50g30.00m-4.000 CEMP - C2.0"    => spectraPath("t52.50g30.00m-4.000 CEMP","C_2.0"),
+	"t52.50g30.00m-4.000 no-CEMP - C2.0" => spectraPath("t52.50g30.00m-4.000 no-CEMP","C_2.0"),
 	# --> 3D effect fitting
-	"t57.50g45.00m-4.000 CEMP - C2.2" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP","C_2.2"),
-	"t57.50g45.00m-4.000 CEMP - C1.8" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP","C_1.8"),
-	"t57.50g45.00m-4.000 CEMP - C1.6" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP","C_1.6"),
-	"t57.50g45.00m-4.000 CEMP - C1.4" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP","C_1.4"),
-	"t57.50g45.00m-4.000 CEMP - C1.2" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP","C_1.2"),
-	"t57.50g45.00m-4.000 CEMP - C1.0" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP","C_1.0"),
-
-	"t52.50g30.00m-4.000 CEMP - C2.2" => 
-	spectraPath("t52.50g30.00m-4.000 CEMP","C_2.2"),
-	"t52.50g30.00m-4.000 CEMP - C1.8" => 
-	spectraPath("t52.50g30.00m-4.000 CEMP","C_1.8"),
-	"t52.50g30.00m-4.000 CEMP - C1.6" => 
-	spectraPath("t52.50g30.00m-4.000 CEMP","C_1.6"),
-	"t52.50g30.00m-4.000 CEMP - C1.4" => 
-	spectraPath("t52.50g30.00m-4.000 CEMP","C_1.4"),
-	"t52.50g30.00m-4.000 CEMP - C1.2" => 
-	spectraPath("t52.50g30.00m-4.000 CEMP","C_1.2"),
+	"t57.50g45.00m-4.000 CEMP - C2.2" => spectraPath("t57.50g45.00m-4.000 CEMP","C_2.2"),
+	"t57.50g45.00m-4.000 CEMP - C1.8" => spectraPath("t57.50g45.00m-4.000 CEMP","C_1.8"),
+	"t57.50g45.00m-4.000 CEMP - C1.6" => spectraPath("t57.50g45.00m-4.000 CEMP","C_1.6"),
+	"t57.50g45.00m-4.000 CEMP - C1.4" => spectraPath("t57.50g45.00m-4.000 CEMP","C_1.4"),
+	"t57.50g45.00m-4.000 CEMP - C1.2" => spectraPath("t57.50g45.00m-4.000 CEMP","C_1.2"),
+	"t57.50g45.00m-4.000 CEMP - C1.0" => spectraPath("t57.50g45.00m-4.000 CEMP","C_1.0"),
+	"t52.50g30.00m-4.000 CEMP - C2.4" => spectraPath("t52.50g30.00m-4.000 CEMP","C_2.4"),
+	"t52.50g30.00m-4.000 CEMP - C2.2" => spectraPath("t52.50g30.00m-4.000 CEMP","C_2.2"),
+	"t52.50g30.00m-4.000 CEMP - C1.8" => spectraPath("t52.50g30.00m-4.000 CEMP","C_1.8"),
+	"t52.50g30.00m-4.000 CEMP - C1.6" => spectraPath("t52.50g30.00m-4.000 CEMP","C_1.6"),
+	"t52.50g30.00m-4.000 CEMP - C1.4" => spectraPath("t52.50g30.00m-4.000 CEMP","C_1.4"),
+	"t52.50g30.00m-4.000 CEMP - C1.2" => spectraPath("t52.50g30.00m-4.000 CEMP","C_1.2"),
 	#"t52.50g30.00m-4.000 CEMP - C1.0" => 
 	#spectraPath("t52.50g30.00m-4.000 CEMP","C_1.0"),
-
-	"t50.00g25.00m-4.000 CEMP - C2.2" => 
-	spectraPath("t50.00g25.00m-4.000 CEMP","C_2.2"),
-	"t50.00g25.00m-4.000 CEMP - C1.8" => 
-	spectraPath("t50.00g25.00m-4.000 CEMP","C_1.8"),
-	"t50.00g25.00m-4.000 CEMP - C1.6" => 
-	spectraPath("t50.00g25.00m-4.000 CEMP","C_1.6"),
-	"t50.00g25.00m-4.000 CEMP - C1.4" => 
-	spectraPath("t50.00g25.00m-4.000 CEMP","C_1.4"),
-	"t50.00g25.00m-4.000 CEMP - C1.2" => 
-	spectraPath("t50.00g25.00m-4.000 CEMP","C_1.2"),
+	"t50.00g25.00m-4.000 CEMP - C2.4" => spectraPath("t50.00g25.00m-4.000 CEMP","C_2.4"),
+	"t50.00g25.00m-4.000 CEMP - C2.2" => spectraPath("t50.00g25.00m-4.000 CEMP","C_2.2"),
+	"t50.00g25.00m-4.000 CEMP - C1.8" => spectraPath("t50.00g25.00m-4.000 CEMP","C_1.8"),
+	"t50.00g25.00m-4.000 CEMP - C1.6" => spectraPath("t50.00g25.00m-4.000 CEMP","C_1.6"),
+	"t50.00g25.00m-4.000 CEMP - C1.4" => spectraPath("t50.00g25.00m-4.000 CEMP","C_1.4"),
+	"t50.00g25.00m-4.000 CEMP - C1.2" => spectraPath("t50.00g25.00m-4.000 CEMP","C_1.2"),
 	
 
 	# FeH = -3
-	"t50.00g25.00m-3.000 CEMP - C1.0" => 
-	spectraPath("t50.00g25.00m-3.000 CEMP","C_1.0"),
-	"t50.00g25.00m-3.000 no-CEMP - C1.0" => 
-	spectraPath("t50.00g25.00m-3.000 no-CEMP","C_1.0"),
-	"t57.50g45.00m-3.000 CEMP - C1.0" => 
-	spectraPath("t57.50g45.00m-3.000 CEMP","C_1.0"),
-	"t57.50g45.00m-3.000 no-CEMP - C1.0" => 
-	spectraPath("t57.50g45.00m-3.000 no-CEMP","C_1.0"),
-	"t52.50g30.00m-3.000 CEMP - C1.0" => 
-	spectraPath("t52.50g30.00m-3.000 CEMP","C_1.0"),
-	"t52.50g30.00m-3.000 no-CEMP - C1.0" => 
-	spectraPath("t52.50g30.00m-3.000 no-CEMP","C_1.0"),
+	"t50.00g25.00m-3.000 CEMP - C1.0"    => spectraPath("t50.00g25.00m-3.000 CEMP","C_1.0"),
+	"t50.00g25.00m-3.000 no-CEMP - C1.0" => spectraPath("t50.00g25.00m-3.000 no-CEMP","C_1.0"),
+	"t57.50g45.00m-3.000 CEMP - C1.0"    => spectraPath("t57.50g45.00m-3.000 CEMP","C_1.0"),
+	"t57.50g45.00m-3.000 no-CEMP - C1.0" => spectraPath("t57.50g45.00m-3.000 no-CEMP","C_1.0"),
+	"t52.50g30.00m-3.000 CEMP - C1.0"    => spectraPath("t52.50g30.00m-3.000 CEMP","C_1.0"),
+	"t52.50g30.00m-3.000 no-CEMP - C1.0" => spectraPath("t52.50g30.00m-3.000 no-CEMP","C_1.0"),
 	# --> 3D effect fitting
-	"t57.50g45.00m-3.000 CEMP - C1.2" => 
-	spectraPath("t57.50g45.00m-3.000 CEMP","C_1.2"),
-	"t57.50g45.00m-3.000 CEMP - C0.8" => 
-	spectraPath("t57.50g45.00m-3.000 CEMP","C_0.8"),
-	"t57.50g45.00m-3.000 CEMP - C0.6" => 
-	spectraPath("t57.50g45.00m-3.000 CEMP","C_0.6"),
-	"t57.50g45.00m-3.000 CEMP - C0.4" => 
-	spectraPath("t57.50g45.00m-3.000 CEMP","C_0.4"),
-	"t57.50g45.00m-3.000 CEMP - C0.2" => 
-	spectraPath("t57.50g45.00m-3.000 CEMP","C_0.2"),
-	"t57.50g45.00m-3.000 CEMP - C0.0" => 
-	spectraPath("t57.50g45.00m-3.000 CEMP","C_0.0"),
-
-	"t52.50g30.00m-3.000 CEMP - C1.2" => 
-	spectraPath("t52.50g30.00m-3.000 CEMP","C_1.2"),
-	"t52.50g30.00m-3.000 CEMP - C0.8" => 
-	spectraPath("t52.50g30.00m-3.000 CEMP","C_0.8"),
-	"t52.50g30.00m-3.000 CEMP - C0.6" => 
-	spectraPath("t52.50g30.00m-3.000 CEMP","C_0.6"),
-	"t52.50g30.00m-3.000 CEMP - C0.4" => 
-	spectraPath("t52.50g30.00m-3.000 CEMP","C_0.4"),
-	"t52.50g30.00m-3.000 CEMP - C0.2" => 
-	spectraPath("t52.50g30.00m-3.000 CEMP","C_0.2"),
-	"t52.50g30.00m-3.000 CEMP - C0.0" => 
-	spectraPath("t52.50g30.00m-3.000 CEMP","C_0.0"),
-
-	"t50.00g25.00m-3.000 CEMP - C1.2" => 
-	spectraPath("t50.00g25.00m-3.000 CEMP","C_1.2"),
-	"t50.00g25.00m-3.000 CEMP - C0.8" => 
-	spectraPath("t50.00g25.00m-3.000 CEMP","C_0.8"),
-	"t50.00g25.00m-3.000 CEMP - C0.6" => 
-	spectraPath("t50.00g25.00m-3.000 CEMP","C_0.6"),
-	"t50.00g25.00m-3.000 CEMP - C0.4" => 
-	spectraPath("t50.00g25.00m-3.000 CEMP","C_0.4"),
-	"t50.00g25.00m-3.000 CEMP - C0.2" => 
-	spectraPath("t50.00g25.00m-3.000 CEMP","C_0.2"),
-	"t50.00g25.00m-3.000 CEMP - C0.0" => 
-	spectraPath("t50.00g25.00m-3.000 CEMP","C_0.0"),
+	"t57.50g45.00m-3.000 CEMP - C1.2" => spectraPath("t57.50g45.00m-3.000 CEMP","C_1.2"),
+	"t57.50g45.00m-3.000 CEMP - C0.8" => spectraPath("t57.50g45.00m-3.000 CEMP","C_0.8"),
+	"t57.50g45.00m-3.000 CEMP - C0.6" => spectraPath("t57.50g45.00m-3.000 CEMP","C_0.6"),
+	"t57.50g45.00m-3.000 CEMP - C0.4" => spectraPath("t57.50g45.00m-3.000 CEMP","C_0.4"),
+	"t57.50g45.00m-3.000 CEMP - C0.2" => spectraPath("t57.50g45.00m-3.000 CEMP","C_0.2"),
+	"t57.50g45.00m-3.000 CEMP - C0.0" => spectraPath("t57.50g45.00m-3.000 CEMP","C_0.0"),
+	"t52.50g30.00m-3.000 CEMP - C1.2" => spectraPath("t52.50g30.00m-3.000 CEMP","C_1.2"),
+	"t52.50g30.00m-3.000 CEMP - C0.8" => spectraPath("t52.50g30.00m-3.000 CEMP","C_0.8"),
+	"t52.50g30.00m-3.000 CEMP - C0.6" => spectraPath("t52.50g30.00m-3.000 CEMP","C_0.6"),
+	"t52.50g30.00m-3.000 CEMP - C0.4" => spectraPath("t52.50g30.00m-3.000 CEMP","C_0.4"),
+	"t52.50g30.00m-3.000 CEMP - C0.2" => spectraPath("t52.50g30.00m-3.000 CEMP","C_0.2"),
+	"t52.50g30.00m-3.000 CEMP - C0.0" => spectraPath("t52.50g30.00m-3.000 CEMP","C_0.0"),
+	"t50.00g25.00m-3.000 CEMP - C1.2" => spectraPath("t50.00g25.00m-3.000 CEMP","C_1.2"),
+	"t50.00g25.00m-3.000 CEMP - C0.8" => spectraPath("t50.00g25.00m-3.000 CEMP","C_0.8"),
+	"t50.00g25.00m-3.000 CEMP - C0.6" => spectraPath("t50.00g25.00m-3.000 CEMP","C_0.6"),
+	"t50.00g25.00m-3.000 CEMP - C0.4" => spectraPath("t50.00g25.00m-3.000 CEMP","C_0.4"),
+	"t50.00g25.00m-3.000 CEMP - C0.2" => spectraPath("t50.00g25.00m-3.000 CEMP","C_0.2"),
+	"t50.00g25.00m-3.000 CEMP - C0.0" => spectraPath("t50.00g25.00m-3.000 CEMP","C_0.0"),
 
 	
 	# FeH = -2
-	"t57.50g45.00m-2.000 no-CEMP - C1.0" => 
-	spectraPath("t57.50g45.00m-2.000 no-CEMP","C_1.0"),
-	"t52.50g30.00m-2.000 no-CEMP - C1.0" => 
-	spectraPath("t52.50g30.00m-2.000 no-CEMP","C_1.0"),
+	"t57.50g45.00m-2.000 no-CEMP - C1.0" => spectraPath("t57.50g45.00m-2.000 no-CEMP","C_1.0"),
+	"t52.50g30.00m-2.000 no-CEMP - C1.0" => spectraPath("t52.50g30.00m-2.000 no-CEMP","C_1.0"),
 	# --> 3D effect fitting
-	"t57.50g45.00m-2.000 no-CEMP - C1.2" => 
-	spectraPath("t57.50g45.00m-2.000 no-CEMP","C_1.2"),
-	"t57.50g45.00m-2.000 no-CEMP - C0.8" => 
-	spectraPath("t57.50g45.00m-2.000 no-CEMP","C_0.8"),
-	"t57.50g45.00m-2.000 no-CEMP - C0.6" => 
-	spectraPath("t57.50g45.00m-2.000 no-CEMP","C_0.6"),
-	"t57.50g45.00m-2.000 no-CEMP - C0.4" => 
-	spectraPath("t57.50g45.00m-2.000 no-CEMP","C_0.4"),
-	"t57.50g45.00m-2.000 no-CEMP - C0.2" => 
-	spectraPath("t57.50g45.00m-2.000 no-CEMP","C_0.2"),
-	"t57.50g45.00m-2.000 no-CEMP - C0.0" => 
-	spectraPath("t57.50g45.00m-2.000 no-CEMP","C_0.0"),
-
-	"t52.50g30.00m-2.000 no-CEMP - C1.2" => 
-	spectraPath("t52.50g30.00m-2.000 no-CEMP","C_1.2"),
-	"t52.50g30.00m-2.000 no-CEMP - C0.8" => 
-	spectraPath("t52.50g30.00m-2.000 no-CEMP","C_0.8"),
-	"t52.50g30.00m-2.000 no-CEMP - C0.6" => 
-	spectraPath("t52.50g30.00m-2.000 no-CEMP","C_0.6"),
-	"t52.50g30.00m-2.000 no-CEMP - C0.4" => 
-	spectraPath("t52.50g30.00m-2.000 no-CEMP","C_0.4"),
-	"t52.50g30.00m-2.000 no-CEMP - C0.2" => 
-	spectraPath("t52.50g30.00m-2.000 no-CEMP","C_0.2"),
-	"t52.50g30.00m-2.000 no-CEMP - C0.0" => 
-	spectraPath("t52.50g30.00m-2.000 no-CEMP","C_0.0"),
+	"t57.50g45.00m-2.000 no-CEMP - C1.2" => spectraPath("t57.50g45.00m-2.000 no-CEMP","C_1.2"),
+	"t57.50g45.00m-2.000 no-CEMP - C0.8" => spectraPath("t57.50g45.00m-2.000 no-CEMP","C_0.8"),
+	"t57.50g45.00m-2.000 no-CEMP - C0.6" => spectraPath("t57.50g45.00m-2.000 no-CEMP","C_0.6"),
+	"t57.50g45.00m-2.000 no-CEMP - C0.4" => spectraPath("t57.50g45.00m-2.000 no-CEMP","C_0.4"),
+	"t57.50g45.00m-2.000 no-CEMP - C0.2" => spectraPath("t57.50g45.00m-2.000 no-CEMP","C_0.2"),
+	"t57.50g45.00m-2.000 no-CEMP - C0.0" => spectraPath("t57.50g45.00m-2.000 no-CEMP","C_0.0"),
+	"t52.50g30.00m-2.000 no-CEMP - C1.2" => spectraPath("t52.50g30.00m-2.000 no-CEMP","C_1.2"),
+	"t52.50g30.00m-2.000 no-CEMP - C0.8" => spectraPath("t52.50g30.00m-2.000 no-CEMP","C_0.8"),
+	"t52.50g30.00m-2.000 no-CEMP - C0.6" => spectraPath("t52.50g30.00m-2.000 no-CEMP","C_0.6"),
+	"t52.50g30.00m-2.000 no-CEMP - C0.4" => spectraPath("t52.50g30.00m-2.000 no-CEMP","C_0.4"),
+	"t52.50g30.00m-2.000 no-CEMP - C0.2" => spectraPath("t52.50g30.00m-2.000 no-CEMP","C_0.2"),
+	"t52.50g30.00m-2.000 no-CEMP - C0.0" => spectraPath("t52.50g30.00m-2.000 no-CEMP","C_0.0"),
 
 
 	# Contribution functions
-	"t50.00g25.00m-5.000 CEMP - contr" => 
-	spectraPath("t50.00g25.00m-5.000 CEMP" ,"contr"),
-	"t57.50g45.00m-5.000 CEMP - contr" => 
-	spectraPath("t57.50g45.00m-5.000 CEMP" ,"contr"),
-	"t52.50g30.00m-5.000 CEMP - contr" => 
-	spectraPath("t52.50g30.00m-5.000 CEMP" ,"contr"),
-	"t57.50g45.00m-4.000 CEMP - contr" => 
-	spectraPath("t57.50g45.00m-4.000 CEMP" ,"contr"),
-	"t52.50g30.00m-4.000 CEMP - contr" => 
-	spectraPath("t52.50g30.00m-4.000 CEMP" ,"contr"),
-	"t57.50g45.00m-3.000 CEMP - contr" => 
-	spectraPath("t57.50g45.00m-3.000 CEMP" ,"contr"),
-	"t52.50g30.00m-3.000 CEMP - contr" => 
-	spectraPath("t52.50g30.00m-3.000 CEMP" ,"contr"),
+	"t50.00g25.00m-5.000 CEMP - contr" => spectraPath("t50.00g25.00m-5.000 CEMP" ,"contr"),
+	"t57.50g45.00m-5.000 CEMP - contr" => spectraPath("t57.50g45.00m-5.000 CEMP" ,"contr"),
+	"t52.50g30.00m-5.000 CEMP - contr" => spectraPath("t52.50g30.00m-5.000 CEMP" ,"contr"),
+	"t57.50g45.00m-4.000 CEMP - contr" => spectraPath("t57.50g45.00m-4.000 CEMP" ,"contr"),
+	"t52.50g30.00m-4.000 CEMP - contr" => spectraPath("t52.50g30.00m-4.000 CEMP" ,"contr"),
+	"t57.50g45.00m-3.000 CEMP - contr" => spectraPath("t57.50g45.00m-3.000 CEMP" ,"contr"),
+	"t52.50g30.00m-3.000 CEMP - contr" => spectraPath("t52.50g30.00m-3.000 CEMP" ,"contr"),
 )
 
 # ╔═╡ e67fed9e-3a82-45ed-9865-1c5862ebba2c
@@ -1709,9 +1498,9 @@ md"### [Fe/H]=-5, [C/Fe]=3.0"
 
 # ╔═╡ 9987b27b-2437-45a3-9e83-116a01f13d1d
 design_p4 = [
-	PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0", "3D (CEMP)", "-", 1.7, "k"),
-	PlotDesign("t57.50g45.00m-5.000 no-CEMP - C3.0", "3D (scaled-solar)", "--", 1.7, "steelblue"),
-	PlotDesign("MARCS t57.50g45.00m-5.000 no-CEMP - C3.0", "1D MARCS (scaled-solar)", "-", 1.7, "tomato")
+	PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0", "CEMP", "-", 1.7, "k"),
+	PlotDesign("t57.50g45.00m-5.000 no-CEMP - C3.0", "non-CEMP", "--", 1.7, "steelblue"),
+	PlotDesign("MARCS t57.50g45.00m-5.000 no-CEMP - C3.0", "MARCS", "-", 1.7, "tomato")
 ]
 
 # ╔═╡ 17ced5c3-080f-4d65-aa1c-b24a2950e783
@@ -1766,9 +1555,9 @@ end
 
 # ╔═╡ 6c428722-39e9-4f1c-851a-ee90cb617377
 design_p4_2 = [
-	PlotDesign("t52.50g30.00m-5.000 CEMP - C3.0", "3D (CEMP)", "-", 1.7, "k"),
-	PlotDesign("t52.50g30.00m-5.000 no-CEMP - C3.0", "3D (scaled-solar)", "--", 1.5, "steelblue"),
-	PlotDesign("MARCS t52.50g30.00m-5.000 no-CEMP - C3.0", "1D MARCS (scaled-solar)", "-", 1.7, "tomato")
+	PlotDesign("t52.50g30.00m-5.000 CEMP - C3.0", "CEMP", "-", 1.7, "k"),
+	PlotDesign("t52.50g30.00m-5.000 no-CEMP - C3.0", "non-CEMP", "--", 1.5, "steelblue"),
+	PlotDesign("MARCS t52.50g30.00m-5.000 no-CEMP - C3.0", "MARCS", "-", 1.7, "tomato")
 ]
 
 # ╔═╡ 059c7c73-acaa-468b-b7a4-e63a4748d358
@@ -2546,7 +2335,7 @@ abundances_p6 = Dict(
 	2.4 => PlotDesign("t57.50g45.00m-5.000 CEMP - C2.4", "", "-", 1.5, nothing),
 	2.6 => PlotDesign("t57.50g45.00m-5.000 CEMP - C2.6", "", "-", 1.5, nothing),
 	2.8 => PlotDesign("t57.50g45.00m-5.000 CEMP - C2.8", "", "-", 1.5, nothing),
-	3.0 => PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0", "", "-", 1.5, nothing),
+	#3.0 => PlotDesign("t57.50g45.00m-5.000 CEMP - C3.0", "", "-", 1.5, nothing),
 	3.2 => PlotDesign("t57.50g45.00m-5.000 CEMP - C3.2", "", "-", 1.5, nothing)
 )
 
@@ -2647,7 +2436,8 @@ abundances_p6_2 = Dict(
 	2.6 => PlotDesign("t52.50g30.00m-5.000 CEMP - C2.6", "", "-", 1.5, nothing),
 	2.8 => PlotDesign("t52.50g30.00m-5.000 CEMP - C2.8", "", "-", 1.5, nothing),
 	3.0 => PlotDesign("t52.50g30.00m-5.000 CEMP - C3.0", "", "-", 1.5, nothing),
-	3.2 => PlotDesign("t52.50g30.00m-5.000 CEMP - C3.2", "", "-", 1.5, nothing)
+	3.2 => PlotDesign("t52.50g30.00m-5.000 CEMP - C3.2", "", "-", 1.5, nothing),
+	3.4 => PlotDesign("t52.50g30.00m-5.000 CEMP - C3.4", "", "-", 1.5, nothing)
 )
 
 # ╔═╡ 82013231-d110-4791-acc4-46bf165bec09
@@ -2748,7 +2538,8 @@ abundances_p6_3 = Dict(
 	2.6 => PlotDesign("t50.00g25.00m-5.000 CEMP - C2.6", "", "-", 1.5, nothing),
 	2.8 => PlotDesign("t50.00g25.00m-5.000 CEMP - C2.8", "", "-", 1.5, nothing),
 	3.0 => PlotDesign("t50.00g25.00m-5.000 CEMP - C3.0", "", "-", 1.5, nothing),
-	3.2 => PlotDesign("t50.00g25.00m-5.000 CEMP - C3.2", "", "-", 1.5, nothing)
+	3.2 => PlotDesign("t50.00g25.00m-5.000 CEMP - C3.2", "", "-", 1.5, nothing),
+	3.4 => PlotDesign("t50.00g25.00m-5.000 CEMP - C3.4", "", "-", 1.5, nothing)
 )
 
 # ╔═╡ b742f64a-b6fe-4c6e-9368-9c4e60fc702c
@@ -2954,6 +2745,7 @@ end
 
 # ╔═╡ b15fc564-a58d-49f6-9cf6-6587aeb61e1c
 abundances_p6B_2 = Dict(
+	2.4 => PlotDesign("t52.50g30.00m-4.000 CEMP - C2.4", "", "-", 1.5, nothing),
 	2.2 => PlotDesign("t52.50g30.00m-4.000 CEMP - C2.2", "", "-", 1.5, nothing),
 	2.0 => PlotDesign("t52.50g30.00m-4.000 CEMP - C2.0", "", "-", 1.5, nothing),
 	1.8 => PlotDesign("t52.50g30.00m-4.000 CEMP - C1.8", "", "-", 1.5, nothing),
@@ -3061,6 +2853,7 @@ end
 
 # ╔═╡ 5ce8c3a7-d12e-4a3b-a3ed-81dbcd3a6118
 abundances_p6B_3 = Dict(
+	2.4 => PlotDesign("t50.00g25.00m-4.000 CEMP - C2.4", "", "-", 1.5, nothing),
 	2.2 => PlotDesign("t50.00g25.00m-4.000 CEMP - C2.2", "", "-", 1.5, nothing),
 	2.0 => PlotDesign("t50.00g25.00m-4.000 CEMP - C2.0", "", "-", 1.5, nothing),
 	1.8 => PlotDesign("t50.00g25.00m-4.000 CEMP - C1.8", "", "-", 1.5, nothing),
@@ -3882,7 +3675,7 @@ let
 	ax[0].set_ylim(-0.77, 0.47)
 
 	ax[0].set_title(L"\rm 3D\ CEMP - 1D")
-	ax[1].set_title(L"\rm 3D\ CEMP - 3D\ scaled \text{-} solar")
+	ax[1].set_title(L"\rm 3D\ CEMP - 3D\ non\ CEMP")
 
 	f.savefig(name1_p62)
 
@@ -4134,8 +3927,8 @@ differences_p8 = [
 	PlotDesign("MARCS t57.50g45.00m-5.000 no-CEMP - C3.0", L"\rm 3D - 1D", "--", 2., "tomato"),
 ]
 
-# ╔═╡ dce5a545-d30b-4fb2-acf3-85130f73cdc7
-inset_p8 = PlotDesign("t57.50g45.00m-5.000 CEMP", "", "", 2.5, "")
+# ╔═╡ 19c42123-ae32-468b-b6a1-4fd7457aa526
+inset_p8 = PlotDesign("t57.50g45.00m-5.000 CEMP", "", "-", 2, "k")
 
 # ╔═╡ 43b4cf33-7efd-48b8-af90-66555c827b52
 name1_p8 = "contribution_tau_t57.50g45.00m-5.000.pdf"
@@ -4245,6 +4038,84 @@ let
 end
 
 # ╔═╡ 1dcf4d03-7a20-4ff7-b891-958003c23d61
+let
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+	plt.close()
+
+	for (i, p) in enumerate(spectra_p8)
+		k = p.key
+		if haskey(spectra3D, k)
+			s = spectra3D[k]
+			x, y = plot_profile(s, :T, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+
+			ax.plot(x, y; ls=p.ls, lw=p.lw, label=p.label, color=p.color)
+		else
+			s = spectra1D[k]
+			x = s.run.ltau
+			y = s.run.temp
+			ax.plot(x, y, color=p.color, lw=p.lw, label=p.label, ls=p.ls)
+		end
+	end
+
+	left, bottom, width, height = [0.22, 0.51, 0.35, 0.3]
+	ax2 = f.add_axes([left, bottom, width, height], sharex=ax)
+	ax2.tick_params(labelsize=12)
+
+	k = differences_p8[1].key
+	xref, yref = if haskey(spectra3D, k)
+		s = spectra3D[k]
+		plot_profile(s, :T)
+	else
+		s = spectra1D[k]
+		s.run.ltau, s.run.temp
+	end
+	
+	for (i, p) in enumerate(differences_p8)
+		(i == 1) && continue 
+		k = p.key
+		x, y = if haskey(spectra3D, k)
+			s = spectra3D[k]
+			plot_profile(s, :T)
+		else
+			s = spectra1D[k]
+			MUST.pyconvert(Array, s.run.ltau), MUST.pyconvert(Array, s.run.temp)
+		end
+		mask = sortperm(x)
+		fref = MUST.linear_interpolation(x[mask], y[mask], extrapolation_bc=MUST.Line())
+
+		ax2.plot(
+			xref, yref .- fref.(xref), 
+			color=p.color, lw=p.lw, label=p.label, ls=p.ls
+		)
+	end
+
+	ax2.set_title(L"\rm \Delta T\ [K]")
+	ax2.legend(fontsize=11, loc="upper center")
+
+	#ax.axvline(-3.5, ls="-", color="k", alpha=0.1, lw=4)
+	#ax.axvline(-1.2, ls="-", color="tomato", alpha=0.1, lw=4)
+	ax.hlines(3500, -3.5, 0.0, ls="-", color="k", alpha=0.2, lw=4)
+	ax.hlines(4800, -1.2, 0.0, ls="-", color="tomato", alpha=0.2, lw=4)
+
+	#ax.axvline(log10(2/3))
+	
+	ax.set_xlim(-4.5, 2)
+	ax2.set_xlim(-4.5, 2)
+	ax.set_ylim(2800, 9900)
+	ax.set_ylabel(L"\rm temperature\ [K]")
+	ax.set_xlabel(L"\rm optical\ depth\ [log\ \tau_{500}]")
+
+	ax.legend(loc="lower right")
+
+	ax.set_title(L"\rm T_{eff}=5\,750\ K,\ log(g)=4.5,\ [Fe/H] = -5,\ [C/Fe] = 3")
+	
+
+	f.savefig(name4_p8)
+
+	f
+end
+
+# ╔═╡ c8a6af9e-625a-4864-9ca2-1efad14fccd4
 let
 	f, ax = plt.subplots(1, 1, figsize=(6,5))
 	plt.close()
@@ -4389,8 +4260,8 @@ differences_p8B = [
 	PlotDesign("MARCS t52.50g30.00m-5.000 no-CEMP - C3.0", L"\rm 3D - 1D", "--", 2., "tomato"),
 ]
 
-# ╔═╡ 449ca103-aefe-45e0-9faa-0bd7104182e9
-inset_p8B = PlotDesign("t52.50g30.00m-5.000 CEMP", "", "", 1, "")
+# ╔═╡ 932b8ec8-efcf-4851-8b3c-46fc18d0a674
+inset_p8B = PlotDesign("t52.50g30.00m-5.000 CEMP", "", "-", 2, "k")
 
 # ╔═╡ 9ad8b431-b875-4ebd-844a-e70177aa6fde
 name1_p8B = "contribution_tau_t52.50g30.00m-5.000.pdf"
@@ -4564,7 +4435,7 @@ let
 	ax.set_xlim(-4.5, 2)
 	ax2.set_xlim(-4.5, 2)
 	ax2.set_ylim(-1200, 1500)
-	ax.set_ylim(2800, 9900)
+	ax.set_ylim(2300, 9900)
 	ax.set_ylabel(L"\rm temperature\ [K]")
 	ax.set_xlabel(L"\rm optical\ depth\ [log\ \tau_{500}]")
 
@@ -4578,7 +4449,7 @@ let
 	f
 end
 
-# ╔═╡ b5328517-9f96-4ba8-9f60-4c34ccbbde90
+# ╔═╡ bf028bf1-7480-4020-8760-6622d0057188
 let
 	f, ax = plt.subplots(1, 1, figsize=(6,5))
 	plt.close()
@@ -4624,16 +4495,16 @@ let
 	#ax.axvline(-1.2, ls="-", color="tomato", alpha=0.1, lw=4)
 	#ax.hlines(3500, -3.5, 0.0, ls="-", color="k", alpha=0.2, lw=4)
 	#ax.hlines(4800, -1.2, 0.0, ls="-", color="tomato", alpha=0.2, lw=4)
-	ax.hlines(2800, -3.5, 0.0, ls="-", color="steelblue", alpha=0.8, lw=6)
-	ax.hlines(3150, -1.2, 0.0, ls="-", color="tomato", alpha=0.8, lw=6)
+	ax.hlines(2550, -3.0, 0.0, ls="-", color="steelblue", alpha=0.8, lw=6)
+	ax.hlines(2900, -1.3, 0.0, ls="-", color="tomato", alpha=0.8, lw=6)
 
-	ax.text(0.1, 2800, "3D", ha="left", va="center", color="steelblue")
-	ax.text(0.1, 3150, "1D", ha="left", va="center", color="tomato")
+	ax.text(0.1, 2550, "3D", ha="left", va="center", color="steelblue")
+	ax.text(0.1, 2900, "1D", ha="left", va="center", color="tomato")
 
 	
 	ax.set_xlim(-4.2, 1.7)
 	#ax2.set_xlim(-4.5, 2)
-	ax.set_ylim(2400, 9900)
+	ax.set_ylim(2100, 9900)
 	ax.set_ylabel(L"\rm temperature\ [K]")
 	ax.set_xlabel(L"\rm optical\ depth\ [log\ \tau_{500}]")
 
@@ -4692,9 +4563,6 @@ differences_p8C = [
 	PlotDesign("t50.00g25.00m-5.000 no-CEMP - C3.0", L"\rm CEMP - non\ CEMP", "-", 2., "k"),
 	PlotDesign("MARCS t50.00g25.00m-5.000 no-CEMP - C3.0", L"\rm 3D - 1D", "--", 2., "tomato"),
 ]
-
-# ╔═╡ e155804c-999a-4c97-9003-7eb66d62e3b2
-inset_p8C = PlotDesign("t50.00g25.00m-5.000 CEMP", "", "", 2, "")
 
 # ╔═╡ 9f452aaa-e239-4201-ab9f-21136f8768be
 name1_p8C = "contribution_tau_t50.00g25.00m-5.000.pdf"
@@ -4869,75 +4737,6 @@ let
 	ax.legend(loc="lower right")
 
 	ax.set_title(L"\rm [Fe/H] = -5,\ [C/Fe] = 3")
-	ax.set_title(L"\rm T_{eff}=5\,000\ K,\ log(g)=2.5,\ [Fe/H] = -5,\ [C/Fe] = 3")
-	
-
-	f.savefig(name4_p8C)
-
-	f
-end
-
-# ╔═╡ 46bd739a-9d75-455d-b9f2-3af641a3af7b
-let
-	f, ax = plt.subplots(1, 1, figsize=(6,5))
-	plt.close()
-
-	for (i, p) in enumerate(spectra_p8C)
-		k = p.key
-		if haskey(spectra3D, k)
-			s = spectra3D[k]
-			x, y = plot_profile(s, :T, ax=ax, ls=p.ls, lw=p.lw, label=p.label, color=p.color)
-			
-			#ax.plot(x, y; ls=p.ls, lw=p.lw, label=p.label, color=p.color)
-		else
-			s = spectra1D[k]
-			x = s.run.ltau
-			y = s.run.temp
-			ax.plot(x, y, color=p.color, lw=p.lw, ls=p.ls)
-		end
-	end
-
-	left, bottom, width, height = [0.11, 0.51, 0.35, 0.3]
-	ax2 = f.add_axes([left, bottom, width, height])
-	ax2.tick_params(labelsize=12)
-	b_in = models3D[inset_p8C.key][2]
-	Tplane = MUST.interpolate_to(b_in, :T; logspace=true, τ_ross=0.0)[:T][:,:,1]
-	extent = [minimum(b_in.x), maximum(b_in.x), minimum(b_in.y), maximum(b_in.y)] ./1e8
-	im = ax2.imshow(
-		Tplane', 
-		rasterized=true, 
-		origin="lower",
-		extent=extent,
-		cmap="gist_heat",
-		aspect="equal"
-	)
-	cbar = f.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
-	ax2.set_title(L"\rm temperature\ [K]")
-
-	ax2.set_xlabel(L"\rm x\ [Mm]")
-	#ax2.set_ylabel(L"\rm y\ [Mm]")
-	#ax2.set_title(L"\rm \Delta T\ [K]")
-	#ax2.legend(fontsize=11, loc="upper center")
-
-	#ax.axvline(-3.5, ls="-", color="k", alpha=0.1, lw=4)
-	#ax.axvline(-1.2, ls="-", color="tomato", alpha=0.1, lw=4)
-	#ax.hlines(3500, -3.5, 0.0, ls="-", color="k", alpha=0.2, lw=4)
-	#ax.hlines(4800, -1.2, 0.0, ls="-", color="tomato", alpha=0.2, lw=4)
-	ax.hlines(2800, -2.5, 0.0, ls="-", color="steelblue", alpha=0.8, lw=6)
-	ax.hlines(3150, -1.5, 0.0, ls="-", color="tomato", alpha=0.8, lw=6)
-
-	ax.text(0.1, 2800, "3D", ha="left", va="center", color="steelblue")
-	ax.text(0.1, 3150, "1D", ha="left", va="center", color="tomato")
-
-	
-	ax.set_xlim(-4.2, 2)
-	#ax2.set_xlim(-4.5, 2)
-	ax.set_ylim(2400, 9900)
-	ax.set_ylabel(L"\rm temperature\ [K]")
-	ax.set_xlabel(L"\rm optical\ depth\ [log\ \tau_{500}]")
-
-	ax.legend(loc="lower right")
-
 	ax.set_title(L"\rm T_{eff}=5\,000\ K,\ log(g)=2.5,\ [Fe/H] = -5,\ [C/Fe] = 3")
 	
 
@@ -6159,45 +5958,9 @@ end
 # ╔═╡ 210a4e3c-6998-400f-9e0a-3da3e0efe557
 md"## Galactic CEMP Distribution"
 
-# ╔═╡ 8b4cdc73-f05e-4f27-84bc-45131ffd87e4
-function filled_bins(x; bins=20, n_min=5)
-	x = sort(x)
-	right_edge = minimum(x)
-	xmax = maximum(x)
-	xmin = minimum(x)
-	final_bins   = [right_edge]
-	mask = falses(length(x))
-	for i in 0:bins-1
-		mask .= x .> right_edge
-		bin_size_min = abs.(maximum(x[mask]) .- minimum(x[mask])) ./ (bins-i)
-		(bin_size_min <= 0) && break
-		left_edge  = final_bins[end]
-		right_edge = left_edge + bin_size_min
-		mask      .= (x.>left_edge).&(x.<=right_edge)
-		n_stars    = count(mask)
-		while n_stars<n_min
-			right_edge += 0.1*bin_size_min
-			mask       .= (x.>left_edge).&(x.<=right_edge)
-			n_stars    = count(mask)
-			(right_edge >= xmax) && break
-		end
-		append!(final_bins, right_edge)
-		(right_edge >= xmax) && break
-	end
-	final_bins
-end
-
-# ╔═╡ 815ddfb5-1da4-44bc-be02-a9062d4fe228
-begin
-	#metallicity_bin_edges = [-6.5, -5.5, -4.5, -3.5, -2.5, -1.5, -0.5, 0.0]
-	#metallicity_bin_edges = [-7.5, -6.5, -5.5, -4.5, -3.5, -2.5, -1.5, -0.5, 0.0]
-	#metallicity_bin_edges = [-8.0, -6.5, -5.0, -3.5, -2.0, -0.5, 0.0]
-	
-	mask_filled_bins = (.!isnan.(parameters_all["cfe"])) .& selection_mask .& (parameters_all["feh"].<-1.5)
-	metallicity_bin_edges = filled_bins(
-		parameters_all["feh"][mask_filled_bins], bins=8, n_min=3
-	)
-end
+# ╔═╡ 0e5c7037-aa27-44f2-b563-94aca1da290b
+#metallicity_bin_edges = [-6.5, -5.5, -4.5, -3.5, -2.5, -1.5, -0.5, 0.0]
+metallicity_bin_edges = [-7.5, -6.5, -5.5, -4.5, -3.5, -2.5, -1.5, -0.5, 0.0]
 
 # ╔═╡ f3442668-a393-4136-8d43-d597af23279b
 metallicity_bin_centers = (metallicity_bin_edges[2:end] .+ metallicity_bin_edges[1:end-1]) ./ 2
@@ -6215,6 +5978,9 @@ function bin_parameter(bins, general_mask=trues(size(saga_all_data, 1)); name="f
 
 	bin_masks
 end
+
+# ╔═╡ ab9353b8-4b9d-4e93-b169-aafb0a44247b
+(253-189)/253
 
 # ╔═╡ 0b489280-582d-47af-aed0-ac54a79a060c
 begin
@@ -6410,13 +6176,8 @@ let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(6, 5))
 
-	ax.plot(metallicity_bin_centers, cumsum(count_bins_CEMP) ./ cumsum(count_bins_general)*100, zorder=10, color="k", lw=2.0, label=L"\rm 1D ()", marker="s")
-	ax.plot(metallicity_bin_centers, cumsum(count_bins_CEMP_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, label=L"\rm 3D (", marker="s")
-
-
-	open("CEMP_cumsum_fractions.txt", "w") do f
-		MUST.writedlm(f, [metallicity_bin_centers cumsum(count_bins_CEMP) ./ cumsum(count_bins_general) cumsum(count_bins_CEMP_corr) ./ cumsum(count_bins_general)])
-	end
+	ax.plot(metallicity_bin_centers, cumsum(count_bins_CEMP) ./ cumsum(count_bins_general)*100, zorder=10, color="k", lw=2.0, label=L"\rm 1D", marker="s")
+	ax.plot(metallicity_bin_centers, cumsum(count_bins_CEMP_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, label=L"\rm 3D", marker="s")
 
 	#ax2 = ax.twinx()
 	ax.set_zorder(10)
@@ -6436,44 +6197,6 @@ let
 
 	ax.set_xlim(-6.2, -1.8)
 	ax.set_ylim(0.24*100, 1.04*100)
-	#ax2.set_ylim(-0.75, 5.)
-
-	f.savefig(name1_p11)
-	
-	f
-end
-
-# ╔═╡ b5c4196d-e933-45c5-aba1-131d2cdf0e36
-let
-	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
-
-	ax.plot(metallicity_bin_centers, count_bins_CEMP ./ count_bins_general*100, zorder=10, color="k", lw=2.0, label=L"\rm 1D ()", marker="s")
-	ax.plot(metallicity_bin_centers, count_bins_CEMP_corr ./ count_bins_general*100, zorder=10, color="tomato", lw=2.0, label=L"\rm 3D (", marker="s")
-
-
-	#open("CEMP_cumsum_fractions.txt", "w") do f
-	#	MUST.writedlm(f, [metallicity_bin_centers count_bins_CEMP./count_bins_general count_bins_CEMP_corr./count_bins_general])
-	#end
-
-	#ax2 = ax.twinx()
-	ax.set_zorder(10)
-	ax.patch.set_visible(false)
-	
-	#ax2.scatter(parameters_all["feh"][selection_mask], parameters_all["cfe"][selection_mask], s=10, rasterized=true, alpha=0.2, marker="o", color="0.5", zorder=0)
-	
-	#ax2.axhline(0.7, ls="--", color="k", alpha=0.3, lw=1.5)
-	#ax2.text(-0.2, 0.71, "CEMP", color="k", alpha=1, ha="right", va="bottom", fontsize=11)
-	#ax2.text(-0.2, 0.67, "not-CEMP", color="k", alpha=1, ha="right", va="top", fontsize=11)
-
-	ax.set_xlabel(L"\rm [Fe/H]")
-	#ax2.set_ylabel(L"\rm [C/Fe]")
-	ax.set_ylabel(L"\rm N_{\leq [Fe/H], CEMP}\ /\ N_{\leq [Fe/H]}\ [\%]")
-	ax.legend(loc="lower left")
-	#ax.set_yscale("log")
-
-	ax.set_xlim(-6.2, -1.8)
-	ax.set_ylim(0.1*100, 1.04*100)
 	#ax2.set_ylim(-0.75, 5.)
 
 	f.savefig(name1_p11)
@@ -6707,16 +6430,13 @@ let
 	f, ax = plt.subplots(1, 1, figsize=(6, 5))
 
 
-	CEMP_mask = (parameters_all["cfe"] .>= cfe_limit) .& selection_mask
-	#CEMP_mask = selection_mask
+	#CEMP_mask = (parameters_all["cfe"] .>= cfe_limit) .& selection_mask
+	CEMP_mask = selection_mask
 	feh = parameters_all["feh"][CEMP_mask]
 	cfe = parameters_all["cfe"][CEMP_mask]
 	c = cfe 
 
 	group = bins_CEMP
-
-	ax.scatter(feh, cfe, color="k", s=25, rasterized=true, alpha=0.1)
-	ax.scatter(feh, cfe.+ corrections_saga_all[CEMP_mask], color="tomato", s=25, rasterized=true, alpha=0.1)
 
 	c_mean =  [mean(
 		parameters_all["cfe"][group[:, i]]
@@ -6826,7 +6546,7 @@ end
 # ╠═67c8479d-7c41-4baa-b2ec-13da36a48900
 # ╟─4bc7b154-2fdd-4057-bf40-e44c7851bc7d
 # ╟─0a0779a4-7d87-40d2-9dfc-454b366c2dff
-# ╠═5beedaf9-b12a-46db-a576-7913eb5f2caf
+# ╟─5beedaf9-b12a-46db-a576-7913eb5f2caf
 # ╟─a0cdfa21-bc3f-4462-aa4d-a84cc795bece
 # ╠═6613157c-d199-4825-b779-a477ac4f3f30
 # ╠═e67fed9e-3a82-45ed-9865-1c5862ebba2c
@@ -6945,7 +6665,7 @@ end
 # ╟─14ee9206-f322-4e06-a65e-271c19d4c792
 # ╠═6c428722-39e9-4f1c-851a-ee90cb617377
 # ╠═059c7c73-acaa-468b-b7a4-e63a4748d358
-# ╟─df0a0a2d-52ea-4852-b450-6fc1baf5838d
+# ╠═df0a0a2d-52ea-4852-b450-6fc1baf5838d
 # ╟─9669b2e7-396d-4e09-827b-3138c3d8f70a
 # ╠═20e610c2-9054-4dc6-a551-6f63909715ee
 # ╠═5d9fc015-4d8b-4811-8f48-c4197eb95709
@@ -7073,7 +6793,7 @@ end
 # ╠═ae657bc5-ad83-4675-bdda-f578d7054af7
 # ╠═24c0eb4f-5dcf-48bf-b305-2e7737c1828b
 # ╠═6a495bfa-fc58-4cbd-89a7-1a8e198a2e91
-# ╠═b768e044-d7fc-49a9-bc5e-1859c359f0d1
+# ╟─b768e044-d7fc-49a9-bc5e-1859c359f0d1
 # ╟─05c3da3f-6654-4ff4-953e-9f6d6c315f16
 # ╟─349d1a5b-aed0-4315-b7b4-cc766e2d0bc3
 # ╠═8cc66430-8635-4729-b595-a7df6a28cba5
@@ -7094,7 +6814,7 @@ end
 # ╟─6addc6c2-ad44-4310-a39a-292acf6b0dac
 # ╠═9962676e-40cb-4fe8-ab50-8abb5a854612
 # ╠═d5af99b0-8e95-4037-af01-1437f9aa0e04
-# ╠═dce5a545-d30b-4fb2-acf3-85130f73cdc7
+# ╠═19c42123-ae32-468b-b6a1-4fd7457aa526
 # ╠═43b4cf33-7efd-48b8-af90-66555c827b52
 # ╠═71545110-8314-45c7-9e83-e15035c3f60d
 # ╠═266c3319-78c1-4a2b-b06c-386f54907ecc
@@ -7104,11 +6824,12 @@ end
 # ╟─515b8fb8-2568-4200-b10f-6ef8e2318615
 # ╟─d08caaf5-e763-498d-a594-8915fc8eaaf9
 # ╟─1dcf4d03-7a20-4ff7-b891-958003c23d61
+# ╟─c8a6af9e-625a-4864-9ca2-1efad14fccd4
 # ╟─a21d6f31-f766-432f-856c-7726e989d42f
 # ╟─67aab606-2b0e-44f8-90ab-99d63830742d
 # ╠═29ff7a48-9110-4da3-b024-2a9c7af59477
 # ╠═a007184b-f10c-4592-ad0c-aca561a48a45
-# ╠═449ca103-aefe-45e0-9faa-0bd7104182e9
+# ╠═932b8ec8-efcf-4851-8b3c-46fc18d0a674
 # ╠═9ad8b431-b875-4ebd-844a-e70177aa6fde
 # ╠═4b07347d-8e66-4087-84b7-5efb4076139f
 # ╠═b6ba9f13-2f1d-407a-a496-661f89a86205
@@ -7118,12 +6839,11 @@ end
 # ╟─ec4b9098-48f3-4967-84fe-fd2d7cc4020e
 # ╟─31c72e56-4f33-4328-be62-817a827d2161
 # ╟─d8c47e25-67c5-414f-8416-8d26030c9cde
-# ╟─b5328517-9f96-4ba8-9f60-4c34ccbbde90
+# ╟─bf028bf1-7480-4020-8760-6622d0057188
 # ╟─896797bd-8fb0-4127-a2d6-57438ee03fae
 # ╟─75480722-5bf5-453d-9f13-690cda6cdc3f
 # ╠═009eabf7-0385-4ed7-b648-1e0b8c4cfc47
 # ╠═aee45896-0f70-4bc8-8c8a-e685d92cb60a
-# ╠═e155804c-999a-4c97-9003-7eb66d62e3b2
 # ╠═9f452aaa-e239-4201-ab9f-21136f8768be
 # ╠═e1d754a5-cb5e-4fa1-9df2-fb6c806b17ea
 # ╠═1882ff98-7c04-4909-8010-3ca0ed5f6e51
@@ -7133,7 +6853,6 @@ end
 # ╟─de50c004-56b1-4719-9a93-6543d0f75f9b
 # ╟─02e275ca-adf2-4497-a269-c5279bcbc5e9
 # ╟─c90d990c-b17a-46d7-a145-00b5eedc0682
-# ╟─46bd739a-9d75-455d-b9f2-3af641a3af7b
 # ╟─31d31e74-c494-4ea6-a28c-d2bb7afd57a4
 # ╟─b5cda9d6-480b-42a1-8091-7ceab841c3df
 # ╟─6225b614-dc48-4158-8abe-55a1c07b651e
@@ -7196,7 +6915,7 @@ end
 # ╟─b669a28e-642f-44ad-94bf-8e61af14d2be
 # ╟─fa1bdf35-c482-4869-b195-10b6e4861a2f
 # ╠═fd0357ee-086b-4394-add3-fdff0de4cd39
-# ╠═2c6fbe92-5a73-4360-8ed2-f51f59dc5e3f
+# ╟─2c6fbe92-5a73-4360-8ed2-f51f59dc5e3f
 # ╟─c1d54755-4b3f-4ad8-aac5-af7b365500c5
 # ╟─bc8ada92-8975-403e-a94e-ddc2d9ead536
 # ╠═9e88185c-9c1f-4485-b465-30b3140b0e58
@@ -7225,18 +6944,17 @@ end
 # ╠═99598049-9494-4a72-afd4-13dd12a09ff4
 # ╟─d9b1abef-4cae-4171-904f-6e4a046a9bf0
 # ╟─210a4e3c-6998-400f-9e0a-3da3e0efe557
-# ╠═8b4cdc73-f05e-4f27-84bc-45131ffd87e4
-# ╠═815ddfb5-1da4-44bc-be02-a9062d4fe228
+# ╠═0e5c7037-aa27-44f2-b563-94aca1da290b
 # ╠═f3442668-a393-4136-8d43-d597af23279b
 # ╟─0f92fa2a-7f2f-4a04-bcec-5eaf307ed3f3
+# ╠═ab9353b8-4b9d-4e93-b169-aafb0a44247b
 # ╟─0b489280-582d-47af-aed0-ac54a79a060c
 # ╟─6f03a4bb-63e2-46fc-a39a-680c67dc82b1
 # ╠═c58fef48-f544-4377-97f4-7daf9ba218ac
 # ╠═aa05228a-9c86-4276-bdbf-c47479ccc7dc
 # ╟─921e3b89-4baf-4984-85b1-087af8e8fc2c
 # ╟─646546e9-8e80-428d-af73-02e3b033e092
-# ╠═823716ae-f1fd-4805-be6e-a9bdb3827940
-# ╠═b5c4196d-e933-45c5-aba1-131d2cdf0e36
+# ╟─823716ae-f1fd-4805-be6e-a9bdb3827940
 # ╟─e6f3d47b-fb81-4100-8343-a8c822c67137
 # ╠═5cc34af8-b49e-401c-8320-3a18bd8bcbd3
 # ╠═d17f4ee1-b3ae-49e6-80ee-26a322b2d661
