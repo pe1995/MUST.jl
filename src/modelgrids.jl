@@ -2,6 +2,7 @@ using MUST
 using TSO
 using LazySets
 using Polyhedra
+using ScatteredInterpolation
 
 
 #==================================================================== Models =#
@@ -181,10 +182,17 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 	r_models = [minimum(abs.(diff(m.z))) for m in models]
 
 	# now we interpolate all points to one common point, for every point
-	scatter_int(v, x, y) = MUST.pyconvert(typeof(x),
-		first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask]), v, ([x], [y]), method="linear"))
-	)
-	
+	#scatter_int(v, x, y) = MUST.pyconvert(typeof(x),
+	#	first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask]), v, ([x], [y]), method="linear"))
+	#)
+	nodes = zeros(count(femask), 2)
+	nodes[:, 1] .= teff_gr[femask]
+	nodes[:, 2] .= logg_gr[femask]
+	nodes_adj = nodes'
+	scatter_int(v, x, y) = begin
+		itp = evaluate(interpolate(Multiquadratic(), nodes_adj, v), [x, y]) |> first
+	end
+
 	points = zeros(eltype(models_mod[1].z), length(models_mod), 3)
 	z = zeros(eltype(models_mod[1].z), common_size)
 	t = zeros(eltype(models_mod[1].z), common_size)
@@ -233,9 +241,16 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 	ltscale = log10.(first(models_mod).τ)
 
 	# now we interpolate all points to one common point, for every point
-	scatter_int(v, x, y) = MUST.pyconvert(typeof(x),
-		first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask]), v, ([x], [y]), method="linear"))
-	)
+	#scatter_int(v, x, y) = MUST.pyconvert(typeof(x),
+	#	first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask]), v, ([x], [y]), method="linear"))
+	#)
+	nodes = zeros(count(femask), 2)
+	nodes[:, 1] .= teff_gr[femask]
+	nodes[:, 2] .= logg_gr[femask]
+	nodes_adj = nodes'
+	scatter_int(v, x, y) = begin
+		evaluate(interpolate(Multiquadratic(), nodes_adj, v), [x, y]) |> first
+	end
 	
 	points = zeros(eltype(models_mod[1].z), length(models), 3)
 	z = zeros(eltype(models_mod[1].z), common_size)
