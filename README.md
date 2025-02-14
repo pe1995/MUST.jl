@@ -18,7 +18,7 @@ You can jump through the documentation by using the follwing topic shortcuts. No
 4. [Running Dispatch](#running-dispatch)
     1. [Running MULTI3D](#running-multi3d)
     2. [Running Stellar Atmospheres](#running-stellar-atmospheres)
-4. [Command Line Tools](#command-line-tools) 
+4. [Workflow](#workflow) 
 
 -------------------------
 # Installation
@@ -630,4 +630,20 @@ where the first line can be run within a sbatch allocation. You can therefore sc
 
 ___________
 
-# Command Line Tools
+# Workflow
+
+There are many useful tools and programs that help navigating through the usecases of `MUST.jl`. All of these tools are located within the `stellar_atmospheres` folder of `DISPATCH`. To illustrate the main workflow, consider the following example.
+Suppose you observed 3 FGK-type stars and took high-resolution optical spectra. Your goal is to analyse those spectra with respect to elemental abundances and to make sure you rely on the physically most realistic models possible you want to perform the spectrum synthesis in 3D, possibly even Non-LTE. Suppose the stars you observed are located on the main-sequence and sub-giant branch and you have estimates of their stellar parameters. To simulate the model atmosphere in 3D you need to generete an initial model to start your simulation from, create the binned opacity table for this model, estimate the size of the simulation domain, and start `DISPATCH`. This first step can be done using the `interpolated_initial.jl` program. 
+To make this work, you need to make sure you have monochromatic opacity tables available. Assuming you do not have access to them, you can create them yourself using the `Multi3D` code. The corresponding script is `create_eos.jl`. It can be used like e.g.
+
+```bash
+julia --threads=24 create_eos.jl -n table_name  --feh=0.0  --alpha=0.0 --vmic=1 --version=v1.0 --n_lambda=250000 --multi_threads=32 --linelist_dir=input_multi3d/LINE-LISTS/
+```
+
+Which will use `Multi3D` to create a table with 250000 wavelength points from 1000Å to 100000Å. It will be given the name "table_name". In `interpolated_initial.jl` a grid of average models is used to interpolate the new model. The interpolator needs the equation of state, so you need to add your new table to the grid. This can be done with `replace_opacities_in_grid.jl`.  
+
+```bash
+julia replace_eos_in_grid.jl --grid=Stagger --name my_new_grid --opacity_tables abs_path/of/all/your/opacity/tables --metallicity_assignment=0=table1,m1=table2...,m5=table6
+```
+
+Which will create a new grid file with the opacity tables you specify. Checkout the new file if you want to further replace EoS tables by hand.
