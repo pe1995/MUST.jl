@@ -39,7 +39,7 @@ Load the dispatch module. Either the global location is used or
 a specific path is given to the function
 """
 function _import_dispatch(location::Union{Nothing,String}=nothing, submodules=[])
-    isnothing(location) ? location = joinpath(pwd(),"../dispatch2") : nothing
+    location = isnothing(location) ? joinpath(abspath(pwd()),"../../../dispatch2") : location
     
     # Import sys and os, add to path and import dispatch
     os  = pyimport("os")
