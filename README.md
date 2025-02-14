@@ -18,6 +18,7 @@ You can jump through the documentation by using the follwing topic shortcuts. No
 4. [Running Dispatch](#running-dispatch)
     1. [Running MULTI3D](#running-multi3d)
     2. [Running Stellar Atmospheres](#running-stellar-atmospheres)
+4. [Command Line Tools](#command-line-tools) 
 
 -------------------------
 # Installation
@@ -628,3 +629,5 @@ run_dispatch(nml; threads=70, wait=true, ddir=@in_dispatch(""))
 where the first line can be run within a sbatch allocation. You can therefore scrip previous steps, if you already have a namelist, initial model (or adiabat) and opacity table ready. The results of all computations, successfull or not, can be retreived after converting your favourite snapshot, as described [in previous sections](#reading-dispatch-models).
 
 ___________
+
+# Command Line Tools
