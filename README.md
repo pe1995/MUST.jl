@@ -655,7 +655,7 @@ julia --threads=10 interpolated_initial.jl --teff=5500,6800 --logg=3.7,4.6 --feh
 With this command, we create 10 random initial models for DISPATCH between 5500 and 6000K, 3.7 and 4.6 log(g), with solar metallicity. The physical domain of the box will cover the log optical depth from -6 to 7, and will extrapolate tbe model adiabatically below optical depth of 4, to ensure the bottom part of the model atmosphere is indeed adiabatic. The model will be run with 10x10x5 patches, with 20 points each, such that the frinal resolution will be 200x200x100 in this example. The option `--staggered` makes sure that DISPATCH uses the staggered, conservative radiative transfer solver (strongly recommended) that gerneally performs extraordinary well at low to intermediate resolution. Again see `--help` for more options. The code above also performs the opacity binning (8 bins by default) and created the input namelist for DISPATCH. From here one all that remains is to run DISPATCH either with SLURM or interactively, e.g.
 
 ```bash
-./dispatch.x your_interpolated_model.nml`
+./dispatch.x your_interpolated_model.nml
 ```
 
 Note that the watchdog capabilities are very handy, so it is a good idea to run it at the same time. You can either take inspiration from one of the available `.slurm` scripts, or simply write your own script that makes sure resources are spent on it. It can be run as e.g.
