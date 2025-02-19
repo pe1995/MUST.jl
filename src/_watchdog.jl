@@ -53,6 +53,17 @@ function monitor(w::DISPATCHWatchDog; timeout=2*60*60, check_every=5, delay=0, s
             if n_snapsCompleted > keeplast
                 snaps2remove = w.snapshotsCompleted[1:end-keeplast]
                 for (i, snap2remove) in enumerate(snaps2remove)
+                    if save_box
+                        if !(snap2remove in keys(convertedBoxes(w)))
+                            @info "Converting snapshot $(snap2remove)..."
+                            try
+                                convert(w, snap2remove, save_box=true)
+                                @info "...snapshot $(snap2remove) converted."
+                            catch
+                                @info "...snapshot $(snap2remove) failed."
+                            end
+                        end
+                    end
                    deleteSnapshot(w, snap2remove)
                 end
             end
