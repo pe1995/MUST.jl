@@ -72,17 +72,26 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
         show_time=false,
         cpu_time=nothing,
         norm=1e8,
+        cut_z=["auto", "auto"],
         fontsize="medium")
 
     # Define dimensions
     Nx, Ny, Nz = size(m_3d)
     X, Y, Z    = m_3d.x ./ norm, m_3d.y ./norm, m_3d.z ./norm
 
+    zlim = [0.0,0.0]
+    zlim[1] = cut_z[1] == "auto" ? minimum(Z) : cut_z[1]
+	zlim[2] = cut_z[2] == "auto" ? maximum(Z) : cut_z[2]
+	mask = (Z[1, 1, :] .> zlim[1]) .& (Z[1, 1, :] .< zlim[2])
+    X = X[:,:,mask]
+    Y = Y[:,:,mask]
+    Z = Z[:,:,mask]
+
     xmin, xmax = minimum(X), maximum(X)
     ymin, ymax = minimum(Y), maximum(Y)
     zmin, zmax = minimum(Z), maximum(Z)
 
-    data = deepcopy(m_3d[var])
+    data = deepcopy(m_3d[var][:,:,mask])
 
     # Create a figure with 3D ax
     fig_3d = plt.figure(figsize=figsize)
@@ -139,27 +148,27 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
     im_3d = ax_3d.scatter(  X[i_startx,   1:i_starty, i_startz:end],   
                             Y[i_startx,   1:i_starty, i_startz:end],   
                             Z[i_startx,   1:i_starty, i_startz:end],   
-                  c=m_3d[var][i_startx,   1:i_starty, i_startz:end],   
+                  c=data[i_startx,   1:i_starty, i_startz:end],   
                             s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=1, rasterized=true, marker="s")
 
     im_3d = ax_3d.scatter(  X[i_startx:end,   1:i_starty, i_startz],   
                             Y[i_startx:end,   1:i_starty, i_startz],   
                             Z[i_startx:end,   1:i_starty, i_startz],   
-                  c=m_3d[var][i_startx:end,   1:i_starty, i_startz],   
+                  c=data[i_startx:end,   1:i_starty, i_startz],   
                             s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=1, rasterized=true, marker="s")
 
     im_3d = ax_3d.scatter(  X[i_startx:end,   i_starty, i_startz:end],   
                             Y[i_startx:end,   i_starty, i_startz:end],   
                             Z[i_startx:end,   i_starty, i_startz:end],   
-                  c=m_3d[var][i_startx:end,   i_starty, i_startz:end],   
+                  c=data[i_startx:end,   i_starty, i_startz:end],   
                             s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=1, rasterized=true, marker="s")
 
 
 
     # Add the velocity field on top
-    ux = deepcopy(m_3d[:ux] ./ maximum(abs.(m_3d[:ux])))
-    uy = deepcopy(m_3d[:uy] ./ maximum(abs.(m_3d[:uy])))
-    uz = deepcopy(m_3d[:uz] ./ maximum(abs.(m_3d[:uz])))	
+    ux = deepcopy(m_3d[:ux][:,:,mask] ./ maximum(abs.(m_3d[:ux][:,:,mask])))
+    uy = deepcopy(m_3d[:uy][:,:,mask] ./ maximum(abs.(m_3d[:uy][:,:,mask])))
+    uz = deepcopy(m_3d[:uz][:,:,mask] ./ maximum(abs.(m_3d[:uz][:,:,mask])))	
 
 
 
