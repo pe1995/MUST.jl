@@ -640,10 +640,32 @@ To make this work, you need to make sure you have monochromatic opacity tables a
 julia --threads=24 create_eos.jl -n table_name  --feh=0.0  --alpha=0.0 --vmic=1 --version=v1.0 --n_lambda=250000 --multi_threads=32 --linelist_dir=input_multi3d/LINE-LISTS/
 ```
 
-Which will use `Multi3D` to create a table with 250000 wavelength points from 1000Å to 100000Å. It will be given the name "table_name". In `interpolated_initial.jl` a grid of average models is used to interpolate the new model. The interpolator needs the equation of state, so you need to add your new table to the grid. This can be done with `replace_opacities_in_grid.jl`.  
+Which will use `Multi3D` to create a table with 250000 wavelength points from 1000Å to 100000Å. Have a look at `--help` to gain more information about the capabilities, like e.g. a specific chemical composition with `--composition`. The new table will be given the name "table_name". In `interpolated_initial.jl` a grid of average models is used to interpolate the new model. The interpolator needs the equation of state, so you need to add your new table to the grid. This can be done with `replace_opacities_in_grid.jl`.  
 
 ```bash
 julia replace_eos_in_grid.jl --grid=Stagger --name my_new_grid --opacity_tables abs_path/of/all/your/opacity/tables --metallicity_assignment=0=table1,m1=table2...,m5=table6
 ```
 
-Which will create a new grid file with the opacity tables you specify. Checkout the new file if you want to further replace EoS tables by hand.
+Which will create a new grid file with the opacity tables you specify. Checkout the new file if you want to further replace EoS tables by hand. The new grid `my_new_grid` can now be used for interpolation of your new model. Note that the previous steps only need to be once. As soon as the new grid file has been created it can be used to interpolate in. For this we use the script `interpolated_initial.jl`.
+
+```bash
+julia --threads=10 interpolated_initial.jl --teff=5500,6800 --logg=3.7,4.6 --feh=0.0,0.0 --random=10 --adiabatic_extrapolation --tau_bottom=4 --tau_up=-6.0 --tau_down=7.0 --modelFolder=InterpolatedModels/M1 --grid=my_new_grid --scale_resolution=1.0 --patch_size=20 --n_patches=10,10,5 --staggered
+```
+
+With this command, we create 10 random initial models for DISPATCH between 5500 and 6000K, 3.7 and 4.6 log(g), with solar metallicity. The physical domain of the box will cover the log optical depth from -6 to 7, and will extrapolate tbe model adiabatically below optical depth of 4, to ensure the bottom part of the model atmosphere is indeed adiabatic. The model will be run with 10x10x5 patches, with 20 points each, such that the frinal resolution will be 200x200x100 in this example. The option `--staggered` makes sure that DISPATCH uses the staggered, conservative radiative transfer solver (strongly recommended) that gerneally performs extraordinary well at low to intermediate resolution. Again see `--help` for more options. The code above also performs the opacity binning (8 bins by default) and created the input namelist for DISPATCH. From here one all that remains is to run DISPATCH either with SLURM or interactively, e.g.
+
+```bash
+./dispatch.x your_interpolated_model.nml
+```
+
+Note that the watchdog capabilities are very handy, so it is a good idea to run it at the same time. You can either take inspiration from one of the available `.slurm` scripts, or simply write your own script that makes sure resources are spent on it. It can be run as e.g.
+
+```bash
+nohup julia monitor.jl your_interpolated_model -k 10 --reverse > your_interpolated_model.nml.monitor &
+```
+
+So it will compute statistics of your run while it is running in the background. `-k 10` makes sure that only the last 10 snapshots are saved, the rest is deleted. This is very useful, because snapshots use a lot of disc space while you generally are not interested in all of them but just the last few. Of course the snapshots that get deleted are still included in the monitoring before they are removed.
+
+
+
+
