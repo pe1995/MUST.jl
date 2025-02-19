@@ -3,6 +3,9 @@ using TSO
 using LazySets
 using Polyhedra
 using ScatteredInterpolation
+using NaturalNeighbours
+
+interpolationMethod="triangle"
 
 
 #==================================================================== Models =#
@@ -182,15 +185,25 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 	r_models = [minimum(abs.(diff(m.z))) for m in models]
 
 	# now we interpolate all points to one common point, for every point
-	#scatter_int(v, x, y) = MUST.pyconvert(typeof(x),
-	#	first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask]), v, ([x], [y]), method="linear"))
-	#)
-	nodes = zeros(count(femask), 2)
-	nodes[:, 1] .= teff_gr[femask]
-	nodes[:, 2] .= logg_gr[femask]
-	nodes_adj = nodes'
-	scatter_int(v, x, y) = begin
-		itp = evaluate(interpolate(Multiquadratic(), nodes_adj, v), [x, y]) |> first
+	norm_teff(t) = (t - minimum(teff_gr[femask])) ./ (maximum(teff_gr[femask]) - minimum(teff_gr[femask]))
+	norm_logg(t) = (t - minimum(logg_gr[femask])) ./ (maximum(logg_gr[femask]) - minimum(logg_gr[femask]))
+
+	scatter_int = if interpolationMethod=="python"
+		(v, x, y) -> MUST.pyconvert(typeof(x),
+			first(MUST.scipy_interpolate.griddata((norm_teff.(teff_gr[femask]), norm_logg.(logg_gr[femask])), v, ([x], [y]), method="linear"))
+		)
+	elseif interpolationMethod=="scatter"
+		nodes = zeros(count(femask), 2)
+		nodes[:, 1] .= norm_teff.(teff_gr[femask])
+		nodes[:, 2] .= norm_logg.(logg_gr[femask])
+		nodes_adj = nodes'
+		(v, x, y) -> evaluate(interpolate(Shepard(1), nodes_adj, v), [x, y]) |> first
+	else
+		nodes_x = zeros(count(femask))
+		nodes_y = zeros(count(femask))
+		nodes_x .= norm_teff.(teff_gr[femask])
+		nodes_y .= norm_logg.(logg_gr[femask])
+		(v, x, y) -> NaturalNeighbours.interpolate(nodes_x, nodes_y, v, method=Triangle())(x, y)
 	end
 
 	points = zeros(eltype(models_mod[1].z), length(models_mod), 3)
@@ -204,9 +217,9 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 			points[j, 2] = models_mod[j].lnT[i]
 			points[j, 3] = models_mod[j].lnρ[i]
 		end
-		z[i] = scatter_int(points[femask, 1], teff, logg)
-		t[i] = scatter_int(points[femask, 2], teff, logg)
-		d[i] = scatter_int(points[femask, 3], teff, logg)
+		z[i] = scatter_int(points[femask, 1], norm_teff(teff), norm_logg(logg))
+		t[i] = scatter_int(points[femask, 2], norm_teff(teff), norm_logg(logg))
+		d[i] = scatter_int(points[femask, 3], norm_teff(teff), norm_logg(logg))
 	end
 
 	#r_target = scatter_int(r_models[femask], teff, logg)
@@ -240,16 +253,25 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 	r_models = [minimum(abs.(diff(m.z))) for m in models]
 	ltscale = log10.(first(models_mod).τ)
 
-	# now we interpolate all points to one common point, for every point
-	#scatter_int(v, x, y) = MUST.pyconvert(typeof(x),
-	#	first(MUST.scipy_interpolate.griddata((teff_gr[femask], logg_gr[femask]), v, ([x], [y]), method="linear"))
-	#)
-	nodes = zeros(count(femask), 2)
-	nodes[:, 1] .= teff_gr[femask]
-	nodes[:, 2] .= logg_gr[femask]
-	nodes_adj = nodes'
-	scatter_int(v, x, y) = begin
-		evaluate(interpolate(Multiquadratic(), nodes_adj, v), [x, y]) |> first
+	norm_teff(t) = (t - minimum(teff_gr[femask])) ./ (maximum(teff_gr[femask]) - minimum(teff_gr[femask]))
+	norm_logg(t) = (t - minimum(logg_gr[femask])) ./ (maximum(logg_gr[femask]) - minimum(logg_gr[femask]))
+
+	scatter_int = if interpolationMethod=="python"
+		(v, x, y) -> MUST.pyconvert(typeof(x),
+			first(MUST.scipy_interpolate.griddata((norm_teff.(teff_gr[femask]), norm_logg.(logg_gr[femask])), v, ([x], [y]), method="linear"))
+		)
+	elseif interpolationMethod=="scatter"
+		nodes = zeros(count(femask), 2)
+		nodes[:, 1] .= norm_teff.(teff_gr[femask])
+		nodes[:, 2] .= norm_logg.(logg_gr[femask])
+		nodes_adj = nodes'
+		(v, x, y) -> evaluate(interpolate(Shepard(1), nodes_adj, v), [x, y]) |> first
+	else
+		nodes_x = zeros(count(femask))
+		nodes_y = zeros(count(femask))
+		nodes_x .= norm_teff.(teff_gr[femask])
+		nodes_y .= norm_logg.(logg_gr[femask])
+		(v, x, y) -> NaturalNeighbours.interpolate(nodes_x, nodes_y, v, method=Triangle())(x, y)
 	end
 	
 	points = zeros(eltype(models_mod[1].z), length(models), 3)
@@ -264,9 +286,9 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 			points[j, 2] = models_mod[j].lnT[i]
 			points[j, 3] = models_mod[j].lnρ[i]
 		end
-		z[i] = scatter_int(points[femask, 1], teff, logg)
-		t[i] = scatter_int(points[femask, 2], teff, logg)
-		d[i] = scatter_int(points[femask, 3], teff, logg)
+		z[i] = scatter_int(points[femask, 1], norm_teff(teff), norm_logg(logg))
+		t[i] = scatter_int(points[femask, 2], norm_teff(teff), norm_logg(logg))
+		d[i] = scatter_int(points[femask, 3], norm_teff(teff), norm_logg(logg))
 	end
 	
 	# interpolate to equally spaced in z
