@@ -993,6 +993,16 @@ function Box(name::String; folder::F=nothing, mmap=true) where {F<:Union{String,
 
     close(fid)
 
+    x, y, z = if (typeof(x) != typeof(y)) | (typeof(x) != typeof(z))
+        @warn "Type error detected in axes of box. Converting them to array (no mmap anymore)."
+        @warn typeof(x)
+        @warn typeof(y)
+        @warn typeof(z)
+        Base.convert(Array, x), Base.convert(Array, y), Base.convert(Array, z)
+    else
+        x, y, z
+    end
+
     Box(x, y, z, res, params)
 end
 
@@ -1849,7 +1859,12 @@ function converted_snapshots(folder; box_name="box")
 			continue 
 		end 
 		
-		snid = parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
+        # check if it is Integer snapshot number
+		snid = try
+            parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
+        catch
+            snname[last(findfirst("sn", snname))+1:end-5]
+        end
 		is_τ = isfile(joinpath(folder,"$(box_name)_tau_sn$(snid).hdf5"))
 
 		snname  = String(split(snname, ".hdf5") |> first)
@@ -1869,7 +1884,16 @@ end
 """
 Sort converted snapshots.
 """
-list_snapshots(snapshots) = sort([k for k in keys(snapshots) if k != "folder"])
+list_snapshots(snapshots; numbered_only=false) = begin
+    numberlist = sort(Any[k for k in keys(snapshots) if ((k != "folder") & (typeof(k) <: Number))])
+    
+    if !numbered_only
+        rest = Any[k for k in keys(snapshots) if ((k != "folder") & !(typeof(k) <: Number))]
+        append!(numberlist, rest)
+    end
+    
+    numberlist
+end
 
 """
     pick_snapshot(snapshots, i)
@@ -1886,7 +1910,7 @@ function pick_snapshot(snapshots, i; skip_last_if_missing=true, verbose=0, kwarg
         else 
             last(list_snapshots(snapshots))
         end
-    elseif i <0
+    elseif (typeof(i) <:Int) && (i <0)
         list_snapshots(snapshots)[end+i+1]
 	else 
 		i
