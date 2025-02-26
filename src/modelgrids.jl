@@ -2,7 +2,6 @@ using MUST
 using TSO
 using LazySets
 using Polyhedra
-using ScatteredInterpolation
 using NaturalNeighbours
 
 interpolationMethod="triangle"
@@ -192,12 +191,6 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 		(v, x, y) -> MUST.pyconvert(typeof(x),
 			first(MUST.scipy_interpolate.griddata((norm_teff.(teff_gr[femask]), norm_logg.(logg_gr[femask])), v, ([x], [y]), method="linear"))
 		)
-	elseif interpolationMethod=="scatter"
-		nodes = zeros(count(femask), 2)
-		nodes[:, 1] .= norm_teff.(teff_gr[femask])
-		nodes[:, 2] .= norm_logg.(logg_gr[femask])
-		nodes_adj = nodes'
-		(v, x, y) -> evaluate(interpolate(Shepard(1), nodes_adj, v), [x, y]) |> first
 	else
 		nodes_x = zeros(count(femask))
 		nodes_y = zeros(count(femask))
@@ -260,12 +253,6 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 		(v, x, y) -> MUST.pyconvert(typeof(x),
 			first(MUST.scipy_interpolate.griddata((norm_teff.(teff_gr[femask]), norm_logg.(logg_gr[femask])), v, ([x], [y]), method="linear"))
 		)
-	elseif interpolationMethod=="scatter"
-		nodes = zeros(count(femask), 2)
-		nodes[:, 1] .= norm_teff.(teff_gr[femask])
-		nodes[:, 2] .= norm_logg.(logg_gr[femask])
-		nodes_adj = nodes'
-		(v, x, y) -> evaluate(interpolate(Shepard(1), nodes_adj, v), [x, y]) |> first
 	else
 		nodes_x = zeros(count(femask))
 		nodes_y = zeros(count(femask))
