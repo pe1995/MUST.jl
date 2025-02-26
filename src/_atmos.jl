@@ -993,7 +993,7 @@ function Box(name::String; folder::F=nothing, mmap=true) where {F<:Union{String,
 
     close(fid)
 
-    x, y, z = if (typeof(x) != typeof(y)) | (typeof(x) != typeof(z))
+    x, y, z = if (typeof(x) <: Base.ReshapedArray) | (typeof(y) <: Base.ReshapedArray) | (typeof(z) <: Base.ReshapedArray)
         @warn "Type error detected in axes of box. Converting them to array (no mmap anymore)."
         @warn typeof(x)
         @warn typeof(y)
@@ -1471,15 +1471,19 @@ function interpolate_to(box; logspace=true, kwargs...)
 
     ips = interpolate_by_column(box, z, logspace=logspace)
 
-    cols_new = Dict(p=>zeros(eltype(box.x), size(box.x)[1:2]..., 1) for p in keys(box.data))
-    col_z   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
-    col_x   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
-    col_y   = zeros(eltype(box.x), size(box.x)[1:2]..., 1)
+    t = eltype(box.x)
+    cols_new = Dict{Symbol}{Any}(p=>zeros(t, size(box.x)[1:2]..., 1) for p in keys(box.data))
+    col_z   = zeros(t, size(box.x)[1:2]..., 1)
+    col_x   = zeros(t, size(box.x)[1:2]..., 1)
+    col_y   = zeros(t, size(box.x)[1:2]..., 1)
 
     @inbounds for j in axes(box.x, 2)
         @inbounds for i in axes(box.x, 1)
-            for p in keys(b.data)
-                cols_new[p][i, j, 1] = ips[p][i, j](z_val)
+            for p in keys(box.data)
+                (p == z) && continue
+                ip = ips[p][i, j]
+                ip_val = Base.convert(t, ip(z_val))
+                cols_new[p][i,j,1] = ip_val
             end
             col_z[  i, j, 1] = ips[:z][i, j](z_val)
             col_x[  i, j, 1] = ips[:x][i, j](z_val)
@@ -1487,7 +1491,9 @@ function interpolate_to(box; logspace=true, kwargs...)
         end
     end
 
-    Box(col_x, col_y, col_z, Dict{Symbol,Any}(v=>cols_new[v] for v in keys(b.data)), deepcopy(box.parameter))
+    cols_new[z] = fill!(zeros(t, size(box.x)[1:2]..., 1), logspace ? exp10(z_val) : z_val)
+
+    Box(col_x, col_y, col_z, Dict{Symbol,Any}(v=>cols_new[v] for v in keys(box.data)), deepcopy(box.parameter))
 end
 
 
