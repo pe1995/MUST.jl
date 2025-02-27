@@ -119,13 +119,14 @@ function marcsBox(path::String)
     d = reshape(model.structure["Density"], 1, 1, :) 
     T = reshape(model.structure["T"], 1, 1, :)    
     t = exp10.(reshape(model.structure["lgTauR"], 1, 1, :))    
+    t5 = exp10.(reshape(model.structure["lgTau5"], 1, 1, :))    
     pr = reshape(model.structure["Prad"], 1, 1, :)
     pg = reshape(model.structure["Pg"], 1, 1, :)    
 
     ne = reshape(model.structure["Pe"], 1, 1, :) ./ (KBoltzmann .* T)
 
     data = Dict{Symbol, Any}(
-        :Ne=>ne, :T=>T, :d=>d, :τ_ross=>t, :Pg=>pg, :Pr=>pr
+        :Ne=>ne, :T=>T, :d=>d, :τ_ross=>t, :τ500=>t5, :Pg=>pg, :Pr=>pr
     )
 
     for (k, v) in model.pressures
