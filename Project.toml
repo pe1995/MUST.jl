@@ -1,7 +1,7 @@
 name = "MUST"
 uuid = "78ff202f-d08f-4a78-aa4d-c8e96fa3dcb9"
 authors = ["Philipp Eitner <phil.eitner@web.de> and contributors"]
-version = "0.2.5"
+version = "0.2.6"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
@@ -25,6 +25,7 @@ TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [compat]
 julia = "1"
+CondaPkg = "0.2.24"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
