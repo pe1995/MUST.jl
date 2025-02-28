@@ -179,7 +179,7 @@ function snapshotBox_jl(
     else
         folder
     end
-    b_s, b_τ = if true
+    b_s, b_τ = begin
         # read patch data, collect to data cube
         b_s = @optionalTiming boxingTime MUST.Box(
             number, 
@@ -207,9 +207,9 @@ function snapshotBox_jl(
         end
 
         b_s, b_τ
-    else
-        @warn "snapshot $(number) could not be converted."
-        nothing, nothing
+    #else
+    #    @warn "snapshot $(number) could not be converted."
+    #    nothing, nothing
     end
 
     # convert to Multi format and save in the same folder, keep the number of the snapshot!

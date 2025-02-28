@@ -483,7 +483,7 @@ function _to_box(number, fid::Dict, time, logg, folder)
 
     p = AtmosphericParameters(
         Base.convert(dtype, time), 
-        Base.convert(dtype, -99.0), 
+        Base.convert(dtype, teff), 
         Base.convert(dtype, logg), 
         Dict{Symbol, dtype}()
     )
