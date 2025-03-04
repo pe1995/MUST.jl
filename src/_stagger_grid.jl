@@ -10,6 +10,21 @@ struct Atmos1DGrid{DF<:DataFrame} <:AbstractMUSTGrid
     info ::DF
 end
 
+"""
+	ModelInformation
+
+Information from model headers in grid naming convention.
+"""
+Base.@kwdef struct ModelInformation
+	category = ""
+	teff = ""
+	logg = ""
+	feh = ""
+	extension = ""
+	wrong_format = false
+	original_name = ""
+end
+
 
 
 
@@ -255,5 +270,125 @@ stage_namelists(grid::Atmos1DGrid, folder="run_grid"; clean_logs=true, clean_nam
 	end
 end
 
+
+#====================================== Information of grid models from Name =#
+
+"""
+	_find_datastring(parts)
+
+Find the datastring within the name of a grid model in naming convention.
+"""
+_find_datastring(parts) = begin
+	i_part = Ref(-1)
+	for (i, x) in enumerate(parts)
+		if occursin("t", x)&occursin("g", x)&occursin("m", x)
+			p = try 
+				_parameters_from_string(x)
+			catch
+				nothing
+			end
+			if isnothing(p)
+				continue
+			else
+				i_part[] = i
+				break
+			end
+		else
+			continue
+		end
+	end
+
+	i_part[]
+end
+
+"""
+	_parameters_from_string(para)
+
+Extract stellar parameters from name of the model in naming convention.
+"""
+_parameters_from_string(para) = begin
+	t1 = findfirst(x->x=='t', para) + 1
+	t2 = findfirst(x->x=='g', para) - 1
+	t3 = findfirst(x->x=='m', para) - 1
+
+	t = parse(Float64, para[t1:t2]) .* 100
+	g = parse(Float64, para[t2+2:t3]) ./10
+	m = parse(Float64, para[t3+2:end])
+
+	d = Dict("teff"=>t, "logg"=>g, "feh"=>m)
+end
+
+"""
+	same_parameters(a, b)
+
+Check if a and b have the same stellar parameters.
+"""
+same_parameters(a::ModelInformation, b::ModelInformation) = (a.teff≈b.teff) & (a.logg≈b.logg) & (a.feh≈b.feh)
+
+"""
+	same_id(a, b, field)
+
+Check if a and b have the same `field` entry. `False` if entries are empty.
+"""
+same_id(a::ModelInformation, b::ModelInformation, field) = if (length(getfield(a, field)) > 0) & (length(getfield(b, field)) > 0)
+	getfield(a, field) == getfield(b, field)
+else
+	false
+end
+
+"""
+	same_id(a, b, field)
+
+Check if a and b have the same `category` and `extension` entries.
+"""
+same_class(a::ModelInformation, b::ModelInformation) = same_id(a, b, :category) & same_id(a, b, :extension)
+
+"""
+	ModelInformation(name)
+
+Extract category, teff, logg, feh and version from standard m3dis format names.
+The format is `category_teff/1000_logg*10_±feh_version_extension`.
+"""
+ModelInformation(name) = begin
+	name_parts = split(name |> strip, "_")
+
+	# if there is an E in the parameter name we remove it
+	name_parts = [p for p in name_parts if !(p=="E")]
+
+	try
+		# find the data string
+		idatastring = _find_datastring(name_parts)
+
+		if idatastring == -1
+			# this has the wrong format
+			ModelInformation(wrong_format=true, original_name=name)
+		else
+			# everyting before the datastring is prefix, the rest is extension
+			prefix = try
+				join(name_parts[1:idatastring-1], '_')
+			catch
+				""
+			end
+
+			extension = try
+				join(name_parts[idatastring+1:end], '_')
+			catch
+				""
+			end
+	
+			p = _parameters_from_string(name_parts[idatastring])
+			ModelInformation(
+				teff=p["teff"],
+				logg=p["logg"],
+				feh=p["feh"],
+				category=prefix,
+				extension=extension,
+				original_name=name
+			)
+		end
+	catch
+		ModelInformation(wrong_format=true, original_name=name)
+	end
+end
 
 #=============================================================================#
