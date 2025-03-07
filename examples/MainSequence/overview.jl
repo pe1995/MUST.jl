@@ -1077,6 +1077,16 @@ let
 	t = optAv["T"]
 	ax.plot(tau, t, label=name_from_index(iselect2), color="magenta")
 
+	optAv = monitoring3[end]["opticalAverages"]
+	tau = log10.(optAv["τ_ross"])
+	t = optAv["T"]
+	ax.plot(tau, t, label=name_from_index(iselect3), color="cyan")
+
+	optAv = monitoring4[end]["opticalAverages"]
+	tau = log10.(optAv["τ_ross"])
+	t = optAv["T"]
+	ax.plot(tau, t, label=name_from_index(iselect4), color="lime")
+
 
 	ax.set_xlabel(L"\rm \log \tau_{ross}")
 	ax.set_ylabel(L"\rm T\ [K]")
@@ -1100,6 +1110,16 @@ let
 	tau = log10.(optAv["τ_ross"])
 	t = log10.(optAv["d"])
 	ax.plot(tau, t, label=name_from_index(iselect2), color="magenta")
+
+	optAv = monitoring3[end]["opticalAverages"]
+	tau = log10.(optAv["τ_ross"])
+	t = log10.(optAv["d"])
+	ax.plot(tau, t, label=name_from_index(iselect3), color="cyan")
+
+	optAv = monitoring4[end]["opticalAverages"]
+	tau = log10.(optAv["τ_ross"])
+	t = log10.(optAv["d"])
+	ax.plot(tau, t, label=name_from_index(iselect4), color="lime")
 
 	ax.set_xlabel(L"\rm \log \tau_{ross}")
 	ax.set_ylabel(L"\rm \rho\ [g\ cm^{-3}]")

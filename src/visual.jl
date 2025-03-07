@@ -72,6 +72,8 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
         show_time=false,
         cpu_time=nothing,
         norm=1e8,
+        arrow_norm=false,
+        arrow_pivot="middle",
         cut_z=["auto", "auto"],
         fontsize="medium")
 
@@ -133,34 +135,39 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
                         s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
 
     # Z Face
-    im_3d = ax_3d.scatter(X[1:i_startx, :, end],   
-                          Y[1:i_startx, :, end],   
-                          Z[1:i_startx, :, end],   
-                     c=data[1:i_startx, :, end],   
+    im_3d = ax_3d.scatter(X[1:i_startx-1, 1:i_starty, end],   
+                          Y[1:i_startx-1, 1:i_starty, end],   
+                          Z[1:i_startx-1, 1:i_starty, end],   
+                     c=data[1:i_startx-1, 1:i_starty, end],   
                         s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
     im_3d = ax_3d.scatter(X[:, i_starty+1:end, end],   
                           Y[:, i_starty+1:end, end], 
                           Z[:, i_starty+1:end, end],   
                      c=data[:, i_starty+1:end, end],   
-                        s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
+                      s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=1, alpha=1, plotnonfinite=false)
+    #=im_3d = ax_3d.scatter(X[i_startx+1:end, i_starty+1:end, end],   
+                          Y[i_startx+1:end, i_starty+1:end, end], 
+                          Z[i_startx+1:end, i_starty+1:end, end],   
+                     c=data[i_startx+1:end, i_starty+1:end, end],   
+                        s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)=#
 
     # Draw the cut out part
-    im_3d = ax_3d.scatter(  X[i_startx,   1:i_starty, i_startz:end],   
-                            Y[i_startx,   1:i_starty, i_startz:end],   
-                            Z[i_startx,   1:i_starty, i_startz:end],   
-                  c=data[i_startx,   1:i_starty, i_startz:end],   
+    im_3d = ax_3d.scatter(  X[i_startx+1,   1:i_starty, i_startz:end],   
+                            Y[i_startx+1,   1:i_starty, i_startz:end],   
+                            Z[i_startx+1,   1:i_starty, i_startz:end],   
+                       c=data[i_startx+1,   1:i_starty, i_startz:end],   
                             s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=1, rasterized=true, marker="s")
 
-    im_3d = ax_3d.scatter(  X[i_startx:end,   1:i_starty, i_startz],   
-                            Y[i_startx:end,   1:i_starty, i_startz],   
-                            Z[i_startx:end,   1:i_starty, i_startz],   
-                  c=data[i_startx:end,   1:i_starty, i_startz],   
+    im_3d = ax_3d.scatter(  X[i_startx+1:end,   1:i_starty, i_startz],   
+                            Y[i_startx+1:end,   1:i_starty, i_startz],   
+                            Z[i_startx+1:end,   1:i_starty, i_startz],   
+                       c=data[i_startx+1:end,   1:i_starty, i_startz],   
                             s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=1, rasterized=true, marker="s")
 
-    im_3d = ax_3d.scatter(  X[i_startx:end,   i_starty, i_startz:end],   
-                            Y[i_startx:end,   i_starty, i_startz:end],   
-                            Z[i_startx:end,   i_starty, i_startz:end],   
-                  c=data[i_startx:end,   i_starty, i_startz:end],   
+    im_3d = ax_3d.scatter(  X[i_startx+1:end,   i_starty, i_startz:end],   
+                            Y[i_startx+1:end,   i_starty, i_startz:end],   
+                            Z[i_startx+1:end,   i_starty, i_startz:end],   
+                       c=data[i_startx+1:end,   i_starty, i_startz:end],   
                             s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=1, rasterized=true, marker="s")
 
 
@@ -184,8 +191,8 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
                                 zp[i_startx, 1:skipv:i_starty, i_startz:skipv:end],
                                 uy[i_startx, 1:skipv:i_starty, i_startz:skipv:end],
                                 uz[i_startx, 1:skipv:i_starty, i_startz:skipv:end],
-                                length=len_vec, normalize=false, lw=lw_vec, 
-                                pivot="tail", arrow_length_ratio=arrow_length_ratio,
+                                length=len_vec, normalize=arrow_norm, lw=lw_vec, 
+                                pivot=arrow_pivot, arrow_length_ratio=arrow_length_ratio,
                                 color=cvec, zorder=100)
 
     im_3d_vec = ax_3d.quiver(   X[i_startx:skipv:end,  1:skipv:i_starty, i_startz+zoff],
@@ -194,8 +201,8 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
                                 ux[i_startx:skipv:end, 1:skipv:i_starty, i_startz],
                                 uy[i_startx:skipv:end, 1:skipv:i_starty, i_startz],
                                 zp[i_startx:skipv:end, 1:skipv:i_starty, i_startz],
-                                length=len_vec, normalize=false, lw=lw_vec, 
-                                pivot="tail", arrow_length_ratio=arrow_length_ratio,
+                                length=len_vec, normalize=arrow_norm, lw=lw_vec, 
+                                pivot=arrow_pivot, arrow_length_ratio=arrow_length_ratio,
                                 color=cvec, zorder=100)
 
     im_3d_vec = ax_3d.quiver(   X[i_startx:skipv:end, i_starty-yoff, i_startz:skipv:end],
@@ -204,8 +211,8 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
                                 ux[i_startx:skipv:end, i_starty, i_startz:skipv:end],
                                 zp[i_startx:skipv:end, i_starty, i_startz:skipv:end],
                                 uz[i_startx:skipv:end, i_starty, i_startz:skipv:end],
-                                length=len_vec, normalize=false, lw=lw_vec, color=cvec,
-                                pivot="tail", arrow_length_ratio=arrow_length_ratio, 
+                                length=len_vec, normalize=arrow_norm, lw=lw_vec, color=cvec,
+                                pivot=arrow_pivot, arrow_length_ratio=arrow_length_ratio, 
                                 zorder=100)
 
 

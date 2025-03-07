@@ -22,7 +22,7 @@ end
 ext1 = "magg_m0_a0_vmic1"
 
 # ╔═╡ 6e6d4927-afd1-450c-ad02-a62802d143c3
-ext2 = "magg_m0_a0"
+ext2 = "magg_m0_a0_vmic1"
 
 # ╔═╡ 789f821a-be1c-4fa3-8b75-b888f9eeed1f
 #eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext1)_v1.8/combined_eos_$(ext1).hdf5")
@@ -37,10 +37,10 @@ eos1 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/o
 opa1 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/$(ext1)_v1.2/combined_opacities_$(ext1).hdf5", mmap=true)
 
 # ╔═╡ bdf0a7ba-d30d-40f2-92f4-b9dd791a9ba9
-eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext2)_v1.8/ross_combined_eos_$(ext2).hdf5")
+eos2 = reload(SqEoS, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/$(ext2)_v1.2.3/combined_eos_$(ext2).hdf5")
 
 # ╔═╡ 7cd8df75-c5e5-4ce3-b3af-cb54a7ec8cce
-opa2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/TSO_MARCS_$(ext2)_v1.8/combined_opacities_$(ext2).hdf5", mmap=true)
+opa2 = reload(SqOpacity, "/mnt/beegfs/gemini/groups/bergemann/users/eitner/storage/opacity_tables/$(ext2)_v1.2.3/combined_opacities_$(ext2).hdf5")
 
 # ╔═╡ aecb8a87-e426-40c5-bf71-1e7e858e7bd9
 
@@ -164,13 +164,15 @@ let
 	plt.close()
 	f, ax = plt.subplots(1, 1)
 
-	ax.plot(opa1.λ, log10.(κ1), label="neu")
-	ax.plot(opa2.λ, log10.(κ2))
-	#ax.plot(opa1.λ, log10.(κ2))
+	ax.plot(opa2.λ, log10.(κ2), label="2", marker="", lw=1.5)
+	ax.plot(opa1.λ, log10.(κ1), label="1", marker="", lw=1.5)
+	
 	ax.set_xlim(0, 25000)
-	#ax.set_xlim(3500, 18000)
-	#ax.set_ylabel("log10 [C/Fe]=0.4 / [C/Fe]=3.0")
-	ax.set_xlabel("log10 wavelength")
+	#ax.set_xlim(3000, 5000)
+	#ax.set_xlim(3000, 3004)
+	#ax.set_xlim(2000, 2005)
+	ax.set_xlabel("λ")
+	ax.set_ylabel("log κ")
 
 	ax.legend()
 	
@@ -181,7 +183,7 @@ end
 
 
 # ╔═╡ 4f3435a1-3983-4d12-be24-edc67ac24265
-κross1 = lookup(eos1, :lnRoss, solar_model1.lnρ, solar_model1.lnT)
+κross1 = log.(lookup(eos1, opa1, :κ_ross, solar_model1.lnρ, solar_model1.lnT))
 
 # ╔═╡ add01598-f142-4035-9417-d52be0313a2e
 κross2 = log.(lookup(eos2, opa2, :κ_ross, solar_model1.lnρ, solar_model1.lnT))
@@ -190,8 +192,21 @@ end
 let
 	plt.close()
 
-	plt.plot(solar_model1.z, exp.(solar_model1.lnEi), label="neu")
-	plt.plot(solar_model1.z, exp.(solar_model2.lnEi))
+	plt.plot(solar_model1.z, exp.(solar_model1.lnT), label="neu")
+	plt.plot(solar_model1.z, exp.(solar_model2.lnT))
+
+	#plt.xlim(-4, 4)
+	#plt.ylim(3000, 30000)
+	plt.legend()
+	gcf()
+end
+
+# ╔═╡ dc215645-7ab8-4745-8880-ccb7eabd8455
+let
+	plt.close()
+
+	plt.plot(solar_model1.z, κross1, label="1")
+	plt.plot(solar_model1.z, κross2, label="2")
 
 	#plt.xlim(-4, 4)
 	#plt.ylim(3000, 30000)
@@ -235,8 +250,9 @@ end
 # ╠═dd51d0ff-2c7e-4164-95fb-d10fdb473d51
 # ╠═b70728c9-d046-4db2-945c-015443c00b44
 # ╠═fe9ac9ee-80be-4a47-b2e4-5e7a95662ab4
-# ╠═fddc345a-94ed-4bfb-b78c-b316be4390f0
+# ╟─fddc345a-94ed-4bfb-b78c-b316be4390f0
 # ╟─a40184cb-edae-4d48-8ec5-7a0c1c2318f7
 # ╠═4f3435a1-3983-4d12-be24-edc67ac24265
 # ╠═add01598-f142-4035-9417-d52be0313a2e
-# ╠═d54e6e19-78ea-4dd9-bc37-1524d5ae406f
+# ╟─d54e6e19-78ea-4dd9-bc37-1524d5ae406f
+# ╟─dc215645-7ab8-4745-8880-ccb7eabd8455
