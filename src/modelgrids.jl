@@ -499,6 +499,10 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	open(av_path, "w") do f
 		MUST.writedlm(f, [model.z exp.(model.lnT) model.lnρ])
 	end
+
+	# Also save in the M3D format
+	av_m3d_path = abspath(joinpath(folder, "$(name)_99999_m3d.dat"))
+	TSO.save_text_m3d(model, av_m3d_path, header=name)
 	
 	MUST.Atmos1DGrid(
         "interpolated",

@@ -222,6 +222,8 @@ function prepare(
             grid.info[i, "eos_final"],
             grid.info[i, "opa_original"],
             grid.info[i, "sopa_original"],
+            grid.info[i, "NLTE_path"],
+            grid.info[i, "LTE_path"],
             :kmeans, 
             Nbins,
             (i==1) ? recompute_ross : false
@@ -236,18 +238,30 @@ function prepare(
 		eos_path = args[5]
 		opa_path = args[6]
 		sopa_path = args[7]
-		method = args[8]
-		Nbins = args[9]
+		NLTE_path = args[8]
+		LTE_path = args[9]
+		method = args[10]
+		Nbins = args[11]
 	
 		sopa_path = if (sopa_path=="")
 			nothing
 		else
 			sopa_path
 		end
+
+        corr_χ, corr_S = if length(NLTE_path)>0
+            @info "Computing NLTE correction factors for opacity table..."
+            corr_χ, corr_S = compute_NLTE_corrections(eos_root, eos_path, opa_path, NLTE_path, LTE_path)
+            @info "...NLTE correction factors computed."
+            corr_χ, corr_S
+        else
+            nothing, nothing
+        end
 		
 		# formation opacities
 		(!skip_formation) && formation_opacities(
 			name, eos_root, eos_path, opa_path, av_path; 
+            corr_χ=corr_χ, corr_S=corr_S,
 			logg=logg
 		)
 	
@@ -266,12 +280,14 @@ function prepare(
 				logg=logg, method=method, Nbins=Nbins, scattering_path=sopa_path,
 				name_extension=name_extension,
 				version=version,
-				quadrants=quadrants
+				quadrants=quadrants,
+                corr_χ=corr_χ, corr_S=corr_S
 			)
 		end
 	
 		# remove the formation opacities
-		clean_formation && clean(eos_root, name)
+        # also remove the NLTE and LTE corrections
+		clean_formation && clean(eos_root, name; NLTE_path=NLTE_path, LTE_path=LTE_path) 
 	end
     
     # End-to-end binning, with clean-up

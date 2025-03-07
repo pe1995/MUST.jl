@@ -131,6 +131,99 @@ end
 
 
 
+#= NLTE/LTE correction =#
+
+_spread_NLTE_corrections!(correction_χ, correction_S, χ_fraction, S_fraction, lnρ, lnT, idistR, dist, σ) = begin
+    for j in eachindex(lnρ)
+        for i in eachindex(lnT)
+            correction_χ[i, j, :] .= (χ_fraction[idistR[i, j], :] .- 1) .* exp(-dist[i, j]/(2*σ)) .+ 1
+            correction_S[i, j, :] .= (S_fraction[idistR[i, j], :] .- 1) .* exp(-dist[i, j]/(2*σ)) .+ 1
+        end
+    end
+end
+
+"""
+    NLTE_grid_correction(result1, result2; λ_new, lnρ_new, lnT_new)
+
+Compute NLTE/LTE corrections for opacity and source function and interpolate the
+result to the given λ, lnρ and lnT grids. This can be used to create a 1D NLTE
+opacity table before binning.
+"""
+function NLTE_grid_correction(result_NLTE, result_LTE; λ_new, lnρ_new, lnT_new)
+    λ = pyconvert(Array, result_NLTE.lam)
+    χ_NLTE = pyconvert(Array, 
+        result_NLTE.run.read_patch_save("chi_01", concat=true, fdim=0, lazy=false)[0]
+    )
+    S_NLTE = pyconvert(Array, 
+        result_NLTE.run.read_patch_save("Snu_01", concat=true, fdim=0, lazy=false)[0]
+    )
+    χ_LTE = pyconvert(Array, 
+		result_LTE.run.read_patch_save("chi_01", concat=true, fdim=0, lazy=false)[0]
+	)
+	S_LTE = pyconvert(Array, 
+		result_LTE.run.read_patch_save("Snu_01", concat=true, fdim=0, lazy=false)[0]
+	)
+
+    lnρ = log.(pyconvert(Array, result_NLTE.run.rho))
+	lnT = log.(pyconvert(Array, result_NLTE.run.temp))
+
+    # Interpolate in wavelength first
+    χ_fraction = zeros(eltype(lnT_new), length(lnT), length(λ_new)) 
+    S_fraction = zeros(eltype(lnT_new), length(lnT), length(λ_new)) 
+    frac = similar(λ)
+
+    for i in eachindex(lnρ)
+        # interpolate in wavelength
+        frac .= χ_NLTE[:, 1, 1, i] ./ χ_LTE[:, 1, 1, i]
+        f_χ_NLTE = linear_interpolation(λ, frac, extrapolation_bc=NaN)
+        χ_fraction[i, :] .= f_χ_NLTE.(λ_new)
+        χ_fraction[i, isnan.(@view(χ_fraction[i, :]))] .= 1.0
+
+        frac .= S_NLTE[:, 1, 1, i] ./ S_LTE[:, 1, 1, i]
+        f_S_NLTE = linear_interpolation(λ, frac, extrapolation_bc=NaN)
+        S_fraction[i, :] .= f_S_NLTE.(λ_new)
+        S_fraction[i, isnan.(@view(S_fraction[i, :]))] .= 1.0
+    end
+
+    # Interpolate in rho-T second. 
+    # For now we just pick the closest point in rho, and apply a gaussian filter
+    # based on the 2D distance from that point.
+    correction_χ = zeros(eltype(lnT_new), length(lnT_new), length(lnρ_new), length(λ_new))
+    correction_S = zeros(eltype(lnT_new), length(lnT_new), length(lnρ_new), length(λ_new))
+    dist = zeros(eltype(lnT_new), length(lnT_new), length(lnρ_new))
+    idist = zeros(Int, size(dist)...)
+    idistR = zeros(Int, size(dist)...)
+    
+    for j in eachindex(lnρ_new)
+        for i in eachindex(lnT_new)
+            idist[i, j] = argmin(
+                (lnρ_new[j]/4 .- lnρ/4).^2 .+ (lnT_new[i] .- lnT).^2 
+            )
+            idistR[i, j] = argmin(
+                (lnρ_new[j] .- lnρ).^2 
+            )
+            dist[i, j] = (lnρ_new[j]/4 .- lnρ[idist[i, j]]/4).^2 .+ (lnT_new[i] .- lnT[idist[i, j] ]).^2 
+        end
+    end
+    
+    σ_rho = (abs(maximum(lnρ_new)/4 - minimum(lnρ_new)/4) / 16) ^2
+    σ_T = (abs(maximum(lnT_new) - minimum(lnT_new)) / 16) ^2
+    σ = σ_rho + σ_T
+    
+    _spread_NLTE_corrections!(
+        correction_χ, correction_S, 
+        χ_fraction, S_fraction, 
+        lnρ_new, lnT_new, 
+        idistR, dist, σ
+    )
+
+    correction_χ, correction_S
+end
+
+
+
+
+
 
 
 

@@ -153,6 +153,8 @@ Load the dispatch module. Either the global location is used or
 a specific path is given to the function
 """
 function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
+	location = isnothing(location) ? joinpath(abspath(pwd()),"../../../m3dis/experiments/Multi3D") : location
+
     # Import sys and os, add to path and import dispatch
     os  = pyimport("os")
 	sys = pyimport("sys")

@@ -229,6 +229,21 @@ bin_opacities(args...; kwargs...) = TSO.bin_opacity_table(args...; kwargs...)
 fromT_toE(args...; kwargs...) = TSO.convert_fromT_toE(args...; kwargs...)
 compute_rosseland_opacities(args...; kwargs...) = TSO.compute_rosseland_opacities(args...; kwargs...)
 
+compute_NLTE_corrections(table_folder, eos_path, opa_path, NLTE_path, LTE_path) = begin
+    eos = reload(
+        SqEoS,     
+		joinpath(table_folder, eos_path)
+    )
+    opa = reload(
+        SqOpacity,     
+		joinpath(table_folder, opa_path),
+        mmap=true
+    )
+    result_NLTE = MUST.M3DISRun(NLTE_path)
+    result_LTE = MUST.M3DISRun(LTE_path)
+
+    MUST.NLTE_grid_correction(result_NLTE, result_LTE; λ_new=opa.λ, lnρ_new=eos.lnRho, lnT_new=eos.lnT)
+end
 
 quadrantlimit(name, table_folder, opa_path; λ_lim=5.0) = begin
     opa = reload(
@@ -246,9 +261,13 @@ quadrantlimit(name, table_folder, opa_path; λ_lim=5.0) = begin
     TSO.median(-log10.(fopa.κ_ross)[log10.(opa.λ) .> λ_lim])
 end
 
-clean(table_folder, name) = begin
+clean(table_folder, name; paths...) = begin
     f = joinpath(table_folder, "combined_formation_opacities_$(name).hdf5")
 	isfile(f) && rm(f)
+
+    for (name, path) in paths
+        rm(path, recursive=true, force=true)
+    end
 end
 
 
