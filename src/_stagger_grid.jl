@@ -15,7 +15,7 @@ end
 
 Information from model headers in grid naming convention.
 """
-Base.@kwdef struct ModelInformation
+Base.@kwdef mutable struct ModelInformation
 	category = ""
 	teff = ""
 	logg = ""
@@ -318,6 +318,12 @@ _parameters_from_string(para) = begin
 	d = Dict("teff"=>t, "logg"=>g, "feh"=>m)
 end
 
+
+
+
+
+#= Comparison of model information =#
+
 """
 	same_parameters(a, b)
 
@@ -343,11 +349,41 @@ Check if a and b have the same `category` and `extension` entries.
 """
 same_class(a::ModelInformation, b::ModelInformation) = same_id(a, b, :category) & same_id(a, b, :extension)
 
+
+
+
+
+#= building new name string from information =#
+
+"""
+	name_string(minfo::ModelInformation; add_E=false)
+
+Build a new name string from a model information.
+"""
+name_string(minfo::ModelInformation; add_E=false) = begin
+	tname = MUST.@sprintf "%.2f" minfo.teff/100
+	gname = MUST.@sprintf "%.2f" minfo.logg*10
+	fname = MUST.@sprintf "%.3f" minfo.feh
+	name = "t$(tname)g$(gname)m$(fname)"
+	
+	components = if add_E
+		[minfo.category, "E", name, minfo.extension]
+	else
+		[minfo.category, name, minfo.extension]
+	end
+
+	components = [c for c in components if length(c)>0]
+	join(components, '_')
+end
+
+
+
+
 """
 	ModelInformation(name)
 
 Extract category, teff, logg, feh and version from standard m3dis format names.
-The format is `category_teff/1000_logg*10_±feh_version_extension`.
+The format is `category_teff/1000_logg*10_±feh_extension`.
 """
 ModelInformation(name) = begin
 	name_parts = split(name |> strip, "_")

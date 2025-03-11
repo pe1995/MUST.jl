@@ -2104,6 +2104,71 @@ function time_average_profile(f, model_folder, args...; hscale=:τ, kwargs...)
 	x_common, y_mean, y_std
 end
 
+"""
+    geo_average!(b::Box)
+
+Compute geometical average of the model parameters most useful for spectrum synthesis.
+"""
+function geo_average!(b::Box; depth=true)
+    z, T = profile(mean, b, :z, :T)
+    _, logρ = profile(mean, b, :z, :log10d)
+    ρ = exp10.(logρ)
+
+    # Microturbulence
+    b.data[:u2] = b[:ux] .^2 .+ b[:uy] .^2 .+ b[:uz] .^2 
+    _, vx = profile(mean, b, :z, :ux)
+    _, vy = profile(mean, b, :z, :uy)
+    _, vz = profile(mean, b, :z, :uz)
+    _, v2 = profile(mean, b, :z, :u2)
+
+    vmic = 1/3 .* sqrt.(v2 .- (vx .^2 .+ vy .^2 .+ vz .^2))
+
+    pe = if haskey(b.data, :Ne)
+        b.data[:Pe] = b[:Ne] .* KBoltzmann .* b[:T]
+        _, pe = profile(mean, b, :z, :Pe)
+        pe
+    else
+        zeros(length(z))
+    end
+
+    flip_average!(z, ρ, T, pe, vmic; depth=depth)
+end
+
+function flip_average!(z, ρ, args...; depth=false)
+    d = ρ   
+    is_upside_down = first(d) < last(d)
+
+    if is_upside_down
+        reverse!(d)
+        reverse!(z)
+        for f in args
+            reverse!(f)
+        end
+    end
+
+    # Now it is from bottom to top, so the first value in z should be the smalles value
+    if z[1] > z[end]
+        z .*= -1
+    end
+
+    # if depth, make the opposite now
+    if depth
+        # it is bottom to top
+        reverse!(d)
+        reverse!(z)
+        for f in args
+            reverse!(f)
+        end
+
+        # now it is top to bottom, so the first z value should be the smallest
+        if z[1] > z[end]
+            z .*= -1
+        end
+    end
+
+    (z, ρ, args...)
+end
+
 
 
 mesh(m::Box) = meshgrid(
@@ -2153,6 +2218,46 @@ end
 
 
 
+
+#= Detecting spectra stored in cubes =#
+
+_check_for_spectra_tags(box::Box) = begin
+    spectra_tags = []
+    for (para, val) in box.data
+        if occursin("wavelength", String(para))
+            # check for wavelength, if found use the tag in front as tag
+            key = join(split(String(para), "_", keepempty=false)[1:end-1], '_')
+            append!(spectra_tags, [Symbol(key)])
+        end
+    end
+
+    spectra_tags
+end
+
+"""
+    spectra_tags(path; kwargs...)
+
+Find all snapshots at a given path that contain a spectrum.
+"""
+spectra_tags(path::String; kwargs...) = begin
+    spectra_tags(converted_snapshots(p; kwargs...))
+end
+
+"""
+    spectra_tags(converted_snapshots)
+
+Find all snapshots at a given path that contain a spectrum.
+"""
+function spectra_tags(cs::Dict)
+    spectra_tags = Dict()
+
+    for snapname in list_snapshots(cs)
+        b, _ = pick_snapshot(cs, snapname)
+        spectra_tags[snapname] = _check_for_spectra_tags(b)
+    end
+
+    spectra_tags
+end
 
 
 

@@ -68,7 +68,7 @@ function _write_atmos_multi(b, path, eos=nothing; downsample_xy=1, downsamlpe_z=
 end
 
 
-## Reading
+#= Reading =#
 
 function multiBox(name::String)
     mesh_path = name*".mesh"
@@ -115,5 +115,45 @@ function _read_atmos_multi(path, n)
 
     ne, T, px, py, pz, d
 end
+
+
+
+
+
+#= converting Box to average 3D model for M3D =#
+
+"""
+    save_text_m3d(z, T, ρ, f_new; header=nothing, vmic=zeros(length(z)))
+
+Save the model in a format readable by M3D.
+"""
+save_text_m3d(f_new, z, ρ, T; header=nothing, vmic=zeros(length(z)), pe=zeros(length(z))) = begin
+    open(f_new, "w") do f
+        h = isnothing(header) ? "TSO.Model1D" : header
+		write(f, h*"\n")
+		write(f, "$(length(z))\n")
+		
+		for i in eachindex(z)
+			line = @sprintf "%15.6E  %10.1f  %14.4E  %14.4E  %5.2f\n" z[i] T[i] pe[i] ρ[i] vmic[i]
+			write(f, line)
+		end
+	end
+end
+
+"""
+    save_geo_average_m3d(b::Box, f_new; header=nothing)
+
+Save the average geometical model in a format readable by M3D.
+"""
+save_geo_average_m3d(b::Box, f_new; kwargs...) = begin
+    z, ρ, T, pe, vmic = geo_average!(b)
+
+    # convert vmic to km/s
+    vmic = vmic ./ 1e5
+    save_text_m3d(f_new, z, ρ, T; vmic=vmic, pe=pe, kwargs...) 
+end
+
+
+
 
 
