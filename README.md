@@ -666,6 +666,20 @@ nohup julia monitor.jl your_interpolated_model -k 10 --reverse > your_interpolat
 
 So it will compute statistics of your run while it is running in the background. `-k 10` makes sure that only the last 10 snapshots are saved, the rest is deleted. This is very useful, because snapshots use a lot of disc space while you generally are not interested in all of them but just the last few. Of course the snapshots that get deleted are still included in the monitoring before they are removed.
 
+After your DISPATCH run is finished, it may be a wise idea to collect your output together in one location, so that you can use it any time and don't lose what you have computed. For this you can use the script `ship_models.jl`, which will convert snapshots to `hdf5` datacubes, additionally interpolate them to the optical depth scale, and store them together in one place, including the namelist and EoS tables used to create the model in the first place.
 
+```bash
+julia ship_models.jl -r your_interpolated_model --move --n_snaps=10 -n 'shipped' --out_dir='shipped_models'
+```
+
+Which will create a new folder in `shipped_models` and store the last 10 snapshots of your model there. It will also add the τ500 opacity to your datacube, if a corresponding table is available in the folder of the EoS table. Note that in the final folder there will be three cubes per snapshot `isnap`, the `box_snisnap.hdf5` on the geometrical scale, `box_tau_snisnap.hdf5` on the rosseland optical depth scale, and `box_tau500_snisnap.hdf5` on the 500nm scale. The latter box can then simply be read back by using `pick_snapshot(folder, isnap, tau_name="tau500")` for . See `--help` for more options. You can e.g. run the shipping for entire grids easily by creating a folder with all the namelists of the models you want to ship, and specify that folder with `-d`. 
+
+Now that your model has been secured, you can compute spectra. There is the very convenient and flexible script `spectrum.jl`, which does the work for you! All you need to do is run e.g. for the CH-G Band:
+
+```bash
+julia spectrum.jl -r your_interpolated_model --datafolder=shipped_models --add_m3dis=GBand --remove -n -1 -x 50 -z 180 -s 5880.0 -e 5900.0 -d 0.001 --feh=0.0 --alpha=0.0 --composition= C_3.0,N_0.4,O_0.5 --linelists=input_multi3d/LINE-LISTS/
+```
+
+To compute the CH G Band for the snapshot `-1`, which is the most recent one, at a horizontal resolution of `50` points, vertical of `180` points, from `5880 Å` to `5900 Å`, with a spacing of `0.001 Å`, and composition you specified. There are many more options available, so please check out `--help` again. The script will run M3D and store the output in a new data cube, containing the downsampled atmosphere as well as the spectrum. It will be stored as `box_m3dis_snsnapid.hdf5` cube, and can be read back simply by using `pick_snapshot(folder, isnap, box_name="box_m3dis")`.
 
 
