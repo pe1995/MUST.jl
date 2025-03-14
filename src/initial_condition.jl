@@ -48,7 +48,7 @@ __Note__: The paths to the av_models in the grid are assumed to be relative path
 of the grid! In the fault case this is the examples/initial_models folder, but if you use a different 
 grid the path of that grid will be used. 
 """
-function initialmodel(paras::AbstractMatrix; grid=staggergrid, eos=[:closest for _ in axes(paras, 1)], opa="combined_opacities", sopa="combined_sopacities", savedir="av_models", kwargs...)
+function initialmodel(paras::AbstractMatrix; grid=staggergrid, eos=[:closest for _ in axes(paras, 1)], opa="combined_opacities", sopa="combined_sopacities", eos500="combined_eos500", savedir="av_models", kwargs...)
     # check if parameters are fine and within the grid
     @assert all(checkparameters(grid, paras))
 
@@ -63,6 +63,7 @@ function initialmodel(paras::AbstractMatrix; grid=staggergrid, eos=[:closest for
     eosloaded = [reload(TSO.SqEoS, eospath[i]) for i in axes(paras, 1)]
     opapath = [opacityguess("$(opa)*", eosroot[i]) for i in axes(paras, 1)]
     sopapath = [opacityguess("$(sopa)*", eosroot[i]) for i in axes(paras, 1)]
+    eos500path = [opacityguess("$(eos500)*", eosroot[i]) for i in axes(paras, 1)]
 
     # interpolate the initial models and save them 
     interpolatedGrid = interpolate_from_grid(
@@ -80,6 +81,7 @@ function initialmodel(paras::AbstractMatrix; grid=staggergrid, eos=[:closest for
     interpolatedGrid.info[!, "matching_eos"] .= eospath
     interpolatedGrid.info[!, "matching_opa"] = opapath
     interpolatedGrid.info[!, "matching_sopa"] = sopapath
+    interpolatedGrid.info[!, "matching_eos500"] = eos500path
     interpolatedGrid
 end
 
@@ -91,7 +93,7 @@ If no `eos` given, the matching EoS is chosen by default. Note that relative pat
 (that are needed for the base models, so that they can be used on different systems) are
 replaced by absolute paths now.
 """
-initialmodel(grid=staggergrid::MUST.Atmos1DGrid; eos=:matching, opa="combined_opacities", sopa="combined_sopacities") = begin
+initialmodel(grid=staggergrid::MUST.Atmos1DGrid; eos=:matching, opa="combined_opacities", sopa="combined_sopacities", eos500="combined_eos500") = begin
     grid_local = deepcopy(grid)
     MUST.absolute_path!(grid_local)
 
@@ -105,10 +107,13 @@ initialmodel(grid=staggergrid::MUST.Atmos1DGrid; eos=:matching, opa="combined_op
 
     opapath = [opacityguess("$(opa)*", grid_local.info[i, "eos_root"]) for i in 1:MUST.nrow(grid_local.info)]
     sopapath = [opacityguess("$(sopa)*", grid_local.info[i, "eos_root"]) for i in 1:MUST.nrow(grid_local.info)]
+    eos500path = [opacityguess("$(eos500)*", grid_local.info[i, "eos_root"]) for i in 1:MUST.nrow(grid_local.info)]
 
     grid_local.info[!, "matching_eos"] .= eospath
     grid_local.info[!, "matching_opa"] = opapath
     grid_local.info[!, "matching_sopa"] = sopapath
+    grid_local.info[!, "matching_eos500"] = eos500path
+
     grid_local
 end
 
@@ -371,6 +376,14 @@ function prepare(
     for i in 1:nrow(grid.info)
         cp(grid.info[i, "namelist_name"], joinpath(grid.info[i, "binned_E_tables"], "ininml.dat"), force=true)
         cp(joinpath(grid.info[i, "binned_tables"], "bin_assignment.hdf5"), joinpath(grid.info[i, "binned_E_tables"], "bin_assignment.hdf5"), force=true)
+
+        # copy over tau500 eos if available
+        if isfile(grid.info[i, "matching_eos500"])
+            @info "copy $(grid.info[i, "matching_eos500"]) to $(joinpath(grid.info[i, "binned_tables"], "eos_T500.hdf5"))."
+            cp(grid.info[i, "matching_eos500"], joinpath(grid.info[i, "binned_tables"], "eos_T500.hdf5"))
+            @info "copy $(grid.info[i, "matching_eos500"]) to $(joinpath(grid.info[i, "binned_E_tables"], "eos_T500.hdf5"))."
+            cp(grid.info[i, "matching_eos500"], joinpath(grid.info[i, "binned_E_tables"], "eos_T500.hdf5"))
+        end
     end
 
     MUST.save(grid, final_grid_path)

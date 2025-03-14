@@ -85,7 +85,7 @@ function _Box_jl(simulation, snapshot; data, mmap=false, eos_path=nothing)
 		snapshot, 
 		eos_path=eos_path,
 		folder=joinpath(data, simulation), 
-		eos_reader=(x)->sqeos_reader(x, eos_path=eos_path),
+		eos_reader=(x)->sqeos_reader(x, eos_path=eos_path, inputNamelist=joinpath(folder, "params")),
 		lookup_generator=lookup_function_generator, 
 		use_mmap=mmap,
 		legacy=false
