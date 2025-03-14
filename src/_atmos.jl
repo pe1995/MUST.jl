@@ -601,7 +601,15 @@ function Base.filter!(f, s::MUST.Space)
 end
 
 Base.getindex(s::T,key) where {T<:MUST.Space} = s.data[key]
-Base.getindex(s::T,key) where {T<:MUST.Box}   = key in keys(s.data) ? s.data[key] : getfield(s,key)
+Base.getindex(s::T,key) where {T<:MUST.Box}   = begin
+    actual_name, correction_function = is_log(key)
+    val = actual_name in keys(s.data) ? s.data[actual_name] : getfield(s,actual_name)
+    try
+        correction_function.(val)
+    catch
+        val
+    end
+end
 
 Base.setindex!(s::T, val, key) where {T<:MUST.Space} = begin
     s.data[key] = val
@@ -611,6 +619,10 @@ Base.setindex!(s::T, val, key) where {T<:MUST.Box} = begin
     if (key in fieldnames(typeof(s)))
         setfield!(s, key, val)
     else
+        actual_name, correction_function = is_log(key)
+        if actual_name != key
+            error("There must not be 'log' or 'log10' at the beginning of your key!")
+        end
         s.data[key] = val
     end
 end
@@ -1637,9 +1649,9 @@ function height_scale_fast(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, 
         high_lim  = minimum(mean_plane)
         range( TT(low_lim), TT(high_lim); length=N_points)
     else
-        new_box[:logscale] = log10.(b[new_scale])
-        mean_plane = MUST.plane_statistic(mean, new_box, :logscale)
-        pop!(new_box.data, :logscale)
+        new_box[:newscale] = log10.(b[new_scale])
+        mean_plane = MUST.plane_statistic(mean, new_box, :newscale)
+        pop!(new_box.data, :newscale)
         low_lim   = maximum(mean_plane)
         high_lim  = minimum(mean_plane)
         Base.convert.(TT, exp10.(range(TT(low_lim), TT(high_lim); length=N_points)))
@@ -1851,30 +1863,35 @@ end
 Return a list of already converted snapshots in the convert.jl
 naming convention.
 """
-function converted_snapshots(folder; box_name="box")
+function converted_snapshots(folder; box_name="box", tau_name="tau")
 	files_converted = glob("$(box_name)*.hdf5", folder)
 	snaps = Dict()
 	for file in files_converted
 		snname = basename(file)
 
-		if occursin("tau", snname) 
-			continue 
-		end 
+        # this snapshot has no snapshot identification
+        if !occursin("sn", snname)
+            continue
+        end
 
-        if occursin("tav", snname) 
-			continue 
-		end 
-		
+        # continue if this is a numbered snapshot, that has a tau extension.
+        # we only want to collect the true snapshots here		
         # check if it is Integer snapshot number
 		snid = try
             parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
         catch
             snname[last(findfirst("sn", snname))+1:end-5]
         end
-		is_τ = isfile(joinpath(folder,"$(box_name)_tau_sn$(snid).hdf5"))
+
+        # we continue if this is not a true box
+        if snname != "$(box_name)_sn$(snid).hdf5"
+            continue
+        end
+
+		is_τ = isfile(joinpath(folder,"$(box_name)_$(tau_name)_sn$(snid).hdf5"))
 
 		snname  = String(split(snname, ".hdf5") |> first)
-		sntname = "$(box_name)_tau_sn$(snid)"
+		sntname = "$(box_name)_$(tau_name)_sn$(snid)"
 
 		if is_τ 
 			snaps[snid] = (snname, sntname) 
@@ -1888,7 +1905,9 @@ function converted_snapshots(folder; box_name="box")
 end
 
 """
-Sort converted snapshots.
+    list_snapshots(snapshots; numbered_only=false)
+
+Sort converted snapshots and return them in an array. Optionally only include numbered snapshots.
 """
 list_snapshots(snapshots; numbered_only=false) = begin
     numberlist = sort(Any[k for k in keys(snapshots) if ((k != "folder") & (typeof(k) <: Number))])
@@ -1942,11 +1961,11 @@ function pick_snapshot(snapshots, i; skip_last_if_missing=true, verbose=0, kwarg
 end
 
 """
-    pick_snapshot(folder, i)
+    pick_snapshot(folder, i; box_name="box", tau_name="tau", kwargs...)
 
 Pick ith snapshots from all available snapshots in ``folder``.
 """
-pick_snapshot(folder::String, i; box_name="box", kwargs...) = pick_snapshot(converted_snapshots(folder; box_name=box_name), i; kwargs...)
+pick_snapshot(folder::String, i; box_name="box", tau_name="tau", kwargs...) = pick_snapshot(converted_snapshots(folder; box_name=box_name, tau_name=tau_name), i; kwargs...)
 
 
 
@@ -2028,9 +2047,9 @@ closest(a, v) = argmin(abs.(a .- v))
 is_log(x) = begin
 	sx = String(x)
 	
-	xnew, f = if occursin("log10", sx)
+	xnew, f = if occursin("log10", sx) && (sx[1:5] == "log10")
 		Symbol(sx[findfirst("log10", sx)[end]+1:end]), log10
-	elseif occursin("log", sx)
+	elseif occursin("log", sx) && (sx[1:3] == "log")
 		Symbol(sx[findfirst("log", sx)[end]+1:end]), log
 	else
 		x, identity
@@ -2221,7 +2240,19 @@ end
 
 #= Detecting spectra stored in cubes =#
 
-_check_for_spectra_tags(box::Box) = begin
+"""
+    spectra_key_from_tag(key, tag)
+
+Name tag of the corresponding key in the data dict of Box.
+"""
+spectra_key_from_tag(key, tag) = Symbol(join([String(tag), String(key)], '_'))
+
+"""
+    spectra_tags(box::Box)
+
+List all the spectra tags of this snapshot.
+"""
+spectra_tags(box::Box) = begin
     spectra_tags = []
     for (para, val) in box.data
         if occursin("wavelength", String(para))
@@ -2249,15 +2280,71 @@ end
 Find all snapshots at a given path that contain a spectrum.
 """
 function spectra_tags(cs::Dict)
-    spectra_tags = Dict()
+    st = Dict()
 
     for snapname in list_snapshots(cs)
         b, _ = pick_snapshot(cs, snapname)
-        spectra_tags[snapname] = _check_for_spectra_tags(b)
+        st[snapname] = spectra_tags(b)
     end
 
-    spectra_tags
+    st
 end
+
+
+"""
+    mean_angular_intensity(box::Box, tag, μ; norm=true)
+
+Compute the horizontal mean of the intensity in direction μ.
+"""
+mean_angular_intensity(box::Box, tag, μ; norm=true) = begin
+    λ = box[spectra_key_from_tag("wavelength", tag)]
+    I = box[spectra_key_from_tag("intensity", tag)]
+	c = box[spectra_key_from_tag("continuum", tag)]
+    mu = box[spectra_key_from_tag("mu", tag)]
+	muz = mu[:, 3]
+    mu_mask = muz .≈ μ
+
+    z = norm ? I[:,:,:,mu_mask] ./ c[:,:,:,mu_mask] : I[:,:,:,mu_mask]
+	(λ, reshape(mean(mean(z, dims=4), dims=(2, 3)), :))
+end
+
+"""
+    mean_integrated_flux(box::Box, tag::Symbol; norm=true)
+
+Integrate angular intensity using the weights stored in box. Then average horizontally.
+"""
+mean_integrated_flux(box::Box, tag; norm=true) = begin
+    λ, F = integrated_flux(box, tag; norm=norm)
+    (λ, reshape(mean(F, dims=(2, 3)), :))
+end
+
+"""
+    integrate_flux(box::Box, tag::Symbol; norm=true)
+
+Integrate angular intensity using the weights stored in box.
+"""
+function integrated_flux(box::Box, tag; norm=true)
+    λ = box[spectra_key_from_tag("wavelength", tag)]
+	I = box[spectra_key_from_tag("intensity", tag)]
+	c = box[spectra_key_from_tag("continuum", tag)]
+	w = box[spectra_key_from_tag("weights", tag)]
+
+	F = zeros(eltype(I), size(I)[1:3]...)
+	C = zeros(eltype(I), size(I)[1:3]...)
+	@inbounds for k in axes(I, 3)
+		@inbounds for j in axes(I, 2)
+			@inbounds for i in axes(I, 1)
+				F[i, j, k] = sum(I[i, j, k, :] .* w)
+				C[i, j, k] = sum(c[i, j, k, :] .* w)
+			end
+		end
+	end
+
+    (λ, norm ? F ./ C : F)
+end
+
+
+
 
 
 
