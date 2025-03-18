@@ -349,8 +349,9 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         round(Δt(dx, max(abs(vmax), abs(vmin)), courant_target) / 5e-3, sigdigits=3)
 
         # optionally, one could estimate the time scale using the convective turnover time scaling
-        pnew = teff / exp10(logg)
-        psun = 5777.0 / exp10(4.44)
+        # or maybe scale it to νmax?
+        pnew = teff^0.5 / exp10(logg)
+        psun = 5777.0^0.5  / exp10(4.44)
         t_convective = 100 * pnew / psun
         @info "t_velocity / t_convective = $(l_cgs / velocity_max / t_convective)."
 
