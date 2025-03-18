@@ -995,11 +995,15 @@ function Box(name::String; folder::F=nothing, mmap=true) where {F<:Union{String,
 
     for q in keys(fid)
         q in aux_fieldnames ? continue : nothing
-        res[Symbol(q)] = mmap ? HDF5.readmmap(fid[q]) : HDF5.read(fid[q])
+        res[Symbol(q)] = if (mmap && HDF5.ismmappable(fid[q]))
+            HDF5.readmmap(fid[q])
+        else
+            HDF5.read(fid[q])
+        end
     end
-    x = mmap ? HDF5.readmmap(fid["x"]) : HDF5.read(fid["x"])
-    y = mmap ? HDF5.readmmap(fid["y"]) : HDF5.read(fid["y"])
-    z = mmap ? HDF5.readmmap(fid["z"]) : HDF5.read(fid["z"])
+    x = (mmap && HDF5.ismmappable(fid["x"])) ? HDF5.readmmap(fid["x"]) : HDF5.read(fid["x"])
+    y = (mmap && HDF5.ismmappable(fid["y"])) ? HDF5.readmmap(fid["y"]) : HDF5.read(fid["y"])
+    z = (mmap && HDF5.ismmappable(fid["z"])) ? HDF5.readmmap(fid["z"]) : HDF5.read(fid["z"])
 
     params = _read_params(AtmosphericParameters, fid)
 
