@@ -120,6 +120,7 @@ end
 
 
 
+
 #= converting Box to average 3D model for M3D =#
 
 """
@@ -129,7 +130,7 @@ Save the model in a format readable by M3D.
 """
 save_text_m3d(f_new, z, ρ, T; header=nothing, vmic=zeros(length(z)), pe=zeros(length(z))) = begin
     open(f_new, "w") do f
-        h = isnothing(header) ? "TSO.Model1D" : header
+        h = isnothing(header) ?  "Average 3D" : header
 		write(f, h*"\n")
 		write(f, "$(length(z))\n")
 		
@@ -141,16 +142,82 @@ save_text_m3d(f_new, z, ρ, T; header=nothing, vmic=zeros(length(z)), pe=zeros(l
 end
 
 """
-    save_geo_average_m3d(b::Box, f_new; header=nothing)
+    save_text_m1d(τ, T, ne, f_new; logg, header=nothing, vmic=zeros(length(z)))
+
+Save the model in a format readable by M3D.
+"""
+save_text_m1d(f_new, τ, T, ne; logg, header=nothing, vmic=zeros(length(τ)), v=zeros(length(τ))) = begin
+    open(f_new, "w") do f
+        h = isnothing(header) ? "Average 3D" : header
+		write(f, "  "*h*"\n")
+		write(f, "  TAU\n")
+		write(f, "* surface gravity log(g)\n")
+		write(f, "  $(logg)\n")
+		write(f, "* Number of depth points\n")
+		write(f, "  $(length(τ))\n")
+		write(f, "* log10 tau (500nm), temperature [K], electron density [g cm-3], v (always 0), microturbulence [km s-1]\n")
+		
+		for i in eachindex(τ)
+			line = @sprintf "  %15.6E  %15.6E  %15.6E  %.1f  %15.6E\n" τ[i] T[i] ne[i] v[i] vmic[i]
+			write(f, line)
+		end
+	end
+end
+
+"""
+    save_text_m1d(τ, T, ne, f_new; logg, header=nothing, vmic=zeros(length(z)))
+
+Save the model in a format readable by M3D.
+"""
+save_text_m1d_dscale(f_new, τ; header=nothing, kwargs...) = begin
+    open(f_new, "w") do f
+        h = isnothing(header) ? "Average 3D" : header
+		write(f, "  "*h*"\n")
+		write(f, "  TAU\n")
+		write(f, "  $(length(τ))     $(first(τ))\n")		
+		for i in eachindex(τ)
+			line = @sprintf "  %15.6E\n" τ[i]
+			write(f, line)
+		end
+	end
+end
+
+
+"""
+    save_average_m3d(b::Box, scale, f_new; header=nothing)
 
 Save the average geometical model in a format readable by M3D.
 """
-save_geo_average_m3d(b::Box, f_new; kwargs...) = begin
-    z, ρ, T, pe, vmic = geo_average!(b)
+save_average_m3d(b::Box, scale, f_new; kwargs...) = begin
+    z, ρ, T, ne, pe, vmic = average!(b, scale=scale)
 
     # convert vmic to km/s
     vmic = vmic ./ 1e5
     save_text_m3d(f_new, z, ρ, T; vmic=vmic, pe=pe, kwargs...) 
+end
+
+save_tau500_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :log10τ500, f_new; kwargs...)
+save_tauross_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :log10τ_ross, f_new; kwargs...)
+save_geo_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :z, f_new; kwargs...)
+
+
+"""
+    save_geo_average_m3d(b::Box, f_new; header=nothing)
+
+Save the average geometical model in a format readable by M3D.
+"""
+save_tau_average_m1d(b::Box, f_new; kwargs...) = begin
+    logτ, ρ, T, ne, pe, vmic = average!(b, scale=:log10τ500)
+
+    filename = basename(f_new)
+    dir = dirname(f_new)
+    f_new_atmos = joinpath(dir, "atmos.$(filename)")
+    f_new_dscale = joinpath(dir, "dscale.$(filename)")
+
+    # convert vmic to km/s
+    vmic = vmic ./ 1e5
+    save_text_m1d(f_new_atmos, logτ, T, ne; vmic=vmic, kwargs...) 
+    save_text_m1d_dscale(f_new_dscale, logτ; kwargs...) 
 end
 
 
