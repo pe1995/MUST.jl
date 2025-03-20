@@ -376,7 +376,16 @@ name_string(minfo::ModelInformation; add_E=false) = begin
 	join(components, '_')
 end
 
+pretty_name(minfo::ModelInformation, snapshot=nothing) = begin
+	# Convert from internal name to pretty name
+	if isnothing(snapshot)
+		MUST.@sprintf "%s_t%i_g%.3f_z%.3f" minfo.category minfo.teff minfo.logg minfo.feh
+	else
+		MUST.@sprintf "%s_t%i_g%.3f_z%.3f_sn%i" minfo.category minfo.teff minfo.logg minfo.feh snapshot
+	end
+end
 
+pretty_name(name::String, args...; kwargs...) = pretty_name(ModelInformation(name), args...; kwargs...)
 
 
 """
