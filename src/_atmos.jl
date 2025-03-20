@@ -2028,10 +2028,10 @@ end
 ## Helper functions
 
 axis(b::Box, which, dimension::Int=0) = begin
-    if which in [:x, :y, :z]
-        dim = findfirst(which .== [:x, :y, :z])
+    dim = if which in [:x, :y, :z]
+        findfirst(which .== [:x, :y, :z])
     else
-        dim = dimension
+        dimension
     end
 
     return if dim==0
@@ -2128,33 +2128,41 @@ function time_average_profile(f, model_folder, args...; hscale=:τ, kwargs...)
 end
 
 """
-    geo_average!(b::Box)
+    average!(b::Box)
 
 Compute geometical average of the model parameters most useful for spectrum synthesis.
 """
-function geo_average!(b::Box; depth=true)
-    z, T = profile(mean, b, :z, :T)
-    _, logρ = profile(mean, b, :z, :log10d)
+function average!(b::Box; depth=true, scale=:z)
+    z, T = profile(mean, b, scale, :T)
+    _, logρ = profile(mean, b, scale, :log10d)
     ρ = exp10.(logρ)
 
     # Microturbulence
     b.data[:u2] = b[:ux] .^2 .+ b[:uy] .^2 .+ b[:uz] .^2 
-    _, vx = profile(mean, b, :z, :ux)
-    _, vy = profile(mean, b, :z, :uy)
-    _, vz = profile(mean, b, :z, :uz)
-    _, v2 = profile(mean, b, :z, :u2)
+    _, vx = profile(mean, b, scale, :ux)
+    _, vy = profile(mean, b, scale, :uy)
+    _, vz = profile(mean, b, scale, :uz)
+    _, v2 = profile(mean, b, scale, :u2)
 
     vmic = 1/3 .* sqrt.(v2 .- (vx .^2 .+ vy .^2 .+ vz .^2))
 
-    pe = if haskey(b.data, :Ne)
+    ne, pe = if haskey(b.data, :Ne)
+        _, logne = profile(mean, b, scale, :log10Ne)
+        ne = exp10.(logne)
+
         b.data[:Pe] = b[:Ne] .* KBoltzmann .* b[:T]
-        _, pe = profile(mean, b, :z, :Pe)
-        pe
+        _, logpe = profile(mean, b, scale, :log10Pe)
+        delete!(b.data, :Pe)
+
+        ne, exp10.(logpe)
     else
-        zeros(length(z))
+        zeros(length(z)), zeros(length(z))
     end
 
-    flip_average!(z, ρ, T, pe, vmic; depth=depth)
+    # get the actual height coodinate
+    z = axis(b, scale, 3)
+
+    flip_average!(z, ρ, T, ne, pe, vmic; depth=depth)
 end
 
 function flip_average!(z, ρ, args...; depth=false)
