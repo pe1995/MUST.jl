@@ -59,6 +59,48 @@ end
 
 StaggerGrid(args...; kwargs...) = Atmos1DGrid(args...; kwargs...)
 
+#============================================================ checking paths =#
+
+"""
+	check_av_model_path(g::Atmos1DGrid)
+
+Check if av models in the grid can be found. Also check if there is a .tar.gz 
+directory that needs to be unpacked
+"""
+check_av_model_path(g::Atmos1DGrid) = begin
+	ga = deepcopy(g)
+	absolute_path!(ga)
+
+	# check if av_models dir exists
+	d = dirname(ga["av_path", 1])
+	gridname = basename(dirname(d))
+	@show gridname
+	if (!isdir(d)) && (isfile(d*".tar.gz"))
+		_extract_tar_in_dir(dirname(d), name="av_models.tar.gz")
+		@info "av_models unpacked."
+	elseif !isdir(d) && (gridname=="MARCS_2.0")
+		destination = d*".tar.gz"
+		@show destination
+		Downloads.download("https://keeper.mpdl.mpg.de/f/de46886c5929462ea1bd/?dl=1", destination)
+		
+		_extract_tar_in_dir(dirname(d), name="av_models.tar.gz")
+
+		#rm(destination)
+		@info "av_models unpacked."
+	elseif !isdir(d)
+		@warn "$(d) does not exist, and there is no $(d*".tar.gz") to extract."
+	end
+end
+
+_extract_tar_in_dir(d; name="av_models.tar.gz") = begin
+	c = ["-xzvf", name]
+	currd = pwd()
+	cd(d)
+	run(`tar $(c)`)
+	cd(currd)
+end
+
+
 
 #==================================================================== Saving =#
 

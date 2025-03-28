@@ -17,13 +17,16 @@ staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initi
 #staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v1.2_r.mgrid")))
 #staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v1.1_r.mgrid")))
 #staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_grid_v5.1.mgrid")))
-staggergrid_alphamod = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_grid_a0-4_vmic1-2.mgrid")))
+#staggergrid_alphamod = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_grid_a0-4_vmic1-2.mgrid")))
+MUST.check_av_model_path(staggergrid)
 
-marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.2.3_r.mgrid")))
+marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS_2.0", "marcs_2.0_grid.mgrid")))
+#marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.2.3_r.mgrid")))
 #marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.2_r.mgrid")))
 #marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.1_r.mgrid")))
 #marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_grid.mgrid")))
-marcsgrid_alphamod = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_grid_a0-4_vmic1-2.mgrid")))
+#marcsgrid_alphamod = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_grid_a0-4_vmic1-2.mgrid")))
+MUST.check_av_model_path(marcsgrid)
 
 
 opacityguess(name, root) = begin
@@ -380,9 +383,9 @@ function prepare(
         # copy over tau500 eos if available
         if isfile(grid.info[i, "matching_eos500"])
             @info "copy $(grid.info[i, "matching_eos500"]) to $(joinpath(grid.info[i, "binned_tables"], "eos_T500.hdf5"))."
-            cp(grid.info[i, "matching_eos500"], joinpath(grid.info[i, "binned_tables"], "eos_T500.hdf5"))
+            cp(grid.info[i, "matching_eos500"], joinpath(grid.info[i, "binned_tables"], "eos_T500.hdf5"), force=true)
             @info "copy $(grid.info[i, "matching_eos500"]) to $(joinpath(grid.info[i, "binned_E_tables"], "eos_T500.hdf5"))."
-            cp(grid.info[i, "matching_eos500"], joinpath(grid.info[i, "binned_E_tables"], "eos_T500.hdf5"))
+            cp(grid.info[i, "matching_eos500"], joinpath(grid.info[i, "binned_E_tables"], "eos_T500.hdf5"), force=true)
         end
     end
 

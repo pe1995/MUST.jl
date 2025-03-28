@@ -37,8 +37,8 @@ Compute weights and indices corresponding to the
 interpolation from the old_axis to the new_axis and
 store the values in an AxisInterpolation object.
 """
-AxisInterpolation(old_axis::AbstractBoxAxis, new_axis::AbstractBoxAxis; method=:linear) = begin
-    w, i = interpolation_weights(nodes(old_axis), nodes(new_axis))
+AxisInterpolation(old_axis::AbstractBoxAxis, new_axis::AbstractBoxAxis; method=:linear, extrapolation=:linear) = begin
+    w, i = interpolation_weights(nodes(old_axis), nodes(new_axis); extrapolation=extrapolation)
 
     AxisInterpolation(old_axis, new_axis, w, i, method)
 end
@@ -49,8 +49,8 @@ end
 
 Construct a grid interpolator from a list of axis interpolation objects.
 """
-GridInterpolation(from::Vector{<:AbstractBoxAxis}, to::Vector{<:AbstractBoxAxis}; method=:linear) = begin
-    interpolators = AxisInterpolation.(from, to; method=method)
+GridInterpolation(from::Vector{<:AbstractBoxAxis}, to::Vector{<:AbstractBoxAxis}; method=:linear, extrapolation=:linear) = begin
+    interpolators = AxisInterpolation.(from, to; method=method, extrapolation=extrapolation)
 
     initial_size = [length(nodes(interpolators[i].old_axis)) for i in eachindex(interpolators)]
     buffers = [similar(interpolators[1].weights, initial_size...)]
@@ -67,8 +67,8 @@ GridInterpolation(from::Vector{<:AbstractBoxAxis}, to::Vector{<:AbstractBoxAxis}
     GridInterpolation(interpolators, buffers)
 end
 
-GridInterpolation(from::AbstractBoxGrid, to::AbstractBoxGrid; method=:linear) = begin
-    GridInterpolation(axis(from), axis(to); method=method)
+GridInterpolation(from::AbstractBoxGrid, to::AbstractBoxGrid; method=:linear, extrapolation=:linear) = begin
+    GridInterpolation(axis(from), axis(to); method=method, extrapolation=extrapolation)
 end
 
 
@@ -98,32 +98,40 @@ toaxis(ip::AxisInterpolation) = ip.new_axis
 Compute the linear interpolation weights corresponding
 to the 2 arrays.
 """
-function interpolation_weights(ingrid, outgrid) 
+function interpolation_weights(ingrid, outgrid; extrapolation=:linear) 
 	weights = similar(outgrid, length(outgrid), 2)
 	indices = zeros(Int, length(outgrid))
+    outtype = eltype(outgrid)
+    nantype = Base.convert(outtype, NaN)
 
 	for i in eachindex(outgrid)
 		x0, x1 = if outgrid[i] < first(ingrid)
             # Extrapolate below the first point
             indices[i] = 1
-            x0, x1 = ingrid[1], ingrid[2]
-
-			#weights[i, 1] = 1.0
-			#weights[i, 2] = 0.0
+            x0, x1 = if extrapolation==:linear
+                ingrid[1], ingrid[2]
+            elseif extrapolation==:NaN
+                nantype, nantype
+            else
+                #weights[i, 1] = 1.0
+			    #weights[i, 2] = 0.0
+                outgrid[i], outgrid[i]+1
+            end
 		elseif outgrid[i] >= last(ingrid)
 			# Extrapolate above the last point
             indices[i] = length(ingrid) - 1
-            x0, x1 = ingrid[end-1], ingrid[end]
-
-			#weights[i, 1] = 0.0
-			#weights[i, 2] = 1.0
+            x0, x1 = if extrapolation==:linear
+                ingrid[end-1], ingrid[end]
+            elseif extrapolation==:NaN
+                nantype, nantype
+            else
+                #weights[i, 1] = 0.0
+			    #weights[i, 2] = 1.0
+                outgrid[i]-1, outgrid[i]
+            end
 		else
 			indices[i] = findfirst(x->x>outgrid[i], ingrid) -1	
-
 			x0, x1 = ingrid[indices[i]], ingrid[indices[i]+1]
-			
-			#weights[i, 1] = (x1-outgrid[i]) / (x1-x0)
-			#weights[i, 2] = (outgrid[i]-x0) / (x1-x0)
 		end
 
         weights[i, 1] = (x1-outgrid[i]) / (x1-x0)
@@ -245,7 +253,6 @@ upon a second visit of this function. A copy of the result is returned, unless
 requested otherwise.
 """
 function interpolate_grid!(ip::GridInterpolation, values; return_copy=true)
-    #idx = zeros(Int, length(ip.axes_interpolation))
     buffers = ip.buffers
     buffers[1] .= values
 
@@ -256,7 +263,6 @@ function interpolate_grid!(ip::GridInterpolation, values; return_copy=true)
         for ci in c
             # Now we loop through all other dimensions, and pick the axis
             # we are currently interpolating
-            #idx = _fill_index(Base.Colon(), ci, i)
             idx_from = _fill_index(permutation(fromaxis(ip.axes_interpolation[i])), ci, i)
             idx_to = _fill_index(permutation(toaxis(ip.axes_interpolation[i])), ci, i)
             if method(ip.axes_interpolation[i]) == :linear

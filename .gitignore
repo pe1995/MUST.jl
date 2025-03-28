@@ -3,6 +3,8 @@
 /.CondaPkg
 examples/*/.CondaPkg
 initial_grids/.CondaPkg
+initial_grids/MARCS_2.0/av_models/
+initial_grids/MARCS_2.0/av_models.tar.gz
 
 
 examples/*/Manifest.toml

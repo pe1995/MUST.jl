@@ -1632,7 +1632,7 @@ end=#
 
 Switch the height scale of a box. Creates a new box by reducing the old box by column for every new height value.
 """
-function height_scale_fast(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, :ux, :uy, :uz, :ee, :e])
+function height_scale_fast(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, :ux, :uy, :uz, :ee, :e], kwargs...)
     N_points = size(b.z, 3)
     TT = eltype(b.z)
     new_box = deepcopy(b)
@@ -1661,7 +1661,7 @@ function height_scale_fast(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, 
         Base.convert.(TT, exp10.(range(TT(low_lim), TT(high_lim); length=N_points)))
     end
 
-    sorting, interps = interpolators(log.(10, b[new_scale]), log.(10, h_scale))
+    sorting, interps = interpolators(log.(10, b[new_scale]), log.(10, h_scale); kwargs...)
 
     # Save loop allocations
     Nx = size(b.x, 1)
@@ -1706,7 +1706,7 @@ end
 
 height_scale = height_scale_fast
 
-function interpolators(old_cube, new_scale)
+function interpolators(old_cube, new_scale; kwargs...)
     sorting = zeros(Int, size(old_cube)...)
     interps = Matrix{GridInterpolation}(undef, size(old_cube)[1:2]...)
     g_new = Grid(new_scale)
@@ -1715,7 +1715,7 @@ function interpolators(old_cube, new_scale)
         for i in axes(old_cube, 1)
             @inbounds g_old .= old_cube[i, j, :]
             @inbounds sorting[i, j, :] .= sortperm(g_old)
-            @inbounds interps[i, j] = ginterpolate(Grid(g_old[sorting[i, j, :]]), g_new)
+            @inbounds interps[i, j] = ginterpolate(Grid(g_old[sorting[i, j, :]]), g_new; kwargs...)
         end
     end
         
@@ -2264,13 +2264,18 @@ spectra_key_from_tag(key, tag) = Symbol(join([String(tag), String(key)], '_'))
 
 List all the spectra tags of this snapshot.
 """
-spectra_tags(box::Box) = begin
+spectra_tags(box::Box; check_for=["wavelength","composition"]) = begin
     spectra_tags = []
+    keys_box = keys(box.data)
     for (para, val) in box.data
-        if occursin("wavelength", String(para))
-            # check for wavelength, if found use the tag in front as tag
+        if occursin(check_for[1], String(para))
+            # check for first key, if found use the string in the back as tag
             key = join(split(String(para), "_", keepempty=false)[1:end-1], '_')
-            append!(spectra_tags, [Symbol(key)])
+
+            # check all other check_fors for this key
+            if all([spectra_key_from_tag(check, key) in keys_box for check in check_for])
+                append!(spectra_tags, [Symbol(key)])
+            end
         end
     end
 
@@ -2282,8 +2287,8 @@ end
 
 Find all snapshots at a given path that contain a spectrum.
 """
-spectra_tags(path::String; kwargs...) = begin
-    spectra_tags(converted_snapshots(p; kwargs...))
+spectra_tags(path::String; check_for=["wavelength","composition"], kwargs...) = begin
+    spectra_tags(converted_snapshots(p; kwargs...); check_for=check_for)
 end
 
 """
@@ -2291,12 +2296,12 @@ end
 
 Find all snapshots at a given path that contain a spectrum.
 """
-function spectra_tags(cs::Dict)
+function spectra_tags(cs::Dict; check_for=["wavelength","composition"])
     st = Dict()
 
     for snapname in list_snapshots(cs)
         b, _ = pick_snapshot(cs, snapname)
-        st[snapname] = spectra_tags(b)
+        st[snapname] = spectra_tags(b; check_for=check_for)
     end
 
     st

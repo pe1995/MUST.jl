@@ -505,7 +505,8 @@ _whole_spectrum_namelist!(nml::M3DNamelist;
                 :n_nu=>32, :maxiter=>0, :decouple_continuum=>true),
 	#linelist_params=(:dlam=>1.0,),
     composition_params=(:abund_file=>"./input_multi3d/abund_magg",:absdat_file=>"./input_multi3d/TS_absdat.dat"),
-	spectrum_params=(:daa=>2., :aa_blue=>2000, :aa_red=>40000)) = begin
+	#spectrum_params=(:daa=>2., :aa_blue=>2000, :aa_red=>40000)
+    ) = begin
 
 	set!(
 		nml; 
@@ -514,7 +515,7 @@ _whole_spectrum_namelist!(nml::M3DNamelist;
 		atmos_params=atmos_params
 		,m3d_params=m3d_params,
 		#linelist_params=linelist_params,
-		spectrum_params=spectrum_params,
+		#spectrum_params=spectrum_params,
         atom_params=atom_params,
         composition_params=composition_params
 	)

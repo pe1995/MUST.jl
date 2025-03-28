@@ -352,6 +352,15 @@ function random_paramters(grid, N;
 	logg=[minimum(grid["logg"]), maximum(grid["logg"])], 
 	feh=[minimum(grid["feh"]), maximum(grid["feh"])])
 	
+	feh_lim = if (minimum(feh) < minimum(grid["feh"])) | (maximum(feh) > maximum(grid["feh"]))
+		@warn("Your chosen metallicity limits are outside the grid of initial model!")
+		feh_min = min(max(minimum(feh), minimum(grid["feh"])), maximum(grid["feh"]))
+		feh_max = max(min(maximum(feh), maximum(grid["feh"])), minimum(grid["feh"]))
+		[feh_min, feh_max]
+	else
+		feh
+	end
+
 	points = [[t, l, f] for (t, l, f) in zip(grid["teff"], grid["logg"], grid["feh"])]
 	hull = convex_hull(points)
 	P = VPolytope(hull)
@@ -361,7 +370,7 @@ function random_paramters(grid, N;
 	while found < N
 		t = MUST.randrange(teff...)
 		l = MUST.randrange(logg...) 
-		f = MUST.randrange(feh...)
+		f = MUST.randrange(feh_lim...)
 	
 		if [t, l, f] ∈ P
 			found += 1
@@ -371,6 +380,11 @@ function random_paramters(grid, N;
 		end
 	end
 
+	# assume that all models have average metallicity, if we could not sample
+	# it due to the limits of the grid
+	if (minimum(feh) < minimum(grid["feh"])) | (maximum(feh) > maximum(grid["feh"]))
+		rand_points[:, 3] .= sum(feh) / 2.0
+	end
 	rand_points
 end
 
