@@ -767,3 +767,29 @@ Effective temperature from the flux itself.
 Effective temperature from the binned flux itself.
 """
 Teff
+
+
+
+
+
+#= Create a 3D cube from a run =#
+
+_is_1D(x) = ndims(x) == 1
+_set_size_1D_to_3D(x) = _is_1D(x) ? reshape(x, 1, 1, length(x)) : x
+
+function Box(result::M3DISRun)
+    x = Base.convert.(Float32, pyconvert(Array, result.run.xx) .* 1e8)
+    y = Base.convert.(Float32, pyconvert(Array, result.run.yy) .* 1e8)
+    z = Base.convert.(Float32, pyconvert(Array, result.run.zz) .* 1e8)
+
+    data = Dict{Symbol, Any}(
+        :T => _set_size_1D_to_3D(pyconvert(Array, result.run.temp)),
+        :d => _set_size_1D_to_3D(pyconvert(Array, result.run.rho)),
+        :ux => _set_size_1D_to_3D(pyconvert(Array, result.run.vx)),
+        :uy => _set_size_1D_to_3D(pyconvert(Array, result.run.vy)),
+        :uz => _set_size_1D_to_3D(pyconvert(Array, result.run.vz)),
+        :τ500 => exp10.(pyconvert(Array, result.run.ltau)),
+    )
+    xx, yy, zz = meshgrid(x, y, z)
+    Box(xx, yy, zz, data, AtmosphericParameters())
+end
