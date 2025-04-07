@@ -74,7 +74,6 @@ check_av_model_path(g::Atmos1DGrid) = begin
 	# check if av_models dir exists
 	d = dirname(ga["av_path", 1])
 	gridname = basename(dirname(d))
-	@show gridname
 	if (!isdir(d)) && (isfile(d*".tar.gz"))
 		_extract_tar_in_dir(dirname(d), name="av_models.tar.gz")
 		@info "av_models unpacked."
