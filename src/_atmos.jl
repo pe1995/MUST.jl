@@ -1933,14 +1933,14 @@ If ``i == :time_average``, pick the time average, if available.
 """
 function pick_snapshot(snapshots, i; skip_last_if_missing=true, verbose=0, kwargs...)
 	i = if i == :recent 
-        if ((isnothing(last(snapshots[last(list_snapshots(snapshots))]))) & 
+        if ((isnothing(last(snapshots[last(list_snapshots(snapshots, numbered_only=true))]))) & 
                         skip_last_if_missing)
-            list_snapshots(snapshots)[end-1]
+            list_snapshots(snapshots, numbered_only=true)[end-1]
         else 
-            last(list_snapshots(snapshots))
+            last(list_snapshots(snapshots, numbered_only=true))
         end
     elseif (typeof(i) <:Int) && (i <0)
-        list_snapshots(snapshots)[end+i+1]
+        list_snapshots(snapshots, numbered_only=true)[end+i+1]
 	else 
 		i
 	end
@@ -2308,6 +2308,23 @@ function spectra_tags(cs::Dict; check_for=["wavelength","composition"])
 end
 
 
+add_spectra!(to::Box, from::Box) = begin
+    tags = spectra_tags(from)
+
+    for (key, val) in from.data
+        for tag in tags
+            if occursin(String(tag)*"_", String(key))
+                # this needs to be added
+                to[key] = val
+            end
+        end
+    end
+end
+
+
+
+
+
 """
     mean_angular_intensity(box::Box, tag, μ; norm=true)
 
@@ -2324,15 +2341,27 @@ mean_angular_intensity(box::Box, tag, μ; norm=true) = begin
     z = norm ? I[:,:,:,mu_mask] ./ c[:,:,:,mu_mask] : I[:,:,:,mu_mask]
 	(λ, reshape(mean(mean(z, dims=4), dims=(2, 3)), :))
 end
-
+ 
 """
     mean_integrated_flux(box::Box, tag::Symbol; norm=true)
 
 Integrate angular intensity using the weights stored in box. Then average horizontally.
 """
 mean_integrated_flux(box::Box, tag; norm=true) = begin
-    λ, F = integrated_flux(box, tag; norm=norm)
-    (λ, reshape(mean(F, dims=(2, 3)), :))
+    λ = box[spectra_key_from_tag("wavelength", tag)]
+	I = box[spectra_key_from_tag("intensity", tag)]
+	c = box[spectra_key_from_tag("continuum", tag)]
+	w = box[spectra_key_from_tag("weights", tag)]
+
+	F = zeros(eltype(I), size(I)[1])
+	C = zeros(eltype(I), size(I)[1])
+	
+    @inbounds for i in axes(I, 1)
+        F[i] = sum(reshape(mean(@view(I[i, :, :, :]), dims=(1, 2)), :) .* w)
+        C[i] = sum(reshape(mean(@view(c[i, :, :, :]), dims=(1, 2)), :) .* w)
+    end
+		
+    (λ, norm ? F ./ C : F)
 end
 
 """
@@ -2358,6 +2387,78 @@ function integrated_flux(box::Box, tag; norm=true)
 	end
 
     (λ, norm ? F ./ C : F)
+end
+
+
+
+
+abundance_from_composition_string(cs, element) = begin
+	cs_split = split(cs, '_', keepempty=false)
+	comp = cs_split[findfirst(occursin.(element, cs_split))]
+	parse(Float64, split(comp, '=', keepempty=false) |> last)
+end
+
+"""
+    curve_of_growth(element, reference_model, reference_tag, model, model_tags; λs=nothing, λe=nothing)
+
+Compute the CoG (+ abundance corrections) for a given element (e.g. `[C/Fe]`) from a reference model to the target model.
+The spectra obtained via `reference_tag` is used to compute the difference in equivalent width to all spectra in `model_tags`.
+Abundances are obtained from the `composition` entry of those spectra. The correction is `abund_model(ew_ref) - abund_ref`.
+"""
+function curve_of_growth(element, reference_model, reference_tag, model, model_tags; λs=nothing, λe=nothing)
+	# get reference wavelength
+	λ_ref, F_ref = mean_integrated_flux(reference_model, reference_tag, norm=true)
+
+	# masking region
+	λs = isnothing(λs) ? minimum(λ_ref) : λs
+	λe = isnothing(λe) ? maximum(λ_ref) : λe
+	λmask = λs .<= λ_ref .<= λe
+	λ = λ_ref[λmask]
+	F_ref = F_ref[λmask]
+	
+	# get reference abundance and equivalent width
+	ew_ref = integrate(λ_ref, 1 .- F_ref) 
+	comp_ref = reference_model[
+		spectra_key_from_tag(
+			"composition", reference_tag
+		)
+	]
+	ab_ref = abundance_from_composition_string(comp_ref, element)
+
+	# Compute the same thing for all other models
+	abundances = []
+	equivalent_widths = []
+	for tag in model_tags
+		λ, F = mean_integrated_flux(model, tag, norm=true)
+		λmask_l = λs .<= λ .<= λe
+
+		λ = λ[λmask_l]
+		F = F[λmask_l]
+
+		ew = integrate(λ, 1 .- F) 
+		comp = model[
+			MUST.spectra_key_from_tag(
+				"composition", tag
+			)
+		]
+		ab = abundance_from_composition_string(comp, element)
+
+		append!(equivalent_widths, [ew])
+		append!(abundances, [ab])
+	end
+
+	# sorting
+	abmask = sortperm(abundances)
+	ewmask = sortperm(equivalent_widths)
+
+	# interpolation
+	f_ab = linear_interpolation(
+		equivalent_widths[ewmask], abundances[ewmask], extrapolation_bc=Line()
+	)
+	#f_ew = linear_interpolation(abundances[abmask], equivalent_widths[abmask], extrapolation_bc=Line())
+	Δab = f_ab(ew_ref) - ab_ref
+
+	ab_ref, ew_ref, abundances[abmask], equivalent_widths[abmask], Δab
 end
 
 
