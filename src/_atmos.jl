@@ -2393,9 +2393,13 @@ end
 
 
 abundance_from_composition_string(cs, element) = begin
-	cs_split = split(cs, '_', keepempty=false)
-	comp = cs_split[findfirst(occursin.(element, cs_split))]
-	parse(Float64, split(comp, '=', keepempty=false) |> last)
+    if occursin(element, cs)
+        cs_split = split(cs, '_', keepempty=false)
+        comp = cs_split[findfirst(occursin.(element, cs_split))]
+        parse(Float64, split(comp, '=', keepempty=false) |> last)
+    else
+        nothing
+    end
 end
 
 """
@@ -2413,7 +2417,7 @@ function curve_of_growth(element, reference_model, reference_tag, model, model_t
 	λs = isnothing(λs) ? minimum(λ_ref) : λs
 	λe = isnothing(λe) ? maximum(λ_ref) : λe
 	λmask = λs .<= λ_ref .<= λe
-	λ = λ_ref[λmask]
+	λ_ref = λ_ref[λmask]
 	F_ref = F_ref[λmask]
 	
 	# get reference abundance and equivalent width
@@ -2429,22 +2433,26 @@ function curve_of_growth(element, reference_model, reference_tag, model, model_t
 	abundances = []
 	equivalent_widths = []
 	for tag in model_tags
-		λ, F = mean_integrated_flux(model, tag, norm=true)
-		λmask_l = λs .<= λ .<= λe
+        try
+            λ, F = mean_integrated_flux(model, tag, norm=true)
+            λmask_l = λs .<= λ .<= λe
 
-		λ = λ[λmask_l]
-		F = F[λmask_l]
+            λ = λ[λmask_l]
+            F = F[λmask_l]
 
-		ew = integrate(λ, 1 .- F) 
-		comp = model[
-			MUST.spectra_key_from_tag(
-				"composition", tag
-			)
-		]
-		ab = abundance_from_composition_string(comp, element)
+            ew = integrate(λ, 1 .- F) 
+            comp = model[
+                MUST.spectra_key_from_tag(
+                    "composition", tag
+                )
+            ]
+            ab = abundance_from_composition_string(comp, element)
 
-		append!(equivalent_widths, [ew])
-		append!(abundances, [ab])
+            append!(equivalent_widths, [ew])
+            append!(abundances, [ab])
+        catch
+            @warn "Error in tag $(tag). Skipping."
+        end
 	end
 
 	# sorting
