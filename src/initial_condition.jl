@@ -13,20 +13,11 @@ using Dates
 #==============================================================================#
 
 # global grid files that can be used for interpolation
-staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v1.2.3_r.mgrid")))
-#staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v1.2_r.mgrid")))
-#staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v1.1_r.mgrid")))
-#staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_grid_v5.1.mgrid")))
-#staggergrid_alphamod = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_grid_a0-4_vmic1-2.mgrid")))
+staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v2.0_r.mgrid")))
+marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS_2.0", "marcs_v2.0_r.mgrid")))
+MUST.check_av_model_path(marcsgrid)
 MUST.check_av_model_path(staggergrid)
 
-marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS_2.0", "marcs_2.0_grid.mgrid")))
-#marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.2.3_r.mgrid")))
-#marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.2_r.mgrid")))
-#marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_v1.1_r.mgrid")))
-#marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_grid.mgrid")))
-#marcsgrid_alphamod = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS", "marcs_grid_a0-4_vmic1-2.mgrid")))
-MUST.check_av_model_path(marcsgrid)
 
 
 opacityguess(name, root) = begin
