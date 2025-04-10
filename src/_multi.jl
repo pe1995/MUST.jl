@@ -232,9 +232,9 @@ end
 """
     abund_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...)
 
-Create an absdat file with the given abundance ratios.
+Create an abund file with the given abundance ratios.
 """
-function abund_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...)
+function abund_abundances(;α=0.0, default="./input_multi3d/abund/abund_magg", eles...)
 	# read the default abundances
 	abund_default = readdlm(@in_m3dis(default))
 	abund_new = deepcopy(abund_default)
@@ -264,17 +264,18 @@ function abund_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...
 	end
 
 	if new_name != default
-		open(@in_m3dis(new_name), "w") do f
+        abs_new_name_dir = dirname(@in_m3dis(default))
+        random_file_in_dir = tempname(abs_new_name_dir)
+		open(random_file_in_dir, "w") do f
 			for i in axes(abund_new, 1)
 				line = @sprintf "%-4s %-.3f\n" abund_new[i, 1] abund_new[i, 2]
 				write(f, line)
 			end
 		end
+        joinpath(dirname(default), basename(random_file_in_dir))
 	else
 		default
 	end
-
-	new_name
 end
 
 
