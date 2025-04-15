@@ -81,10 +81,10 @@ end
 # ╔═╡ 4ea802dc-b3e3-44ab-8758-b76bef9de441
 pretty_from_name_short(name) = begin
 	mi = MUST.ModelInformation(name)
-	"$(round(Int, mi.teff)), "*"$(round( mi.logg, digits=2)), "*"$(round(mi.feh, digits=2))"
+	"$(round(Int, mi.teff)) K, "*"$(round( mi.logg, digits=2)), "*"$(round(mi.feh, digits=2))"
 end
 
-# ╔═╡ 3022833b-9b2c-4e3f-ba69-0dfc10ed5e2a
+# ╔═╡ 06f0b894-d945-4941-aee5-e3e699e162f0
 
 
 # ╔═╡ ea64c5f8-21e3-4685-ba30-2fd61ab34974
@@ -94,7 +94,10 @@ We load the models automatically and get their stellar parameters from the name,
 """
 
 # ╔═╡ 49ce048c-18ec-44d6-a782-f474ad11c83c
-datadir = @in_dispatch "CEMP_models2/"
+datadir = @in_dispatch "CEMP_models3/"
+
+# ╔═╡ d30fd639-00c4-433e-b5c4-cdc59e38281e
+snapshot_id = -7
 
 # ╔═╡ 8dfd95b6-144c-4bb0-986e-6f5cde660c3e
 
@@ -164,7 +167,20 @@ end
 
 # ╔═╡ 533184b3-d690-4f44-87b6-6bb49ee7e2c2
 get_spectra(snapid, folder) = begin
-	pick_snapshot(folder, snapid, box_name="box_m3dis") |> first
+	snapid_m3dis = MUST.snapshotid(folder |> MUST.converted_snapshots, snapid)
+	pick_snapshot(folder, snapid_m3dis, box_name="box_m3dis") |> first
+end
+
+# ╔═╡ bfc09acd-8fe3-44c9-a44f-8aefe85f3d76
+get_m3d_spectra(snapid, folder; extension="lam_4297-4303_contr") = begin
+	i = if typeof(snapid) <: Int && (snapid<0)
+		"m3dis_$(MUST.list_snapshots(MUST.converted_snapshots(folder), numbered_only=true)[end+snapid+1])"
+	elseif typeof(snapid) <: Int
+		"m3dis_$(snapid)"
+	else
+		snapid
+	end
+	MUST.M3DISRun(joinpath(folder, "spectra_$(i)_$(extension)"))
 end
 
 # ╔═╡ 5dc20e44-24eb-4e8f-bda1-fac7a1c0a5f4
@@ -240,13 +256,23 @@ begin
 	md"Save figure at: $(@bind structure_3D1D_figsave confirm(TextField(length(structure_3D1D_figsave_txt)+1, default=structure_3D1D_figsave_txt)))"
 end
 
+# ╔═╡ 9ccc4261-0b53-4083-b8a3-850f10994048
+md"""
+Formation height to overplot (3D): $(@bind formation_height_3D confirm(TextField(15)))
+"""
+
+# ╔═╡ e6f379f0-6cbf-4d74-9c5e-4fb567307eea
+md"""
+Formation height to overplot (1D): $(@bind formation_height_1D confirm(TextField(15)))
+"""
+
 # ╔═╡ c8ad7b76-d063-457b-809e-65b818c796f4
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(6, 5))
 	
 	# tau500 snapshot
-	b, bt = get_snapshot(-1, joinpath(datadir, structure_3D_select))
+	b, bt = get_snapshot(snapshot_id, joinpath(datadir, structure_3D_select))
 	plot_profile(b, bt, :T, ax=ax)
 	
 	# 1D model
@@ -255,7 +281,7 @@ let
 
 
 	# inset
-	left, bottom, width, height = [0.11, 0.51, 0.35, 0.3]
+	left, bottom, width, height = [0.15, 0.51, 0.35, 0.3]
 	ax2 = f.add_axes([left, bottom, width, height])
 	ax2.tick_params(labelsize=12)
 	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ500=0.0)[:T][:,:,1]
@@ -273,165 +299,27 @@ let
 	ax2.set_xlabel(L"\rm x\ [Mm]")
 
 	# formation height bars
-	#=ax.hlines(3100, -3.5, 0.0, ls="-", color="steelblue", alpha=0.8, lw=6)
-	ax.hlines(3450, -1.2, 0.0, ls="-", color="tomato", alpha=0.8, lw=6)
-	ax.text(0.1, 3100, "3D", ha="left", va="center", color="steelblue")
-	ax.text(0.1, 3450, "1D", ha="left", va="center", color="tomato")=#
-	
+	if length(formation_height_3D) > 0
+		ax.hlines(2800, parse(Float64, formation_height_3D), 0.0, ls="-", color="steelblue", alpha=0.8, lw=6)
+		ax.text(0.1, 2800, "3D", ha="left", va="center", color="steelblue")
+	end
+	if length(formation_height_1D) > 0
+		ax.hlines(3200, parse(Float64, formation_height_1D), 0.0, ls="-", color="tomato", alpha=0.8, lw=6)
+		ax.text(0.1, 3200, "1D", ha="left", va="center", color="tomato")
+	end	
 	
 	ax.set_xlabel(L"\rm optical\ depth\ [\log \tau_{500}]")
 	ax.set_ylabel(L"\rm temperature\ [K]")
 
-	ax.set_xlim(-4.2, 2.3)
-	ax.set_ylim(2300, 11000)
+	ax.set_xlim(-4.2, 1.7)
+	ax.set_ylim(2300, 10000)
+
+	ax.set_title(pretty_from_name(structure_3D_select))
+
+	@info "Model resolution (Nx, Ny, Nz): $(size(b))"
+	@info "Model resolution (km): $((maximum(b.z)-minimum(b.z)) / size(b, 3) ./1e5)"
 
 	f.savefig(structure_3D1D_figsave_txt*"_3D1D.pdf")
-	f
-end
-
-# ╔═╡ cd7eb05b-0622-4e82-a141-c049ecab95e2
-let
-	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
-	
-	# tau500 snapshot
-	b, bt = get_snapshot(-1, joinpath(datadir, structure_3D_select))
-	#plot_profile(b, bt, :T, ax=ax, xvar=:log10d)
-	
-	_, T = profile(mean, b, :z, :T)
-	_, d = profile(mean, b, :z, :log10d)
-	z, tau = profile(mean, b, :z, :log10τ500)
-
-	mask = sortperm(tau)
-	tau_ip = MUST.linear_interpolation(tau[mask], d[mask], extrapolation_bc=MUST.Line())
-	xlim = tau_ip.([-4.2, 2.9])
-	mask = xlim[1] .< d .< xlim[2]
-	ax.plot(d[mask], T[mask], color="steelblue", lw=3, label="CEMP")
-
-
-	# tau500 snapshot 2
-	b, bt = get_snapshot(-1, joinpath(datadir, same_scaled_solar(structure_3D_select)))
-	_, T = profile(mean, b, :z, :T)
-	_, d = profile(mean, b, :z, :log10d)
-	mask = xlim[1] .< d .< xlim[2]
-	ax.plot(d[mask], T[mask], color="k", lw=3.5, label="scaled-solar", ls="--")
-	
-	
-	# 1D model
-	bmarcs = get_snapshot(structure_1D_select, joinpath(datadir, structure_3D_select))
-	_, T = profile(mean, bmarcs, :z, :T)
-	_, d = profile(mean, bmarcs, :z, :log10d)
-	mask = xlim[1] .< d .< xlim[2]
-	ax.plot(d[mask], T[mask], color="tomato", lw=3, label="1D MARCS")
-
-
-	# inset
-	#=left, bottom, width, height = [0.11, 0.51, 0.35, 0.3]
-	ax2 = f.add_axes([left, bottom, width, height])
-	ax2.tick_params(labelsize=12)
-	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ500=0.0)[:T][:,:,1]
-	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
-	im = ax2.imshow(
-		Tplane', 
-		rasterized=true, 
-		origin="lower",
-		extent=extent,
-		cmap="gist_heat",
-		aspect="equal"
-	)
-	cbar = f.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
-	ax2.set_title(L"\rm temperature\ [K]")
-	ax2.set_xlabel(L"\rm x\ [Mm]")=#
-
-	# formation height bars
-	#=ax.hlines(3100, -3.5, 0.0, ls="-", color="steelblue", alpha=0.8, lw=6)
-	ax.hlines(3450, -1.2, 0.0, ls="-", color="tomato", alpha=0.8, lw=6)
-	ax.text(0.1, 3100, "3D", ha="left", va="center", color="steelblue")
-	ax.text(0.1, 3450, "1D", ha="left", va="center", color="tomato")=#
-	
-	
-	ax.set_xlabel(L"\rm density\ [g\ cm^{-3}]")
-	ax.set_ylabel(L"\rm temperature\ [K]")
-	ax.set_xlim(xlim...)
-	#ax.set_ylim(2300, 10000)
-	ax.legend()
-
-	#ax.set_xlim(-4.2, 2.3)
-	#ax.set_ylim(2300, 11000)
-
-	f.savefig(structure_3D1D_figsave_txt*"_Trho_3D1D.pdf")
-
-	f
-end
-
-# ╔═╡ 1e448509-7bfe-41a5-85f1-6df811aa6548
-let
-	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
-	
-	# tau500 snapshot
-	b, bt = get_snapshot(-1, joinpath(datadir, structure_3D_select))
-	#plot_profile(b, bt, :T, ax=ax, xvar=:log10d)
-
-	xlim = [-4.2, 2.9]
-	
-	_, T = profile(mean, bt, :z, :T)
-	_, d = profile(mean, bt, :z, :log10τ500)
-	mask = xlim[1] .< d .< xlim[2]
-	ax.plot(d[mask], T[mask], color="steelblue", lw=3, label="CEMP")
-
-
-	# tau500 snapshot 2
-	b, bt = get_snapshot(-1, joinpath(datadir, same_scaled_solar(structure_3D_select)))
-	_, T = profile(mean, bt, :z, :T)
-	_, d = profile(mean, bt, :z, :log10τ500)
-	mask = xlim[1] .< d .< xlim[2]
-	ax.plot(d[mask], T[mask], color="k", lw=3.5, label="scaled-solar", ls="--")
-	
-	
-	# 1D model
-	bmarcs = get_snapshot(structure_1D_select, joinpath(datadir, structure_3D_select))
-	_, T = profile(mean, bmarcs, :z, :T)
-	_, d = profile(mean, bmarcs, :z, :log10τ500)
-	mask = xlim[1] .< d .< xlim[2]
-	ax.plot(d[mask], T[mask], color="tomato", lw=3, label="1D MARCS")
-
-
-	# inset
-	#=left, bottom, width, height = [0.11, 0.51, 0.35, 0.3]
-	ax2 = f.add_axes([left, bottom, width, height])
-	ax2.tick_params(labelsize=12)
-	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ500=0.0)[:T][:,:,1]
-	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
-	im = ax2.imshow(
-		Tplane', 
-		rasterized=true, 
-		origin="lower",
-		extent=extent,
-		cmap="gist_heat",
-		aspect="equal"
-	)
-	cbar = f.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
-	ax2.set_title(L"\rm temperature\ [K]")
-	ax2.set_xlabel(L"\rm x\ [Mm]")=#
-
-	# formation height bars
-	#=ax.hlines(3100, -3.5, 0.0, ls="-", color="steelblue", alpha=0.8, lw=6)
-	ax.hlines(3450, -1.2, 0.0, ls="-", color="tomato", alpha=0.8, lw=6)
-	ax.text(0.1, 3100, "3D", ha="left", va="center", color="steelblue")
-	ax.text(0.1, 3450, "1D", ha="left", va="center", color="tomato")=#
-	
-	
-	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
-	ax.set_ylabel(L"\rm temperature\ [K]")
-	ax.set_xlim(xlim...)
-	#ax.set_ylim(2300, 11000)
-	ax.legend()
-
-	#ax.set_ylim(2300, 11000)
-
-	f.savefig(structure_3D1D_figsave_txt*"_Ttau_3D1D.pdf")
-
 	f
 end
 
@@ -443,7 +331,7 @@ md"## Two Model comparison"
 
 # ╔═╡ 55b53af5-c8d3-4086-ac92-5995002d8c37
 md"""
-3D model (A): $(@bind structure_3D_select_A Select(models, default=first(models)))
+3D model (A): $(@bind structure_3D_select_A Select(cemp_models, default=first(cemp_models)))
 """
 
 # ╔═╡ 3b07d6ba-0e3f-484c-b3f8-da3840f5d020
@@ -453,7 +341,7 @@ md"""
 
 # ╔═╡ 56a77efd-66d5-47aa-934b-99e3d1aff0a8
 md"""
-3D model (B): $(@bind structure_3D_select_B Select(models, default=first(models)))
+3D model (B): $(@bind structure_3D_select_B Select(cemp_models, default=last(cemp_models)))
 """
 
 # ╔═╡ 989f922a-9596-4045-b4fc-186a18ca5725
@@ -470,13 +358,19 @@ begin
 	md"Save figure at: $(@bind structure_3D3D_figsave confirm(TextField(length(structure_3D3D_figsave_txt)+1, default=structure_3D3D_figsave_txt)))"
 end
 
+# ╔═╡ 687bd929-41a2-416e-ad7a-681e98096c98
+begin
+	test_model_marcs = MUST.readdlm("../marcs_cemp_5800_4.5_-5.txt", skipstart=2)
+end;
+
 # ╔═╡ 212b2d0b-fbcc-4934-8ebb-627545fea549
 let
 	plt.close()
-	f, ax = plt.subplots(2, 2, figsize=(6, 7), sharey=true)
-	plt.subplots_adjust(wspace=0.02, hspace=0.02)
-
-	xlim_tau = [-4.2, 0.2]
+	f, ax = plt.subplots(2, 2, figsize=(8, 11), sharey=true)
+	plt.subplots_adjust(wspace=0.02, hspace=0.15)
+	#plt.subplots_adjust(wspace=0.02, hspace=0.02)
+	
+	xlim_tau = [-4.1, 0.2]
 
 	plot_type = :all
 	fig_label = if plot_type == :marcs
@@ -489,13 +383,31 @@ let
 		"_all.pdf"
 	end
 
+	# overplot the example model
+	minfo_B = MUST.ModelInformation(structure_3D_select_B)
+	minfo_A = MUST.ModelInformation(structure_3D_select_A)
+	ax_index = if (minfo_A.teff==5750.0) && (minfo_A.logg==4.5) && (minfo_A.feh==-5.0)
+		0
+	elseif (minfo_B.teff==5750.0) && (minfo_B.logg==4.5) && (minfo_B.feh==-5.0)
+		1
+	else
+		nothing
+	end
+
+	upsample(x, y; N=30) = begin
+		ma = sortperm(x)
+		ip = MUST.linear_interpolation(x[ma], y[ma])
+		x_new = range(minimum(x), maximum(x), length=N) |> collect
+		x_new, ip.(x_new)
+	end
+
 	panel_data(b1, b2, bmarcs, x, y; average_on=:z) = begin
 		_, y1 = profile(mean, b1, average_on, y)
 		_, x1 = profile(mean, b1, average_on, x)
 		z, tau = profile(mean, b1, average_on, :log10τ500)
-	
-		mask = sortperm(tau)
-		tau_ip = MUST.linear_interpolation(tau[mask], x1[mask], extrapolation_bc=MUST.Line())
+		
+		maskl = sortperm(tau)
+		tau_ip = MUST.linear_interpolation(tau[maskl], x1[maskl], extrapolation_bc=MUST.Flat())
 		xl = tau_ip.(xlim_tau)
 		
 		# tau500 snapshot 2
@@ -509,20 +421,28 @@ let
 		x1, y1, x2, y2, x3, y3, xl
 	end
 	
-	plot_panel!(ax, d, T, d2, T2, d3, T3, xlim) = begin
-		if (plot_type == :carbonmarcs) | (plot_type == :carbon) | (plot_type == :all) 
-			mask = xlim[1] .< d .< xlim[2]
-			ax.plot(d[mask], T[mask], color="steelblue", lw=3, label="CEMP")
-		end
-		
+	plot_panel!(ax, d, T, d2, T2, d3, T3, xlim; add_test=nothing) = begin
 		if (plot_type == :marcs) | (plot_type == :carbonmarcs) | (plot_type == :all) 
 			mask = xlim[1] .< d3 .< xlim[2]
-			ax.plot(d3[mask], T3[mask], color="tomato", lw=3, label="1D MARCS")
+			ax.plot(d3[mask], T3[mask], color="tomato", lw=3, label=L"\rm 1D\  \text{scaled-solar}")
+
+			if !isnothing(add_test)
+				x_test = log10.(test_model_marcs[:, add_test])
+				mask = xlim[1] .< x_test .< xlim[2]
+				ax.plot(upsample(x_test[mask], test_model_marcs[mask, 3] .- 50)..., lw=1, color="tomato", marker="x", ls="", label="1D CEMP", markersize=7)
+			else
+				ax.plot([], [], lw=1, color="tomato", marker="x", ls="", label="1D CEMP", markersize=7)
+			end
 		end
-		
+
 		if (plot_type == :marcs) | (plot_type == :carbon) | (plot_type == :all) 
 			mask = xlim[1] .< d2 .< xlim[2]
-			ax.plot(d2[mask], T2[mask], color="k", lw=3.5, label="scaled-solar", ls="--")
+			ax.plot(upsample(d2[mask], T2[mask])..., color="steelblue", lw=3.5, label=L"\rm 3D\ \text{scaled-solar}", ls="-")
+		end
+
+		if (plot_type == :carbonmarcs) | (plot_type == :carbon) | (plot_type == :all) 
+			mask = xlim[1] .< d .< xlim[2]
+			ax.plot(upsample(d[mask], T[mask])..., color="steelblue", lw=1, label=L"\rm 3D\ CEMP", ls="", marker="x", markersize=7)
 		end
 	end
 	
@@ -594,10 +514,10 @@ let
 	begin
 		xlim_top = [min(xlim1[1], xlim1B[1]), max(xlim1[2], xlim1B[2])]
 		xlim_bottom = [min(xlim2[1], xlim2B[1]), max(xlim2[2], xlim2B[2])]
-		plot_panel!(ax[0,0], d1, T1, d2, T2, d3, T3, xlim1)
-		plot_panel!(ax[0,1], d1B, T1B, d2B, T2B, d3B, T3B, xlim1B)
-		plot_panel!(ax[1,0], tau1, tT1, tau2, tT2, tau3, tT3, xlim_bottom)
-		plot_panel!(ax[1,1], tau1B, tT1B, tau2B, tT2B, tau3B, tT3B, xlim_bottom)
+		plot_panel!(ax[0,0], d1, T1, d2, T2, d3, T3, xlim1, add_test=ax_index==0 ? 5 : nothing)
+		plot_panel!(ax[0,1], d1B, T1B, d2B, T2B, d3B, T3B, xlim1B, add_test=ax_index==1 ? 5 : nothing)
+		plot_panel!(ax[1,0], tau1, tT1, tau2, tT2, tau3, tT3, xlim_bottom, add_test=ax_index==0 ? 2 : nothing)
+		plot_panel!(ax[1,1], tau1B, tT1B, tau2B, tT2B, tau3B, tT3B, xlim_bottom, add_test=ax_index==1 ? 2 : nothing)
 
 		ax[0,0].set_xlim(xlim1...)
 		ax[0,1].set_xlim(xlim1B...)
@@ -606,7 +526,11 @@ let
 
 		ax[0,0].set_xlabel(L"\rm density\ [g\ cm^{-3}]")
 		ax[0,0].set_ylabel(L"\rm temperature\ [K]")
-		ax[0,1].legend()
+
+		
+		ax[0,0].legend(loc="center", bbox_to_anchor=(0.4, 0.74), labelspacing=0.1)
+		ax[1,0].legend(loc="center", bbox_to_anchor=(0.4, 0.74), labelspacing=0.1)
+		
 
 		ax[0,1].set_xlabel(L"\rm density\ [g\ cm^{-3}]")
 		#ax[0,0].set_ylabel(L"\rm temperature\ [K]")
@@ -620,33 +544,67 @@ let
 		#ax[0,0].legend()
 	end
 
-	ax[0,1].tick_params(labelright=false, labelleft=false, labeltop=true, labelbottom=false)
-	ax[0,0].tick_params(labeltop=true, labelbottom=false)
-	ax[0,1].yaxis.set_label_position("right")
-	ax[0,0].xaxis.set_label_position("top")
-	ax[0,1].xaxis.set_label_position("top")
+	#ax[0,1].tick_params(labelright=false, labelleft=false, labeltop=true, labelbottom=false)
+	#ax[0,0].tick_params(labeltop=true, labelbottom=false)
+	#ax[0,1].yaxis.set_label_position("right")
+	#ax[0,0].xaxis.set_label_position("top")
+	#ax[0,1].xaxis.set_label_position("top")
 
 	ax[1,1].tick_params(labelright=false, labelleft=false)
 	ax[1,1].yaxis.set_label_position("right")
 	
-	ax[0,0].xaxis.set_major_locator(plt.MaxNLocator(3))
-	ax[0,1].xaxis.set_major_locator(plt.MaxNLocator(3))
-	
+	ax[0,0].xaxis.set_major_locator(plt.MaxNLocator(5))
+	ax[0,1].xaxis.set_major_locator(plt.MaxNLocator(5))
+	ax[1,0].xaxis.set_major_locator(plt.MaxNLocator(5))
+	ax[1,1].xaxis.set_major_locator(plt.MaxNLocator(5))
+
+	# parameter labels
+	ax[0,0].text(
+		0.5,0.95,pretty_from_name_short(structure_3D_select_A),
+		ha="center",va="top", transform=ax[0,0].transAxes, 
+		fontsize="medium", bbox=Dict("facecolor"=>"none", "edgecolor"=>"k")
+	)
+	ax[0,1].text(
+		0.5,0.95,pretty_from_name_short(structure_3D_select_B),
+		ha="center",va="top", transform=ax[0,1].transAxes, 
+		fontsize="medium", bbox=Dict("facecolor"=>"none", "edgecolor"=>"k")
+	)
 	ax[1,0].text(
 		0.5,0.95,pretty_from_name_short(structure_3D_select_A),
 		ha="center",va="top", transform=ax[1,0].transAxes, 
-		fontsize="small", bbox=Dict("facecolor"=>"none", "edgecolor"=>"k")
+		fontsize="medium", bbox=Dict("facecolor"=>"none", "edgecolor"=>"k")
 	)
 	ax[1,1].text(
 		0.5,0.95,pretty_from_name_short(structure_3D_select_B),
 		ha="center",va="top", transform=ax[1,1].transAxes, 
-		fontsize="small", bbox=Dict("facecolor"=>"none", "edgecolor"=>"k")
+		fontsize="medium", bbox=Dict("facecolor"=>"none", "edgecolor"=>"k")
 	)
 
-	f.savefig(structure_3D3D_figsave_txt*fig_label)
+	# panel labels
+	ax[0,0].text(
+		0.95,0.95,"A",
+		ha="right",va="top", transform=ax[0,0].transAxes, fontweight="bold"
+	)
+	ax[0,1].text(
+		0.95,0.95,"B",
+		ha="right",va="top", transform=ax[0,1].transAxes, fontweight="bold"
+	)
+	ax[1,0].text(
+		0.95,0.95,"C",
+		ha="right",va="top", transform=ax[1,0].transAxes, fontweight="bold"
+	)
+	ax[1,1].text(
+		0.95,0.95,"D",
+		ha="right",va="top", transform=ax[1,1].transAxes, fontweight="bold"
+	)
+
+	f.savefig(structure_3D3D_figsave*fig_label, bbox_inches="tight")
 	
 	f
 end
+
+# ╔═╡ bb9ebb4c-4065-4b5c-82a6-05d88be2c55e
+
 
 # ╔═╡ 45cd645d-055d-41a7-a7e9-0f0867d0d183
 
@@ -672,12 +630,20 @@ end
 # ╔═╡ 685e9c27-dc91-4f82-8112-998383271de0
 if !isnothing(spectra_CEMP_select)
 	spectra_3D1D_tag_txt= "GBand_DC+0"
-	md"Spectra to show: $(@bind spectra_3D1D_tag confirm(TextField(length(spectra_3D1D_tag_txt)+5, default=spectra_3D1D_tag_txt)))"
+	md"Spectra to show (CEMP): $(@bind spectra_3D1D_tag confirm(TextField(length(spectra_3D1D_tag_txt)+5, default=spectra_3D1D_tag_txt)))"
+else
+	spectra_3D1D_tag = "GBand_DC+0"
+	""
+end
+
+# ╔═╡ c7fb5cc8-5a09-47d7-bb4a-579fb5a085f9
+if !isnothing(spectra_CEMP_select)
+	md"Spectra to show (scaled-solar): $(@bind spectra_3D1D_ss_tag confirm(TextField(length(spectra_3D1D_tag_txt)+5, default=spectra_3D1D_tag_txt)))"
 end
 
 # ╔═╡ 136db4eb-c274-46ef-bac2-03a3bf300cac
 if !isnothing(spectra_CEMP_select)
-	spectra_3D1D_figsave_txt = "$(spectra_CEMP_select)_structure_3D1D.pdf"
+	spectra_3D1D_figsave_txt = "$(spectra_CEMP_select)_spectrum.pdf"
 	md"Save figure at: $(@bind spectra_3D1D_figsave confirm(TextField(length(spectra_3D1D_figsave_txt)+1, default=spectra_3D1D_figsave_txt)))"
 end
 
@@ -687,9 +653,9 @@ let
 	f, ax = plt.subplots(1, 1, figsize=(12, 4))
 	
 	# 3D CEMP spectrum
-	b = get_spectra(-1, joinpath(datadir, spectra_CEMP_select))
+	b = get_spectra(snapshot_id, joinpath(datadir, spectra_CEMP_select))
 	λ, F = MUST.mean_integrated_flux(b, Symbol(spectra_3D1D_tag))
-	ax.plot(λ, F, color="k", lw=1.7, label="CEMP")
+	ax.plot(λ, F, color="k", lw=1.7, label=L"\rm 3D\ CEMP")
 
 	# scaled-solar
 	smod = scaledSolar_models[
@@ -700,28 +666,38 @@ let
 			) for a in scaledSolar_models
 		)
 	]
-	b = get_spectra(-1, joinpath(datadir, smod))
-	λ, F = MUST.mean_integrated_flux(b, Symbol(spectra_3D1D_tag))
-	ax.plot(λ, F, color="steelblue", lw=1.7, label="non-CEMP", ls="--")
+	b = get_spectra(snapshot_id, joinpath(datadir, smod))
+	λ, F = MUST.mean_integrated_flux(b, Symbol(spectra_3D1D_ss_tag))
+	ax.plot(λ, F, color="steelblue", lw=1.7, label=L"\rm 3D\ \text{scaled-solar}", ls="--")
 
 	
 	# 1D model
-	bmarcs = get_spectra(spectra_1D_select, joinpath(datadir, spectra_CEMP_select))
-	λM, FM = MUST.mean_integrated_flux(bmarcs, Symbol(spectra_3D1D_tag))
-	ax.plot(λM, FM, color="tomato", lw=1.7, label="MARCS")
+	try
+		bmarcs = get_spectra(spectra_1D_select, joinpath(datadir, spectra_CEMP_select))
+		λM, FM = MUST.mean_integrated_flux(bmarcs, Symbol(spectra_3D1D_tag))
+		ax.plot(λM, FM, color="tomato", lw=1.7, label=L"\rm 1D")
+	catch
+		nothing
+	end
 
 
 	ax.set_xlabel(L"\rm wavelength\ [\AA]")
 	ax.set_ylabel(L"\rm flux\ [normalized]")
-	ax.legend(loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.05))
+	ax.legend(loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.05), framealpha=0)
 
-	ax.set_ylim(-0.11, 1.01)
+	ax.set_ylim(-0.14, 1.01)
 	ax.set_xlim(4297, 4303)
 
-	#f.savefig(spectra_3D1D_figsave)
+	cs = b[MUST.spectra_key_from_tag("composition", Symbol(spectra_3D1D_tag))]
+	ax.set_title(pretty_from_name(spectra_CEMP_select)*L"\rm,\ [C/Fe]="*"$(MUST.abundance_from_composition_string(cs, "[C/Fe]"))")
+
+	f.savefig(spectra_3D1D_figsave)
 	f
 end
 end
+
+# ╔═╡ 3fef366c-b34b-4747-ac5c-7e3ef5377ef8
+
 
 # ╔═╡ efae7789-e54d-46fa-ae43-063575e522bf
 
@@ -779,19 +755,37 @@ spectra_name_models = [
 	"GBand_DC+0",
 	"GBand_DC+02",
 	"GBand_DC+04",
-	"GBand_DC+06",
-	"GBand_DC+08",
+	#"GBand_DC+06",
+	#"GBand_DC+08",
+	"GBand_DC-01",
 	"GBand_DC-02",
+	"GBand_DC-03",
 	"GBand_DC-04",
+	"GBand_DC-05",
 	"GBand_DC-06",
-	"GBand_DC-08"
+	"GBand_DC-07",
+	"GBand_DC-08",
+	"GBand_DC-10",
+	"GBand_DC-12"
+]
+
+# ╔═╡ 4f2b6d24-9157-47ea-a11b-53a30dc34c7a
+spectra_reference_interpolation = [
+	"GBand_DC+0",
+	"GBand_DC-01",
+	"GBand_DC-02",
+	"GBand_DC+02",
 ]
 
 # ╔═╡ 4ff6bac5-7f46-4f4b-a221-8b75bdb6b53f
 begin
 	corrections_1D = []
+	corrections_ss_1D = []
+	corrections_3D = []
 	for i in eachindex(cemp_models_for_each_parameter)
 		metallicity_corrections = Dict()
+		metallicity_ss_corrections = Dict()
+		metallicity_corrections_3D = Dict()
 		
 		for j in eachindex(cemp_models_for_each_parameter[i])
 			# current model
@@ -800,10 +794,46 @@ begin
 			# current metallicity
 			feh = MUST.ModelInformation(model3D_name).feh
 
-			# current model spectra
-			model3D = get_spectra(-1, joinpath(datadir, model3D_name))
-
 			metallicity_corrections[feh] = []
+			metallicity_ss_corrections[feh] = []
+			metallicity_corrections_3D[feh] = []
+
+			# current model spectra
+			model3D = get_spectra(snapshot_id, joinpath(datadir, model3D_name))
+
+			# compute corrections w.r.t to the scaled solar model
+			scaledsolarmodel = get_spectra(
+				snapshot_id, joinpath(datadir, same_scaled_solar(model3D_name))
+			)
+
+			@show same_scaled_solar(model3D_name)
+			ab_ref, ew_ref, ab, ew, Δab = try
+				MUST.curve_of_growth(
+					"[C/Fe]", 
+					scaledsolarmodel, spectra_name_reference,
+					model3D, spectra_name_models,
+				)
+			catch
+				@warn "Problem detected. Try interpolating ther reference"
+				ab_test = MUST.abundance_from_tag(model3D, spectra_name_reference, "[C/Fe]")
+				MUST.curve_of_growth(
+					"[C/Fe]", 
+					scaledsolarmodel, spectra_reference_interpolation,
+					model3D, spectra_name_models,
+					interpolate_reference_to=ab_test
+				)
+			end
+			ac = AbundanceCorrection(
+				same_scaled_solar(model3D_name),
+				model3D_name,
+				ab_ref,
+				ew_ref,
+				ab,
+				ew,
+				Δab,
+			)
+			append!(metallicity_corrections_3D[feh], [ac])
+
 			for marcsmodelname in marcsmodels[model3D_name]			
 				# compute corrections w.r.t all MARCS models
 				marcsmodel = get_spectra(
@@ -824,12 +854,31 @@ begin
 					Δab,
 				)
 				append!(metallicity_corrections[feh], [ac])
+
+				# same for the scaled solar model
+				ab_ref, ew_ref, ab, ew, Δab = MUST.curve_of_growth(
+					"[C/Fe]", 
+					marcsmodel, spectra_name_reference,
+					scaledsolarmodel, spectra_name_models,
+				)
+				ac = AbundanceCorrection(
+					marcsmodelname,
+					same_scaled_solar(model3D_name),
+					ab_ref,
+					ew_ref,
+					ab,
+					ew,
+					Δab,
+				)
+				append!(metallicity_ss_corrections[feh], [ac])
 			end
 		end
 
 		# in metallicity_corrections we have stored the abundance corrections
 		# for each metallicity of a given set of parameters
 		append!(corrections_1D, [metallicity_corrections])
+		append!(corrections_ss_1D, [metallicity_ss_corrections])
+		append!(corrections_3D, [metallicity_corrections_3D])
 	end
 end
 
@@ -963,6 +1012,96 @@ begin
 	@info "1D corrections computed."
 end;
 
+# ╔═╡ 8d19d381-a19e-4073-a19a-39bd2ff1be7c
+begin
+	corrections_feh_ss_1D = [
+		read_z_corrections(
+			corrections_ss_1D[i],
+			:closest, vmic=1
+		) for i in eachindex(corrections_ss_1D)
+	]
+	
+	ab_feh_ss_1D = [
+		read_z_corrections(
+			corrections_ss_1D[i],
+			:closest, vmic=1, what=:ab
+		) for i in eachindex(corrections_ss_1D)
+	]
+	
+	ew_feh_ss_1D = [
+		read_z_corrections(
+			corrections_ss_1D[i],
+			:closest, vmic=1, what=:ew
+		) for i in eachindex(corrections_ss_1D)
+	]
+	
+	ab_ref_feh_ss_1D = [
+		read_z_corrections(
+			corrections_ss_1D[i],
+			:closest, vmic=1, what=:ab_ref
+		) for i in eachindex(corrections_ss_1D)
+	]
+	
+	ew_ref_feh_ss_1D = [
+		read_z_corrections(
+			corrections_ss_1D[i],
+			:closest, vmic=1, what=:ew_ref
+		) for i in eachindex(corrections_ss_1D)
+	]
+	
+	correctionfunctions_feh_ss_1D = [
+		MUST.linear_interpolation(
+			corrections_feh_ss_1D[i][1], corrections_feh_ss_1D[i][2], extrapolation_bc=MUST.Line()
+		) for i in eachindex(corrections_feh_ss_1D)
+	]
+	@info "1D (scaled-solar) corrections computed."
+end;
+
+# ╔═╡ ffd0e8b7-7c9a-4e51-9a1e-1982dc59754c
+begin
+	corrections_feh_3D = [
+		read_z_corrections(
+			corrections_3D[i],
+			:closest
+		) for i in eachindex(corrections_3D)
+	]
+	
+	ab_feh_3D = [
+		read_z_corrections(
+			corrections_3D[i],
+			:closest, what=:ab
+		) for i in eachindex(corrections_3D)
+	]
+	
+	ew_feh_3D = [
+		read_z_corrections(
+			corrections_3D[i],
+			:closest, what=:ew
+		) for i in eachindex(corrections_3D)
+	]
+	
+	ab_ref_feh_3D = [
+		read_z_corrections(
+			corrections_3D[i],
+			:closest, what=:ab_ref
+		) for i in eachindex(corrections_3D)
+	]
+	
+	ew_ref_feh_3D = [
+		read_z_corrections(
+			corrections_3D[i],
+			:closest, what=:ew_ref
+		) for i in eachindex(corrections_3D)
+	]
+	
+	correctionfunctions_feh_3D = [
+		MUST.linear_interpolation(
+			corrections_feh_3D[i][1], corrections_feh_3D[i][2], extrapolation_bc=MUST.Line()
+		) for i in eachindex(corrections_feh_3D)
+	]
+	@info "3D corrections computed."
+end;
+
 # ╔═╡ 87aaadf1-2d46-4d14-8723-8c843040d1d1
 
 
@@ -970,45 +1109,93 @@ end;
 let
 	plt.close()
 
-	f, ax = plt.subplots(1, 2, figsize=(8, 6), sharex=true, sharey=true)
+	f, ax = plt.subplots(1, 3, figsize=(12, 4), sharex=true, sharey=true)
 	plt.subplots_adjust(wspace=0)
 
 	
 	ax[0].axhline(0.0, color="0.5", lw=1, ls=":")
 	ax[1].axhline(0.0, color="0.5", lw=1, ls=":")
+	ax[2].axhline(0.0, color="0.5", lw=1, ls=":")
 	
 
 	color = ["tomato", "steelblue"]
 	ls = ["-", "--"]
-	lw = [3.5, 3.5]
+	lw = [2.5, 2.5]
 	marker = ["s", "s"]
 	markerfacecolor = ["tomato", "steelblue"]
+	markersize=10
 
-	for i in eachindex(corrections_feh_1D)
+	for i in eachindex(corrections_feh_ss_1D)
 		ax[0].plot(
-			corrections_feh_1D[i][1], corrections_feh_1D[i][2], 
+			corrections_feh_ss_1D[i][1], corrections_feh_ss_1D[i][2], 
 			color=color[i], marker=marker[i], ls=ls[i], lw=lw[i],
-			markersize=12, markerfacecolor=markerfacecolor[i], markeredgewidth=2,
-			label=L"\rm T_{eff}="*"$(round(Int,abundance_correction_parameters[i][1]))"*L"\rm \ K"*"\n"*"log(g)="*"$(round(abundance_correction_parameters[i][2], digits=2))"
-			#label="$(round(Int,abundance_correction_parameters[i][1])) K, $(round(abundance_correction_parameters[i][2], digits=2))"
+			markersize=markersize, markerfacecolor=markerfacecolor[i], markeredgewidth=2,
+			#label=L"\rm T_{eff}="*"$(round(Int,abundance_correction_parameters[i][1]))"*L"\rm \ K"*"\n"*"log(g)="*"$(round(abundance_correction_parameters[i][2], digits=2))"
+			label="$(round(Int,abundance_correction_parameters[i][1])) K, $(round(abundance_correction_parameters[i][2], digits=2))"
 		)
 	end
 
-	ax[0].legend(ncol=1, loc="upper center")
+	for i in eachindex(corrections_feh_3D)
+		ax[1].plot(
+			corrections_feh_3D[i][1], corrections_feh_3D[i][2], 
+			color=color[i], marker=marker[i], ls=ls[i], lw=lw[i],
+			markersize=markersize, markerfacecolor=markerfacecolor[i], markeredgewidth=2,
+			#label=L"\rm T_{eff}="*"$(round(Int,abundance_correction_parameters[i][1]))"*L"\rm \ K"*"\n"*"log(g)="*"$(round(abundance_correction_parameters[i][2], digits=2))"
+			label="$(round(Int,abundance_correction_parameters[i][1])) K, $(round(abundance_correction_parameters[i][2], digits=2))"
+		)
+	end
+
+	for i in eachindex(corrections_feh_1D)
+		ax[2].plot(
+			corrections_feh_1D[i][1], corrections_feh_1D[i][2], 
+			color=color[i], marker=marker[i], ls=ls[i], lw=lw[i],
+			markersize=markersize, markerfacecolor=markerfacecolor[i], markeredgewidth=2,
+			#label=L"\rm T_{eff}="*"$(round(Int,abundance_correction_parameters[i][1]))"*L"\rm \ K"*"\n"*"log(g)="*"$(round(abundance_correction_parameters[i][2], digits=2))"
+			label="$(round(Int,abundance_correction_parameters[i][1])) K, $(round(abundance_correction_parameters[i][2], digits=2))"
+		)
+	end
+
+	# panel labels
+	ax[0].text(
+		0.95,0.95,"A",
+		ha="right",va="top", transform=ax[0].transAxes, fontweight="bold"
+	)
+	ax[1].text(
+		0.95,0.95,"B",
+		ha="right",va="top", transform=ax[1].transAxes, fontweight="bold"
+	)
+	ax[2].text(
+		0.95,0.95,"C",
+		ha="right",va="top", transform=ax[2].transAxes, fontweight="bold"
+	)
+
+	ax[1].legend(ncol=1, loc="lower center")
 	ax[0].set_xlabel(L"\rm [Fe/H]")
 	ax[1].set_xlabel(L"\rm [Fe/H]")
+	ax[2].set_xlabel(L"\rm [Fe/H]")
 	ax[0].set_ylabel(L"\rm \Delta\ A(C)\ [dex]")
-	ax[0].set_ylim(-0.79, 0.47)
+	ax[0].set_ylim(-0.97, 0.37)
 	ax[0].set_xlim(-6.3, -1.7)
 
-	ax[0].set_title(L"\rm 3D\ CEMP - 1D")
-	ax[1].set_title(L"\rm 3D\ CEMP - 3D\ non\ CEMP")
+	ax[0].set_title(L"\rm 3D\ \text{scaled-solar} - 1D")
+	ax[1].set_title(L"\rm 3D\ CEMP - 3D\ \text{scaled-solar}")
+	ax[2].set_title(L"\rm 3D\ CEMP - 1D")
+
+	
+	#=ax[0].text(0.07, 0.5, L"\rm 3D\ \text{scaled-solar} - 1D", rotation=90, transform=ax[0].transAxes, ha="left", va="center", alpha=0.7, bbox=Dict("facecolor"=>"none", "edgecolor"=>"k"))
+	ax[1].text(0.07, 0.5, L"\rm 3D\ CEMP - 3D\ \text{scaled-solar}", rotation=90, transform=ax[1].transAxes, ha="left", va="center", alpha=0.7, bbox=Dict("facecolor"=>"none", "edgecolor"=>"k"))
+	ax[2].text(0.07, 0.5, L"\rm 3D\ CEMP - 1D", rotation=90, transform=ax[2].transAxes, ha="left", va="center", alpha=0.7, bbox=Dict("facecolor"=>"none", "edgecolor"=>"k"))
+	=#
+	f.savefig("abundance_corrections_split.pdf", bbox_inches="tight")
 
 	f
 end
 
 # ╔═╡ 093b3783-af82-4e34-a1e6-65a0df5bb35c
 
+
+# ╔═╡ c85b36d4-ff22-4ba6-a4d1-c1791fd94ee2
+md"## CoG"
 
 # ╔═╡ 3a59080e-f925-48c7-b01d-660c45a7f541
 md"Choose parameters: $(@bind i_cog_p_select Select([i=>a for (i, a) in enumerate(abundance_correction_parameters)]))"
@@ -1021,7 +1208,7 @@ end
 
 # ╔═╡ 2dd8fd87-f543-413e-b8f3-4187ff67e52c
 let
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+	f, ax = plt.subplots(1, 1, figsize=(6, 6))
 
 	feh_cog_select = ab_feh_1D[i_cog_p_select][1]
 	i_cog_feh_select = argmin(abs.(feh_cog_select .- cog_z_select))
@@ -1032,18 +1219,29 @@ let
 	ew_ref = ew_ref_feh_1D[i_cog_p_select][2][i_cog_feh_select]
 	Δab = corrections_feh_1D[i_cog_p_select][2][i_cog_feh_select]
 
+	ab_ref_3D = ab_ref_feh_3D[i_cog_p_select][2][i_cog_feh_select]
+	ew_ref_3D = ew_ref_feh_3D[i_cog_p_select][2][i_cog_feh_select]
+	Δab_3D = corrections_feh_3D[i_cog_p_select][2][i_cog_feh_select]
+
 	ew_int = MUST.linear_interpolation(ab, ew, extrapolation_bc=MUST.Line())
 	da = maximum(ab) - minimum(ab)
 	ab_arr = range(minimum(ab) - 0.1*da, maximum(ab) +0.1*da, length=100)
 	ew_arr = ew_int.(ab_arr)
+	
 	ax.plot(
 		ab_arr, ew_arr, 
 		marker="", color="k", markersize=10, ls="--"
 	)
-	ax.plot(ab, ew, marker="s", color="k", label="3D", markersize=11, ls="", markerfacecolor="w", markeredgewidth=2)
+	ax.plot(ab, ew, marker="s", color="k", label="3D CEMP", markersize=11, ls="", markerfacecolor="w", markeredgewidth=2)
+	
 	ax.plot([ab_ref], [ew_ref], 
 		marker="X", color="tomato", ls="",
 		label="1D", markersize=12
+	)
+
+	ax.plot([ab_ref_3D], [ew_ref_3D], 
+		marker="X", color="steelblue", ls="",
+		label="3D scaled-solar", markersize=12
 	)
 
 	ax.set_ylabel(L"\rm EW\ [\AA]")
@@ -1053,18 +1251,30 @@ let
 	ax.set_title(paras_as_name*L"\rm ,\ [Fe/H] ="*"$(cog_z_select)")
 	ax.text(
 		0.95, 0.05, 
-		L"\rm \Delta [C/Fe]="*"$(round(Δab, sigdigits=2))",
+		L"\rm \Delta [C/Fe]_{1D}="*"$(round(Δab, sigdigits=2))",
 		ha="right", va="bottom", transform=ax.transAxes,
 		color="tomato",
 	)
+	ax.text(
+		0.95, 0.11, 
+		L"\rm \Delta [C/Fe]_{CEMP}="*"$(round(Δab_3D, sigdigits=2))",
+		ha="right", va="bottom", transform=ax.transAxes,
+		color="steelblue",
+	)
 	ax.set_xlim(minimum(ab_arr), maximum(ab_arr))
 
-	ax.axvline(ab_ref, color="k", alpha=0.5, ls=":", zorder=0, lw=1.5)
-	ax.axvline(ab_ref+ Δab, color="k", alpha=0.5, ls=":", zorder=0, lw=1.5)
-	ax.axhline(ew_int(ab_ref + Δab), color="k", alpha=0.5, ls=":", zorder=0, lw=1.5)
-	ax.axhline(ew_int(ab_ref), color="k", alpha=0.5, ls=":", zorder=0, lw=1.5)
+	#ax.axvline(ab_ref, color="tomato", alpha=0.5, ls=":", zorder=0, lw=1.5)
+	ax.axvline(ab_ref+ Δab, color="tomato", alpha=0.5, ls=":", zorder=0, lw=1.5)
+	ax.axhline(ew_int(ab_ref + Δab), color="tomato", alpha=0.5, ls=":", zorder=0, lw=1.5)
+	#ax.axhline(ew_int(ab_ref), color="tomato", alpha=0.5, ls=":", zorder=0, lw=1.5)
 
-	ax.legend()
+	ax.axvline(ab_ref_3D, color="k", alpha=0.5, ls=":", zorder=0, lw=1.5)
+	ax.axvline(ab_ref_3D+ Δab_3D, color="steelblue", alpha=0.5, ls=":", zorder=0, lw=1.5)
+	ax.axhline(ew_int(ab_ref_3D + Δab_3D), color="steelblue", alpha=0.5, ls=":", zorder=0, lw=1.5)
+	ax.axhline(ew_int(ab_ref_3D), color="k", alpha=0.5, ls=":", zorder=0, lw=1.5)
+
+
+	ax.legend(loc="upper left")
 	ax.xaxis.set_major_locator(plt.MaxNLocator(6))
 
 	f
@@ -1076,6 +1286,725 @@ end
 # ╔═╡ ef9fef62-5e50-4a1d-b1a9-4db7289663a7
 
 
+# ╔═╡ 331f1016-df68-4330-8983-a2db6219f966
+md"# Molecule formation"
+
+# ╔═╡ 924ea3f0-c822-44dc-9faa-1629c14f5232
+md"## Number densities"
+
+# ╔═╡ 494823c4-50b7-4e23-894c-caafaab48b29
+"""
+	plot_abund_3D(s, name; ax, cmap="Greys")
+
+Plot abundances as a function of optical depth (500).
+"""
+plot_abund_3D(s, name; ax, cmap="Greys", alpha=0.8) = begin
+	totn = MUST.pyconvert(
+		Array, 
+		s.run.read_patch_save(name, lazy=false, concat=true, fdim=0, zdim=2)[0]
+	)
+	toth = MUST.pyconvert(
+		Array, s.run.get_toth()
+	)
+	totn[totn .<= 0.0] .= minimum(totn[totn .> 0.0])
+	C1 = log10.(totn ./ toth) .+ 12
+
+	#= Plot =#
+	x = MUST.pyconvert(Array, s.run.ltau)
+	y = C1
+	
+	H, xedges, yedges = MUST.numpy.histogram2d(reshape(x, :), reshape(y, :), bins=150)
+
+	xe = MUST.pyconvert(Array, xedges)
+	ye = MUST.pyconvert(Array, yedges)
+	H = MUST.pyconvert(Array, H.T)
+
+	xx, yy = meshgrid(xe, ye)
+	
+	#=ax.imshow(
+		H, interpolation="bicubic", origin="lower", aspect="auto",
+		extent=[xe[1], xe[end], ye[1], ye[end]], cmap=cmap, norm=matplotlib.colors.LogNorm()
+	)=#
+
+	ax.imshow(
+		H, 
+		origin="lower",
+		interpolation = "bicubic", 
+		extent=[minimum(xe), maximum(xe), minimum(ye), maximum(ye)],
+		cmap=cmap, norm=matplotlib.colors.LogNorm(vmin=1), aspect="auto",
+		rasterized=true,alpha=alpha
+	)
+	#ax.pcolormesh(xx, yy, H', cmap=cmap, norm=matplotlib.colors.LogNorm(), rasterized=true)
+end
+
+# ╔═╡ 1bd82fae-afb3-4197-999e-61fba6ccfe71
+"""
+	plot_abund_av_3D(s, name; ax, kwargs...)
+
+Plot abundances (averages) as a function of optical depth (500).
+"""
+plot_abund_av_3D(s, name; ax, kwargs...) = begin
+	try
+		totn = MUST.pyconvert(
+			Array, 
+			s.run.read_patch_save(name, lazy=false, concat=true, fdim=0, zdim=2)[0]
+		)
+		toth = MUST.pyconvert(Array, s.run.get_toth())
+		C1 = log10.(totn ./ toth) .+ 12
+
+		#= Plot =#
+		x = MUST.pyconvert(Array, s.run.ltau)
+		y = C1
+
+		x = [MUST.mean(x[:, :, z]) for z in axes(x, 3)]
+		y = [MUST.mean(y[:, :, z]) for z in axes(y, 3)]
+		
+		ax.plot(x, y; kwargs...)
+
+		x, y
+	catch
+		totn = MUST.pyconvert(
+			Array, 
+			s.run.read_patch_save(
+				name, lazy=false, concat=true, fdim=0, zdim=2
+			)[0][0][0]
+		)
+		toth = MUST.pyconvert(Array, s.run.get_toth())
+		C1 = log10.(totn ./ toth) .+ 12
+
+		#= Plot =#
+		x = MUST.pyconvert(Array, s.run.ltau)
+		y = C1
+
+		ax.plot(x, y; kwargs...)
+
+		x, y
+	end
+end
+
+# ╔═╡ 731fadcd-c03a-4f7d-8f49-f7c2c29c099b
+
+
+# ╔═╡ 981e31b0-7073-431c-b1a4-d82fd6e57350
+md"""
+3D model: $(@bind mol_3D_select Select(cemp_models, default=first(cemp_models)))
+"""
+
+# ╔═╡ 7e487942-9681-4441-8969-050c8328a19a
+md"""
+1D model: $(@bind mol_1D_select Select(marcsmodels[mol_3D_select], default=first(marcsmodels[mol_3D_select])))
+"""
+
+# ╔═╡ 08fba04e-f041-4c49-865e-ec254a99fc98
+if !isnothing(mol_3D_select)
+	mol_3D_figsave_txt = "$(mol_3D_select)_molec"
+	md"Save figure at: $(@bind mol_3D_figsave confirm(TextField(length(mol_3D_figsave_txt)+5, default=mol_3D_figsave_txt)))"
+end
+
+# ╔═╡ 0e7e6f79-7225-4d29-8693-b2b93ddf4812
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+
+	lw_CH = 4.0
+	lw_CII = 10.0
+	alpha_CII = 0.25
+
+	# 1D MARCS model
+	s = get_m3d_spectra(mol_1D_select, joinpath(datadir, mol_3D_select))
+	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 1D", color="tomato", ls="-", lw=lw_CH)
+	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 1D", color="lime", ls=":")
+	#plot_abund_av_3D(s, "C_I", ax=ax, color="steelblue", ls=":")
+	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="tomato", ls="-", lw=lw_CII, alpha=alpha_CII)
+
+	xloc_ch = -1.5
+	yloc_ch = ych[argmin(abs.(xch.-xloc_ch))] - 0.1
+	ax.text(xloc_ch, yloc_ch, L"\mathbf{CH}", color="tomato", ha="left", va="top", fontsize=15)
+
+	xloc_cii = -1.5
+	yloc_cii = ycii[argmin(abs.(xcii.-xloc_cii))] + 0.1
+	ax.text(xloc_cii, yloc_cii, L"\mathbf{C\ II}", color="tomato", ha="left", va="bottom", fontsize=15, alpha=alpha_CII*2)
+
+
+	
+	
+	# scaled_solar model
+	s = get_m3d_spectra(-1, joinpath(datadir, same_scaled_solar(mol_3D_select)))
+	#plot_abund_3D(s, "CH", ax=ax, cmap="Reds", alpha=0.6)
+	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 3D\ \text{scaled-solar}", color="steelblue", lw=lw_CH)
+	#plot_abund_3D(s, "CO", ax=ax, cmap="Greys", alpha=0.6)
+	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 3D\ \text{scaled-solar}", color="lime")
+	
+	#plot_abund_av_3D(s, "C_I", ax=ax, color="steelblue")
+	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="steelblue", ls="-", lw=lw_CII, alpha=alpha_CII)
+
+	xloc_ch = -3.9
+	yloc_ch = ych[argmin(abs.(xch.-xloc_ch))] + 0.1
+	ax.text(xloc_ch, yloc_ch, L"\mathbf{CH}", color="steelblue", ha="left", va="bottom", fontsize=15)
+
+	xloc_cii = -3.9
+	yloc_cii = ycii[argmin(abs.(xcii.-xloc_cii))] - 0.1
+	ax.text(xloc_cii, yloc_cii, L"\mathbf{C\ II}", color="steelblue", ha="left", va="top", fontsize=15, alpha=alpha_CII*2)
+	
+
+	
+	# CEMP model
+	s = get_m3d_spectra(-1, joinpath(datadir, mol_3D_select))
+	#plot_abund_3D(s, "CH", ax=ax, cmap="Reds", alpha=0.6)
+	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 3D\ CEMP", color="steelblue", ls="", marker="x", lw=lw_CH)
+	#plot_abund_3D(s, "CO", ax=ax, cmap="Greys", alpha=0.6)
+	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 3D\ CEMP", color="lime", ls="--")
+	#plot_abund_av_3D(s, "C_I", ax=ax, color="steelblue", ls="--")
+	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="steelblue", ls="", lw=lw_CII, marker="x", alpha=alpha_CII, markersize=15)
+
+	#=xloc_ch = -3.9
+	yloc_ch = ych[argmin(abs.(xch.-xloc_ch))] - 0.1
+	ax.text(xloc_ch, yloc_ch, L"\mathbf{CH}", color="steelblue", ha="left", va="top", fontsize=15)
+
+	xloc_cii = -3.9
+	yloc_cii = ycii[argmin(abs.(xcii.-xloc_cii))] + 0.1
+	ax.text(xloc_cii, yloc_cii, L"\mathbf{C\ II}", color="steelblue", ha="left", va="bottom", fontsize=15, alpha=alpha_CII*2)
+	=#
+
+	ax.legend(labelspacing=0.1, loc="lower right", ncol=1)
+
+	ax.set_xlim(-4, 0)
+	ax.set_ylabel("[X/H]")
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
+	ax.set_ylim(0.1, 4.9)
+
+	ax.set_title(pretty_from_name(mol_3D_select))
+
+	f.savefig(mol_3D_figsave_txt*"3D.pdf", bbox_inches="tight")
+	
+	f
+end
+
+# ╔═╡ 217e0937-4b2d-4948-9a72-c236a8fc5c5a
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(7.5, 5))
+
+	# scaled_solar model
+	s = get_m3d_spectra(-1, joinpath(datadir, same_scaled_solar(mol_3D_select)))
+	#plot_abund_3D(s, "CH", ax=ax, cmap="Reds", alpha=0.6)
+	plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm CH\ -\ 3D\ \text{scaled-solar}", color="tomato")
+	#plot_abund_3D(s, "CO", ax=ax, cmap="Greys", alpha=0.6)
+	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 3D\ \text{scaled-solar}", color="lime")
+	
+	plot_abund_av_3D(s, "C_I", ax=ax, label=L"\rm C\ I\ -\ 3D\ \text{scaled-solar}", color="steelblue")
+	plot_abund_av_3D(s, "C_II", ax=ax, label=L"\rm C\ II\ -\ 3D\ \text{scaled-solar}", color="k")
+
+	
+	# 1D MARCS model
+	s = get_m3d_spectra(mol_1D_select, joinpath(datadir, mol_3D_select))
+	plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm CH\ -\ 1D", color="tomato", ls=":")
+	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 1D", color="lime", ls=":")
+	plot_abund_av_3D(s, "C_I", ax=ax, label=L"\rm C\ I\ -\ 1D", color="steelblue", ls=":")
+	plot_abund_av_3D(s, "C_II", ax=ax, label=L"\rm C\ II\ -\ 1D", color="k", ls=":")
+
+	ax.legend(labelspacing=0.1, loc="upper center", bbox_to_anchor=(0.5, 0.95), ncol=2)
+
+	ax.set_xlim(-4, 0)
+	ax.set_ylabel("[X/H]")
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
+	ax.set_title(pretty_from_name(mol_3D_select))
+	ax.set_ylim(0, 6.9)
+
+	f.savefig(mol_3D_figsave_txt*"1D.pdf", bbox_inches="tight")
+
+	f
+end
+
+# ╔═╡ a84ea668-6701-4e31-9f04-cb0feb70290d
+
+
+# ╔═╡ 7dae5609-0148-438f-a207-98da5c9173d4
+md"## Constribution functions"
+
+# ╔═╡ e4232daa-7174-493d-968e-21a012204fcb
+begin
+	"""
+		plot_contr_av(s; ax, kwargs...)
+	
+	Plot contribution function (averages) as a function of optical depth (500).
+	"""
+	plot_contr_av(s; ax, kwargs...) = begin
+		krs = MUST.pyconvert(Array, s.run.nml["line_mask"]["cntrbf_lines"]) .-1
+		line = s.run.atom.trans[krs[1]]
+		x, y = line.get_cntrbf(gmean=true, df=0, norm=true)
+	
+		x = MUST.pyconvert(Array, x)
+		y = MUST.pyconvert(Array, y)
+	
+		ax.plot(x, y; kwargs...)
+
+		x, y
+	end
+	
+	"""
+		plot_contr_1D(s; ax, kwargs...)
+	
+	Plot contribution function (averages) as a function of optical depth (500).
+	"""
+	plot_contr_1D(s; ax, kwargs...) = begin
+		krs = MUST.pyconvert(Array, s.run.nml["line_mask"]["cntrbf_lines"]) .-1
+		line = s.run.atom.trans[krs[1]]
+		x, y = line.get_cntrbf(df=0, norm=true)
+
+		x = MUST.pyconvert(Array, x)
+		y = MUST.pyconvert(Array, y)
+	
+		ax.plot(x, y; kwargs...)
+
+		x, y
+	end
+end
+
+# ╔═╡ e502770d-d765-4757-a075-3fadcdd88eed
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+
+	# scaled_solar model
+	s = get_m3d_spectra(-1, joinpath(datadir, same_scaled_solar(mol_3D_select)))
+	x, y = plot_contr_av(s, ax=ax, color="steelblue", label=L"\rm 3D\ \text{scaled-solar}")
+	formHeight_3DSS = x[argmax(y)]
+	
+	# CEMP model
+	s = get_m3d_spectra(-1, joinpath(datadir, mol_3D_select))
+	x, y = plot_contr_av(s, ax=ax, color="steelblue", ls="--", label=L"\rm 3D\ CEMP")
+	formHeight_3DCEMP = x[argmax(y)]
+
+	# 1D model
+	s = get_m3d_spectra(mol_1D_select, joinpath(datadir, mol_3D_select))
+	x, y = plot_contr_1D(s, ax=ax, color="tomato", ls="-", label=L"\rm 1D")
+	formHeight_1D = x[argmax(y)]
+
+	ax.legend(labelspacing=0.1, loc="upper left", ncol=1)
+
+	ax.set_ylabel("contribution function")
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
+
+	ax.set_title(pretty_from_name(mol_3D_select))
+
+	ax.set_xlim(-6, 2)
+	ax.set_ylim(-0.1, 1.1)
+
+	
+	@info "Maxima at:" formHeight_3DCEMP formHeight_3DSS formHeight_1D
+
+	f.savefig(mol_3D_figsave_txt*"contr.pdf", bbox_inches="tight")
+	
+	f
+end
+
+# ╔═╡ f64c0cd9-c0ec-44e3-9e0c-440b6fdc23e8
+
+
+# ╔═╡ 635d415f-aa91-4d25-8162-a550119e3f12
+md"# Stellar parameter dependence"
+
+# ╔═╡ 2caf0768-3202-4d16-8c24-4f9a6433076e
+md"To investigate the effect of stellar parameters one can have a look at models with same log(g), but different temperature. Two example models are prepared for this purpose"
+
+# ╔═╡ ac81d133-8894-46da-b85c-ab5d580ecd12
+switch_dir = @in_dispatch "CEMP_models3_switch"
+
+# ╔═╡ 01752527-37fd-4175-9982-02877ca4ae69
+begin
+	hot_big_CEMP_name = "CEMP_t57.50g30.00m-5.000_v1.0"
+	cold_small_CEMP_name = "CEMP_t52.50g45.00m-5.000_v1.0"
+	hot_small_CEMP_name = "CEMP_t57.50g45.00m-5.000_v1.0"
+	cold_big_CEMP_name = "CEMP_t52.50g30.00m-5.000_v1.0"
+
+	hot_big_ss_name = "ScaledSolar_t57.50g30.00m-5.000_v1.0"
+	cold_small_ss_name = "ScaledSolar_t52.50g45.00m-5.000_v1.0"
+	hot_small_ss_name = "ScaledSolar_t57.50g45.00m-5.000_v1.0"
+	cold_big_ss_name = "ScaledSolar_t52.50g30.00m-5.000_v1.0"
+
+	marcs_hot_big = "p5750_g+3.0_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"
+	marcs_cold_small = "p5250_g+4.5_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"
+	marcs_hot_small = "p5750_g+4.5_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"
+	marcs_cold_big = "p5250_g+3.0_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"
+end
+
+# ╔═╡ 2d18e394-484d-4aef-bcb5-c45627fcf824
+let
+	plt.close()
+
+	f, ax = plt.subplots(2, 1, figsize=(12, 5), sharex=true, sharey=true)
+	plt.subplots_adjust(hspace=0, wspace=0)
+	
+	hot_big_CEMP = get_spectra(-1, joinpath(switch_dir, hot_big_CEMP_name))
+	cold_small_CEMP = get_spectra(-1, joinpath(switch_dir, cold_small_CEMP_name))
+	hot_small_CEMP = get_spectra(-1, joinpath(datadir, hot_small_CEMP_name))
+	cold_big_CEMP = get_spectra(-1, joinpath(datadir, cold_big_CEMP_name))
+
+	λ, F = MUST.mean_integrated_flux(hot_big_CEMP, Symbol(spectra_3D1D_tag))
+	ax[0].plot(
+		λ, F, 
+		color="steelblue", lw=1.7, label=pretty_from_name_short(hot_big_CEMP_name)
+	)
+	λ, F = MUST.mean_integrated_flux(cold_big_CEMP, Symbol(spectra_3D1D_tag))
+	ax[0].plot(
+		λ, F, 
+		color="tomato", lw=1.7, label=pretty_from_name_short(cold_big_CEMP_name)
+	)
+
+	# for legend
+	ax[0].plot([],[],lw=1.7,ls="--",color="steelblue",label=pretty_from_name_short(hot_small_CEMP_name))
+	ax[0].plot([],[],lw=1.7,ls="--",color="tomato",label=pretty_from_name_short(cold_small_CEMP_name))
+
+	
+	λ, F = MUST.mean_integrated_flux(hot_small_CEMP, Symbol(spectra_3D1D_tag))
+	ax[1].plot(
+		λ, F, 
+		color="steelblue", ls ="--",lw=1.7, label=pretty_from_name_short(hot_small_CEMP_name)
+	)
+	λ, F = MUST.mean_integrated_flux(cold_small_CEMP, Symbol(spectra_3D1D_tag))
+	ax[1].plot(
+		λ, F, 
+		color="tomato",ls ="--", lw=1.7, label=pretty_from_name_short(cold_small_CEMP_name)
+	)
+
+	# abundance corrections
+	model3D = get_spectra(-1, joinpath(switch_dir, hot_big_CEMP_name))
+	model3D_ss = get_spectra(-1, joinpath(switch_dir, hot_big_ss_name))
+	marcsmodel = get_spectra(
+		marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name)
+	)
+	ab_ref, ew_ref, ab, ew, Δab = MUST.curve_of_growth(
+		"[C/Fe]", 
+		model3D_ss, "GBand_DC+0",
+		model3D, [
+			"GBand_DC+0",
+			"GBand_DC+02",
+			"GBand_DC+04",
+			#"GBand_DC+06",
+			#"GBand_DC+08",
+			"GBand_DC-01",
+			"GBand_DC-02",
+			"GBand_DC-03",
+			"GBand_DC-04",
+			"GBand_DC-05",
+			"GBand_DC-06",
+			"GBand_DC-07",
+			"GBand_DC-08",
+			"GBand_DC-10",
+			"GBand_DC-12"
+		],
+	)
+	@info "$(pretty_from_name_short(hot_big_CEMP_name)), 3D CEMP vs. 3D non-CEMP: $(Δab)"
+	ab_ref, ew_ref, ab, ew, Δab = MUST.curve_of_growth(
+		"[C/Fe]", 
+		marcsmodel, "GBand_DC+0",
+		model3D_ss, [
+			"GBand_DC+0",
+			"GBand_DC+02",
+			"GBand_DC+04",
+			#"GBand_DC+06",
+			#"GBand_DC+08",
+			"GBand_DC-01",
+			"GBand_DC-02",
+			"GBand_DC-03",
+			"GBand_DC-04",
+			"GBand_DC-05",
+			"GBand_DC-06",
+			"GBand_DC-07",
+			"GBand_DC-08",
+			"GBand_DC-10",
+			"GBand_DC-12"
+		],
+	)
+	@info "$(pretty_from_name_short(hot_big_CEMP_name)), 3D non-CEMP vs. 1D: $(Δab)"
+
+
+	ax[0].set_ylim(-0.1, 1.1)
+	ax[1].set_xlabel(L"\rm wavelength\ [\AA]")
+	ax[1].set_ylabel(L"\rm flux\ [normalized]")
+	ax[0].set_ylabel(L"\rm flux\ [normalized]")
+
+	ax[0].legend(loc="lower center", ncol=4, bbox_to_anchor=(0.5, 0.9))
+
+	f
+end
+
+# ╔═╡ 4b18b95c-e574-468a-92ce-73931621e442
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+
+	hot_big_CEMP = get_snapshot(-1, joinpath(switch_dir, hot_big_CEMP_name)) |>last
+	#cold_small_CEMP = get_snapshot(-1, joinpath(switch_dir, cold_small_CEMP_name)) |>last
+	#hot_small_CEMP = get_snapshot(-1, joinpath(datadir, hot_small_CEMP_name))
+	cold_big_CEMP = get_snapshot(-1, joinpath(datadir, cold_big_CEMP_name)) |> last
+
+	hot_big_marcs = get_snapshot(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
+	#cold_small_marcs = get_snapshot(marcs_cold_small, joinpath(switch_dir, cold_small_CEMP_name))
+	#hot_small_marcs = get_snapshot(marcs_hot_small, joinpath(datadir, hot_small_CEMP_name))
+	cold_big_marcs = get_snapshot(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
+
+	ax.plot(
+		profile(mean, hot_big_CEMP, :log10τ500, :T)..., label=pretty_from_name_short(hot_big_CEMP_name)*", 3D CEMP", color="k"
+	)
+	ax.plot(
+		profile(mean, cold_big_CEMP, :log10τ500, :T)..., label=pretty_from_name_short(cold_big_CEMP_name)*", 3D CEMP", color="tomato"
+	)
+	
+	ax.plot(
+		profile(mean, hot_big_marcs, :log10τ500, :T)..., label=pretty_from_name_short(hot_big_CEMP_name)*", MARCS", color="k", ls="--"
+	)
+	ax.plot(
+		profile(mean, cold_big_marcs, :log10τ500, :T)..., label=pretty_from_name_short(cold_big_CEMP_name)* ", MARCS", color="tomato", ls="--"
+	)
+
+	ax.legend()
+
+	ax.set_xlim(-4.2, 1)
+	ax.set_ylim(2800, 9000)
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
+	ax.set_ylabel(L"\rm temperature\ [K]")
+	
+	f
+end
+
+# ╔═╡ af94af20-6618-448e-b146-b3ba1b1a20f1
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+
+	hot_big_CEMP = get_snapshot(-1, joinpath(switch_dir, hot_big_CEMP_name)) |>last
+	#cold_small_CEMP = get_snapshot(-1, joinpath(switch_dir, cold_small_CEMP_name)) |>last
+	hot_small_CEMP = get_snapshot(-1, joinpath(datadir, hot_small_CEMP_name)) |> last
+	#cold_big_CEMP = get_snapshot(-1, joinpath(datadir, cold_big_CEMP_name)) |> last
+
+	hot_big_marcs = get_snapshot(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
+	#cold_small_marcs = get_snapshot(marcs_cold_small, joinpath(switch_dir, cold_small_CEMP_name))
+	hot_small_marcs = get_snapshot(marcs_hot_small, joinpath(datadir, hot_small_CEMP_name))
+	#cold_big_marcs = get_snapshot(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
+
+	ax.plot(
+		profile(mean, hot_big_CEMP, :log10τ500, :T)..., label=pretty_from_name_short(hot_big_CEMP_name)*", 3D CEMP", color="k"
+	)
+	ax.plot(
+		profile(mean, hot_small_CEMP, :log10τ500, :T)..., label=pretty_from_name_short(hot_small_CEMP_name)*", 3D CEMP", color="tomato"
+	)
+	
+	ax.plot(
+		profile(mean, hot_big_marcs, :log10τ500, :T)..., label=pretty_from_name_short(hot_big_CEMP_name)*", MARCS", color="k", ls="--"
+	)
+	ax.plot(
+		profile(mean, hot_small_marcs, :log10τ500, :T)..., label=pretty_from_name_short(hot_small_CEMP_name)* ", MARCS", color="tomato", ls="--"
+	)
+
+	ax.axvline(log10(2/3), color="0.5", alpha=0.5, ls=":")
+
+	ax.legend()
+
+	ax.set_xlim(-4.2, 1)
+	ax.set_ylim(2800, 9000)
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
+	ax.set_ylabel(L"\rm temperature\ [K]")
+	
+	f
+end
+
+# ╔═╡ 22932761-ae92-4cd6-b828-07e3f86a4d0f
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+
+	hot_big_CEMP = get_snapshot(-1, joinpath(switch_dir, hot_big_CEMP_name)) |>last
+	#cold_small_CEMP = get_snapshot(-1, joinpath(switch_dir, cold_small_CEMP_name)) |>last
+	#hot_small_CEMP = get_snapshot(-1, joinpath(datadir, hot_small_CEMP_name))
+	cold_big_CEMP = get_snapshot(-1, joinpath(datadir, cold_big_CEMP_name)) |> last
+
+	hot_big_marcs = get_snapshot(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
+	#cold_small_marcs = get_snapshot(marcs_cold_small, joinpath(switch_dir, cold_small_CEMP_name))
+	#hot_small_marcs = get_snapshot(marcs_hot_small, joinpath(datadir, hot_small_CEMP_name))
+	cold_big_marcs = get_snapshot(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
+
+	ax.plot(
+		profile(mean, hot_big_CEMP, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_big_CEMP_name)*", 3D CEMP", color="k"
+	)
+	ax.plot(
+		profile(mean, cold_big_CEMP, :log10τ500, :log10d)..., label=pretty_from_name_short(cold_big_CEMP_name)*", 3D CEMP", color="tomato"
+	)
+	
+	ax.plot(
+		profile(mean, hot_big_marcs, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_big_CEMP_name)*", MARCS", color="k", ls="--"
+	)
+	ax.plot(
+		profile(mean, cold_big_marcs, :log10τ500, :log10d)..., label=pretty_from_name_short(cold_big_CEMP_name)* ", MARCS", color="tomato", ls="--"
+	)
+
+	ax.legend()
+
+	ax.set_xlim(-4.2, 1)
+	ax.set_ylim(-10.2, -5.9)
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
+	ax.set_ylabel(L"\rm density\ [g\ cm^{-3}]")
+	
+	f
+end
+
+# ╔═╡ a6ee120f-0dfc-433a-8c9c-0f9f828ffe29
+let
+	plt.close()
+
+	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+
+	hot_big_CEMP = get_snapshot(-1, joinpath(switch_dir, hot_big_CEMP_name)) |>last
+	#cold_small_CEMP = get_snapshot(-1, joinpath(switch_dir, cold_small_CEMP_name)) |>last
+	hot_small_CEMP = get_snapshot(-1, joinpath(datadir, hot_small_CEMP_name)) |> last
+	#cold_big_CEMP = get_snapshot(-1, joinpath(datadir, cold_big_CEMP_name)) |> last
+
+	hot_big_marcs = get_snapshot(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
+	#cold_small_marcs = get_snapshot(marcs_cold_small, joinpath(switch_dir, cold_small_CEMP_name))
+	hot_small_marcs = get_snapshot(marcs_hot_small, joinpath(datadir, hot_small_CEMP_name))
+	#cold_big_marcs = get_snapshot(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
+
+	ax.plot(
+		profile(mean, hot_big_CEMP, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_big_CEMP_name)*", 3D CEMP", color="k"
+	)
+	ax.plot(
+		profile(mean, hot_small_CEMP, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_small_CEMP_name)*", 3D CEMP", color="tomato"
+	)
+	
+	ax.plot(
+		profile(mean, hot_big_marcs, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_big_CEMP_name)*", MARCS", color="k", ls="--"
+	)
+	ax.plot(
+		profile(mean, hot_small_marcs, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_small_CEMP_name)* ", MARCS", color="tomato", ls="--"
+	)
+
+	ax.axvline(log10(2/3), color="0.5", alpha=0.5, ls=":")
+
+	ax.legend()
+
+	ax.set_xlim(-4.2, 1)
+	ax.set_ylim(-10.2, -5.9)
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
+	ax.set_ylabel(L"\rm density\ [g\ cm^{-3}]")
+	
+	f
+end
+
+# ╔═╡ 421da8e3-f710-46f1-a602-bdc4a3266a26
+let
+	plt.close()
+
+	f, ax = plt.subplots(2, 1, figsize=(10, 10), sharex=true)
+	plt.subplots_adjust(hspace=0, wspace=0)
+
+	ax = MUST.pyconvert(Array, ax)
+
+
+	marker_alpha =0.5
+	marker_lw =1.5
+	line_alpha=1.0
+	line_lw = 3.0
+	
+	mi = MUST.ModelInformation(hot_big_CEMP_name)
+	mi2 = MUST.ModelInformation(cold_big_CEMP_name)
+	th = "$(round(Int, mi.teff)) K"
+	tc = "$(round(Int, mi2.teff)) K"
+	
+	s = get_m3d_spectra(-1, joinpath(switch_dir, hot_big_CEMP_name))
+	x_3D_hot,y_3D_hot = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ "*th, color="steelblue", lw=line_lw, alpha=line_alpha)
+	
+	s = get_m3d_spectra(-1, joinpath(datadir, cold_big_CEMP_name))
+	x_3D_cold,y_3D_cold = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ "*tc, color="tomato", ls="-", lw=line_lw, alpha=line_alpha)
+	
+	s = get_m3d_spectra(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
+	x_1D_hot,y_1D_hot = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ (MARCS)\ "*th, color="steelblue", ls="--", lw=line_lw, alpha=line_alpha)
+	
+	s = get_m3d_spectra(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
+	x_1D_cold,y_1D_cold = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ (MARCS)\ "*tc, color="tomato", ls="--", lw=line_lw, alpha=line_alpha)
+
+
+	ax[1].legend(labelspacing=0.1, loc="upper center", bbox_to_anchor=(0.5, 0.95), ncol=2)
+
+	ax[1].set_xlim(-4, 0)
+	ax[1].set_ylabel("[X/H]")
+	ax[1].set_title("log(g) = $(round(mi.logg, digits=2))")
+	ax[1].set_ylim(0, 6.9)
+
+	
+
+	# CEMP model
+	s = get_m3d_spectra(-1, joinpath(switch_dir, hot_big_CEMP_name))
+	x, y = plot_contr_av(s, ax=ax[2], color="steelblue", ls="-", label=L"\rm 3D\ CEMP,\  "*pretty_from_name_short(hot_big_CEMP_name))
+	formHeight_3D_hot = x[argmax(y)]
+
+	# 1D model
+	s = get_m3d_spectra(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
+	x, y = plot_contr_1D(s, ax=ax[2], color="steelblue", ls="--", label=L"\rm 1D,\ "*pretty_from_name_short(hot_big_CEMP_name))
+	formHeight_1D_hot = x[argmax(y)]
+
+	# CEMP model
+	s = get_m3d_spectra(-1, joinpath(datadir, cold_big_CEMP_name))
+	x, y = plot_contr_av(s, ax=ax[2], color="tomato", ls="-", label=L"\rm 3D\ CEMP,\ "*pretty_from_name_short(cold_big_CEMP_name))
+	formHeight_3D_cold = x[argmax(y)]
+
+	# 1D model
+	s = get_m3d_spectra(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
+	x, y = plot_contr_1D(s, ax=ax[2], color="tomato", ls="--", label=L"\rm 1D,\ "*pretty_from_name_short(cold_big_CEMP_name))
+	formHeight_1D_cold = x[argmax(y)]
+
+
+	ax[1].axvline(formHeight_3D_hot, color="steelblue", alpha=marker_alpha, lw=marker_lw)
+	ax[1].axvline(formHeight_3D_cold, color="tomato", alpha=marker_alpha, lw=marker_lw)
+	ax[1].axvline(formHeight_1D_hot, color="steelblue", ls="--", alpha=marker_alpha, lw=marker_lw)
+	ax[1].axvline(formHeight_1D_cold, color="tomato", ls="--", alpha=marker_alpha, lw=marker_lw)
+
+	closest_temp_at_form(x, y, form) = begin
+		iclose = argmin(abs.(x .- form))
+		y[iclose]
+	end
+	ax[1].axhline(
+		closest_temp_at_form(x_3D_hot, y_3D_hot, formHeight_3D_hot), 
+			color="steelblue", alpha=marker_alpha, lw=marker_lw
+		)
+	ax[1].axhline(
+		closest_temp_at_form(x_3D_cold, y_3D_cold, formHeight_3D_cold), 
+			color="tomato", alpha=marker_alpha, lw=marker_lw
+		)
+	ax[1].axhline(
+		closest_temp_at_form(x_1D_hot, y_1D_hot, formHeight_1D_hot), 
+			color="steelblue", ls="--", alpha=marker_alpha, lw=marker_lw
+		)
+	ax[1].axhline(
+		closest_temp_at_form(x_1D_cold, y_1D_cold, formHeight_1D_cold), 
+			color="tomato", ls="--", alpha=marker_alpha, lw=marker_lw
+		)
+
+	
+
+	ax[2].legend(labelspacing=0.1, loc="upper left", ncol=2)
+
+	ax[2].set_ylabel("contribution function")
+	ax[2].set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
+
+	#ax.set_title(pretty_from_name(hot_big_CEMP_name))
+
+
+	#ax[2].set_xlim(-6, 2)
+	ax[2].set_ylim(-0.1, 1.1)
+	
+	f
+end
+
+# ╔═╡ b28a34da-219e-424e-bed3-17ac707fad74
+
+
 # ╔═╡ 874f7823-d626-45c9-aac8-72b22fe872c6
 md"# Data comparison"
 
@@ -1085,13 +2014,20 @@ md"## SAGA data"
 # ╔═╡ 35c27a34-6c3d-4b9f-ba87-305e81eadaff
 saga_all_path = "../cgisess_32aefcdc405d0a0c9fb7936f6f1324aa_data.tsv"
 
+# ╔═╡ 1f1a0d0f-cc24-448b-9291-91325a9d72eb
+saga_co_path = "../cgisess_co.tsv"
+
 # ╔═╡ 0bbf88db-b471-4c9c-999f-c3ace82841be
 begin
 	saga_all_data = MUST.readdlm(saga_all_path, '\t', String, skipstart=1)
+	saga_co_data = MUST.readdlm(saga_co_path, '\t', String, skipstart=1)
 
 	teff_all, logg_all, z_all = saga_all_data[:, 5], saga_all_data[:, 6], saga_all_data[:, 7]
+	teff_co, logg_co, z_co = saga_co_data[:, 5], saga_co_data[:, 6], saga_co_data[:, 7]
 
 	cfe_all, bafe_all, eufe_all, lafe_all, feh_all = saga_all_data[:, 9], saga_all_data[:, 10], saga_all_data[:, 11], saga_all_data[:, 12], saga_all_data[:, 13]
+	cfe_co, o_co, feh_co = saga_co_data[:, 10], saga_co_data[:, 9], saga_co_data[:, 8]
+	
 
 	binarity_all = saga_all_data[:, 12]
 
@@ -1105,6 +2041,15 @@ begin
 		"feh"  => feh_all,
 		"lafe" => lafe_all,
 		"b"    => binarity_all
+	)
+
+	parameters_co = Dict{Any, Any}(
+		"teff" => teff_co, 
+		"logg" => logg_co, 
+		"z"    => z_co, 
+		"feh"  => feh_co,
+		"cfe"  => cfe_co, 
+		"ofe" => o_co,
 	)
 
 	for (i, p) in parameters_all
@@ -1127,6 +2072,30 @@ begin
 		parameters_all[i] = d
 	end
 
+	for (i, p) in parameters_co
+		d = zeros(length(p))
+
+		for (j, pj) in enumerate(p)
+			d[j] = if pj == ""
+				NaN
+			elseif (pj[1] == '<') |  (pj[1] == '>')
+				#parse(Float64, pj[2:end])
+				NaN
+			else
+				try
+					parse(Float64, pj)
+				catch
+					NaN
+				end
+			end
+		end
+		
+		parameters_co[i] = d
+	end
+
+	mask = (parameters_co["feh"].>0.0) 
+	parameters_co["feh"][mask] .= NaN
+	
 	mask = (parameters_all["feh"].>0.0) 
 	parameters_all["feh"][mask] .= NaN
 
@@ -1182,6 +2151,9 @@ parameters_all["no"] = (parameters_all["cfe"] .+ parameters_all["feh"] .+ 8.560)
 selection_mask = parameters_all["logg"] .>= logg_limit
 
 # ╔═╡ 4edb9461-7f5b-41a0-ac30-4ae72a42d3c8
+
+
+# ╔═╡ 36cf99a4-d9cb-4282-a45c-50b7ff5833d3
 
 
 # ╔═╡ 990e7d73-3e8e-4900-a225-4e5cac6ac8c6
@@ -1266,14 +2238,14 @@ metallicity_bin_edges = [-7.5, -6.5, -5.5, -4.5, -3.5, -2.5, -1.5, -0.5, 0.0]
 metallicity_bin_centers = (metallicity_bin_edges[2:end] .+ metallicity_bin_edges[1:end-1]) ./ 2
 
 # ╔═╡ 952d802f-82dd-47e9-a1f9-fa98fc505d28
-function bin_parameter(bins, general_mask=trues(size(saga_all_data, 1)); name="feh")
+function bin_parameter(bins, general_mask=trues(size(data, 1)); data=saga_all_data, para=parameters_all, selection=selection_mask, name="feh")
 	bin_centers = (bins[2:end] .+ bins[1:end-1]) ./ 2
-	bin_masks = falses(size(saga_all_data, 1), length(bin_centers))
+	bin_masks = falses(size(data, 1), length(bin_centers))
 	for i in eachindex(bin_centers)
-		bin_masks[:, i] .= (bins[i] .<= parameters_all[name]) .&
-		(parameters_all[name] .< bins[i+1]) .& (.!isnan.(parameters_all[name]))
+		bin_masks[:, i] .= (bins[i] .<= para[name]) .&
+		(para[name] .< bins[i+1]) .& (.!isnan.(para[name]))
 
-		bin_masks[:, i] .= bin_masks[:, i] .& general_mask .& selection_mask
+		bin_masks[:, i] .= bin_masks[:, i] .& general_mask .& selection
 	end
 
 	bin_masks
@@ -1401,8 +2373,8 @@ let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(6, 5))
 
-	ax.plot(metallicity_bin_centers, cumsum(count_bins_CEMP) ./ cumsum(count_bins_general)*100, zorder=10, color="k", lw=2.0, label=L"\rm 1D", marker="s")
-	ax.plot(metallicity_bin_centers, cumsum(count_bins_CEMP_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, label=L"\rm 3D", marker="s")
+	ax.plot(metallicity_bin_centers, cumsum(count_bins_CEMP) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, label=L"\rm 1D", marker="s", markersize=10)
+	ax.plot(metallicity_bin_centers, cumsum(count_bins_CEMP_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="steelblue", lw=2.0, label=L"\rm 3D", marker="s", markersize=10)
 
 	#ax.plot(metallicity_bin_centers, count_bins_CEMP ./ count_bins_general*100, zorder=10, color="k", lw=2.0, label=L"\rm 1D", marker="s")
 	#ax.plot(metallicity_bin_centers, count_bins_CEMP_corr ./ count_bins_general*100, zorder=10, color="tomato", lw=2.0, label=L"\rm 3D", marker="s")
@@ -1416,6 +2388,54 @@ let
 
 	ax.set_xlim(-6.2, -1.8)
 	ax.set_ylim(0.24*100, 1.04*100)
+
+	open("CEMP_cumsum_fractions.txt", "w") do f
+		cf = cumsum(count_bins_CEMP) ./ cumsum(count_bins_general)
+		cf_3D = cumsum(count_bins_CEMP_corr) ./ cumsum(count_bins_general)
+		write(f, "# [Fe/H] 1D 3D\n")
+		for i in eachindex(metallicity_bin_centers)
+			line = MUST.@sprintf("%.2f    %.2f    %.2f\n", metallicity_bin_centers[i], cf[i], cf_3D[i])
+			write(f, line)
+		end
+	end
+
+	f.savefig("cummulative_CEMP_fraction.pdf")
+	
+	f
+end
+
+# ╔═╡ 17521b74-d37b-4c84-87ad-0e4f155b3790
+let
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+
+	#ax.plot(metallicity_bin_centers, cumsum(count_bins_CEMP) ./ cumsum(count_bins_general)*100, zorder=10, color="k", lw=2.0, label=L"\rm 1D", marker="s")
+	#ax.plot(metallicity_bin_centers, cumsum(count_bins_CEMP_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, label=L"\rm 3D", marker="s")
+
+	ax.plot(metallicity_bin_centers, count_bins_CEMP ./ count_bins_general*100, zorder=10, color="tomato", lw=2.0, label=L"\rm 1D", marker="s", markersize=10)
+	ax.plot(metallicity_bin_centers, count_bins_CEMP_corr ./ count_bins_general*100, zorder=10, color="steelblue", lw=2.0, label=L"\rm 3D", marker="s", markersize=10)
+
+	ax.set_zorder(10)
+	ax.patch.set_visible(false)
+	
+	ax.set_xlabel(L"\rm [Fe/H]")
+	ax.set_ylabel(L"\rm N_{[Fe/H], CEMP}\ /\ N_{[Fe/H]}\ [\%]")
+	ax.legend(loc="lower left")
+
+	ax.set_xlim(-6.2, -1.8)
+	ax.set_ylim(0.1*100, 1.04*100)
+
+	open("CEMP_fractions.txt", "w") do f
+		cf = count_bins_CEMP ./ count_bins_general
+		cf_3D = count_bins_CEMP_corr ./ count_bins_general
+		write(f, "# [Fe/H] 1D 3D\n")
+		for i in eachindex(metallicity_bin_centers)
+			line = MUST.@sprintf("%.2f    %.2f    %.2f\n", metallicity_bin_centers[i], cf[i], cf_3D[i])
+			write(f, line)
+		end
+	end
+
+	f.savefig("CEMP_fraction.pdf")
 	
 	f
 end
@@ -1423,31 +2443,70 @@ end
 # ╔═╡ 892a04e1-3758-435a-b8cd-e7c03b777923
 let
 	plt.close()
-	f, ax = plt.subplots(1, 2, figsize=(8, 5), sharex=true, sharey=true)
+	f, ax = plt.subplots(1, 2, figsize=(9, 6), sharex=true, sharey=true)
 
 	plt.subplots_adjust(wspace=0)
 
-	ax[0].plot(metallicity_bin_centers, cumsum(count_bins_CEMP) ./ cumsum(count_bins_general)*100, zorder=10, color="k", lw=2.0, marker="", alpha=0.3, ls=":")
-	ax[1].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, marker="", alpha=0.3, ls=":")
+	ax[0].plot(metallicity_bin_centers, cumsum(count_bins_CEMP) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, marker="x", alpha=1, ls=":", markersize=8, label=L"\rm CEMP\ (all)")
+	ax[1].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="steelblue", lw=2.0, marker="x", alpha=1, ls=":", markersize=8, label=L"\rm CEMP\ (all)")
 	
-	ax[0].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_no) ./ cumsum(count_bins_general)*100, zorder=10, color="k", lw=2.0, label=L"\rm CEMP-no,\ 1D", marker="s", markersize=7)
-	ax[1].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_no_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, label=L"\rm CEMP-no,\ 3D", marker="s", markersize=7)
+	ax[0].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_no) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, label=L"\rm CEMP-no", marker="s", markersize=8)
+	ax[1].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_no_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="steelblue", lw=2.0, label=L"\rm CEMP-no", marker="s", markersize=8)
 
-	ax[0].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_rs) ./ cumsum(count_bins_general)*100, zorder=10, color="k", lw=2.0, label=L"\rm CEMP-r/s,\ 1D", marker="o", ls="--", markeredgecolor="k", markerfacecolor="w", markersize=8)
-	ax[1].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_rs_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, label=L"\rm CEMP-r/s,\ 3D", marker="o", ls="--", markeredgecolor="tomato", markerfacecolor="w", markersize=8)
+	ax[0].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_rs) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=2.0, label=L"\rm CEMP-r/s", marker="o", ls="--", markeredgecolor="tomato", markerfacecolor="w", markersize=9)
+	ax[1].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_rs_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="steelblue", lw=2.0, label=L"\rm CEMP-r/s", marker="o", ls="--", markeredgecolor="steelblue", markerfacecolor="w", markersize=9)
 
 
 	ax[0].set_xlabel(L"\rm [Fe/H]")
 	ax[1].set_xlabel(L"\rm [Fe/H]")
 	ax[0].set_ylabel(L"\rm N_{\leq [Fe/H], CEMP}\ /\ N_{\leq [Fe/H]}\ [\%]")
-	ax[0].legend(loc="upper right", ncol=1, bbox_to_anchor=(1.05, 1.04))
-	ax[1].legend(loc="upper right", ncol=1, bbox_to_anchor=(1.05, 1.04))
+	ax[0].legend(loc="upper right", ncol=1, bbox_to_anchor=(1.05, 1.0))
+	ax[1].legend(loc="upper right", ncol=1, bbox_to_anchor=(1.05, 1.0))
 
+	ax[0].text(0.05, 0.05, L"\rm \mathbf{1D}", ha="left", va="bottom", color="tomato", fontsize=20, transform=ax[0].transAxes)
+	ax[1].text(0.05, 0.05, L"\rm \mathbf{3D}", ha="left", va="bottom", color="steelblue", fontsize=20, transform=ax[1].transAxes)
+	
 	ax[0].set_xlim(-6.2, -1.5)
+	ax[0].set_ylim(-7, 107)
+
+	f.savefig("cummulative_CEMP_nors_fraction.pdf")
 
 	
 	f
 end
+
+# ╔═╡ 0ee1f4fc-da57-4f63-9713-c20dc2f0464d
+
+
+# ╔═╡ 9c789f14-0a75-45f7-912f-9a5190a3a54a
+draw_ellipse_axes(ellipse, ax; N=1, skip_vertical=false, skip_horizontal=false, kwargs...) = begin
+	    # Extract parameters from the Ellipse object
+	    x0, y0 = MUST.pyconvert(Array, ellipse.center)
+	    width = MUST.pyconvert(Float64, ellipse.width)
+	    height = MUST.pyconvert(Float64, ellipse.height)
+	    angle = MUST.pyconvert(Float64, ellipse.angle)
+	
+	    # Convert angle to radians
+	    theta = MUST.pyconvert(Float64, MUST.numpy.deg2rad(angle))
+	
+	    # Major axis vector
+	    dx_major = 0.5 * width * cos(theta)
+	    dy_major = 0.5 * width * sin(theta)
+	
+	    # Minor axis vector
+	    dx_minor = 0.5 * height * sin(theta)
+	    dy_minor = -0.5 * height * cos(theta)
+	
+	    # Draw major axis line
+		if !skip_horizontal
+	    	ax.plot([x0 - N*dx_major, x0 + N*dx_major], [y0 - N*dy_major, y0 + N*dy_major]; kwargs...)
+		end
+
+		if !skip_vertical
+		    # Draw minor axis line
+		    ax.plot([x0 - N*dx_minor, x0 + N*dx_minor], [y0 - N*dy_minor, y0 + N*dy_minor]; kwargs...)
+		end
+	end
 
 # ╔═╡ 76e3d925-6778-4d40-a02f-23e6aa6258eb
 let
@@ -1522,13 +2581,13 @@ let
 	cfe = parameters_all["cfe"][CEMP_mask]
 	c = cfe .+ feh .+ 8.560
 	#ax.scatter(feh, c, s=20, marker="s", c="None", alpha=0.2, linewidth=1, edgecolor="k")
-	ax.scatter(feh, c+corrections_saga_all[CEMP_mask], s=15, marker="o", c="None", alpha=0.6, edgecolor="tomato", rasterized=true)
+	ax.scatter(feh, c+corrections_saga_all[CEMP_mask], s=15, marker="o", c="None", alpha=0.6, edgecolor="steelblue", rasterized=true)
 
 	
 	# add histograms
-	ax_xhist.hist(feh, bins=30, color="0.5")
-	ax_yhist.hist(c, orientation="horizontal", bins=30, label="1D", color="0.5")
-	ax_yhist.hist(c+corrections_saga_all[CEMP_mask], orientation="horizontal", bins=30, label="3D", histtype="step", lw=3, color="tomato")
+	ax_xhist.hist(feh, bins=30, color="tomato")
+	ax_yhist.hist(c, orientation="horizontal", bins=30, label="1D", color="tomato")
+	ax_yhist.hist(c+corrections_saga_all[CEMP_mask], orientation="horizontal", bins=30, label="3D", histtype="step", lw=3, color="steelblue")
 	ax_yhist.legend()
 	
 
@@ -1543,7 +2602,7 @@ let
 		8.560
 	)  for i in eachindex(metallicity_bin_centers)]
 	#ax.fill_between(metallicity_bin_centers, c_mean .- c_sigma, c_mean .+ c_sigma, color="0.5", alpha=0.3, ls="")
-	ax.plot(metallicity_bin_centers, c_mean, color="k", lw=3, label=L"\rm 1D")
+	ax.plot(metallicity_bin_centers, c_mean, color="tomato", lw=3, label=L"\rm 1D")
 
 	
 	c_mean =  [mean(
@@ -1557,7 +2616,7 @@ let
 		8.560 .+corrections_saga_all[bins_CEMP_corr[:, i]]
 	)  for i in eachindex(metallicity_bin_centers)]
 	#ax.fill_between(metallicity_bin_centers, c_mean .- c_sigma, c_mean .+ c_sigma, color="cyan", alpha=0.3, ls="")
-	ax.plot(metallicity_bin_centers, c_mean, color="tomato", label=L"\rm 3D", lw=3)
+	ax.plot(metallicity_bin_centers, c_mean, color="steelblue", label=L"\rm 3D", lw=3)
 	
 	
 	
@@ -1577,6 +2636,245 @@ let
 	plt.setp(ax_xhist.get_xticklabels(), visible=false)
 	plt.setp(ax_yhist.get_yticklabels(), visible=false)
 
+	f.savefig("yoon_beers_detailed.pdf")
+
+	f
+end
+
+# ╔═╡ f4b9583a-9dfd-477b-beab-15ec8a5b82dd
+let
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 4), sharex=true, sharey=true)
+	plt.subplots_adjust(wspace=0)
+
+	ellipse_alpha = 0.15
+	scatter_alpha = 0.6
+	
+	# 1D
+	ellipse3 = matplotlib.patches.Ellipse(
+		(-5.5, 6.9), -4.5, 0.9, color="orange", alpha=ellipse_alpha, ec="0.5"
+	)
+	ellipse2 = matplotlib.patches.Ellipse(
+		(-3.75, 5.95), -3.5, 0.9, color="green", alpha=ellipse_alpha, angle=45, ec="0.5"
+	)
+	ellipse1 = matplotlib.patches.Ellipse(
+		(-2.52, 7.9), -2, 3, color="blue", alpha=ellipse_alpha, angle=-55, ec="0.5"
+	)
+	ax[0].add_patch(ellipse1)
+	ax[0].add_patch(ellipse2)
+	ax[0].add_patch(ellipse3)
+	draw_ellipse_axes(ellipse1, ax[0], N=1, skip_horizontal=true, color="blue", ls="--", alpha=0.75)
+	draw_ellipse_axes(ellipse2, ax[0], N=1, skip_vertical=true, color="green", ls="--", alpha=0.75)
+	draw_ellipse_axes(ellipse3, ax[0], N=1, skip_vertical=true, color="orange", ls="--", alpha=0.75)
+
+	
+	# 3D
+	ellipse3 = matplotlib.patches.Ellipse(
+		(-5.3, 6.3), -4.5, 0.9, color="orange", alpha=ellipse_alpha, ec="0.5", angle=11
+	)
+	ellipse2 = matplotlib.patches.Ellipse(
+		(-3.75, 5.55), -3.5, 0.9, color="green", alpha=ellipse_alpha, angle=45, ec="0.5"
+	)
+	ellipse1 = matplotlib.patches.Ellipse(
+		(-2.48, 7.75), -2, 3, color="blue", alpha=ellipse_alpha, angle=-55, ec="0.5"
+	)
+	ax[1].add_patch(ellipse1)
+	ax[1].add_patch(ellipse2)
+	ax[1].add_patch(ellipse3)
+	draw_ellipse_axes(ellipse1, ax[1], N=1, skip_horizontal=true, color="blue", ls="--", alpha=0.75)
+	draw_ellipse_axes(ellipse2, ax[1], N=1, skip_vertical=true, color="green", ls="--", alpha=0.75)
+	draw_ellipse_axes(ellipse3, ax[1], N=1, skip_vertical=true, color="orange", ls="--", alpha=0.75)
+	
+
+	#=ax[0].axhline(6.9, color="orange", ls=":", alpha=0.5)
+	ax[1].axhline(6.4, color="orange", ls=":", alpha=0.5)
+
+	ax[0].axhline(5.95, color="green", ls=":", alpha=0.5)
+	ax[1].axhline(5.55, color="green", ls=":", alpha=0.5)
+
+	ax[0].axhline(7.9, color="blue", ls=":", alpha=0.5)
+	ax[1].axhline(7.75, color="blue", ls=":", alpha=0.5)
+	=#
+
+	ax[0].text(-6.7, 7.5, L"\rm \mathbf{Group\ III}", color="0.3", fontsize="small")
+	ax[0].text(-3.1, 5.3, L"\rm \mathbf{Group\ II}", color="0.3", fontsize="small")
+	ax[0].text(-1.4, 9.4, L"\rm \mathbf{Group\ I}", color="0.3", fontsize="small", ha="right")
+	ax[1].text(-6.7, 7.5, L"\rm \mathbf{Group\ III}", color="0.3", fontsize="small")
+	ax[1].text(-3.1, 5.3, L"\rm \mathbf{Group\ II}", color="0.3", fontsize="small")
+	ax[1].text(-1.4, 9.4, L"\rm \mathbf{Group\ I}", color="0.3", fontsize="small", ha="right")
+	
+	ax[0].text(-5.5, 3.8, L"carbon"*"\n"*L"enhanced", color="0.5", fontsize="x-small", ha="right", va="bottom")
+	ax[0].text(-4.6, 3.8, L"carbon"*"\n"*L"normal", color="0.5", fontsize="x-small", ha="left", va="bottom")
+	ax[1].text(-5.5, 3.8, L"carbon"*"\n"*L"enhanced", color="0.5", fontsize="x-small", ha="right", va="bottom")
+	ax[1].text(-4.6, 3.8, L"carbon"*"\n"*L"normal", color="0.5", fontsize="x-small", ha="left", va="bottom")
+
+	text_group3 = """
+	$(L"\rm \mathbf{CEMP-no}")
+	Faint SNe
+	Pop III
+	"""
+	#ax[0].text(-6.7, 8.2, text_group3, color="0.5", fontsize="x-small", ha="left", va="bottom")
+	#ax[1].text(-6.7, 8.2, text_group3, color="0.5", fontsize="x-small", ha="left", va="bottom")
+
+	
+	text_group2 = """
+	$(L"\rm \mathbf{CEMP-no}")
+	Standard CCSNe
+	Pop II
+	"""
+	#ax[0].text(-3.1, 5.15, text_group2, color="0.5", fontsize="x-small", ha="left", va="top")
+	#ax[1].text(-3.1, 5.15, text_group2, color="0.5", fontsize="x-small", ha="left", va="top")
+
+
+	text_group1 = """
+	$(L"\rm \mathbf{CEMP-s\ +\ CEMP-r/s}")
+	MRSNe, NS-NS or NS-BH merger
+	AGB contribution
+	"""
+	#ax[0].text(-1.4, 9.5, text_group1, color="0.5", fontsize="x-small", ha="right", va="bottom")
+	#ax[1].text(-1.4, 9.5, text_group1, color="0.5", fontsize="x-small", ha="right", va="bottom")
+	
+
+	
+	CEMP_mask = (parameters_all["cfe"] .>= cfe_limit) .& selection_mask
+	feh = parameters_all["feh"][CEMP_mask]
+	cfe = parameters_all["cfe"][CEMP_mask]
+	c = cfe .+ feh .+ 8.560
+	#ax.scatter(feh, c, s=20, marker="s", c="None", alpha=0.2, linewidth=1, edgecolor="k")
+	ax[0].scatter(feh, c, s=15, marker="o", c="None", alpha=scatter_alpha, edgecolor="tomato", rasterized=true, label="1D")
+	ax[1].scatter(feh, c+corrections_saga_all[CEMP_mask], s=15, marker="o", c="None", alpha=scatter_alpha, edgecolor="steelblue", rasterized=true, label="3D")
+
+	
+	
+	cemp_line(x) = 0.7 + x + 8.39
+	x = range(-9, 0, length=100)|>collect
+	ax[0].plot(x, cemp_line.(x), color="0.5", alpha=0.9, ls=":", lw=3)
+	ax[1].plot(x, cemp_line.(x), color="0.5", alpha=0.9, ls=":", lw=3)
+
+	#ax[0].legend()
+	#ax[1].legend()
+	ax[0].text(0.05, 0.87, L"\mathbf{1D}", color="tomato", transform=ax[0].transAxes, fontsize="x-large")
+	ax[1].text(0.05, 0.87, L"\mathbf{3D}", color="steelblue", transform=ax[1].transAxes, fontsize="x-large")
+	ax[0].set_xlim(-6.9, -1.1)
+	ax[0].set_ylim(3.6, 10.1)
+	ax[0].set_xlabel("[Fe/H]")
+	ax[1].set_xlabel("[Fe/H]")
+	ax[0].set_ylabel("A(C)")
+	#ax[0].legend(loc="upper left")
+
+	
+	f.savefig("yoon_beers_split.pdf")
+
+	f
+end
+
+# ╔═╡ 30bef587-80f6-4d36-a2b7-283b44f1db13
+let
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 5))
+
+
+	#CEMP_mask = (parameters_all["cfe"] .>= cfe_limit) .& selection_mask
+	CEMP_mask = selection_mask
+	feh = parameters_all["feh"][CEMP_mask]
+	cfe = parameters_all["cfe"][CEMP_mask]
+	c = cfe 
+
+	group = bins_CEMP
+
+	c_mean =  [mean(
+		parameters_all["cfe"][group[:, i]]
+	)  for i in eachindex(metallicity_bin_centers)]
+	c_sigma =  [MUST.std(
+		parameters_all["cfe"][group[:, i]]
+	)  for i in eachindex(metallicity_bin_centers)]
+	ax.fill_between(metallicity_bin_centers, c_mean .- c_sigma, c_mean .+ c_sigma, color="tomato", alpha=0.1, ls="")
+	ax.errorbar(
+		metallicity_bin_centers, c_mean, yerr=c_sigma,
+		color="tomato", lw=2.2, label=L"\rm 1D", marker="s", capsize=5,
+		markersize=8, ls="--"
+	)
+
+	
+	c_mean =  [mean(
+		parameters_all["cfe"][group[:, i]]
+		.+ corrections_saga_all[group[:, i]]
+	)  for i in eachindex(metallicity_bin_centers)]
+	c_sigma =  [MUST.std(
+		parameters_all["cfe"][group[:, i]]
+		.+corrections_saga_all[group[:, i]]
+	)  for i in eachindex(metallicity_bin_centers)]
+	ax.fill_between(metallicity_bin_centers, c_mean .- c_sigma, c_mean .+ c_sigma, color="steelblue", alpha=0.1, ls="")
+	ax.errorbar(
+		metallicity_bin_centers, c_mean, yerr=c_sigma,
+		color="steelblue", label=L"\rm 3D", lw=2.2, marker="s", capsize=5,
+		markersize=8
+	)
+	
+	
+	cemp_line(x) = 0.7 
+	x = range(-9, 0, length=100)|>collect
+	ax.plot(x, cemp_line.(x), color="0.5", alpha=1.0, ls=":", lw=2.5)
+
+	ax.set_xlim(-6.1, -1.5)
+	#ax.set_ylim(4, 9.2)
+	ax.set_xlabel("[Fe/H]")
+	ax.set_ylabel("[C/Fe]")
+	ax.legend(loc="upper right")
+
+	f.savefig("cfe_corrected.pdf")
+
+	f
+end
+
+# ╔═╡ c08c0fd5-808f-46cd-8617-c2db2d5dc181
+
+
+# ╔═╡ e897badd-4296-454d-807b-af34bfa35c9d
+md"## Galactic C/O ratio"
+
+# ╔═╡ 39de6e5e-8c11-46db-b047-c0a389596c23
+let
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 5))
+
+	selection_mask = parameters_co["logg"] .>= logg_limit
+	NaNmask = .!isnan.(parameters_co["ofe"]) .& .!isnan.(parameters_co["cfe"])
+	CEMP_mask = (parameters_co["cfe"] .>= cfe_limit) .& selection_mask .& NaNmask
+	feh = parameters_co["feh"][CEMP_mask]
+	cfe = parameters_co["cfe"][CEMP_mask]
+	ofe = parameters_co["ofe"][CEMP_mask]
+
+	bins_CO_CEMP = bin_parameter(
+		metallicity_bin_edges, 
+		CEMP_mask,
+		para=parameters_co,
+		selection=trues(length(parameters_co["feh"])),
+		data=saga_co_data
+	)
+
+	co_mean =  [mean(
+		parameters_co["cfe"][bins_CO_CEMP[:, i]] .-
+		parameters_co["ofe"][bins_CO_CEMP[:, i]]
+	)  for i in eachindex(metallicity_bin_centers)]
+	c_sigma =  [MUST.std(
+		parameters_co["cfe"][bins_CO_CEMP[:, i]] .-
+		parameters_co["ofe"][bins_CO_CEMP[:, i]]
+	)  for i in eachindex(metallicity_bin_centers)]
+
+	@info "There are $(length(feh)) CEMP stars in total with [C/Fe] and [O/Fe] measurements."
+	ax.scatter(feh, cfe .- ofe, color="k", marker="s", s=50, alpha=0.5)
+	
+	#ax.fill_between(metallicity_bin_centers, co_mean .- c_sigma, co_mean .+ c_sigma, color="cyan", alpha=0.1, ls="")
+	#ax.plot(metallicity_bin_centers, co_mean, color="steelblue", lw=3, alpha=0.7)
+
+	ax.axhline(mean(cfe .- ofe), color="tomato", label=L"\rm \left< [C/O] \right> = "*"$(round(mean(cfe .- ofe), digits=2))"*"\n"*L"\rm \left<C/O \right> \approx"*"$(round(0.55*exp10(mean(cfe .- ofe)), digits=2))", ls="--", lw=4)
+
+	ax.set_ylim(-2.9, 2.9)
+
+	ax.legend(loc="lower center")
+	ax.set_ylabel("[C/O]")
+	ax.set_xlabel("[Fe/H]")
 
 	f
 end
@@ -1588,9 +2886,10 @@ end
 # ╟─1f6f5fe0-3f38-4547-b9e6-0482a76ea03a
 # ╟─1150c5dd-f486-46d6-b911-5fb1d70d3792
 # ╟─4ea802dc-b3e3-44ab-8758-b76bef9de441
-# ╟─3022833b-9b2c-4e3f-ba69-0dfc10ed5e2a
+# ╟─06f0b894-d945-4941-aee5-e3e699e162f0
 # ╟─ea64c5f8-21e3-4685-ba30-2fd61ab34974
 # ╠═49ce048c-18ec-44d6-a782-f474ad11c83c
+# ╠═d30fd639-00c4-433e-b5c4-cdc59e38281e
 # ╟─8dfd95b6-144c-4bb0-986e-6f5cde660c3e
 # ╟─ccbdff2f-bc03-444b-9b0f-3ce318e10116
 # ╟─5952687e-2249-4a8e-ba83-54ab695da15a
@@ -1604,6 +2903,7 @@ end
 # ╟─44d75cc5-2832-45ff-be3b-3a855cc1a636
 # ╟─c6cf7c10-a62d-4c6c-8bdc-5acd9c007f40
 # ╟─533184b3-d690-4f44-87b6-6bb49ee7e2c2
+# ╟─bfc09acd-8fe3-44c9-a44f-8aefe85f3d76
 # ╟─5dc20e44-24eb-4e8f-bda1-fac7a1c0a5f4
 # ╟─4802eaa5-1c91-4813-b335-c217c5ceac87
 # ╟─e624d1fd-24e2-4277-8838-a9ce0026ec56
@@ -1613,9 +2913,9 @@ end
 # ╟─6df206d1-6794-4bab-a10d-914c6f508137
 # ╟─e735e811-975c-49ff-b99f-7b98e63e5150
 # ╟─6a2c237d-a0aa-4db7-9a87-b259eda25546
+# ╟─9ccc4261-0b53-4083-b8a3-850f10994048
+# ╟─e6f379f0-6cbf-4d74-9c5e-4fb567307eea
 # ╟─c8ad7b76-d063-457b-809e-65b818c796f4
-# ╟─cd7eb05b-0622-4e82-a141-c049ecab95e2
-# ╟─1e448509-7bfe-41a5-85f1-6df811aa6548
 # ╟─99e19910-17a3-4dd2-8ec0-72dd3da2726a
 # ╟─01ec615e-bc60-4e50-a076-692317095591
 # ╟─55b53af5-c8d3-4086-ac92-5995002d8c37
@@ -1624,15 +2924,19 @@ end
 # ╟─989f922a-9596-4045-b4fc-186a18ca5725
 # ╟─8cebfa74-030a-4e3a-9c91-49160c1f8f64
 # ╟─de37b6dc-cf8b-4a1c-95b8-ac59ac04837a
+# ╟─687bd929-41a2-416e-ad7a-681e98096c98
 # ╟─212b2d0b-fbcc-4934-8ebb-627545fea549
+# ╟─bb9ebb4c-4065-4b5c-82a6-05d88be2c55e
 # ╟─45cd645d-055d-41a7-a7e9-0f0867d0d183
 # ╟─69bf13d1-3f9a-45c6-98c0-523951ed812f
 # ╟─d51a843b-168e-411f-8641-e02d96371678
 # ╟─44694a88-c977-4d56-9fba-a42da6f60682
 # ╟─f86f0d5b-ffc1-429a-b31c-8aad4aeb396a
 # ╟─685e9c27-dc91-4f82-8112-998383271de0
+# ╟─c7fb5cc8-5a09-47d7-bb4a-579fb5a085f9
 # ╟─136db4eb-c274-46ef-bac2-03a3bf300cac
 # ╟─560fcc8a-a9ee-4420-bc97-eb53b9f6de94
+# ╟─3fef366c-b34b-4747-ac5c-7e3ef5377ef8
 # ╟─efae7789-e54d-46fa-ae43-063575e522bf
 # ╟─dc3f65a6-a4f5-4bae-bb83-1287384a2e10
 # ╠═3389b1ca-c595-4d78-aabf-dfee9e9672a3
@@ -1644,6 +2948,7 @@ end
 # ╟─b874cdbb-7496-471d-8e2e-4e3f47a126b0
 # ╠═d967809b-c044-49a6-a392-334d40c6d89e
 # ╠═e6d97f9d-7069-4b09-9486-d6a6c279838c
+# ╠═4f2b6d24-9157-47ea-a11b-53a30dc34c7a
 # ╟─4ff6bac5-7f46-4f4b-a221-8b75bdb6b53f
 # ╟─258d76cb-ac6b-453e-b541-29ad51461195
 # ╟─f77ae3e8-374a-4e3c-b8b3-7985747bccc4
@@ -1652,17 +2957,47 @@ end
 # ╟─7a831dfa-f216-4d6b-9370-5f286d7f3e77
 # ╟─631410d5-7e7a-458f-a7fb-74b462913bd8
 # ╟─1149d154-42e0-4e94-b26f-716504872afa
+# ╟─8d19d381-a19e-4073-a19a-39bd2ff1be7c
+# ╟─ffd0e8b7-7c9a-4e51-9a1e-1982dc59754c
 # ╟─87aaadf1-2d46-4d14-8723-8c843040d1d1
 # ╟─f3dc3826-c36e-4292-9431-a86d4325903c
 # ╟─093b3783-af82-4e34-a1e6-65a0df5bb35c
+# ╟─c85b36d4-ff22-4ba6-a4d1-c1791fd94ee2
 # ╟─3a59080e-f925-48c7-b01d-660c45a7f541
 # ╟─d8f6a261-88ab-4222-8a51-ce1b359df452
 # ╟─2dd8fd87-f543-413e-b8f3-4187ff67e52c
 # ╟─75f3327c-00c4-4594-86ac-e2b5237dc0bc
 # ╟─ef9fef62-5e50-4a1d-b1a9-4db7289663a7
+# ╟─331f1016-df68-4330-8983-a2db6219f966
+# ╟─924ea3f0-c822-44dc-9faa-1629c14f5232
+# ╟─494823c4-50b7-4e23-894c-caafaab48b29
+# ╟─1bd82fae-afb3-4197-999e-61fba6ccfe71
+# ╟─731fadcd-c03a-4f7d-8f49-f7c2c29c099b
+# ╟─981e31b0-7073-431c-b1a4-d82fd6e57350
+# ╟─7e487942-9681-4441-8969-050c8328a19a
+# ╟─08fba04e-f041-4c49-865e-ec254a99fc98
+# ╟─0e7e6f79-7225-4d29-8693-b2b93ddf4812
+# ╠═217e0937-4b2d-4948-9a72-c236a8fc5c5a
+# ╟─a84ea668-6701-4e31-9f04-cb0feb70290d
+# ╟─7dae5609-0148-438f-a207-98da5c9173d4
+# ╟─e4232daa-7174-493d-968e-21a012204fcb
+# ╟─e502770d-d765-4757-a075-3fadcdd88eed
+# ╟─f64c0cd9-c0ec-44e3-9e0c-440b6fdc23e8
+# ╟─635d415f-aa91-4d25-8162-a550119e3f12
+# ╟─2caf0768-3202-4d16-8c24-4f9a6433076e
+# ╠═ac81d133-8894-46da-b85c-ab5d580ecd12
+# ╠═01752527-37fd-4175-9982-02877ca4ae69
+# ╟─2d18e394-484d-4aef-bcb5-c45627fcf824
+# ╟─4b18b95c-e574-468a-92ce-73931621e442
+# ╟─af94af20-6618-448e-b146-b3ba1b1a20f1
+# ╟─22932761-ae92-4cd6-b828-07e3f86a4d0f
+# ╟─a6ee120f-0dfc-433a-8c9c-0f9f828ffe29
+# ╟─421da8e3-f710-46f1-a602-bdc4a3266a26
+# ╟─b28a34da-219e-424e-bed3-17ac707fad74
 # ╟─874f7823-d626-45c9-aac8-72b22fe872c6
 # ╟─8649e73c-ddf0-42b0-b0e1-93295bcdda5f
 # ╠═35c27a34-6c3d-4b9f-ba87-305e81eadaff
+# ╠═1f1a0d0f-cc24-448b-9291-91325a9d72eb
 # ╟─0bbf88db-b471-4c9c-999f-c3ace82841be
 # ╟─8eb12511-d69c-4e4a-9eeb-052471784a32
 # ╟─023e815c-5831-4445-8fb3-58981fcb09fb
@@ -1680,6 +3015,7 @@ end
 # ╟─7ab6c379-1747-4ae6-94c1-6ef3a3c83f72
 # ╠═51fa1fc7-5191-48a9-af04-648e8669ba3c
 # ╟─4edb9461-7f5b-41a0-ac30-4ae72a42d3c8
+# ╟─36cf99a4-d9cb-4282-a45c-50b7ff5833d3
 # ╟─990e7d73-3e8e-4900-a225-4e5cac6ac8c6
 # ╟─5e31351e-5e77-46a5-9e8c-baa53eeaee73
 # ╟─73b3581d-a484-4ff4-8e69-445192946a3b
@@ -1693,5 +3029,13 @@ end
 # ╟─48bf4d88-82e0-4aaa-b1e8-35d375a03910
 # ╟─f07880a2-bbaa-47c9-897a-fd94d93ede4f
 # ╟─6e1e3bf9-7299-4ec3-8802-bbe798089fcb
+# ╟─17521b74-d37b-4c84-87ad-0e4f155b3790
 # ╟─892a04e1-3758-435a-b8cd-e7c03b777923
+# ╟─0ee1f4fc-da57-4f63-9713-c20dc2f0464d
+# ╟─9c789f14-0a75-45f7-912f-9a5190a3a54a
 # ╟─76e3d925-6778-4d40-a02f-23e6aa6258eb
+# ╟─f4b9583a-9dfd-477b-beab-15ec8a5b82dd
+# ╟─30bef587-80f6-4d36-a2b7-283b44f1db13
+# ╟─c08c0fd5-808f-46cd-8617-c2db2d5dc181
+# ╟─e897badd-4296-454d-807b-af34bfa35c9d
+# ╟─39de6e5e-8c11-46db-b047-c0a389596c23
