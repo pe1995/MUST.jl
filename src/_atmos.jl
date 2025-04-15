@@ -1924,6 +1924,20 @@ list_snapshots(snapshots; numbered_only=false) = begin
     numberlist
 end
 
+snapshotid(snapshots, i; skip_last_if_missing=true) = if i == :recent 
+    if ((isnothing(last(snapshots[last(list_snapshots(snapshots, numbered_only=true))]))) & 
+                    skip_last_if_missing)
+        list_snapshots(snapshots, numbered_only=true)[end-1]
+    else 
+        last(list_snapshots(snapshots, numbered_only=true))
+    end
+elseif (typeof(i) <:Int) && (i <0)
+    list_snapshots(snapshots, numbered_only=true)[end+i+1]
+else 
+    i
+end
+
+
 """
     pick_snapshot(snapshots, i)
 
@@ -1932,35 +1946,15 @@ If ``i == :recent``, pick the most recent available snapshot.
 If ``i == :time_average``, pick the time average, if available.
 """
 function pick_snapshot(snapshots, i; skip_last_if_missing=true, verbose=0, kwargs...)
-	i = if i == :recent 
-        if ((isnothing(last(snapshots[last(list_snapshots(snapshots, numbered_only=true))]))) & 
-                        skip_last_if_missing)
-            list_snapshots(snapshots, numbered_only=true)[end-1]
-        else 
-            last(list_snapshots(snapshots, numbered_only=true))
-        end
-    elseif (typeof(i) <:Int) && (i <0)
-        list_snapshots(snapshots, numbered_only=true)[end+i+1]
-	else 
-		i
-	end
-
-	snap = if i == :time_average
-        ["box_tav", "box_tau_tav"]
-        isfile(joinpath(snapshots["folder"], "box_tau_tav.hdf5")) ? 
-            ["box_tav", "box_tau_tav"] :
-            ["box_tav", nothing]
-    else   
-        snapshots[i]
-    end
+	i = snapshotid(snapshots, i; skip_last_if_missing=skip_last_if_missing) 
+	snap = snapshots[i]
 
 	if isnothing(last(snap))
 		verbose>0 && @info "snapshot $(i) loaded."
-		MUST.Box(first(snap); folder=snapshots["folder"], kwargs...), nothing
+		Box(first(snap); folder=snapshots["folder"], kwargs...), nothing
 	else
 		verbose>0 && @info "snapshot $(i) + τ-shot loaded."
-		MUST.Box(first(snap); folder=snapshots["folder"], kwargs...), 
-		MUST.Box(last(snap); folder=snapshots["folder"], kwargs...)
+		Box(first(snap); folder=snapshots["folder"], kwargs...), Box(last(snap); folder=snapshots["folder"], kwargs...)
 	end
 end
 
@@ -2315,7 +2309,7 @@ add_spectra!(to::Box, from::Box) = begin
         for tag in tags
             if occursin(String(tag)*"_", String(key))
                 # this needs to be added
-                to[key] = val
+                to[key] = deepcopy(val)
             end
         end
     end
@@ -2402,6 +2396,30 @@ abundance_from_composition_string(cs, element) = begin
     end
 end
 
+abundance_from_tag(model, tag, element) = begin
+    comp_ref = model[
+        spectra_key_from_tag(
+            "composition", tag
+        )
+    ]
+    abundance_from_composition_string(comp_ref, element)
+end
+
+equivalentwidth_from_tag(model, tag; λs=nothing, λe=nothing) = begin
+    # get reference wavelength
+    λ_ref, F_ref = mean_integrated_flux(model, tag, norm=true)
+
+    # masking region
+    λs = isnothing(λs) ? minimum(λ_ref) : λs
+    λe = isnothing(λe) ? maximum(λ_ref) : λe
+    λmask = λs .<= λ_ref .<= λe
+    λ_ref = λ_ref[λmask]
+    F_ref = F_ref[λmask]
+    
+    # get reference abundance and equivalent width
+    integrate(λ_ref, 1 .- F_ref) 
+end
+
 """
     curve_of_growth(element, reference_model, reference_tag, model, model_tags; λs=nothing, λe=nothing)
 
@@ -2409,44 +2427,44 @@ Compute the CoG (+ abundance corrections) for a given element (e.g. `[C/Fe]`) fr
 The spectra obtained via `reference_tag` is used to compute the difference in equivalent width to all spectra in `model_tags`.
 Abundances are obtained from the `composition` entry of those spectra. The correction is `abund_model(ew_ref) - abund_ref`.
 """
-function curve_of_growth(element, reference_model, reference_tag, model, model_tags; λs=nothing, λe=nothing)
-	# get reference wavelength
-	λ_ref, F_ref = mean_integrated_flux(reference_model, reference_tag, norm=true)
+function curve_of_growth(element, reference_model, reference_tag, model, model_tags; λs=nothing, λe=nothing, interpolate_reference_to=nothing)
+	ew_ref, ab_ref = if isnothing(interpolate_reference_to)
+        ew_ref = equivalentwidth_from_tag(reference_model, reference_tag; λs=λs, λe=λe)
+        ab_ref = abundance_from_tag(reference_model, reference_tag, element)
 
-	# masking region
-	λs = isnothing(λs) ? minimum(λ_ref) : λs
-	λe = isnothing(λe) ? maximum(λ_ref) : λe
-	λmask = λs .<= λ_ref .<= λe
-	λ_ref = λ_ref[λmask]
-	F_ref = F_ref[λmask]
-	
-	# get reference abundance and equivalent width
-	ew_ref = integrate(λ_ref, 1 .- F_ref) 
-	comp_ref = reference_model[
-		spectra_key_from_tag(
-			"composition", reference_tag
-		)
-	]
-	ab_ref = abundance_from_composition_string(comp_ref, element)
+        ew_ref, ab_ref
+    else
+        # interpolate reference tags to the given abundance
+        ew_ref = []
+        ab_ref = []
+        for i in eachindex(reference_tag)
+            try
+                ew_l = equivalentwidth_from_tag(reference_model, reference_tag[i]; λs=λs, λe=λe)
+                ab_l = abundance_from_tag(reference_model, reference_tag[i], element)
+                append!(ew_ref, [ew_l])
+                append!(ab_ref, [ab_l])
+            catch
+                @warn "Error in tag $(reference_tag[i]). Skipping."
+            end
+        end
+
+        # interpolation
+        f_ab = linear_interpolation(
+            ab_ref[sortperm(ab_ref)], ew_ref[sortperm(ab_ref)], extrapolation_bc=Line()
+        )
+
+        target_ab = interpolate_reference_to
+
+        f_ab(target_ab), target_ab
+    end
 
 	# Compute the same thing for all other models
 	abundances = []
 	equivalent_widths = []
 	for tag in model_tags
         try
-            λ, F = mean_integrated_flux(model, tag, norm=true)
-            λmask_l = λs .<= λ .<= λe
-
-            λ = λ[λmask_l]
-            F = F[λmask_l]
-
-            ew = integrate(λ, 1 .- F) 
-            comp = model[
-                MUST.spectra_key_from_tag(
-                    "composition", tag
-                )
-            ]
-            ab = abundance_from_composition_string(comp, element)
+            ew = equivalentwidth_from_tag(model, tag; λs=λs, λe=λe)
+            ab = abundance_from_tag(model, tag, element)
 
             append!(equivalent_widths, [ew])
             append!(abundances, [ab])
