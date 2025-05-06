@@ -14,10 +14,10 @@ using Dates
 
 # global grid files that can be used for interpolation
 staggergrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_v2.0_r.mgrid")))
-marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS_2.0", "marcs_v2.0_r.mgrid")))
+#marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS_2.0", "marcs_v2.0_r.mgrid")))
+marcsgrid = MUST.Atmos1DGrid(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "MARCS_2.1", "marcs_2.1_grid.mgrid")))
 MUST.check_av_model_path(marcsgrid)
 MUST.check_av_model_path(staggergrid)
-
 
 
 opacityguess(name, root) = begin

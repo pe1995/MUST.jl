@@ -216,6 +216,28 @@ function resolutionSimple(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf,
     actual_dx, actual_x_patches*patch_size, actual_dz, desired_n_patches*patch_size
 end
 
+"""
+    resolutionSimplistic(av_model, min_x, max_x, min_z, max_z, hres, patch_size=20; cut_bottom=0.3)
+
+Completely ignore resolution restrains and just return the size based on the limits given and the average model.
+"""
+function resolutionSimplistic(av_model, min_x, max_x, min_z, max_z, τ_top, τ_surf, τ_bottom, hres,
+                                    patch_size=30; scale_resolution=1.0, dxdz_max=4.0)
+    mask = sortperm(av_model.τ)
+    ip_z = MUST.linear_interpolation(
+        MUST.Interpolations.deduplicate_knots!(log10.(av_model.τ[mask])), 
+        av_model.z[mask], 
+        extrapolation_bc=MUST.Line()
+    )
+    actual_top = ip_z(τ_top)
+    actual_bottom = ip_z(τ_bottom)
+    actual_dz = abs(actual_top - actual_bottom)
+    actual_dx = 2.0 * actual_dz
+    actual_x_patches = ceil(180 / patch_size)
+    actual_z_patches = actual_x_patches / 2
+    actual_dx, actual_x_patches*patch_size, actual_dz, actual_z_patches*patch_size
+end
+
 
 
 
@@ -667,6 +689,7 @@ resolution!(grid::MUST.AbstractMUSTGrid;
         z_lo[i] = ip_z(td)
         d_lo[i] = exp.(ip_r(td))
         T_lo[i] = exp.(ip_T(td))
+        #@show z_up z_lo ip_z(tu)
     end
 
     xd, xr, zd, zr

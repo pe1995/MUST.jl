@@ -5,7 +5,8 @@ examples/*/.CondaPkg
 initial_grids/.CondaPkg
 initial_grids/MARCS_2.0/av_models/
 initial_grids/MARCS_2.0/av_models.tar.gz
-
+initial_grids/MARCS_2.1/av_models/
+initial_grids/MARCS_2.1/av_models.tar.gz
 
 examples/*/Manifest.toml
 examples/*/slurm*
@@ -43,6 +44,7 @@ examples/CEMP/*.txt
 examples/CEMP/*_rho
 examples/CEMP/*_T
 examples/CEMP/Paper/*.pdf
+examples/CEMP/Paper/*/*.pdf
 
 examples/initial_models/*
 examples/initial_models/*.dat

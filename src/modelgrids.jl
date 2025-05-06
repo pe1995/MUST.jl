@@ -6,6 +6,9 @@ using NaturalNeighbours
 
 interpolationMethod="triangle"
 
+# read the grid of interpolation coefficients
+ip_coeffs_stagger = MUST.CSV.read(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "interpolation_coeffs.csv")), MUST.DataFrame)
+
 
 #==================================================================== Models =#
 
@@ -446,12 +449,42 @@ checkparameters(grid, paras) = checkparameters(grid, teff=paras[:, 1], logg=para
 
 
 
+#========================================== interpolation of bottom boundary =#
+
+get_ip_coeffs(feh, grid=ip_coeffs_stagger; offsets=nothing) = begin
+	feh_grid = grid[!, :metallicity]
+	feh_pick = feh_grid[argmin(abs.(feh_grid .- feh))]
+	c = grid[grid[!, :metallicity] .== feh_pick, :]
+
+	d = Dict(
+		k=>parse.(Float64, split((c[!, k] |> first)[2:end-1], ','))
+		for k in names(grid) if !(k=="metallicity")
+	)
+
+	if !isnothing(offsets)
+		@info "Applying offsets: $(offsets)"
+		d["rho_bottom_logg"][2] += offsets[1]
+		d["T_bottom_teff"][2] += offsets[2]
+	end
+
+	d
+end
+
+predict_bottom_boundary(teff, logg, coefficients) = begin
+	rho_predicted = coefficients["rho_bottom_logg"][1] * logg + coefficients["rho_bottom_logg"][2] 
+	rho_correction = coefficients["rho_bottom_correction_teff"][1] * teff + coefficients["rho_bottom_correction_teff"][2] 
+
+	T_predicted = coefficients["T_bottom_teff"][1] * teff + coefficients["T_bottom_teff"][2] 
+	T_correction = coefficients["T_bottom_correction_logg"][1] * logg + coefficients["T_bottom_correction_logg"][2] 
+
+	rho_predicted + rho_correction, T_predicted + T_correction
+end
 
 
 #===========================================================interpolate grid =#
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
-	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", τ_extrapolate=nothing, adiabatic_extrapolation=false, kwargs...) where {F<:AbstractFloat}
+	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", τ_extrapolate=nothing, adiabatic_extrapolation=false, bottom_boundary_extrapolation=false, extrapolation_offsets=nothing, from_snapshot="", kwargs...) where {F<:AbstractFloat}
 
 	folder_name = "interpolated"
 	mesh   = "interpolated"
@@ -479,7 +512,13 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 
 
 	# create the initial model from interpolating the average snapshots
-	model = if isnothing(models)
+	model = if length(from_snapshot)>0
+		# load the snapshot
+		b = MUST.Box(from_snapshot)
+		z, lnrho = MUST.profile(MUST.mean, b, :z, :logd)
+		_, lnT = MUST.profile(MUST.mean, b, :z, :logT)
+		TSO.Model1D(z=z, lnρ=lnrho, lnT=lnT, logg=logg)
+	elseif isnothing(models)
 		isnothing(eos) ? 
 		interpolate_average(grid; teff=teff, logg=logg, feh=feh, kwargs...) : 
 		interpolate_average(grid, eos, opa; teff=teff, logg=logg, feh=feh, adiabats=adiabat, kwargs...)
@@ -489,6 +528,21 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 		interpolate_average(grid, eos, opa; teff=teff, logg=logg, feh=feh, adiabats=adiabats, models=models, models_mod=models_mod, τ_extrapolate=τ_extrapolate, kwargs...)
 	end
 
+	model = if bottom_boundary_extrapolation && (!isnothing(eos))
+		# pick the interpolation coefficients that are closest to the given metallicity
+		coeffs = get_ip_coeffs(feh; offsets=extrapolation_offsets)
+		rho_bot, t_bot = predict_bottom_boundary(teff, logg, coeffs)
+		model_extra = TSO.reverse_adiabatic_extrapolation(
+			model, exp10(rho_bot), exp10(t_bot), eos; kwargs...
+		)
+		uniform_z = range(
+			minimum(model_extra.z), maximum(model_extra.z), length=300
+		) |> collect
+
+		TSO.flip(TSO.interpolate_to(model_extra, in_log=false, z=uniform_z), depth=true)
+	else
+		model
+	end
 
 	# optionally extrapolate adiabatically on this new zscale
 	model = if adiabatic_extrapolation
@@ -496,7 +550,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 		ma_z = MUST.interpolate_quantity(grid, "ma_z"; teff=teff, logg=logg, feh=feh)
 		model_extra = TSO.adiabatic_extrapolation(model, eos, abs(ma_z - mi_z)*1.1)
 		uniform_z = range(
-			minimum(model_extra.z), maximum(model_extra.z), step=abs(vres)
+			minimum(model_extra.z), maximum(model_extra.z), length=300 #step=abs(vres)
 		) |> collect
 
 		TSO.flip(TSO.interpolate_to(model_extra, in_log=false, z=uniform_z), depth=true)
@@ -506,7 +560,6 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 
 	mi_z = minimum(model.z)
 	ma_z = maximum(model.z)
-	
 	
 	av_path = abspath(joinpath(folder, "$(name)_99999_av.dat"))
 	TSO.flip!(model)

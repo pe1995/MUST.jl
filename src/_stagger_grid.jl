@@ -79,8 +79,15 @@ check_av_model_path(g::Atmos1DGrid) = begin
 		@info "av_models unpacked."
 	elseif !isdir(d) && (gridname=="MARCS_2.0")
 		destination = d*".tar.gz"
-		@show destination
 		Downloads.download("https://keeper.mpdl.mpg.de/f/de46886c5929462ea1bd/?dl=1", destination)
+		
+		_extract_tar_in_dir(dirname(d), name="av_models.tar.gz")
+
+		#rm(destination)
+		@info "av_models unpacked."
+	elseif !isdir(d) && (gridname=="MARCS_2.1")
+		destination = d*".tar.gz"
+		Downloads.download("https://keeper.mpdl.mpg.de/f/46be98bda0974df1bb89/?dl=1", destination)
 		
 		_extract_tar_in_dir(dirname(d), name="av_models.tar.gz")
 
@@ -97,6 +104,30 @@ _extract_tar_in_dir(d; name="av_models.tar.gz") = begin
 	cd(d)
 	run(`tar $(c)`)
 	cd(currd)
+end
+
+
+#================================================ getting info from the grid =#
+
+get_mask(g::Atmos1DGrid; paras...) = begin
+	grid = g.info
+	mask = trues(nrow(grid))
+	for (pname, val) in paras
+		mask .= mask .& (grid[!, String(pname)] .== val)
+	end
+
+	mask
+end
+
+"""
+	subselect(g::Atmos1DGrid; paras) = begin
+
+Get a subselection of the grid by specifying parameters `paras` as key, value pairs.
+"""
+subselect(g::Atmos1DGrid; paras) = begin
+	mask = get_mask(g; paras...)
+	info_new = deepcopy(g.info[mask, :])
+	Atmos1DGrid(g.name, g.path, info_new)
 end
 
 

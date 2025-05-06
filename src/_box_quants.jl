@@ -5,7 +5,7 @@ A quantity to read from a DISPATCH patch and include in the `Box` object.
 A Quantity always needs a name, a recipe and a conversion.
 By default, the conversion can be omitted, which will result in the default conversion, i.e.
 a division by the unit with the same `name` (See `MUST.StandardUnits`). Optionally,
-a other name can be given as `MUST.standardConversion(name)`. If a combination of 
+an other name can be given as `MUST.standardConversion(name)`. If a combination of 
 different units is needed, you can specify your own function as e.g.
 ```julia
 myConversion() = begin
@@ -14,7 +14,7 @@ end
 ```
 which will then be used as a unit when passed to the respective Quantity.
 A `recipe` is a similar thing, which tells the code how to get the quantity in the 
-first place. If to recipe is given, the quantity is assumed to be a field of the
+first place. If no recipe is given, the quantity is assumed to be a field of the
 patch data anyway. For velocities this e.g. would look like:
 ```julia
 uxQ = Quantity(:ux, (; d, px, kwargs...)->(px ./ d), standardConversion(:u))
