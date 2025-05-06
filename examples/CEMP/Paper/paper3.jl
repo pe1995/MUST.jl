@@ -280,6 +280,7 @@ let
 	# tau500 snapshot
 	b, bt = get_snapshot(snapshot_id, joinpath(datadir, structure_3D_select))
 	plot_profile(b, bt, :T, ax=ax)
+	#ax.plot(profile(mean, bt, :log10τ500, :T)..., color="steelblue", lw=5)
 	
 	# 1D model
 	bmarcs = get_snapshot(structure_1D_select, joinpath(datadir, structure_3D_select))
@@ -304,21 +305,27 @@ let
 	ax2.set_title(L"\rm temperature\ [K]")
 	ax2.set_xlabel(L"\rm x\ [Mm]")
 
+	llim = 2200
 	# formation height bars
 	if length(formation_height_3D) > 0
-		ax.hlines(2800, parse(Float64, formation_height_3D), 0.0, ls="-", color="steelblue", alpha=0.8, lw=6)
-		ax.text(0.1, 2800, "3D", ha="left", va="center", color="steelblue")
+		ax.hlines(llim+700, parse(Float64, formation_height_3D), 0.0, ls="-", color="steelblue", alpha=0.8, lw=6)
+		ax.text(0.1, llim+700, "3D", ha="left", va="center", color="steelblue")
 	end
 	if length(formation_height_1D) > 0
-		ax.hlines(3200, parse(Float64, formation_height_1D), 0.0, ls="-", color="tomato", alpha=0.8, lw=6)
-		ax.text(0.1, 3200, "1D", ha="left", va="center", color="tomato")
+		ax.hlines(llim+1050, parse(Float64, formation_height_1D), 0.0, ls="-", color="tomato", alpha=0.8, lw=6)
+		ax.text(0.1, llim+1050, "1D", ha="left", va="center", color="tomato")
 	end	
+
+	if (length(formation_height_3D) > 0) & (length(formation_height_1D) > 0)
+		xpos = 0.1
+		ax.text(xpos, llim+500, L"\mathrm{line\ formation\ depth\ of\ CH\ G-band}", ha="right", va="top", color="k", alpha=1, fontsize="x-small")
+	end
 	
-	ax.set_xlabel(L"\rm optical\ depth\ [\log \tau_{500}]")
+	ax.set_xlabel(L"\rm optical\ depth\ [\log_{10} \tau_{500}]")
 	ax.set_ylabel(L"\rm temperature\ [K]")
 
 	ax.set_xlim(-4.2, 1.7)
-	ax.set_ylim(2300, 10000)
+	ax.set_ylim(llim, 10000)
 
 	ax.set_title(pretty_from_name(structure_3D_select))
 
@@ -542,10 +549,10 @@ let
 		#ax[0,0].set_ylabel(L"\rm temperature\ [K]")
 		#ax[0,0].legend()
 
-		ax[1,0].set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
+		ax[1,0].set_xlabel(L"\rm optical\ depth\ [\log_{10} \tau_{500}]")
 		ax[1,0].set_ylabel(L"\rm temperature\ [K]")
 
-		ax[1,1].set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
+		ax[1,1].set_xlabel(L"\rm optical\ depth\ [\log_{10} \tau_{500}]")
 		#ax[0,0].set_ylabel(L"\rm temperature\ [K]")
 		#ax[0,0].legend()
 	end
@@ -1115,7 +1122,7 @@ end;
 let
 	plt.close()
 
-	f, ax = plt.subplots(1, 3, figsize=(12, 4), sharex=true, sharey=true)
+	f, ax = plt.subplots(1, 3, figsize=(10, 4), sharex=true, sharey=true)
 	plt.subplots_adjust(wspace=0)
 
 	
@@ -1132,7 +1139,7 @@ let
 	markersize=10
 
 	for i in eachindex(corrections_feh_ss_1D)
-		ax[0].plot(
+		ax[2].plot(
 			corrections_feh_ss_1D[i][1], corrections_feh_ss_1D[i][2], 
 			color=color[i], marker=marker[i], ls=ls[i], lw=lw[i],
 			markersize=markersize, markerfacecolor=markerfacecolor[i], markeredgewidth=2,
@@ -1152,7 +1159,7 @@ let
 	end
 
 	for i in eachindex(corrections_feh_1D)
-		ax[2].plot(
+		ax[0].plot(
 			corrections_feh_1D[i][1], corrections_feh_1D[i][2], 
 			color=color[i], marker=marker[i], ls=ls[i], lw=lw[i],
 			markersize=markersize, markerfacecolor=markerfacecolor[i], markeredgewidth=2,
@@ -1179,13 +1186,13 @@ let
 	ax[0].set_xlabel(L"\rm [Fe/H]")
 	ax[1].set_xlabel(L"\rm [Fe/H]")
 	ax[2].set_xlabel(L"\rm [Fe/H]")
-	ax[0].set_ylabel(L"\rm \Delta\ A(C)\ [dex]")
+	ax[0].set_ylabel(L"\rm \Delta A(C)\ [dex]")
 	ax[0].set_ylim(-0.97, 0.37)
 	ax[0].set_xlim(-6.3, -1.7)
 
-	ax[0].set_title(L"\rm 3D\ \text{scaled-solar} - 1D")
+	ax[2].set_title(L"\rm 3D\ \text{scaled-solar} - 1D")
 	ax[1].set_title(L"\rm 3D\ CEMP - 3D\ \text{scaled-solar}")
-	ax[2].set_title(L"\rm 3D\ CEMP - 1D")
+	ax[0].set_title(L"\rm 3D\ CEMP - 1D")
 
 	
 	#=ax[0].text(0.07, 0.5, L"\rm 3D\ \text{scaled-solar} - 1D", rotation=90, transform=ax[0].transAxes, ha="left", va="center", alpha=0.7, bbox=Dict("facecolor"=>"none", "edgecolor"=>"k"))
@@ -1491,7 +1498,7 @@ molec_abund(s, name) = begin
 		x
 	end
 	
-	y = log10.(totn ./ toth) .+ 12
+	y = log10.(totn./ toth) .+ 12
 
 	x = [MUST.mean(x[:, :, z]) for z in axes(x, 3)]
 	y = [MUST.mean(y[:, :, z]) for z in axes(y, 3)]
@@ -1586,6 +1593,10 @@ let
 	f, ax = plt.subplots(3, 1, figsize=(5., 9), sharex=true)
 	plt.subplots_adjust(wspace=0, hspace=0)
 
+	ax[0].axhline(0.0, ls=":", alpha=0.3, color="k")
+	ax[1].axhline(0.0, ls=":", alpha=0.3, color="k")
+	ax[2].axhline(1.0, ls=":", alpha=0.3, color="k")
+
 	#i_para = 1
 	colors = ["tomato", "steelblue"]
 	ls = ["-", "--"]
@@ -1613,7 +1624,7 @@ let
 			label=name
 		)
 		ax[2].plot(
-			FEH_3D1DForm, (N3D_3D1DForm .- N1D_3D1DForm), 
+			FEH_3D1DForm, exp10.(N3D_3D1DForm .- N1D_3D1DForm), 
 			color=colors[i_para], marker="s", markersize=10, lw=2.5, markeredgewidth=3, ls=ls[i_para],
 			label=name
 		)
@@ -1622,31 +1633,33 @@ let
 	# panel labels
 	ax[0].text(
 		0.95,0.95,"A",
-		ha="right",va="top", transform=ax[0].transAxes, fontweight="bold"
+		ha="right",va="top", transform=ax[0].transAxes, fontweight="bold", fontsize="large"
 	)
 	ax[1].text(
 		0.95,0.95,"B",
-		ha="right",va="top", transform=ax[1].transAxes, fontweight="bold"
+		ha="right",va="top", transform=ax[1].transAxes, fontweight="bold", fontsize="large"
 	)
 	ax[2].text(
 		0.95,0.95,"C",
-		ha="right",va="top", transform=ax[2].transAxes, fontweight="bold"
+		ha="right",va="top", transform=ax[2].transAxes, fontweight="bold", fontsize="large"
 	)
 	
-	ax[0].axhline(0.0, ls=":", alpha=0.3, color="k")
-	ax[1].axhline(0.0, ls=":", alpha=0.3, color="k")
-	ax[2].axhline(0.0, ls=":", alpha=0.3, color="k")
 	ax[1].legend(labelspacing=0.02, loc="center left", bbox_to_anchor=(0.05, 0.65))
 
 	ax[0].set_ylim(-30, 4)
-	ax[1].set_ylim(-0.73, 0.13)
-	ax[2].set_ylim(-0.15, 0.7)
+	ax[1].set_ylim(-0.77, 0.13)
+	ax[2].set_ylim(0.3, 4.5)
 
 	ax[2].set_xlabel(L"\rm [Fe/H]")
 	ax[0].set_ylabel(L"\rm T_{3D}\ /\ T_{1D} - 1\ [\%]")
 	#ax.set_ylabel(L"\rm T_{3D\ CEMP} - T_{1D}\ [K]")
-	ax[1].set_ylabel(L"\rm \log \rho_{3D} - \log \rho_{1D}")
-	ax[2].set_ylabel(L"\rm A(CH)_{3D} - A(CH)_{1D}")
+	ax[1].set_ylabel(L"\rm \log_{10}(\rho_{3D}\ /\ \rho_{1D})")
+	#ax[1].set_ylabel(L"\rm \log_{10}(\rho_{3D}) - \log_{10}(\rho_{1D})")
+	#ax[2].set_ylabel(L"\rm A(CH)_{3D} - A(CH)_{1D}")
+	#ax[2].set_ylabel(L"\rm log(n_{CH,3D}\ /\ n_{CH,1D})")
+	#ax[2].set_ylabel(L"\rm log \left( \left[ \frac{n_{CH}}{n_H}\right]_{3D}\ /\ \left[ \frac{n_{CH}}{n_H}\right]_{1D} \right)")
+	#ax[2].set_ylabel(L"\rm \log\left(\frac{n_{CH}}{n_{H}} \right)_{3D} - \log\left(\frac{n_{CH}}{n_{H}} \right)_{1D} ")
+	ax[2].set_ylabel(L"\rm n^*_{3D}\ /\ n^*_{1D}")
 
 	s = "differences_marcs_lte.pdf"
 	f.savefig(s)
@@ -1714,14 +1727,14 @@ end
 
 Plot abundances (averages) as a function of optical depth (500).
 """
-plot_abund_av_3D(s, name; ax, kwargs...) = begin
+plot_abund_av_3D(s, name; ax, relative=true, kwargs...) = begin
 	try
 		totn = MUST.pyconvert(
 			Array, 
 			s.run.read_patch_save(name, lazy=false, concat=true, fdim=0, zdim=2)[0]
 		)
 		C1 = toth = MUST.pyconvert(Array, s.run.get_toth())
-		C1 = log10.(totn ./ toth) .+ 12
+		C1 = relative ? log10.(totn ./ toth) .+ 12 : log10.(totn)
 
 		#= Plot =#
 		x = MUST.pyconvert(Array, s.run.ltau)
@@ -1741,7 +1754,7 @@ plot_abund_av_3D(s, name; ax, kwargs...) = begin
 			)[0][0][0]
 		)
 		toth = MUST.pyconvert(Array, s.run.get_toth())
-		C1 = log10.(totn ./ toth) .+ 12
+		C1 = relative ? log10.(totn ./ toth) .+ 12 : log10.(totn)
 
 		#= Plot =#
 		x = MUST.pyconvert(Array, s.run.ltau)
@@ -1776,25 +1789,26 @@ end
 let
 	plt.close()
 
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+	f, ax = plt.subplots(1, 1, figsize=(5, 5))
 
 	lw_CH = 4.0
 	lw_CII = 10.0
 	alpha_CII = 0.25
+	relative=false
 
 	# 1D MARCS model
 	s = get_m3d_spectra(mol_1D_select, joinpath(datadir, mol_3D_select))
-	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 1D", color="tomato", ls="-", lw=lw_CH)
+	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 1D", color="tomato", ls="-", lw=lw_CH, relative=relative)
 	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 1D", color="lime", ls=":")
-	#plot_abund_av_3D(s, "C_I", ax=ax, color="steelblue", ls=":")
-	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="tomato", ls="-", lw=lw_CII, alpha=alpha_CII)
+	#plot_abund_av_3D(s, "C_I", ax=ax, color="tomato", ls="-")
+	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="tomato", ls="-", lw=lw_CII, alpha=alpha_CII, relative=relative)
 
 	xloc_ch = -1.5
 	yloc_ch = ych[argmin(abs.(xch.-xloc_ch))] - 0.1
 	ax.text(xloc_ch, yloc_ch, L"\mathbf{CH}", color="tomato", ha="left", va="top", fontsize=15)
 
 	xloc_cii = -1.5
-	yloc_cii = ycii[argmin(abs.(xcii.-xloc_cii))] + 0.1
+	yloc_cii = ycii[argmin(abs.(xcii.-xloc_cii))] + 0.4
 	ax.text(xloc_cii, yloc_cii, L"\mathbf{C\ II}", color="tomato", ha="left", va="bottom", fontsize=15, alpha=alpha_CII*2)
 
 
@@ -1803,19 +1817,19 @@ let
 	# scaled_solar model
 	s = get_m3d_spectra(-1, joinpath(datadir, same_scaled_solar(mol_3D_select)))
 	#plot_abund_3D(s, "CH", ax=ax, cmap="Reds", alpha=0.6)
-	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 3D\ \text{scaled-solar}", color="steelblue", lw=lw_CH)
+	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 3D\ \text{scaled-solar}", color="steelblue", lw=lw_CH, relative=relative)
 	#plot_abund_3D(s, "CO", ax=ax, cmap="Greys", alpha=0.6)
 	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 3D\ \text{scaled-solar}", color="lime")
 	
-	#plot_abund_av_3D(s, "C_I", ax=ax, color="steelblue")
-	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="steelblue", ls="-", lw=lw_CII, alpha=alpha_CII)
+	#plot_abund_av_3D(s, "C_I", ax=ax, color="steelblue", ls="-")
+	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="steelblue", ls="-", lw=lw_CII, alpha=alpha_CII, relative=relative)
 
 	xloc_ch = -3.9
-	yloc_ch = ych[argmin(abs.(xch.-xloc_ch))] + 0.1
+	yloc_ch = ych[argmin(abs.(xch.-xloc_ch))] + 0.2
 	ax.text(xloc_ch, yloc_ch, L"\mathbf{CH}", color="steelblue", ha="left", va="bottom", fontsize=15)
 
 	xloc_cii = -3.9
-	yloc_cii = ycii[argmin(abs.(xcii.-xloc_cii))] - 0.1
+	yloc_cii = ycii[argmin(abs.(xcii.-xloc_cii))] - 0.2
 	ax.text(xloc_cii, yloc_cii, L"\mathbf{C\ II}", color="steelblue", ha="left", va="top", fontsize=15, alpha=alpha_CII*2)
 	
 
@@ -1823,11 +1837,9 @@ let
 	# CEMP model
 	s = get_m3d_spectra(-1, joinpath(datadir, mol_3D_select))
 	#plot_abund_3D(s, "CH", ax=ax, cmap="Reds", alpha=0.6)
-	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 3D\ CEMP", color="steelblue", ls="", marker="x", lw=lw_CH)
-	#plot_abund_3D(s, "CO", ax=ax, cmap="Greys", alpha=0.6)
-	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 3D\ CEMP", color="lime", ls="--")
-	#plot_abund_av_3D(s, "C_I", ax=ax, color="steelblue", ls="--")
-	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="steelblue", ls="", lw=lw_CII, marker="x", alpha=alpha_CII, markersize=15)
+	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 3D\ CEMP", color="steelblue", ls="", marker="x", lw=lw_CH, relative=relative)
+	#plot_abund_av_3D(s, "C_I", ax=ax, color="steelblue", ls="", marker="x")
+	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="steelblue", ls="", lw=lw_CII, marker="x", alpha=alpha_CII, markersize=15, relative=relative)
 
 	#=xloc_ch = -3.9
 	yloc_ch = ych[argmin(abs.(xch.-xloc_ch))] - 0.1
@@ -1841,9 +1853,15 @@ let
 	ax.legend(labelspacing=0.1, loc="lower right", ncol=1)
 
 	ax.set_xlim(-4, 0)
-	ax.set_ylabel("A(X)")
-	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
-	ax.set_ylim(0.1, 4.9)
+	if relative
+		ax.set_ylabel(L"\rm log_{10}(n_X\ /\ n_H) + 12")
+		ax.set_ylim(0.1, 4.9)
+	else
+		ax.set_ylabel(L"\rm log_{10}(n_X)\ [cm^{-3}]")
+		ax.set_ylim(3.3, 9.7)
+	end
+	ax.set_xlabel(L"\rm optical\ depth\ [\log_{10} \tau_{500}]")
+	#ax.set_ylim(3.2, 10.2)
 
 	ax.set_title(pretty_from_name(mol_3D_select))
 
@@ -2637,6 +2655,33 @@ selection_mask = parameters_all["logg"] .>= logg_limit
 # ╔═╡ 4edb9461-7f5b-41a0-ac30-4ae72a42d3c8
 
 
+# ╔═╡ 067154e6-09fa-46ba-b7dc-7e8a6757a932
+let
+	teff = parameters_all["teff"][selection_mask]
+	logg = parameters_all["logg"][selection_mask]
+
+	mod_teff = [a[1] for a in abundance_correction_parameters]
+	mod_logg = [a[2] for a in abundance_correction_parameters]
+
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 5))
+
+	ax.scatter(teff, logg, s=15, rasterized=true, color="k", alpha=0.2, label=L"\rm SAGA")
+	ax.scatter(mod_teff, mod_logg, color="red", marker="X", s=200, label=L"\rm 3D\ RHD\ models")
+
+	ax.set_ylim(ax.get_ylim()[1], ax.get_ylim()[0])
+	ax.set_xlim(ax.get_xlim()[1], ax.get_xlim()[0])
+
+	ax.set_ylabel(L"\rm log(g)")
+	ax.set_xlabel(L"\rm T_{eff}\ [K]")
+	#ax.legend(labelspacing=0.1, loc="lower center", ncol=2, columnspacing=0.5)
+
+	#ax.set_ylim(5.7, 2.3)
+	#ax.set_xlim(8300, 3800)
+
+	f
+end
+
 # ╔═╡ 36cf99a4-d9cb-4282-a45c-50b7ff5833d3
 
 
@@ -2988,12 +3033,12 @@ end
 # ╔═╡ 892a04e1-3758-435a-b8cd-e7c03b777923
 let
 	plt.close()
-	f, ax = plt.subplots(1, 2, figsize=(6, 6), sharex=true, sharey=true)
+	f, ax = plt.subplots(1, 2, figsize=(6.5, 7), sharex=true, sharey=true)
 
 	plt.subplots_adjust(wspace=0)
 
-	lw = 2.
-	ms = 9
+	lw = 3
+	ms = 10
 
 	#=ax[0].plot(metallicity_bin_centers, cumsum(count_bins_CEMP) ./ cumsum(count_bins_general)*100, zorder=10, color="tomato", lw=lw, marker="X", alpha=1, ls=":", markersize=ms)
 	ax[1].plot(metallicity_bin_centers, cumsum(count_bins_CEMP_corr) ./ cumsum(count_bins_general)*100, zorder=10, color="steelblue", lw=lw, marker="X", alpha=1, ls=":", markersize=ms)
@@ -3052,8 +3097,8 @@ let
 	ax[1].plot(metallicities, n3D_rs*100, zorder=10, color="steelblue", lw=lw, marker="o", ls="--", markeredgecolor="steelblue", markersize=ms)
 
 	
-	ax[0].plot([], [], zorder=10, color="k", lw=2, label=L"\rm CEMP-no", marker="s", markersize=ms, markerfacecolor="w")
-	ax[0].plot([], [], zorder=10, color="k", lw=2, label=L"\rm CEMP-r/s", marker="o", ls="--", markeredgecolor="k", markersize=ms)
+	ax[0].plot([], [], zorder=10, color="k", lw=2, label=L"\rm \text{CEMP-no}", marker="s", markersize=ms, markerfacecolor="w")
+	ax[0].plot([], [], zorder=10, color="k", lw=2, label=L"\rm \text{CEMP-r/s}", marker="o", ls="--", markeredgecolor="k", markersize=ms)
 	ax[0].plot([],[], zorder=10, color="k", lw=2, marker="X", alpha=1, ls=":", markersize=ms, label=L"\rm CEMP\ (all)")
 
 	#=ax[0].plot(hartwig18_fiducial[:, 1], hartwig18_fiducial[:, 2].*100, color="k")
@@ -3063,10 +3108,10 @@ let
 	ax[1].plot(hartwig18_faint20[:, 1], hartwig18_faint20[:, 2].*100, color="cyan")
 	=#
 	
-	ax[0].set_xlabel(L"\rm [Fe/H]")
-	ax[1].set_xlabel(L"\rm [Fe/H]")
-	ax[0].set_ylabel(L"\rm N_{\leq [Fe/H], CEMP}\ /\ N_{\leq [Fe/H]}\ [\%]")
-	ax[0].legend(loc="lower center", ncol=3, bbox_to_anchor=(1.0, 0.95))
+	ax[0].set_xlabel(L"\rm [Fe/H]", fontsize="x-large")
+	ax[1].set_xlabel(L"\rm [Fe/H]", fontsize="x-large")
+	ax[0].set_ylabel(L"\rm N_{\leq [Fe/H], CEMP}\ /\ N_{\leq [Fe/H]}\ [\%]", fontsize="x-large")
+	ax[0].legend(loc="lower center", ncol=3, bbox_to_anchor=(1.0, 0.95), fontsize="large", columnspacing=0.7)
 	#ax[1].legend(loc="upper right", ncol=1, bbox_to_anchor=(1.05, 1.0))
 
 	ax[0].text(0.95, 0.97, L"\rm \mathbf{1D}", ha="right", va="top", color="tomato", fontsize=22, transform=ax[0].transAxes)
@@ -3094,7 +3139,7 @@ let
 
 	#metallicities = [-5.7, -5, -4, -3.5, -3., -2.5, -2, -1.5]
 	#metallicities = [-5.7, -5, (range(-4, -1.5, length=50) |> collect)...]
-	metallicities = range(-6.0, -1.5, length=200) |> collect
+	metallicities = range(-6.0, -1.5, length=300) |> collect
 	allm = trues(length(parameters_all["cfe"]))
 	
 	rs_3D = ((parameters_all["cfe"] .+ corrections_saga_all) .>= cfe_limit) .& ((parameters_all["cfe"] .+ parameters_all["feh"] .+ 8.560 .+ corrections_saga_all) .> c_limit)
@@ -3128,8 +3173,8 @@ let
 		get_n_below_frac(z, parameters_all["feh"], no_3D) for z in metallicities
 	]
 
-	ax.plot(hartwig18_fiducial[:, 1], hartwig18_fiducial[:, 2].*100, color="tomato", lw=7, alpha=0.4, label="Hartwig et al. (2018), fiducial")
-	ax.plot(hartwig18_faint20[:, 1], hartwig18_faint20[:, 2].*100, color="steelblue", lw=7, alpha=0.4, label="Hartwig et al. (2018), 20% faint SNe")
+	ax.plot(hartwig18_fiducial[:, 1], hartwig18_fiducial[:, 2].*100, color="tomato", lw=10, alpha=0.4, label="Hartwig et al. (2018), fiducial")
+	ax.plot(hartwig18_faint20[:, 1], hartwig18_faint20[:, 2].*100, color="steelblue", lw=10, alpha=0.4, label="Hartwig et al. (2018), 20% faint SNe")
 
 	#ax.plot(metallicities, n1D_all*100, color="tomato", marker="X", alpha=1, ls="", markersize=ms)
 	#ax.plot(metallicities, n3D_all*100, color="steelblue", marker="X", alpha=1, ls="", markersize=ms)
@@ -3138,8 +3183,8 @@ let
 	ax.plot(metallicities[.!metal_low], n1D_no[.!metal_low]*100, color="tomato", marker="x", markersize=ms, ls="", lw=5)
 	ax.plot(metallicities[.!metal_low], n3D_no[.!metal_low]*100, color="steelblue", marker="x", markersize=ms, ls="", lw=5)
 
-	ax.plot(metallicities[metal_low], n1D_all[metal_low]*100, color="tomato", marker="o", markersize=ms, ls="", markerfacecolor="None", lw=5)
-	ax.plot(metallicities[metal_low], n3D_all[metal_low]*100, color="steelblue", marker="o", markersize=ms, ls="", markerfacecolor="None", lw=5)
+	ax.plot(metallicities[metal_low], n1D_all[metal_low]*100, color="tomato", marker="o", markersize=ms*1.3, ls="", markerfacecolor="None", lw=5, markeredgewidth=1.5)
+	ax.plot(metallicities[metal_low], n3D_all[metal_low]*100, color="steelblue", marker="o", markersize=ms*1.3, ls="", markerfacecolor="None", lw=5, markeredgewidth=1.5)
 
 	#ax[0].plot(metallicities, n1D_rs*100, zorder=10, color="tomato", lw=lw, marker="o", ls="--", markeredgecolor="tomato", markersize=ms)
 	#ax[1].plot(metallicities, n3D_rs*100, zorder=10, color="steelblue", lw=lw, marker="o", ls="--", markeredgecolor="steelblue", markersize=ms)
@@ -3147,7 +3192,7 @@ let
 	
 	ax.plot([], [], zorder=10, color="k", lw=0, label=L"\rm CEMP-no", marker="x", markersize=ms, ls="")
 	#ax[1].plot([], [], zorder=10, color="k", lw=2, label=L"\rm CEMP-r/s", marker="o", ls="--", markeredgecolor="k", markersize=ms)
-	ax.plot([],[], zorder=10, color="k", lw=0, marker="o", alpha=1, ls="", markersize=ms, label=L"\rm CEMP\ (all)", markerfacecolor="w")
+	ax.plot([],[], zorder=10, color="k", lw=0, marker="o", alpha=1, ls="", markersize=ms, label=L"\rm CEMP\ (all)", markerfacecolor="w", markeredgewidth=2)
 
 	#ax[1].plot(hartwig18_fiducial[:, 1], hartwig18_fiducial[:, 2].*100, color="k")
 	#ax[1].plot(hartwig18_faint20[:, 1], hartwig18_faint20[:, 2].*100, color="cyan")
@@ -3161,12 +3206,98 @@ let
 	#ax[1].legend(loc="upper right", ncol=1, bbox_to_anchor=(1.05, 1.0))
 
 	ax.text(-3.65, 75, L"\rm \mathbf{1D}", ha="left", va="bottom", color="tomato", fontsize=22)
-	ax.text(-3.9, 65., L"\rm \mathbf{3D}", ha="right", va="top", color="steelblue", fontsize=22)
+	ax.text(-3.9, 51., L"\rm \mathbf{3D}", ha="right", va="top", color="steelblue", fontsize=22)
 	
-	ax.set_xlim(-4.15, -2.3)
-	ax.set_ylim(-7, 107)
+	ax.set_xlim(-4.15, -2.1)
+	ax.set_ylim(-9, 109)
 
 	f.savefig("cummulative_CEMP_hartwig.pdf")
+
+	
+	f
+end
+
+# ╔═╡ 52dff81a-701b-461d-aa73-791239b135af
+let
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(7, 8), sharex=true, sharey=true)
+
+	plt.subplots_adjust(wspace=0, hspace=0)
+
+	lw = 0
+	ms = 10
+
+
+	#metallicities = [-5.7, -5, -4, -3.5, -3., -2.5, -2, -1.5]
+	#metallicities = [-5.7, -5, (range(-4, -1.5, length=50) |> collect)...]
+	metallicities = range(-6.0, -1.5, length=300) |> collect
+	allm = trues(length(parameters_all["cfe"]))
+	
+	rs_3D = ((parameters_all["cfe"] .+ corrections_saga_all) .>= cfe_limit) .& ((parameters_all["cfe"] .+ parameters_all["feh"] .+ 8.560 .+ corrections_saga_all) .> c_limit)
+	rs_1D = (parameters_all["cfe"] .>= cfe_limit) .& ((parameters_all["cfe"] .+ parameters_all["feh"] .+ 8.560) .> c_limit)
+	
+	no_3D = ((parameters_all["cfe"] .+ corrections_saga_all) .>= cfe_limit) .& ((parameters_all["cfe"] .+ parameters_all["feh"] .+ 8.560 .+ corrections_saga_all) .<= c_limit)
+	no_1D = (parameters_all["cfe"] .>= cfe_limit) .& ((parameters_all["cfe"] .+ parameters_all["feh"] .+ 8.560) .<= c_limit)
+
+	all_3D = (parameters_all["cfe"] .+ corrections_saga_all) .>= cfe_limit
+	all_1D = (parameters_all["cfe"]) .>= cfe_limit
+
+	# 1D 
+	n1D_all = [
+		get_n_below_frac(z, parameters_all["feh"], all_1D) for z in metallicities
+	]
+	n1D_rs = [
+		get_n_below_frac(z, parameters_all["feh"], rs_1D) for z in metallicities
+	]
+	n1D_no = [
+		get_n_below_frac(z, parameters_all["feh"], no_1D) for z in metallicities
+	]
+
+	# 3D 
+	n3D_all = [
+		get_n_below_frac(z, parameters_all["feh"], all_3D) for z in metallicities
+	]
+	n3D_rs = [
+		get_n_below_frac(z, parameters_all["feh"], rs_3D) for z in metallicities
+	]
+	n3D_no = [
+		get_n_below_frac(z, parameters_all["feh"], no_3D) for z in metallicities
+	]
+
+	ax[0].plot(hartwig18_fiducial[:, 1], hartwig18_fiducial[:, 2].*100, color="tomato", lw=10, alpha=0.4)
+	ax[1].plot(hartwig18_faint20[:, 1], hartwig18_faint20[:, 2].*100, color="steelblue", lw=10, alpha=0.4)
+
+	metal_low = metallicities .<-3.75
+	ax[0].plot(metallicities, n1D_no*100, color="tomato", marker="x", markersize=ms, ls="", lw=5)
+	ax[1].plot(metallicities, n3D_no*100, color="steelblue", marker="x", markersize=ms, ls="", lw=5)
+
+	ax[0].plot(metallicities[metal_low][1:3:end], n1D_all[metal_low][1:3:end]*100, color="tomato", marker="o", markersize=ms*1.0, ls="", markerfacecolor="w", lw=5, markeredgewidth=1.9)
+	ax[1].plot(metallicities[metal_low][1:3:end], n3D_all[metal_low][1:3:end]*100, color="steelblue", marker="o", markersize=ms*1.0, ls="", markerfacecolor="w", lw=5, markeredgewidth=1.9)
+
+	
+	# for the labels
+	ax[0].plot([],[], color="tomato", lw=10, alpha=0.4, label=L"\rm 40 \%\ faint + 60 \%\ normal\ CCSNe")
+	ax[0].plot([],[], color="steelblue", lw=10, alpha=0.4, label=L"\rm 20 \%\ faint + 80 \%\ normal\ CCSNe")
+	ax[0].plot([], [], zorder=10, color="k", lw=0, label=L"\rm \text{CEMP-no}", marker="x", markersize=ms, ls="")
+	ax[0].plot([],[], zorder=10, color="k", lw=0, marker="o", alpha=1, ls="", markersize=ms, label=L"\rm CEMP\ (all)", markerfacecolor="w", markeredgewidth=2)
+
+	
+	
+	ax[1].set_xlabel(L"\rm [Fe/H]", fontsize="x-large")
+	ax[0].set_xlabel(L"\rm [Fe/H]", fontsize="x-large")
+	ax[0].set_ylabel(L"\rm N_{\leq [Fe/H], CEMP}\ /\ N_{\leq [Fe/H]}\ [\%]", fontsize="x-large")
+	#ax[1].set_ylabel(L"\rm N_{\leq [Fe/H], CEMP}\ /\ N_{\leq [Fe/H]}\ [\%]")
+	ax[0].legend(loc="lower center", labelspacing=0.1, bbox_to_anchor=(1.0, 0.97), ncol=2, columnspacing=0.25, fontsize=15)
+	#ax[1].legend(loc="lower left", labelspacing=0.1)
+	#ax[1].legend(loc="upper right", ncol=1, bbox_to_anchor=(1.05, 1.0))
+
+	ax[0].text(0.95, 0.95, L"\rm \mathbf{1D}", ha="right", va="top", color="tomato", fontsize=25, transform=ax[0].transAxes)
+	ax[1].text(0.95, 0.95, L"\rm \mathbf{3D}", ha="right", va="top", color="steelblue", fontsize=25, transform=ax[1].transAxes)
+	
+	ax[0].set_xlim(-4.25, -2.1)
+	ax[0].set_ylim(5, 105)
+
+	f.savefig("cummulative_CEMP_hartwig_split.pdf")
 
 	
 	f
@@ -3759,6 +3890,7 @@ end
 # ╟─7ab6c379-1747-4ae6-94c1-6ef3a3c83f72
 # ╠═51fa1fc7-5191-48a9-af04-648e8669ba3c
 # ╟─4edb9461-7f5b-41a0-ac30-4ae72a42d3c8
+# ╟─067154e6-09fa-46ba-b7dc-7e8a6757a932
 # ╟─36cf99a4-d9cb-4282-a45c-50b7ff5833d3
 # ╟─990e7d73-3e8e-4900-a225-4e5cac6ac8c6
 # ╟─5e31351e-5e77-46a5-9e8c-baa53eeaee73
@@ -3784,6 +3916,7 @@ end
 # ╟─17521b74-d37b-4c84-87ad-0e4f155b3790
 # ╟─892a04e1-3758-435a-b8cd-e7c03b777923
 # ╟─222ffed0-a355-4e08-aa6a-fa305c078d2c
+# ╟─52dff81a-701b-461d-aa73-791239b135af
 # ╟─0ee1f4fc-da57-4f63-9713-c20dc2f0464d
 # ╟─9c789f14-0a75-45f7-912f-9a5190a3a54a
 # ╟─76e3d925-6778-4d40-a02f-23e6aa6258eb
