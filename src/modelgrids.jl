@@ -532,9 +532,12 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 		# pick the interpolation coefficients that are closest to the given metallicity
 		coeffs = get_ip_coeffs(feh; offsets=extrapolation_offsets)
 		rho_bot, t_bot = predict_bottom_boundary(teff, logg, coeffs)
+		 
+		mc = @optical(TSO.flip(deepcopy(model), depth=true), eos)
 		model_extra = TSO.reverse_adiabatic_extrapolation(
-			model, exp10(rho_bot), exp10(t_bot), eos; kwargs...
-		)
+			mc, exp10(rho_bot), exp10(t_bot), eos; kwargs...
+		) |> TSO.monotonic
+
 		uniform_z = range(
 			minimum(model_extra.z), maximum(model_extra.z), length=300
 		) |> collect
