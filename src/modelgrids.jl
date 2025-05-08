@@ -465,6 +465,8 @@ get_ip_coeffs(feh, grid=ip_coeffs_stagger; offsets=nothing) = begin
 		@info "Applying offsets: $(offsets)"
 		d["rho_bottom_logg"][2] += offsets[1]
 		d["T_bottom_teff"][2] += offsets[2]
+		d["rho_top_logg"][2] += offsets[3]
+		d["T_top_teff"][2] += offsets[4]
 	end
 
 	d
@@ -480,11 +482,22 @@ predict_bottom_boundary(teff, logg, coefficients) = begin
 	rho_predicted + rho_correction, T_predicted + T_correction
 end
 
+predict_top_boundary(teff, logg, coefficients) = begin
+	rho_predicted = coefficients["rho_top_logg"][1] * logg + coefficients["rho_top_logg"][2] 
+	rho_correction = coefficients["rho_top_correction_teff"][1] * teff + coefficients["rho_top_correction_teff"][2] 
+
+	T_predicted = coefficients["T_top_teff"][1] * teff + coefficients["T_top_teff"][2] 
+	T_correction = coefficients["T_top_correction_logg"][1] * logg + coefficients["T_top_correction_logg"][2] 
+
+	rho_predicted + rho_correction, T_predicted + T_correction
+end
+
 
 #===========================================================interpolate grid =#
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
-	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", τ_extrapolate=nothing, adiabatic_extrapolation=false, bottom_boundary_extrapolation=false, extrapolation_offsets=nothing, from_snapshot="", kwargs...) where {F<:AbstractFloat}
+	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", 
+	τ_extrapolate=nothing, adiabatic_extrapolation=false, boundary_extrapolation=false, extrapolation_offsets=nothing, from_snapshot="", τbottom=8, τtop=-6, kwargs...) where {F<:AbstractFloat}
 
 	folder_name = "interpolated"
 	mesh   = "interpolated"
@@ -521,19 +534,27 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	elseif isnothing(models)
 		isnothing(eos) ? 
 		interpolate_average(grid; teff=teff, logg=logg, feh=feh, kwargs...) : 
-		interpolate_average(grid, eos, opa; teff=teff, logg=logg, feh=feh, adiabats=adiabat, kwargs...)
+		interpolate_average(grid, eos, opa; teff=teff, logg=logg, feh=feh, adiabats=adiabat, τbottom=τbottom, τtop=τtop, kwargs...)
 	else
 		isnothing(eos) ? 
 		interpolate_average(grid; teff=teff, logg=logg, feh=feh, models=models, models_mod=models_mod, kwargs...) : 
-		interpolate_average(grid, eos, opa; teff=teff, logg=logg, feh=feh, adiabats=adiabats, models=models, models_mod=models_mod, τ_extrapolate=τ_extrapolate, kwargs...)
+		interpolate_average(grid, eos, opa; teff=teff, logg=logg, feh=feh, adiabats=adiabats, models=models, models_mod=models_mod, τ_extrapolate=τ_extrapolate, τbottom=τbottom, τtop=τtop, kwargs...)
 	end
 
-	model = if bottom_boundary_extrapolation && (!isnothing(eos))
+	model = if boundary_extrapolation && (!isnothing(eos))
 		# pick the interpolation coefficients that are closest to the given metallicity
 		coeffs = get_ip_coeffs(feh; offsets=extrapolation_offsets)
 		rho_bot, t_bot = predict_bottom_boundary(teff, logg, coeffs)
+		rho_top, t_top = predict_top_boundary(teff, logg, coeffs)
 		 
 		mc = @optical(TSO.flip(deepcopy(model), depth=true), eos)
+
+		# shift down the MARCS model based on the 
+		offset_T = exp10(t_top) .- exp.(minimum(mc.lnT))
+		offset_ρ = exp10(rho_top) .- exp.(minimum(mc.lnρ))
+		mc.lnT .= log.(exp.(mc.lnT) .+ offset_T)
+		mc.lnρ .= log.(exp.(mc.lnρ) .+ offset_ρ)
+
 		model_extra = TSO.reverse_adiabatic_extrapolation(
 			mc, exp10(rho_bot), exp10(t_bot), eos; kwargs...
 		) |> TSO.monotonic
@@ -557,6 +578,15 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 		) |> collect
 
 		TSO.flip(TSO.interpolate_to(model_extra, in_log=false, z=uniform_z), depth=true)
+	else
+		model
+	end
+
+	model = if !isnothing(eos)
+		# interpolate to the final grid in optical depth (also extrapolate if needed)
+		mnew = @optical model eos
+		ltau = range(maximum(log10.(mnew.τ)), τtop, length=300) |> collect
+		TSO.flip(TSO.interpolate_to(mnew, τ=ltau, in_log=true), depth=true)
 	else
 		model
 	end
