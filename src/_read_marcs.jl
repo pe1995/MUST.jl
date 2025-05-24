@@ -135,3 +135,28 @@ function marcsBox(path::String)
 
     Box(xx, yy, zz, data, AtmosphericParameters())
 end
+
+"""
+	marcs_parameters_from_name(marcs_path)
+
+Extract stellar parameters from the name of the model.
+"""
+marcs_parameters_from_name(marcs_path) = begin
+	name = first(split(marcs_path, ".mod"))
+	name = split(name, "_", keepempty=false)
+	T = parse(Float64, name[1][2:end])
+	g = parse(Float64, name[2][2:end])
+	feh = parse(Float64, name[6][2:end])
+	turb = parse(Float64, name[4][2:end])
+	alpha = parse(Float64, name[7][2:end])
+	sorp = name[1][1]
+	
+    ModelInformation(
+        teff=T,
+        logg=g,
+        feh=feh,
+        extension="$(sorp),alpha=$(alpha),turb=$(turb)",
+        original_name=marcs_path,
+        category="MARCS"
+    )
+end
