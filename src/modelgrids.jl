@@ -226,8 +226,7 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 end
 
 function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothing; 
-	teff, logg, feh, common_size=1000, τbottom=8, τtop=-6, adiabats=nothing, models=nothing, models_mod=nothing, τ_extrapolate=nothing, kwargs...)
-	@info "Interpolating $teff, $logg, $feh on optical depth scale."
+	teff, logg, feh, common_size=1000, τbottom=8, τtop=-6, from_snapshot="", adiabats=nothing, models=nothing, models_mod=nothing, τ_extrapolate=nothing, kwargs...)
 	
 	logg_gr = grid.info[!, "logg"]
 	teff_gr = grid.info[!, "teff"]
@@ -264,26 +263,43 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 		(v, x, y) -> NaturalNeighbours.interpolate(nodes_x, nodes_y, v, method=Triangle())(x, y)
 	end
 	
-	points = zeros(eltype(models_mod[1].z), length(models), 3)
-	z = zeros(eltype(models_mod[1].z), common_size)
-	t = zeros(eltype(models_mod[1].z), common_size)
-	d = zeros(eltype(models_mod[1].z), common_size)
-	
-	for i in 1:common_size
-		for j in eachindex(models_mod)
-			isnothing(models_mod[j]) && continue
-			points[j, 1] = models_mod[j].z[i]
-			points[j, 2] = models_mod[j].lnT[i]
-			points[j, 3] = models_mod[j].lnρ[i]
+	mnew = if length(from_snapshot)==0
+		@info "Interpolating $teff, $logg, $feh on optical depth scale."
+
+		points = zeros(eltype(models_mod[1].z), length(models), 3)
+		z = zeros(eltype(models_mod[1].z), common_size)
+		t = zeros(eltype(models_mod[1].z), common_size)
+		d = zeros(eltype(models_mod[1].z), common_size)
+		
+		for i in 1:common_size
+			for j in eachindex(models_mod)
+				isnothing(models_mod[j]) && continue
+				points[j, 1] = models_mod[j].z[i]
+				points[j, 2] = models_mod[j].lnT[i]
+				points[j, 3] = models_mod[j].lnρ[i]
+			end
+			z[i] = scatter_int(points[femask, 1], norm_teff(teff), norm_logg(logg))
+			t[i] = scatter_int(points[femask, 2], norm_teff(teff), norm_logg(logg))
+			d[i] = scatter_int(points[femask, 3], norm_teff(teff), norm_logg(logg))
 		end
-		z[i] = scatter_int(points[femask, 1], norm_teff(teff), norm_logg(logg))
-		t[i] = scatter_int(points[femask, 2], norm_teff(teff), norm_logg(logg))
-		d[i] = scatter_int(points[femask, 3], norm_teff(teff), norm_logg(logg))
+		
+		# interpolate to equally spaced in z
+		# for this we need to construct a new z scale 
+		TSO.flip(Model1D(z=z, lnT=t, lnρ=d, logg=logg, τ=exp10.(ltscale)), depth=true)
+	else
+		@info "Averaging snapshot from $(from_snapshot)."
+
+		# load the snapshot
+		b = MUST.Box(from_snapshot)
+		lt, lnrho = MUST.profile(MUST.mean, b, :log10τ_ross, :logd)
+		_, lnT = MUST.profile(MUST.mean, b, :log10τ_ross, :logT)
+		_, z = MUST.profile(MUST.mean, b, :log10τ_ross, :z)
+		m = TSO.flip(TSO.Model1D(z=z, τ=exp10.(lt), lnρ=lnrho, lnT=lnT, logg=Float32(logg)), depth=true)
+		m = TSO.flip(TSO.interpolate_to(m, τ=range(τbottom, τtop, length=length(ltscale))|>collect, in_log=true), depth=true)
+
+		m
 	end
-	
-	# interpolate to equally spaced in z
-	# for this we need to construct a new z scale 
-	mnew = TSO.flip(Model1D(z=z, lnT=t, lnρ=d, logg=logg, τ=exp10.(ltscale)), depth=true)
+
 	mnew = if (!isnothing(τ_extrapolate)) && (τ_extrapolate>τtop)
 		@info "Extrapolating to log10τ=$(τ_extrapolate)"
 		TSO.interpolate_to(mnew, τ=range(maximum(log10.(mnew.τ)), τ_extrapolate, length=length(mnew.τ))|>collect, in_log=true)
@@ -302,13 +318,14 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 	# upsample to match the desired interpolated resolution
 	#r_target = scatter_int(r_models[femask], teff, logg)
 	r_target = MUST.interpolate_quantity(grid, "vres"; teff=teff, logg=logg, feh=feh) 
-	npoints  = ceil(Int, abs(maximum(mnew.z) - minimum(mnew.z)) / r_target)
+	npoints  = 500 #ceil(Int, abs(maximum(mnew.z) - minimum(mnew.z)) / r_target)
 
 	# We now can interpolate everthing to this new z scale
-	TSO.interpolate_to(
+	mnew = TSO.interpolate_to(
 		mnew, 
 		z=collect(range(maximum(mnew.z), minimum(mnew.z), length=npoints))
 	)
+	mnew
 end
 
 adiabat_from_model(model, eos) = begin
@@ -497,7 +514,7 @@ end
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
 	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", 
-	τ_extrapolate=nothing, adiabatic_extrapolation=false, boundary_extrapolation=false, extrapolation_offsets=nothing, from_snapshot="", τbottom=8, τtop=-6, kwargs...) where {F<:AbstractFloat}
+	τ_extrapolate=nothing, adiabatic_extrapolation=false, boundary_extrapolation=false, extrapolation_offsets=nothing, τbottom=8, τtop=-6, kwargs...) where {F<:AbstractFloat}
 
 	folder_name = "interpolated"
 	mesh   = "interpolated"
@@ -525,13 +542,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 
 
 	# create the initial model from interpolating the average snapshots
-	model = if length(from_snapshot)>0
-		# load the snapshot
-		b = MUST.Box(from_snapshot)
-		z, lnrho = MUST.profile(MUST.mean, b, :z, :logd)
-		_, lnT = MUST.profile(MUST.mean, b, :z, :logT)
-		TSO.Model1D(z=z, lnρ=lnrho, lnT=lnT, logg=logg)
-	elseif isnothing(models)
+	model = if isnothing(models)
 		isnothing(eos) ? 
 		interpolate_average(grid; teff=teff, logg=logg, feh=feh, kwargs...) : 
 		interpolate_average(grid, eos, opa; teff=teff, logg=logg, feh=feh, adiabats=adiabat, τbottom=τbottom, τtop=τtop, kwargs...)
@@ -560,12 +571,12 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 		) |> TSO.monotonic
 
 		uniform_z = range(
-			minimum(model_extra.z), maximum(model_extra.z), length=300
+			minimum(model_extra.z), maximum(model_extra.z), length=500
 		) |> collect
 
 		TSO.flip(TSO.interpolate_to(model_extra, in_log=false, z=uniform_z), depth=true)
 	else
-		model
+		TSO.flip(model, depth=true)
 	end
 
 	# optionally extrapolate adiabatically on this new zscale
@@ -574,7 +585,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 		ma_z = MUST.interpolate_quantity(grid, "ma_z"; teff=teff, logg=logg, feh=feh)
 		model_extra = TSO.adiabatic_extrapolation(model, eos, abs(ma_z - mi_z)*1.1)
 		uniform_z = range(
-			minimum(model_extra.z), maximum(model_extra.z), length=300 #step=abs(vres)
+			minimum(model_extra.z), maximum(model_extra.z), length=500 #step=abs(vres)
 		) |> collect
 
 		TSO.flip(TSO.interpolate_to(model_extra, in_log=false, z=uniform_z), depth=true)
@@ -585,12 +596,12 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	model = if !isnothing(eos)
 		# interpolate to the final grid in optical depth (also extrapolate if needed)
 		mnew = @optical model eos
-		ltau = range(maximum(log10.(mnew.τ)), τtop, length=300) |> collect
+		ltau = range(maximum(log10.(mnew.τ)), τtop, length=500) |> collect
 		TSO.flip(TSO.interpolate_to(mnew, τ=ltau, in_log=true), depth=true)
 	else
 		model
 	end
-
+	
 	mi_z = minimum(model.z)
 	ma_z = maximum(model.z)
 	
