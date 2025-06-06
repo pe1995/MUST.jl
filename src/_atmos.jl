@@ -2315,6 +2315,23 @@ add_spectra!(to::Box, from::Box) = begin
     end
 end
 
+spectra_keys(b::Box, tag::Symbol; kwargs...) = begin
+    ks = [String(k) for k in keys(b.data) if occursin(String(tag), String(k))]
+    [Symbol(split(k, "_", keepempty=false) |> last) for k in ks]
+end
+
+
+
+"""
+    spectra(b::Box, tag::Symbol, key::Symbol) 
+
+Read the spectrum entry with tag and key from the box.
+"""
+spectra(b::Box, tag::Symbol, key::Symbol) = b[spectra_key_from_tag(key, tag)]
+spectra(b::Box, tag::Symbol) = Dict(
+   k => b[spectra_key_from_tag(k, tag)] for k in spectra_keys(b, tag)
+)
+
 
 
 
@@ -2334,6 +2351,20 @@ mean_angular_intensity(box::Box, tag, μ; norm=true) = begin
 
     z = norm ? I[:,:,:,mu_mask] ./ c[:,:,:,mu_mask] : I[:,:,:,mu_mask]
 	(λ, reshape(mean(mean(z, dims=4), dims=(2, 3)), :))
+end
+
+"""
+    mean_angular_intensity(box::Box, tag, μ; norm=true)
+
+Compute the horizontal mean of the intensity in direction μ.
+"""
+mean_intensity(box::Box, tag; norm=true) = begin
+    λ = box[spectra_key_from_tag("wavelength", tag)]
+    I = box[spectra_key_from_tag("intensity", tag)]
+	c = box[spectra_key_from_tag("continuum", tag)]
+
+    z = norm ? I ./ c : I
+	(λ, reshape(mean(z, dims=(2, 3)), length(λ), size(I, 4)))
 end
  
 """
