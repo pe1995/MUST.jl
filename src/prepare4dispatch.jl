@@ -436,7 +436,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
         cartesian_params=(
             :size=>[x, x, round(z_size/l_cgs_raw, sigdigits=3)], 
             :dims=>[patches(x_resolution, patch_size), patches(x_resolution, patch_size), patches(z_resolution, patch_size)],
-            :position=>[0,0,round(-ddown/l_cgs_raw, sigdigits=3)]
+            :position=>[0,0,round(-ddown/l_cgs_raw, sigdigits=5)]
         ),
         patch_params=(
             :n=>[patch_size, patch_size, patch_size], 
@@ -478,8 +478,8 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
             :scale=>newton_scale
         ),
         sc_rt_params=(  
-            :rt_llc=>[-x/2, -x/2, -round((z_size/2 + ddown)/l_cgs_raw, sigdigits=3)], 
-            :rt_urc=>[ x/2,  x/2,  round((z_size/2 - ddown)/l_cgs_raw, sigdigits=3)], 
+            :rt_llc=>[-x/2, -x/2, -round((z_size/2 + ddown)/l_cgs_raw, sigdigits=5)], 
+            :rt_urc=>[ x/2,  x/2,  round((z_size/2 - ddown)/l_cgs_raw, sigdigits=5)], 
             :n_bin=>n_bin,
             :courant=>courant_rt,
             :rt_freq=>0.0,
