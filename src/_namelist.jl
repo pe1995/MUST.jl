@@ -309,7 +309,12 @@ function reverse_parse(value)
         end
         val_str = val_str[1:end-1]
     elseif typeof(value) <:String
-        if (occursin("'", value)) | (occursin('"', value)) | (value in ["t", "f", ".true.", ".false."]) | (occursin('*', value))
+        if (value in ["t", "f", ".true.", ".false."]) | (occursin('*', value))
+            v = strip(value)
+            v = (v[1] == '\'') ? v[2:end] : v
+            v = (v[end] == '\'') ? v[1:end-1] : v
+            val_str = "$(strip(v))"
+        elseif (occursin("'", value)) | (occursin('"', value))
             v = strip(value)
             v = (v[1] == '\'') ? v[2:end] : v
             v = (v[end] == '\'') ? v[1:end-1] : v

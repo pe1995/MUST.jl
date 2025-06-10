@@ -2328,6 +2328,12 @@ end
 Read the spectrum entry with tag and key from the box.
 """
 spectra(b::Box, tag::Symbol, key::Symbol) = b[spectra_key_from_tag(key, tag)]
+
+"""
+    spectra(b::Box, tag::Symbol) 
+
+Read the spectrum (all keys) at the entry with tag from the box.
+"""
 spectra(b::Box, tag::Symbol) = Dict(
    k => b[spectra_key_from_tag(k, tag)] for k in spectra_keys(b, tag)
 )
