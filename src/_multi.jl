@@ -239,7 +239,7 @@ function abund_abundances(;α=0.0, default="./input_multi3d/abund/abund_magg", e
 	abund_default = readdlm(@in_m3dis(default))
 	abund_new = deepcopy(abund_default)
     ele_names = lowercase.(abund_new[:, 1])
-	new_name = default
+	new_name = default*"_mod"
 	if α != 0.0
 		for ele in ["c", "o", "ne", "mg", "si", "s", "ar", "ca"]
 			iele = findfirst(lowercase(ele) .== ele_names)
