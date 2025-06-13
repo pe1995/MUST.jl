@@ -2425,12 +2425,19 @@ end
 
 abundance_from_composition_string(cs, element) = begin
     if occursin(element, cs)
-        cs_split = split(cs, '_', keepempty=false)
+        cs_split = split(cs, ',', keepempty=false)
         comp = cs_split[findfirst(occursin.(element, cs_split))]
         parse(Float64, split(comp, '=', keepempty=false) |> last)
     else
         nothing
     end
+end
+
+abundance_from_composition_string(cs) = begin
+	ss = split(cs, ',', keepempty=false)
+	eles = [first(split(s, '=')) for s in ss]
+	abund = [last(split(s, '=')) for s in ss]
+	Dict(Symbol(e)=>a for (e, a) in zip(eles, abund))
 end
 
 abundance_from_tag(model, tag, element) = begin
@@ -2441,6 +2448,18 @@ abundance_from_tag(model, tag, element) = begin
     ]
     abundance_from_composition_string(comp_ref, element)
 end
+
+composition_string_from_abundance(;skip_eles=[], ab...) = begin
+	s = []
+	for (ele, abund) in ab
+		if !(String(ele) in skip_eles)
+			eleabund = join([String(ele), abund], '=')
+			append!(s, [eleabund])
+		end
+	end
+    join(s, ',')
+end
+
 
 equivalentwidth_from_tag(model, tag; λs=nothing, λe=nothing) = begin
     # get reference wavelength
