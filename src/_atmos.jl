@@ -2338,6 +2338,27 @@ spectra(b::Box, tag::Symbol) = Dict(
    k => b[spectra_key_from_tag(k, tag)] for k in spectra_keys(b, tag)
 )
 
+"""
+    MeanSpectrum(b::Box, tag::Symbol, kind="meanFluxNorm")
+
+Create a MeanSpectrum from the data that is stored in `b` under `tag`.
+"""
+MeanSpectrum(b::Box, tag::Symbol, kind="meanFluxNorm") = begin
+    λ, F = try
+        b[spectra_key_from_tag("wavelength", tag)], b[spectra_key_from_tag("meanFluxNorm", tag)]
+    catch
+        error("$(kind) not found in box. Compute it and add before calling this function.")
+    end
+
+    MeanSpectrum(
+        λ, 
+        F, 
+        abundance_from_composition_string(b[spectra_key_from_tag("composition", tag)]), 
+        kind, 
+        Dict(p=>getfield(b.parameter, p) for p in fieldnames(AtmosphericParameters))
+    )
+end
+
 
 
 
@@ -2433,11 +2454,11 @@ abundance_from_composition_string(cs, element) = begin
     end
 end
 
-abundance_from_composition_string(cs) = begin
-	ss = split(cs, ',', keepempty=false)
+abundance_from_composition_string(cs; split_on=',') = begin
+	ss = split(cs, split_on, keepempty=false)
 	eles = [first(split(s, '=')) for s in ss]
 	abund = [last(split(s, '=')) for s in ss]
-	Dict(Symbol(e)=>a for (e, a) in zip(eles, abund))
+	Dict(Symbol(e)=>parse(Float64, a) for (e, a) in zip(eles, abund))
 end
 
 abundance_from_tag(model, tag, element) = begin
@@ -2453,7 +2474,7 @@ composition_string_from_abundance(;skip_eles=[], ab...) = begin
 	s = []
 	for (ele, abund) in ab
 		if !(String(ele) in skip_eles)
-			eleabund = join([String(ele), abund], '=')
+			eleabund = join([String(ele), "$(abund)"], '=')
 			append!(s, [eleabund])
 		end
 	end
@@ -2461,9 +2482,16 @@ composition_string_from_abundance(;skip_eles=[], ab...) = begin
 end
 
 
-equivalentwidth_from_tag(model, tag; λs=nothing, λe=nothing) = begin
+
+
+equivalentwidth(model::Box, tag; λs=nothing, λe=nothing) = begin
     # get reference wavelength
-    λ_ref, F_ref = mean_integrated_flux(model, tag, norm=true)
+    λ_ref, F_ref = try
+        model[spectra_key_from_tag("wavelength", tag)],model[spectra_key_from_tag("meanFluxNorm", tag)]
+    catch
+        @warn "No mean flux available. Computing..."
+        mean_integrated_flux(model, tag, norm=true)
+    end
 
     # masking region
     λs = isnothing(λs) ? minimum(λ_ref) : λs
@@ -2476,16 +2504,34 @@ equivalentwidth_from_tag(model, tag; λs=nothing, λe=nothing) = begin
     integrate(λ_ref, 1 .- F_ref) 
 end
 
+equivalentwidth(spectrum::MeanSpectrum; λs=nothing, λe=nothing) = begin
+    # get reference wavelength
+    λ_ref, F_ref = spectrum.λ, spectrum.spectrum
+
+    # masking region
+    λs = isnothing(λs) ? minimum(λ_ref) : λs
+    λe = isnothing(λe) ? maximum(λ_ref) : λe
+    λmask = λs .<= λ_ref .<= λe
+    λ_ref = λ_ref[λmask]
+    F_ref = F_ref[λmask]
+    
+    # get reference abundance and equivalent width
+    integrate(λ_ref, 1 .- F_ref) 
+end
+
+
+
 """
     curve_of_growth(element, reference_model, reference_tag, model, model_tags; λs=nothing, λe=nothing)
 
 Compute the CoG (+ abundance corrections) for a given element (e.g. `[C/Fe]`) from a reference model to the target model.
 The spectra obtained via `reference_tag` is used to compute the difference in equivalent width to all spectra in `model_tags`.
 Abundances are obtained from the `composition` entry of those spectra. The correction is `abund_model(ew_ref) - abund_ref`.
+Returns: ab_ref, ew_ref, ab, ew, Δab
 """
-function curve_of_growth(element, reference_model, reference_tag, model, model_tags; λs=nothing, λe=nothing, interpolate_reference_to=nothing)
+function curve_of_growth(element, reference_model::Box, reference_tag, model::Box, model_tags; λs=nothing, λe=nothing, interpolate_reference_to=nothing)
 	ew_ref, ab_ref = if isnothing(interpolate_reference_to)
-        ew_ref = equivalentwidth_from_tag(reference_model, reference_tag; λs=λs, λe=λe)
+        ew_ref = equivalentwidth(reference_model, reference_tag; λs=λs, λe=λe)
         ab_ref = abundance_from_tag(reference_model, reference_tag, element)
 
         ew_ref, ab_ref
@@ -2495,7 +2541,7 @@ function curve_of_growth(element, reference_model, reference_tag, model, model_t
         ab_ref = []
         for i in eachindex(reference_tag)
             try
-                ew_l = equivalentwidth_from_tag(reference_model, reference_tag[i]; λs=λs, λe=λe)
+                ew_l = equivalentwidth(reference_model, reference_tag[i]; λs=λs, λe=λe)
                 ab_l = abundance_from_tag(reference_model, reference_tag[i], element)
                 append!(ew_ref, [ew_l])
                 append!(ab_ref, [ab_l])
@@ -2519,13 +2565,63 @@ function curve_of_growth(element, reference_model, reference_tag, model, model_t
 	equivalent_widths = []
 	for tag in model_tags
         try
-            ew = equivalentwidth_from_tag(model, tag; λs=λs, λe=λe)
+            ew = equivalentwidth(model, tag; λs=λs, λe=λe)
             ab = abundance_from_tag(model, tag, element)
 
             append!(equivalent_widths, [ew])
             append!(abundances, [ab])
         catch
             @warn "Error in tag $(tag). Skipping."
+        end
+	end
+
+	# sorting
+	abmask = sortperm(abundances)
+	ewmask = sortperm(equivalent_widths)
+
+	# interpolation
+	f_ab = linear_interpolation(
+		equivalent_widths[ewmask], abundances[ewmask], extrapolation_bc=Line()
+	)
+	#f_ew = linear_interpolation(abundances[abmask], equivalent_widths[abmask], extrapolation_bc=Line())
+	Δab = f_ab(ew_ref) - ab_ref
+
+	ab_ref, ew_ref, abundances[abmask], equivalent_widths[abmask], Δab
+end
+
+"""
+    curve_of_growth(element, reference_model::MeanSpectrum, models::Vector{MeanSpectrum}; λs=nothing, λe=nothing)
+
+
+Compute the CoG (+ abundance corrections) for a given element (e.g. `[C/Fe]`) from a reference model to the target model.
+The spectra is used to compute the difference in equivalent width to all spectra in `models`.
+Abundances are obtained from the `composition` entry of those spectra. The correction is `abund_model(ew_ref) - abund_ref`.
+Returns: ab_ref, ew_ref, ab, ew, Δab
+"""
+function curve_of_growth(element, reference_model::S, models::Vector{S}; λs=nothing, λe=nothing) where {S<:MeanSpectrum}
+    element = Symbol(element)
+
+    λ_min = max(minimum(reference_model.λ),[minimum(s.λ) for s in models]...)
+    λ_max = min(maximum(reference_model.λ),[maximum(s.λ) for s in models]...)
+
+    λs = isnothing(λs) ? λ_min : λs
+    λe = isnothing(λe) ? λ_max : λe
+
+    ew_ref = equivalentwidth(reference_model; λs=λs, λe=λe)
+    ab_ref = reference_model.composition[element]
+
+	# Compute the same thing for all other models
+	abundances = []
+	equivalent_widths = []
+	for model in models
+        try
+            ew = equivalentwidth(model; λs=λs, λe=λe)
+            ab =  model.composition[element]
+
+            append!(equivalent_widths, [ew])
+            append!(abundances, [ab])
+        catch
+            @warn "Error in composition $(model.composition[element]). Skipping."
         end
 	end
 
