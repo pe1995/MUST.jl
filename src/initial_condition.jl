@@ -345,6 +345,11 @@ function prepare(
             )
         else
             cp(grid.info[i, "av_path"], joinpath(grid.info[i, "binned_E_tables"], "inim.dat"), force=true)
+            if isfile(join(split(grid.info[i, "av_path"], '_')[1:end-1], '_')*"_m3d.dat")
+                cp(join(split(grid.info[i, "av_path"], '_')[1:end-1], '_')*"_m3d.dat", joinpath(grid.info[i, "binned_E_tables"], "inim_m3d.dat"), force=true)
+            else
+                @warn "$(join(split(grid.info[i, "av_path"], '_')[1:end-1], '_')*"_m3d.dat") is not a file."
+            end
         end
     end
 

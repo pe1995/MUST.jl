@@ -535,6 +535,9 @@ function adiabat(eospath, av_path, logg; common_size=1000, saveat=nothing, kwarg
 		open(saveat, "w") do f
 			MUST.writedlm(f, [a.z exp.(a.lnT) a.lnρ])
 		end
+        # Also save in the M3D format
+        av_m3d_path = abspath(joinpath(dirname(saveat), "inim_m3d.dat"))
+        TSO.save_text_m3d(a, av_m3d_path)
 	end
 
 	a
@@ -577,6 +580,9 @@ function new_zscale(eospath, av_path, logg; common_size=1000, saveat=nothing, kw
 		open(saveat, "w") do f
 			MUST.writedlm(f, [a.z exp.(a.lnT) a.lnρ])
 		end
+        # Also save in the M3D format
+        av_m3d_path = abspath(joinpath(dirname(saveat), "inim_m3d.dat"))
+        TSO.save_text_m3d(a, av_m3d_path)
     else
         @warn "Model from $(av_path) not saved!"
 	end
