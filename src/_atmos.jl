@@ -2320,6 +2320,25 @@ spectra_keys(b::Box, tag::Symbol; kwargs...) = begin
     [Symbol(split(k, "_", keepempty=false) |> last) for k in ks]
 end
 
+"""
+    is_main_tag(tag, to_check)
+    
+Check if `tag` is the main tag of `to_check`. Example: Different abundance 
+runs may be called `CHGBand+0` and `CHGBand+0.2`, etc. In this case, 
+`is_main_tag("CHGBand", "CHGBand+0")` would return true. The result is always true,
+if `tag` is exactly what is writtin at the beginning of `to_check`! Be careful,
+something like `CHGBandLTE` and `CHGBandNLTE` both have the same main tag `CHGBand`!
+So looking for this main tag will group them together! Be specific about the main tags.
+"""
+is_main_tag(tag, to_check) = begin
+    to_check_maintag = split(String(to_check), '_')[1]
+    # the main tag has to be identical.
+    # there are possibly extensions added behind the main tag, but not before,
+    # otherwise this counts as a differernt tag
+    nl = length(String(tag))
+    to_check_maintag[1:min(nl, length(to_check_maintag))] == String(tag)
+end
+
 
 
 """
@@ -2440,6 +2459,216 @@ function integrated_flux(box::Box, tag; norm=true)
 
     (λ, norm ? F ./ C : F)
 end
+
+
+
+
+
+#= Compute average spectra and store them to file =#
+
+"""
+    average_spectra(available_run, nsnaps, nbatches; modelname1D="", datafolder="data")
+
+Computes and saves average spectra.
+
+- For 3D runs (modelname1D is empty), it processes the run in `nbatches` batches,
+  each containing `nsnaps` snapshots, starting from the end and moving backward.
+- For 1D runs, it processes the single specified model.
+"""
+function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; datafolder="data", modelname1D="", selectedSnaps=[])
+    #================================================================================#
+    # Helper Function: Contains the core logic to process a given set of snapshots. #
+    # This avoids code duplication and ensures 1D and 3D cases are treated identically. #
+    #================================================================================#
+    function _process_and_write_batch(selectedSnaps_raw, header_info, filename_prefix, convspec, specTags, o)
+        if isempty(selectedSnaps_raw)
+            @warn "No snapshots to process for prefix $(filename_prefix). Skipping."
+            return false # Indicate that processing was skipped
+        end
+
+        selectedSpecTagGridSym = Symbol(selectedSpecTagGrid)
+
+        matchingTags = unique(vcat([
+            [t for t in specTags[s] if is_main_tag(selectedSpecTagGridSym, t)] 
+            for s in selectedSnaps_raw if haskey(specTags, s)
+        ]...))
+
+        matchingTagsPerSnap = Dict(
+            s=>[t for t in matchingTags if (t in specTags[s])] for s in selectedSnaps_raw 
+        )
+        @info "Including spectra with tags $(String.(matchingTags)) in averaging." 
+        
+        selectedSnapsGrid = [s for s in selectedSnaps_raw if length(matchingTagsPerSnap[s]) > 0]
+        
+        if isempty(selectedSnapsGrid)
+            @warn "There are no snapshots that contain the tag $(selectedSpecTagGrid) for this batch."
+            return false
+        else
+            @info "$(header_info.batch_text) Averaging spectra from $(length(selectedSnapsGrid)) cubes with the tag $(selectedSpecTagGrid)."
+        end
+        
+        specboxesGrid = Dict(s => pick_snapshot(convspec, s) |> first for s in selectedSnapsGrid)
+        spectraGrid = Dict(s => Dict(t=>spectra(b, t) for t in matchingTagsPerSnap[s]) for (s, b) in specboxesGrid)
+
+        is1D_local = header_info.is1D
+        timesGrid = is1D_local ? [-99.0] : [first(pick_snapshot(o, s)).parameter.time for s in selectedSnapsGrid] ./ (60*60)
+        teffsGrid = is1D_local ? [-99.0] : [first(pick_snapshot(o, s)).parameter.teff for s in selectedSnapsGrid]
+
+        ncG(name, tag) = spectra_key_from_tag(name, tag)
+        for (s, sp) in spectraGrid
+            for t in matchingTagsPerSnap[s]
+                specSnap = sp[t]
+                if !haskey(specSnap, Symbol("meanFlux"))
+                    if !is1D_local
+                        @warn "There is no mean flux available for snapshot $s. Computing."
+                    end
+                    b = specboxesGrid[s]
+                    b.data[ncG("meanFlux", t)] = mean_integrated_flux(b, t, norm=false) |> last
+                    b.data[ncG("meanFluxNorm", t)] = mean_integrated_flux(b, t, norm=true) |> last
+                    b.data[ncG("meanIntensity", t)] = mean_intensity(b, t, norm=false) |> last
+                    b.data[ncG("meanIntensityNorm", t)] = mean_intensity(b, t, norm=true) |> last
+                    spectraGrid[s][t] = spectra(b, t)
+                end
+            end
+        end
+
+        clean_comp_string(cs) = begin
+            s = composition_string_from_abundance(; skip_eles=["[Fe/H]","[alpha/Fe]"], abundance_from_composition_string(cs)...)
+            if s == ""
+                "[X/Fe]=0.0"
+            else
+                s
+            end
+        end
+        params_from_string(cs) = (abundance_from_composition_string(cs, "[Fe/H]"), abundance_from_composition_string(cs, "[alpha/Fe]"))
+            
+        abundanceGrid = sort(unique(vcat([[clean_comp_string(replace(sp[t][:composition], "α"=>"alpha")) for t in matchingTagsPerSnap[s]] for (s, sp) in spectraGrid]...)), rev=true)
+        abundanceGrid = abundanceGrid[sortperm_on_composition_strings(abundanceGrid, split_on=',')]
+        chemParamGrid = unique(vcat([[params_from_string(replace(sp[t][:composition], "α"=>"alpha")) for t in matchingTagsPerSnap[s]] for (s, sp) in spectraGrid]...)) |> first
+
+        spectraGridAbundance = Dict(a=>[] for a in abundanceGrid)
+        for (s, sp) in spectraGrid
+            for t in matchingTagsPerSnap[s]
+                c = clean_comp_string(replace(sp[t][:composition], "α"=>"alpha"))
+                append!(spectraGridAbundance[c], [sp[t]])
+            end
+        end
+
+        dt = length(timesGrid) > 1 ? diff(timesGrid)|> first : 0
+        time1 = first(timesGrid)
+        time2 = last(timesGrid)
+        alpha_ref = chemParamGrid[2]
+        feh_ref = chemParamGrid[1]
+        
+        header_line1 = "# Average spectra for $(available_run)\n"
+        header_line2 = "# Teff_min[K],Teff_max[K],logg,feh,alpha,n_snapshots,dt[h],firstSnap,lastSnap,firstSnapTime,lastSnapTime\n# "
+        header_line3 = if is1D_local
+            @sprintf "%.2f,%.2f,%.3f,%.3f,%.3f,%i,%.7E,%s,%s,%.7E,%.7E" minimum(teffsGrid) maximum(teffsGrid) -99.0 feh_ref alpha_ref length(selectedSnapsGrid) dt first(selectedSnapsGrid) last(selectedSnapsGrid) time1 time2
+        else
+            @sprintf "%.2f,%.2f,%.3f,%.3f,%.3f,%i,%.7E,%i,%i,%.7E,%.7E" minimum(teffsGrid) maximum(teffsGrid) ModelInformation(available_run).logg feh_ref alpha_ref length(selectedSnapsGrid) dt first(selectedSnapsGrid) last(selectedSnapsGrid) time1 time2
+        end
+        full_header = header_line1 * header_line2 * header_line3 * "\n"
+        ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
+
+        write_spectra(fname, specDict) = begin
+            open(fname, "w") do f
+                write(f, ab_header)
+                λ = specDict["wavelength"]
+                for i in eachindex(λ)
+                    line_str = @sprintf "%.7f," λ[i]
+                    for ab in abundanceGrid
+                        line_str *= @sprintf "%.7E," specDict[ab][i]
+                    end
+                    write(f, line_str[1:end-1] * "\n")
+                end
+            end
+            @info "File $(basename(fname)) written."
+        end
+        
+        getfilename(p) = joinpath(datafolder, available_run, "$(filename_prefix)_$(p).csv")
+        
+        fluxDictGrid = Dict(a=>mean([s[:meanFlux] for s in sp]) for (a, sp) in spectraGridAbundance)
+        fluxDictGrid["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
+        write_spectra(getfilename("mean_flux"), fluxDictGrid)
+
+        fluxDictGridNorm = Dict(a=>mean([s[:meanFluxNorm] for s in sp]) for (a, sp) in spectraGridAbundance)
+        fluxDictGridNorm["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
+        write_spectra(getfilename("mean_flux_norm"), fluxDictGridNorm)
+
+        mus = first(spectraGridAbundance[first(abundanceGrid)])[:mu]
+        muzs = sort(unique(mus[:, 3]), rev=true)
+        for muz in muzs
+            mu_mask = mus[:, 3] .≈ muz
+            mustring = @sprintf "%.3f" muz
+            
+            fg = Dict(a=>mean([reshape(mean(s[:meanIntensity][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
+            fg["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
+            write_spectra(getfilename("mean_intensity_mu$(mustring)"), fg)
+
+            fg_norm = Dict(a=>mean([reshape(mean(s[:meanIntensityNorm][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
+            fg_norm["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
+            write_spectra(getfilename("mean_intensity_mu$(mustring)_norm"), fg_norm)
+        end
+        return true # Indicate success
+    end
+
+
+    #=====================================================#
+    # Main Function Body: Setup and execution control.    #
+    #=====================================================#
+    o = joinpath(datafolder, available_run)
+    is1D = length(modelname1D) > 0
+
+    convspec = converted_snapshots(o, box_name="box_m3dis")
+    all_available_snaps = if length(selectedSnaps)==0 
+        list_snapshots(convspec, numbered_only=!is1D)
+    else
+        selectedSnaps
+    end
+    specTags = spectra_tags(convspec)
+    specTags = Dict(isnap => haskey(specTags, isnap) ? specTags[isnap] : [] for isnap in all_available_snaps)
+
+    if is1D
+        # --- 1D Case: Process a single model, no looping ---
+        @info "Processing 1D model: $(modelname1D)"
+        selectedSnaps_raw = [modelname1D]
+        filename_prefix = "$(String(selectedSpecTagGrid))_$(modelname1D)"
+        header_info = (is1D=true, batch_text="")
+        
+        _process_and_write_batch(selectedSnaps_raw, header_info, filename_prefix, convspec, specTags, o)
+    else
+        # --- 3D Case: Loop over batches ---
+        snaps = sort([s for s in all_available_snaps if (s > 0 && haskey(specTags, s) && !isempty(specTags[s]))])
+        
+        end_idx = length(snaps)
+        batch_num = 1
+
+        @info "Starting 3D batch processing for run $(available_run). Total batches to run: $(nbatches)."
+
+        while batch_num <= nbatches && end_idx > 0
+            @info "--- Computing Batch $(batch_num) of $(nbatches) ---"
+            
+            start_idx = max(1, end_idx - nsnaps + 1)
+            batch_snaps = snaps[start_idx:end_idx]
+
+            filename_prefix = "$(String(selectedSpecTagGrid))_$(snaps[start_idx])-$(snaps[end_idx])"
+            header_info = (is1D=false, batch_text=" - Batch $(batch_num)")
+
+            _process_and_write_batch(batch_snaps, header_info, filename_prefix, convspec, specTags, o)
+
+            # Update loop variables for the next iteration
+            end_idx -= nsnaps
+            batch_num += 1
+            
+            if end_idx < 1 && batch_num <= nbatches
+                @info "Reached the beginning of the snapshot list before completing all requested batches. Stopping."
+            end
+        end
+        @info "Batch processing finished."
+    end
+end
+
+
 
 
 

@@ -24,32 +24,46 @@ Read mean spectra from file. The format is assumed to follow (see `average_spect
 Note that abundances are expected as [X/Fe]=xxx_[Y/Fe]=yyy, etc.
 """
 MeanSpectra(path; kind=nothing) = begin
-    data = MUST.CSV.read(path, MUST.DataFrame, header=4)
+    data = CSV.read(path, DataFrame, header=4)
     header = open(path, "r") do f
         readlines(f)[1:4]
     end
     modelname = strip(split(header[1], ' ', keepempty=false)[end])
     params = split(strip(header[2][2:end]), ',', keepempty=false)
     params_vals = split(strip(header[3][2:end]), ',', keepempty=false)
-    model_info = Dict{String}{Any}(
-        p=>parse(Float64, v) for (p, v) in zip(params, params_vals)
-    )
+    model_info = Dict{String}{Any}()
+    for (p, v) in zip(params, params_vals)
+        model_info[p] = try
+            parse(Float64, v) 
+        catch
+            v
+        end
+    end
     model_info["modelname"] = modelname
 
     kind = if isnothing(kind)
         try 
-            s = String.(split(basename(path), '_', keepempty=false)[2:end])
-            s[end] = split(s[end], ".csv", keepempty=false)[1]
-            join(s, '_')
+            #s = String.(split(basename(path), '_', keepempty=false)[2:end])
+            #s[end] = split(s[end], ".csv", keepempty=false)[1]
+
+            istart = findfirst("mean_", basename(path))
+            basename(path)[first(istart):end-4]
         catch
-            "from_file"
+            basename(path)
         end
     else
         kind
     end
 
+    tag = try
+        String(split(basename(path), '_')[1])
+    catch
+        ""
+    end
+    model_info["tag"] = tag
+
     comps = [c for c in [n for n in names(data) if !(n=="# wavelength")]]
-    sort_on_composition([MeanSpectrum(data[!,"# wavelength"][:], data[!, c][:], MUST.abundance_from_composition_string(c, split_on='_'), kind, model_info) for c in comps])
+    sort_on_composition([MeanSpectrum(data[!,"# wavelength"][:], data[!, c][:], abundance_from_composition_string(c, split_on='_'), kind, model_info) for c in comps])
 end
 
 
@@ -130,14 +144,14 @@ function interpolate(spectra::Vector{S}, abundance) where {S<:MeanSpectrum}
 
     vals = zeros(eltype(λ_common), length(spectra), length(λ_common))
     for (i, s) in enumerate(spectra)
-        vals[i, :] = MUST.linear_interpolation(s.λ, s.spectrum).(λ_common)
+        vals[i, :] = linear_interpolation(s.λ, s.spectrum).(λ_common)
     end
 
     # interpolate in abundance wavelength by wavelength
-    #ip = [MUST.linear_interpolation(ab, vals[:, i]).(target) for i in eachindex(λ_common)]
+    #ip = [linear_interpolation(ab, vals[:, i]).(target) for i in eachindex(λ_common)]
     ip = zeros(eltype(vals), length(λ_common))
     @inbounds for i in eachindex(λ_common)
-        ip[i] = MUST.linear_interpolation(ab, vals[:, i])(target)
+        ip[i] = linear_interpolation(ab, vals[:, i])(target)
     end
 
     MeanSpectrum(λ_common, ip, Dict(el=>target), first(spectra).kind, first(spectra).model_info)
