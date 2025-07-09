@@ -514,7 +514,7 @@ end
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
 	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", 
-	τ_extrapolate=nothing, adiabatic_extrapolation=false, boundary_extrapolation=false, extrapolation_offsets=nothing, τbottom=8, τtop=-6, kwargs...) where {F<:AbstractFloat}
+	τ_extrapolate=nothing, adiabatic_extrapolation=false, boundary_extrapolation=false, extrapolation_offsets=nothing, τbottom=8, τtop=-6, τbottom_extrapolate=nothing, kwargs...) where {F<:AbstractFloat}
 
 	folder_name = "interpolated"
 	mesh   = "interpolated"
@@ -561,10 +561,14 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 		mc = @optical(TSO.flip(deepcopy(model), depth=true), eos)
 
 		# shift down the MARCS model based on the 
-		offset_T = exp10(t_top) .- exp.(minimum(mc.lnT))
-		offset_ρ = exp10(rho_top) .- exp.(minimum(mc.lnρ))
-		mc.lnT .= log.(exp.(mc.lnT) .+ offset_T)
-		mc.lnρ .= log.(exp.(mc.lnρ) .+ offset_ρ)
+		if extrapolation_offsets[3] > -98.0
+			offset_T = exp10(t_top) .- exp.(minimum(mc.lnT))
+			offset_ρ = exp10(rho_top) .- exp.(minimum(mc.lnρ))
+			mc.lnT .= log.(exp.(mc.lnT) .+ offset_T)
+			mc.lnρ .= log.(exp.(mc.lnρ) .+ offset_ρ)
+		else
+			@info "Skipping top boundary shifting."
+		end
 
 		model_extra = TSO.reverse_adiabatic_extrapolation(
 			mc, exp10(rho_bot), exp10(t_bot), eos; kwargs...
@@ -580,7 +584,35 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	end
 
 	# optionally extrapolate adiabatically on this new zscale
-	model = if adiabatic_extrapolation
+	model = if adiabatic_extrapolation && (!isnothing(eos)) && (!isnothing(τbottom_extrapolate))
+		# extrapolate until τbottom_extrapolate is reached
+		model_extra = TSO.adiabatic_extrapolation(
+			model, eos; τ_target=τbottom_extrapolate
+		)
+
+		model_extra = if (extrapolation_offsets[1] > 0) | (extrapolation_offsets[2] > 0) 
+			offset_T = exp(extrapolation_offsets[2].+ maximum(model_extra.lnT))
+			offset_ρ = exp(extrapolation_offsets[1] .+ maximum(model_extra.lnρ))
+			@info "shifting bottom boundary to T=$(exp.(maximum(model_extra.lnT)))->$(offset_T), ρ=$(exp.(maximum(model_extra.lnρ)))->$(offset_ρ)"
+
+			me = TSO.reverse_adiabatic_extrapolation(
+				model_extra, offset_ρ, offset_T, eos; kwargs...
+			) |> TSO.monotonic
+
+			# now extrapolate the model back in case that has changed
+			TSO.adiabatic_extrapolation(
+				me, eos; τ_target=τbottom_extrapolate
+			)
+		else
+			model_extra
+		end
+
+		uniform_z = range(
+			minimum(model_extra.z), maximum(model_extra.z), length=500
+		) |> collect
+
+		TSO.flip(TSO.interpolate_to(model_extra, in_log=false, z=uniform_z), depth=true)
+	elseif adiabatic_extrapolation
 		mi_z = MUST.interpolate_quantity(grid, "mi_z"; teff=teff, logg=logg, feh=feh)
 		ma_z = MUST.interpolate_quantity(grid, "ma_z"; teff=teff, logg=logg, feh=feh)
 		model_extra = TSO.adiabatic_extrapolation(model, eos, abs(ma_z - mi_z)*1.1)
