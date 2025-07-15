@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.13
 
 using Markdown
 using InteractiveUtils
@@ -7,7 +7,7 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     #! format: off
-    quote
+    return quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
@@ -26,6 +26,13 @@ begin
 	using LaTeXStrings 
 	using PlutoUI
 	using KernelDensity
+end
+
+# ╔═╡ 32afc79c-26cc-4619-ace0-63aca71587c2
+begin
+	using GaussianMixtures
+	using Distributions
+	using LinearAlgebra
 end
 
 # ╔═╡ dc377839-bd92-4c9c-9432-7bf08b71add6
@@ -293,14 +300,21 @@ let
 	ax2.tick_params(labelsize=12)
 	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ500=0.0)[:T][:,:,1]
 	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
+	vmin = 4100
+	vmax = 6600
 	im = ax2.imshow(
 		Tplane', 
 		rasterized=true, 
 		origin="lower",
 		extent=extent,
 		cmap="gist_heat",
-		aspect="equal"
+		aspect="equal",
+		vmin=vmin,
+		vmax=vmax
 	)
+	#ax2.set_xlim(-2.5, 2.5)
+	#ax2.set_ylim(-2.5, 2.5)
+	@show minimum(Tplane) maximum(Tplane)
 	cbar = f.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
 	ax2.set_title(L"\rm temperature\ [K]")
 	ax2.set_xlabel(L"\rm x\ [Mm]")
@@ -333,6 +347,49 @@ let
 	@info "Model resolution (km): $((maximum(b.z)-minimum(b.z)) / size(b, 3) ./1e5)"
 
 	f.savefig(structure_3D1D_figsave_txt*"_3D1D.pdf")
+	f
+end
+
+# ╔═╡ 40f4ec5a-b88c-4aa5-8e70-3f00850ce903
+let
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(6, 6), layout="tight")
+	
+	# tau500 snapshot
+	b, bt = get_snapshot(snapshot_id, joinpath(datadir, structure_3D_select))
+	plot_profile(b, bt, :T, ax=ax)
+	
+	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ500=0.0)[:T][:,:,1]
+	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
+	vmin = 4100
+	vmax = 6600
+	im = ax.imshow(
+		Tplane', 
+		rasterized=true, 
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat",
+		aspect="equal",
+		vmin=vmin,
+		vmax=vmax
+	)
+	
+	cbar = f.colorbar(im, fraction=0.046, pad=0.04)
+	ax.set_title(L"\rm temperature\ [K]")
+	ax.set_xlabel(L"\rm x\ [Mm]")
+	
+	ax.set_xlabel(L"\rm X\ [Mm]")
+	ax.set_ylabel(L"\rm Y\ [Mm]")
+
+	ax.xaxis.set_major_locator(plt.MaxNLocator(7))
+	ax.yaxis.set_major_locator(plt.MaxNLocator(7))
+
+	ax.set_title(pretty_from_name(structure_3D_select))
+
+	@info "Model resolution (Nx, Ny, Nz): $(size(b))"
+	@info "Model resolution (km): $((maximum(b.z)-minimum(b.z)) / size(b, 3) ./1e5)"
+
+	f.savefig(structure_3D1D_figsave_txt*"_opticalsurface.pdf")
 	f
 end
 
@@ -2664,10 +2721,18 @@ let
 	mod_logg = [a[2] for a in abundance_correction_parameters]
 
 	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(5, 5))
+	f, ax = plt.subplots(1, 1, figsize=(6, 6), layout="tight")
 
-	ax.scatter(teff, logg, s=15, rasterized=true, color="k", alpha=0.2, label=L"\rm SAGA")
-	ax.scatter(mod_teff, mod_logg, color="red", marker="X", s=200, label=L"\rm 3D\ RHD\ models")
+	ax.scatter(teff, logg, s=15, rasterized=true, color="k", alpha=0.06, label=L"\rm SAGA", marker="s")
+	ax.scatter([mod_teff[1]], [mod_logg[1]], color="tomato", marker="X", s=600, label=L"\rm 3D\ RHD\ models", edgecolor="none")
+	ax.scatter([mod_teff[2]], [mod_logg[2]], color="steelblue", marker="X", s=600, label=L"\rm 3D\ RHD\ models", edgecolor="none")
+	
+
+	# add text
+	labelnice(teff, logg) = L"\rm T_{eff}=\ "*"$(round(Int, teff))"*L"\rm \, K "*"\n"*L"\rm \log g =\ "*"$(round(logg, digits=3))"
+	ax.text(mod_teff[2]-550, mod_logg[2], L"Main-sequence"*"\n"*labelnice(mod_teff[2], mod_logg[2]), ha="left", va="center", color="steelblue", fontsize=15)
+
+	ax.text(mod_teff[1]+500, mod_logg[1], L"sub-giant"*"\n"*labelnice(mod_teff[1], mod_logg[1]), ha="right", va="center", color="tomato", fontsize=15)
 
 	ax.set_ylim(ax.get_ylim()[1], ax.get_ylim()[0])
 	ax.set_xlim(ax.get_xlim()[1], ax.get_xlim()[0])
@@ -2676,8 +2741,170 @@ let
 	ax.set_xlabel(L"\rm T_{eff}\ [K]")
 	#ax.legend(labelspacing=0.1, loc="lower center", ncol=2, columnspacing=0.5)
 
-	#ax.set_ylim(5.7, 2.3)
-	#ax.set_xlim(8300, 3800)
+	ax.set_ylim(4.9, 2.7)
+	ax.set_xlim(7300, 3800)
+
+	f
+end
+
+# ╔═╡ c000ae23-ad64-4e91-9522-60fd72b7f5d3
+let
+	teff = parameters_all["teff"][selection_mask]
+	logg = parameters_all["logg"][selection_mask]
+
+	mod_teff = [a[1] for a in abundance_correction_parameters]
+	mod_logg = [a[2] for a in abundance_correction_parameters]
+
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(6, 6), layout="tight")
+
+	ax.hist(teff, bins=50)
+	ax.axvline(5750, color="tomato")
+	ax.axvline(5250, color="tomato")
+
+	f
+end
+
+# ╔═╡ b05a0a66-12e7-4c4a-bc0f-370a2d81ec0d
+let
+	teff = parameters_all["teff"][selection_mask]
+	feh = parameters_all["feh"][selection_mask]
+
+	mod_teff = [a[1] for a in abundance_correction_parameters]
+	mod_logg = [a[2] for a in abundance_correction_parameters]
+
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(6, 6), layout="tight")
+
+	ax.scatter(feh, teff, s=10)
+
+	f
+end
+
+# ╔═╡ c8c4f045-9687-43ea-87e8-17266604406d
+let
+	#=iso1  = MUST.readdlm("iso_1", comments=true)[:, [3, 4]]
+	iso4  = MUST.readdlm("iso_4", comments=true)[:, [3, 4]]
+	iso8  = MUST.readdlm("iso_8", comments=true)[:, [3, 4]]
+	iso12 = MUST.readdlm("iso_12", comments=true)[:, [3, 4]]
+	
+	iso12_mist = MUST.readdlm("MIST_iso_6874f11008232.txt", comments=true)[:, [11, 13]]
+	iso13_mist = MUST.readdlm("MIST_iso_13.txt", comments=true)[:, [11, 13]]
+	iso135_mist = MUST.readdlm("MIST_iso_135.txt", comments=true)[:, [11, 13]]=#
+	
+	teff = parameters_all["teff"][selection_mask]
+	logg = parameters_all["logg"][selection_mask]
+
+	mod_teff = [a[1] for a in abundance_correction_parameters]
+	mod_logg = [a[2] for a in abundance_correction_parameters]
+
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(7, 7), layout="tight")
+
+	#ax.plot(exp10.(iso1[:,1]), iso1[:,2])
+	#=ax.plot(exp10.(iso4[:,1]), iso4[:,2])
+	ax.plot(exp10.(iso8[:,1]), iso8[:,2])
+	ax.plot(exp10.(iso12[:,1]), iso12[:,2])
+	ax.plot(exp10.(iso12_mist[:,1]), iso12_mist[:,2])
+	ax.plot(exp10.(iso13_mist[:,1]), iso13_mist[:,2])
+	ax.plot(exp10.(iso135_mist[:,1]), iso135_mist[:,2])=#
+
+
+	# inset sub-giant
+	left, bottom, width, height = [0.18, 0.57, 0.32, 0.32]
+	ax2 = f.add_axes([left, bottom, width, height])
+	ax2.tick_params(labelsize=12)
+	b, bt = get_snapshot(snapshot_id, joinpath(datadir, "CEMP_t52.50g30.00m-5.000_v1.0"))
+	plot_profile(b, bt, :T, ax=ax)
+	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ500=0.0)[:T][:,:,1]
+	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
+	vmin = 4100
+	vmax = 6600
+	im = ax2.imshow(
+		Tplane', 
+		rasterized=true, 
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat",
+		aspect="equal",
+		vmin=vmin,
+		vmax=vmax
+	)
+	cbar = f.colorbar(im, ax=ax2, fraction=0.046, pad=0.05, location="top", orientation="horizontal")
+	cbar.set_label(L"\rm temperature\ [K]", loc="left")
+	ax2.set_xlabel(L"\rm [10^{3}\, km]", loc="left")
+	ax2.xaxis.set_major_locator(plt.MaxNLocator(3))
+	ax2.yaxis.set_major_locator(plt.MaxNLocator(3))
+
+	# Create a Rectangle patch
+	rect = matplotlib.patches.Rectangle((40, -40), 5, 5, linewidth=3, edgecolor="steelblue", facecolor="none")
+	
+	# Add the patch to the Axes
+	ax2.add_patch(rect)
+	#ax2.set_title(pretty_from_name_short("CEMP_t52.50g30.00m-5.000_v1.0"))
+
+
+	# inset MS
+	left, bottom, width, height = [0.68, 0.2, 0.26, 0.26]
+	ax2 = f.add_axes([left, bottom, width, height])
+	ax2.tick_params(labelsize=12)
+	b, bt = get_snapshot(snapshot_id, joinpath(datadir, "CEMP_t57.50g45.00m-5.000_v1.0"))
+	plot_profile(b, bt, :T, ax=ax)
+	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ500=0.0)[:T][:,:,1]
+	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
+	vmin = 4100
+	vmax = 6600
+	im = ax2.imshow(
+		Tplane', 
+		rasterized=true, 
+		origin="lower",
+		extent=extent,
+		cmap="gist_heat",
+		aspect="equal",
+		vmin=vmin,
+		vmax=vmax
+	)
+	cbar = f.colorbar(im, ax=ax2, fraction=0.046, pad=0.04, location="top", orientation="horizontal")
+	cbar.set_label(L"\rm temperature\ [K]", loc="left")
+	ax2.set_xlabel(L"\rm [10^{3}\, km]", loc="left")
+	ax2.xaxis.set_major_locator(plt.MaxNLocator(3))
+	ax2.yaxis.set_major_locator(plt.MaxNLocator(3))
+	#ax2.set_title(pretty_from_name_short("CEMP_t52.50g30.00m-5.000_v1.0"))
+	
+
+	#ax.hist2d(teff, logg, rasterized=true, cmap="Greys", bins=20)
+	mean_and_nan(x) = length(x) > 0 ? mean(x) : NaN
+	std_and_nan(x) = length(x) > 0 ? MUST.std(x) : NaN
+	bins = range(2.5, 5.1, length=30)
+	bincenters = (bins[2:end] .+ bins[1:end-1]) ./ 2
+	meanT = [
+		mean_and_nan(teff[bins[i-1] .< logg .< bins[i]]) for i in 2:length(bins)
+	]
+	sigmaT = [
+		std_and_nan(teff[bins[i-1] .< logg .< bins[i]]) for i in 2:length(bins)
+	]
+	ax.scatter(teff, logg, s=25, rasterized=true, color="k", alpha=0.03, label=L"\rm SAGA", marker="s", zorder=1)
+	ax.plot(meanT, bincenters, color="k", lw=4, zorder=2)
+	ax.fill_betweenx(bincenters, meanT.-sigmaT, meanT.+sigmaT, color="0.5", alpha=0.3)
+	
+	ax.scatter([mod_teff[1]], [mod_logg[1]], color="tomato", marker="X", s=600, label=L"\rm 3D\ RHD\ models", edgecolor="k", zorder=3)
+	ax.scatter([mod_teff[2]], [mod_logg[2]], color="steelblue", marker="X", s=600, label=L"\rm 3D\ RHD\ models", edgecolor="k", zorder=3)
+
+	# add text
+	labelnice(teff, logg) = L"\rm T_{eff}=\ "*"$(round(Int, teff))"*L"\rm \, K "*"\n"*L"\rm \log g =\ "*"$(round(logg, digits=3))"
+	ax.text(mod_teff[2]+550, mod_logg[2], L"Main-sequence"*"\n"*labelnice(mod_teff[2], mod_logg[2]), ha="right", va="center", color="steelblue", fontsize=15)
+
+	ax.text(mod_teff[1]-500, mod_logg[1], L"sub-giant"*"\n"*labelnice(mod_teff[1], mod_logg[1]), ha="left", va="center", color="tomato", fontsize=15)
+
+	ax.set_ylim(ax.get_ylim()[1], ax.get_ylim()[0])
+	ax.set_xlim(ax.get_xlim()[1], ax.get_xlim()[0])
+
+	ax.set_ylabel(L"\rm \log g")
+	ax.set_xlabel(L"\rm T_{eff}\ [K]")
+	#ax.legend(labelspacing=0.1, loc="lower center", ncol=2, columnspacing=0.5)
+
+	ax.set_ylim(4.9, 2.7)
+	ax.set_xlim(8300, 2800)
 
 	f
 end
@@ -3336,6 +3563,91 @@ draw_ellipse_axes(ellipse, ax; N=1, skip_vertical=false, skip_horizontal=false, 
 		end
 	end
 
+# ╔═╡ 653a324e-8c70-435d-86f5-a8da7a56b226
+
+
+# ╔═╡ 5159a983-d631-4658-9af7-da9875956183
+begin
+	g1_dat = MUST.readdlm("G1.csv", ',')
+	g2_dat = MUST.readdlm("G2.csv", ',')
+	g3_dat = MUST.readdlm("G3.csv", ',')
+
+	
+	g1_yoon = GMM(1, g1_dat, nIter=1500, nInit=1500, kind=:full)
+	g2_yoon = GMM(1, g2_dat, nIter=1500, nInit=1500, kind=:full)
+	g3_yoon = GMM(1, g3_dat, nIter=1500, nInit=1500, kind=:full)
+end
+
+# ╔═╡ 71fd7ff2-c971-4a1b-803c-19879078b991
+begin
+	transform_to_ellipse(sigma) = begin
+		# 2. Calculate eigenvalues and eigenvectors
+		F = eigen(sigma)
+		eigenvalues, eigenvectors = F.values, F.vectors
+		
+		# 3. Get the geometric properties for the ellipse
+		major_vec = eigenvectors[:, argmax(eigenvalues)]
+		major_len = sqrt(maximum(eigenvalues))
+		minor_len = sqrt(minimum(eigenvalues))
+		
+		# Angle in degrees for matplotlib
+		angle_deg = rad2deg(atan(major_vec[2], major_vec[1]))
+		
+		# Width and height are the full axis lengths (2 * semi-axis)
+		width = 2 * major_len
+		height = 2 * minor_len
+
+		width, height, angle_deg
+	end
+
+	lowfeh_mask_yoon = selection_mask .& (parameters_all["feh"] .<= -1)
+	CEMP_mask_yoon = (parameters_all["cfe"] .>= cfe_limit) .& lowfeh_mask_yoon
+	CEMP_mask_corr_yoon = (parameters_all["cfe"] .+ corrections_saga_all .>= cfe_limit) .& lowfeh_mask_yoon
+	
+	feh_yoon = parameters_all["feh"][CEMP_mask_yoon]
+	cfe_yoon = parameters_all["cfe"][CEMP_mask_yoon]
+	c_yoon = cfe_yoon .+ feh_yoon .+ 8.560
+	x_1D_yoon = zeros(length(feh_yoon), 2)
+	x_3D_yoon = zeros(length(feh_yoon), 2)
+	x_1D_yoon[:, 1] .= feh_yoon
+	x_1D_yoon[:, 2] .= c_yoon
+	x_3D_yoon[:, 1] .= feh_yoon
+	x_3D_yoon[:, 2] .= c_yoon .+ corrections_saga_all[CEMP_mask_yoon]
+	x_1D_tuple_yoon = [[a, b] for (a,b) in zip(x_1D_yoon[:,1], x_1D_yoon[:,2])]
+	x_3D_tuple_yoon = [[a, b] for (a,b) in zip(x_3D_yoon[:,1], x_3D_yoon[:,2])]
+
+	el1_yoon = transform_to_ellipse(covars(g1_yoon)[1])
+	el2_yoon = transform_to_ellipse(covars(g2_yoon)[1])
+	el3_yoon = transform_to_ellipse(covars(g3_yoon)[1])
+	
+	n1_yoon = MvNormal(means(g1_yoon)[1,:], covars(g1_yoon)[1])
+	n2_yoon = MvNormal(means(g2_yoon)[1,:], covars(g2_yoon)[1])
+	n3_yoon = MvNormal(means(g3_yoon)[1,:], covars(g3_yoon)[1])
+
+	# use these ellipses to judge the point association
+	pdf1_1D = Distributions.logpdf(n1_yoon, x_1D_tuple_yoon)
+	pdf2_1D = Distributions.logpdf(n2_yoon, x_1D_tuple_yoon)
+	pdf3_1D = Distributions.logpdf(n3_yoon, x_1D_tuple_yoon)
+	g1_mask_1D = (pdf1_1D .>= pdf2_1D) .&& (pdf1_1D .>= pdf3_1D)
+	g2_mask_1D = (pdf2_1D .>= pdf1_1D) .&& (pdf2_1D .>= pdf3_1D)
+	g3_mask_1D = (pdf3_1D .>= pdf1_1D) .&& (pdf3_1D .>= pdf2_1D)
+
+	# then compute the new GMM after shifting those groups and then plot line
+	g1_yoon_3D = GMM(1, x_3D_yoon[g1_mask_1D,:], nIter=1500, nInit=1500, kind=:full)
+	g2_yoon_3D = GMM(1, x_3D_yoon[g2_mask_1D,:], nIter=1500, nInit=1500, kind=:full)
+	g3_yoon_3D = GMM(1, x_3D_yoon[g3_mask_1D,:], nIter=1500, nInit=1500, kind=:full)
+	g123_yoon_3D = GMM(3, x_3D_yoon[:,:], nIter=1500, nInit=1500, kind=:full)
+	el1_yoon_3D = transform_to_ellipse(covars(g1_yoon_3D)[1])
+	el2_yoon_3D = transform_to_ellipse(covars(g2_yoon_3D)[1])
+	el3_yoon_3D = transform_to_ellipse(covars(g3_yoon_3D)[1])
+	el1_yoon123_3D = transform_to_ellipse(covars(g123_yoon_3D)[1])
+	el2_yoon123_3D = transform_to_ellipse(covars(g123_yoon_3D)[2])
+	el3_yoon123_3D = transform_to_ellipse(covars(g123_yoon_3D)[3])
+end
+
+# ╔═╡ 419bba01-4f4f-496b-bb97-7db1338cc2b2
+
+
 # ╔═╡ 76e3d925-6778-4d40-a02f-23e6aa6258eb
 let
 	plt.close()
@@ -3469,6 +3781,9 @@ let
 	f
 end
 
+# ╔═╡ 849242cb-0923-47d1-affa-74ccd0605f12
+
+
 # ╔═╡ f4b9583a-9dfd-477b-beab-15ec8a5b82dd
 let
 	plt.close()
@@ -3596,6 +3911,629 @@ let
 
 	f
 end
+
+# ╔═╡ dac3f89b-b1c5-40ab-8124-23d0312e3654
+let
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 5), layout="tight")
+	plt.subplots_adjust(wspace=0, hspace=0)
+
+	ellipse_alpha = 0.12
+	scatter_alpha = 0.6
+
+	ellipse1_test = matplotlib.patches.Ellipse(
+		means(g1_yoon)[1,:], el1_yoon[1]*1.2, el1_yoon[2]*1.2, angle= el1_yoon[3], color="steelblue", alpha=ellipse_alpha*0.5, ec="0.5"
+	)
+	#ax.add_patch(ellipse1_test)
+
+	ellipse2_test = matplotlib.patches.Ellipse(
+		means(g2_yoon)[1,:], el2_yoon[1], el2_yoon[2], angle= el2_yoon[3], color="yellowgreen", alpha=ellipse_alpha*0.5, ec="0.5"
+	)
+	#ax.add_patch(ellipse2_test)
+
+	ellipse3_test = matplotlib.patches.Ellipse(
+		means(g3_yoon)[1,:], el3_yoon[1], el3_yoon[2], angle= el3_yoon[3], color="tomato", alpha=ellipse_alpha*0.5, ec="0.5"
+	)
+	#ax.add_patch(ellipse3_test)
+	draw_ellipse_axes(ellipse1_test, ax, N=1, skip_vertical=true, color="steelblue", ls="--", alpha=1, lw=4)
+	draw_ellipse_axes(ellipse2_test, ax, N=1, skip_vertical=true, color="yellowgreen", ls="--", alpha=1, lw=4)
+	draw_ellipse_axes(ellipse3_test, ax, N=1, skip_vertical=true, color="tomato", ls="--", alpha=1, lw=4)
+
+	#=ax.scatter(x_1D_yoon[g1_mask_1D, 1], x_1D_yoon[g1_mask_1D, 2], marker="x", color="blue", s=10)
+	ax.scatter(x_1D_yoon[g2_mask_1D, 1], x_1D_yoon[g2_mask_1D, 2], marker="s", color="green", s=10)
+	ax.scatter(x_1D_yoon[g3_mask_1D, 1], x_1D_yoon[g3_mask_1D, 2], marker="v", color="orange", s=30)=#
+
+	
+	
+	
+	ellipse1_test_3D = matplotlib.patches.Ellipse(
+		means(g1_yoon_3D)[1,:], el1_yoon_3D[1]*1.2, el1_yoon_3D[2]*1.2, angle= el1_yoon_3D[3], color="steelblue", alpha=ellipse_alpha, ec="0.5"
+	)
+	#ax.add_patch(ellipse1_test_3D)
+
+	ellipse2_test_3D = matplotlib.patches.Ellipse(
+		means(g2_yoon_3D)[1,:], el2_yoon_3D[1], el2_yoon_3D[2], angle= el2_yoon_3D[3], color="yellowgreen", alpha=ellipse_alpha, ec="0.5"
+	)
+	#ax.add_patch(ellipse2_test_3D)
+
+	ellipse3_test_3D = matplotlib.patches.Ellipse(
+		means(g3_yoon_3D)[1,:], el3_yoon_3D[1], el3_yoon_3D[2], angle= el3_yoon_3D[3], color="tomato", alpha=ellipse_alpha, ec="0.5"
+	)
+	#ax.add_patch(ellipse3_test_3D)
+	draw_ellipse_axes(ellipse1_test_3D, ax, N=1, skip_vertical=true, color="steelblue", ls="-", alpha=1, lw=4)
+	draw_ellipse_axes(ellipse2_test_3D, ax, N=1, skip_vertical=true, color="yellowgreen", ls="-", alpha=1, lw=4)
+	draw_ellipse_axes(ellipse3_test_3D, ax, N=1, skip_vertical=true, color="tomato", ls="-", alpha=1, lw=4)
+
+	#=ax.scatter(x_3D_yoon[g1_mask_1D, 1], x_3D_yoon[g1_mask_1D, 2], marker=".", color="blue", s=5, alpha=0.2)
+	ax.scatter(x_3D_yoon[g2_mask_1D, 1], x_3D_yoon[g2_mask_1D, 2], marker=".", color="green", s=5, alpha=0.2)
+	ax.scatter(x_3D_yoon[g3_mask_1D, 1], x_3D_yoon[g3_mask_1D, 2], marker=".", color="tomato", s=5, alpha=0.2)=#
+
+	#ax.scatter(x_3D_yoon[:, 1], x_3D_yoon[:, 2], marker=".", color="k", s=5, alpha=0.2)
+	#ax.hist2d(x_3D_yoon[:, 1], x_3D_yoon[:, 2], bins=30, cmap="Greys", vmin=1)
+	
+	my_cmap = plt.cm.Blues
+	my_cmap.set_under("w",1)
+	ax.hist2d(x_3D_yoon[g1_mask_1D, 1], x_3D_yoon[g1_mask_1D, 2], bins=15, cmap=my_cmap, vmin=1, alpha=0.4, zorder=0)
+	my_cmap = plt.cm.Greens
+	my_cmap.set_under("w",1)
+	ax.hist2d(x_3D_yoon[g2_mask_1D, 1], x_3D_yoon[g2_mask_1D, 2], bins=15, cmap=my_cmap, vmin=1, alpha=0.4, zorder=0)
+	my_cmap = plt.cm.Reds
+	my_cmap.set_under("w",1)
+	ax.hist2d(x_3D_yoon[g3_mask_1D, 1], x_3D_yoon[g3_mask_1D, 2], bins=7, cmap=my_cmap, vmin=1, alpha=0.5, zorder=0)
+
+
+	#=ellipse1_test_3D = matplotlib.patches.Ellipse(
+		means(g123_yoon_3D)[1,:], el1_yoon123_3D[1]*1.2, el1_yoon123_3D[2]*1.2, angle= el1_yoon123_3D[3], color="tomato", alpha=ellipse_alpha, ec="0.5"
+	)
+	ax.add_patch(ellipse1_test_3D)
+
+	ellipse2_test_3D = matplotlib.patches.Ellipse(
+		means(g123_yoon_3D)[2,:], el2_yoon123_3D[1], el2_yoon123_3D[2], angle= el2_yoon123_3D[3], color="steelblue", alpha=ellipse_alpha, ec="0.5"
+	)
+	ax.add_patch(ellipse2_test_3D)
+
+	ellipse3_test_3D = matplotlib.patches.Ellipse(
+		means(g123_yoon_3D)[3,:], el3_yoon123_3D[1], el3_yoon123_3D[2], angle= el3_yoon123_3D[3], color="yellowgreen", alpha=ellipse_alpha, ec="0.5"
+	)
+	ax.add_patch(ellipse3_test_3D)
+	draw_ellipse_axes(ellipse1_test_3D, ax, N=1, skip_vertical=true, color="tomato", ls="-", alpha=1)
+	draw_ellipse_axes(ellipse2_test_3D, ax, N=1, skip_vertical=true, color="steelblue", ls="-", alpha=1)
+	draw_ellipse_axes(ellipse3_test_3D, ax, N=1, skip_vertical=true, color="yellowgreen", ls="-", alpha=1)=#
+	
+	
+
+	ax.text(-6.7, 7.5, L"\rm \mathbf{Group\ III}", color="tomato", fontsize="small")
+	ax.text(-3.1, 5.3, L"\rm \mathbf{Group\ II}", color="yellowgreen", fontsize="small")
+	ax.text(-1.4, 9.4, L"\rm \mathbf{Group\ I}", color="steelblue", fontsize="small", ha="right")
+	ax.text(-6.7, 7.5, L"\rm \mathbf{Group\ III}", color="tomato", fontsize="small")
+	ax.text(-3.1, 5.3, L"\rm \mathbf{Group\ II}", color="yellowgreen", fontsize="small")
+	ax.text(-1.4, 9.4, L"\rm \mathbf{Group\ I}", color="steelblue", fontsize="small", ha="right")
+	
+	ax.text(-5.5, 3.8, L"carbon"*"\n"*L"enhanced", color="0.5", fontsize="x-small", ha="right", va="bottom")
+	ax.text(-4.6, 3.8, L"carbon"*"\n"*L"normal", color="0.5", fontsize="x-small", ha="left", va="bottom")
+	ax.text(-5.5, 3.8, L"carbon"*"\n"*L"enhanced", color="0.5", fontsize="x-small", ha="right", va="bottom")
+	ax.text(-4.6, 3.8, L"carbon"*"\n"*L"normal", color="0.5", fontsize="x-small", ha="left", va="bottom")
+
+	text_group3 = """
+	$(L"\rm \mathbf{CEMP-no}")
+	Faint SNe
+	Pop III
+	"""
+	
+	text_group2 = """
+	$(L"\rm \mathbf{CEMP-no}")
+	Standard CCSNe
+	Pop II
+	"""
+
+	text_group1 = """
+	$(L"\rm \mathbf{CEMP-s\ +\ CEMP-r/s}")
+	MRSNe, NS-NS or NS-BH merger
+	AGB contribution
+	"""
+	
+	cemp_line(x) = 0.7 + x + 8.39
+	x = range(-9, 0, length=100)|>collect
+	ax.plot(x, cemp_line.(x), color="0.5", alpha=0.9, ls=":", lw=3)
+
+	ax.plot([],[],ls="--", color="k",label=L"\rm 1D")
+	ax.plot([],[],ls="-", color="k",label=L"\rm 3D")
+
+	#ax.text(0.05, 0.87, L"\mathbf{1D}", color="tomato", transform=ax.transAxes, fontsize="x-large")
+	#ax.text(0.05, 0.87, L"\mathbf{3D}", color="steelblue", transform=ax.transAxes, fontsize="x-large")
+	ax.set_xlim(-6.9, -1.1)
+	ax.set_ylim(3.6, 10.1)
+	ax.set_xlabel("[Fe/H]")
+	ax.set_ylabel("A(C)")
+	ax.legend(labelspacing=0)
+	
+	#f.savefig("yoon_beers_split.pdf")
+
+	f
+end
+
+# ╔═╡ 011305a6-f21a-42b0-a4f9-78fa3677c233
+
+
+# ╔═╡ 8c743021-db36-423a-9f77-2f226b75c0a2
+begin
+	lowfeh_mask = selection_mask .& (parameters_all["feh"] .<= -1)
+	CEMP_mask_gmm = (parameters_all["cfe"] .>= cfe_limit) .& lowfeh_mask
+	CEMP_mask_corr_gmm = (parameters_all["cfe"] .+ corrections_saga_all .>= cfe_limit) .& lowfeh_mask
+	
+	feh_gmm = parameters_all["feh"][CEMP_mask_gmm]
+	cfe_gmm = parameters_all["cfe"][CEMP_mask_gmm]
+	c_gmm = cfe_gmm .+ feh_gmm .+ 8.560
+	x_1D_gmm = zeros(length(feh_gmm), 2)
+
+	x_1D_gmm[:, 1] .= feh_gmm
+	x_1D_gmm[:, 2] .= c_gmm 
+
+
+	feh_corr_gmm = parameters_all["feh"][CEMP_mask_corr_gmm]
+	cfe_corr_gmm = parameters_all["cfe"][CEMP_mask_corr_gmm]
+	c_corr_gmm = cfe_corr_gmm .+ feh_corr_gmm .+ 8.560
+	x_3D_gmm = zeros(length(feh_corr_gmm), 2)
+	x_3D_gmm[:, 1] .= feh_corr_gmm 
+	x_3D_gmm[:, 2] .= c_corr_gmm .+ corrections_saga_all[CEMP_mask_corr_gmm]
+	
+	gmm3_1D = GMM(3, x_1D_gmm, nIter=1500, kind=:full)
+	gmm3_3D = GMM(3, x_3D_gmm, nIter=1500, kind=:full)
+
+	# test with 1D fit only
+	gmm2_1D = GMM(2, x_1D_gmm, nIter=1500, kind=:full)
+	gmm2_3D = GMM(2, x_3D_gmm, nIter=1500, kind=:full)
+
+	gmm2_1D_lin = GMM(2, x_1D_gmm[:, 2], nIter=1500, nInit=1500)
+	gmm2_3D_lin = GMM(2, x_3D_gmm[:, 2], nIter=1500, nInit=1500)
+end
+
+# ╔═╡ db003ccf-d279-40a1-aea9-145730dd4083
+
+
+# ╔═╡ ce472154-2bbe-4ab9-b624-2a674b76f0e7
+function confidence_ellipse!(μ, Σ, ax, n_std=1.0; kwargs...)
+    cov = Σ
+    pearson = cov[1, 2]/sqrt(cov[1, 1] * cov[2, 2])
+    # Using a special case to obtain the eigenvalues of this
+    # two-dimensional dataset.
+    ell_radius_x = sqrt.(1 + pearson)
+    ell_radius_y = sqrt.(1 - pearson)
+    ellipse =  matplotlib.patches.Ellipse((0, 0), width=ell_radius_x * 2, height=ell_radius_y * 2; kwargs...)
+
+    # Calculating the standard deviation of x from
+    # the squareroot of the variance and multiplying
+    # with the given number of standard deviations.
+    scale_x = sqrt(cov[1, 1]) * n_std
+    mean_x = μ[1]
+
+    # calculating the standard deviation of y ...
+    scale_y = sqrt(cov[2, 2]) * n_std
+    mean_y = μ[2]
+
+    transf = matplotlib.transforms.Affine2D().rotate_deg(45).scale(scale_x, scale_y).translate(mean_x, mean_y)
+
+    ellipse.set_transform(transf + ax.transData)
+    ax.add_patch(ellipse)
+end
+
+# ╔═╡ 720e5d1a-0216-4c67-8052-f37ba094bafa
+function confidence_ellipse_data!(x, y, ax, n_std=1.0; kwargs...)
+	μ = [MUST.numpy.mean(x), MUST.numpy.mean(y)]
+    cov = MUST.numpy.cov(x, y)
+    pearson = cov[0, 1]/MUST.numpy.sqrt(cov[0, 0] * cov[1, 1])
+    # Using a special case to obtain the eigenvalues of this
+    # two-dimensional dataset.
+    ell_radius_x = MUST.numpy.sqrt.(1 + pearson)
+    ell_radius_y = MUST.numpy.sqrt.(1 - pearson)
+    ellipse =  matplotlib.patches.Ellipse((0, 0), width=ell_radius_x * 2, height=ell_radius_y * 2; kwargs...)
+
+    # Calculating the standard deviation of x from
+    # the squareroot of the variance and multiplying
+    # with the given number of standard deviations.
+    scale_x = MUST.numpy.sqrt(cov[0, 0]) * n_std
+    mean_x = μ[1]
+
+    # calculating the standard deviation of y ...
+    scale_y = MUST.numpy.sqrt(cov[1, 1]) * n_std
+    mean_y = μ[2]
+
+    transf = matplotlib.transforms.Affine2D().rotate_deg(45).scale(scale_x, scale_y).translate(mean_x, mean_y)
+
+    ellipse.set_transform(transf + ax.transData)
+    ax.add_patch(ellipse)
+end
+
+# ╔═╡ 4b8645f3-6161-4d49-a933-826202fcf996
+function rescale_range(arr, new_min, new_max)
+    min_val = minimum(arr)
+    max_val = maximum(arr)
+
+    # Handle the case where all elements are the same (to avoid division by zero)
+    if min_val == max_val
+        # Return an array where every element is the new minimum
+        return fill(Float64(new_min), size(arr))
+    end
+
+    # Apply the generalized min-max scaling formula
+    # Formula: new_min + ( (value - min_val) * (new_max - new_min) ) / (max_val - min_val)
+    return new_min .+ ((arr .- min_val) .* (new_max - new_min)) ./ (max_val - min_val)
+end
+
+# ╔═╡ 81a4b6bb-c41f-4195-9cf8-869b25054be9
+
+
+# ╔═╡ e5d8a438-83a3-439c-bb98-7e213e2ebc15
+let
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(10, 5), sharex=true, sharey=false, layout="tight")
+
+	sigdigs=3
+	offset = 0.05
+
+	c_highC = "steelblue"
+	c_lowC = "tomato"
+	gmm2_colors = ["k", "k"]
+	
+	gmm2_1D_means = means(gmm2_1D_lin)
+	gmm2_1D_cov = covars(gmm2_1D_lin)
+	gmm2_1D_ll = gmmposterior(gmm2_1D_lin, x_1D_gmm[:, 2:2])[1]
+	gmm2_1D_ass = [argmax(gmm2_1D_ll[i, :]) for i in axes(gmm2_1D_ll, 1)]
+	i_highC = argmax(gmm2_1D_means[:, 1])
+	i_lowC = argmin(gmm2_1D_means[:, 1])
+	gmm2_colors[i_highC] = c_highC
+	gmm2_colors[i_lowC] = c_lowC
+	gmm2_1D_ll_diff = 1 ./ abs.(exp.(gmm2_1D_ll[:, 2]) .- exp.(gmm2_1D_ll[:, 1])) .* 10
+	ax[0].scatter(x_1D_gmm[:, 1], x_1D_gmm[:, 2], s=25, marker="o", c=[gmm2_colors[a] for a in gmm2_1D_ass], alpha=0.5, rasterized=true, label="1D")
+
+	#=confidence_ellipse_data!(x_1D_gmm[gmm2_1D_ass .== i_highC, 1], x_1D_gmm[gmm2_1D_ass .== i_highC, 2], ax[0], 3, facecolor="none", ec=gmm2_colors[i_highC], lw=3)
+	confidence_ellipse_data!(x_1D_gmm[gmm2_1D_ass .== i_lowC, 1], x_1D_gmm[gmm2_1D_ass .== i_lowC, 2], ax[0], 3, facecolor="none", ec=gmm2_colors[i_lowC], lw=3)=#
+
+	gmm2_3D_means = means(gmm2_3D_lin)
+	gmm2_3D_cov = covars(gmm2_3D_lin)
+	gmm2_3D_ll = gmmposterior(gmm2_3D_lin, x_3D_gmm[:, 2:2])[1]
+	gmm2_3D_ass = [argmax(gmm2_3D_ll[i, :]) for i in axes(gmm2_3D_ll, 1)]
+	i_highC = argmax(gmm2_3D_means[:, 1])
+	i_lowC = argmin(gmm2_3D_means[:, 1])
+	gmm2_colors[i_highC] = c_highC
+	gmm2_colors[i_lowC] = c_lowC
+	gmm2_3D_ll_diff = 1 ./ abs.(exp.(gmm2_3D_ll[:, 2]) .- exp.(gmm2_3D_ll[:, 1])) .* 10
+	ax[1].scatter(x_3D_gmm[:, 1], x_3D_gmm[:, 2], s=25, marker="o", c=[gmm2_colors[a] for a in gmm2_3D_ass], alpha=0.5, rasterized=true, label="3D")
+	
+	#=confidence_ellipse_data!(x_3D_gmm[gmm2_3D_ass .== i_highC, 1], x_3D_gmm[gmm2_3D_ass .== i_highC, 2], ax[1], 3, facecolor="none", ec=gmm2_colors[i_highC], lw=3)
+	confidence_ellipse_data!(x_3D_gmm[gmm2_3D_ass .== i_lowC, 1], x_3D_gmm[gmm2_3D_ass .== i_lowC, 2], ax[1], 3, facecolor="none", ec=gmm2_colors[i_lowC], lw=3)=#
+	
+	
+	cemp_line(x) = 0.7 + x + 8.39
+	x = range(-6.9, -0.9, length=100)|>collect
+
+	gmm2_1D_lin_means = means(gmm2_1D_lin)
+	gmm2_3D_lin_means = means(gmm2_3D_lin)
+	i_highC = argmax(gmm2_1D_means[:, 1])
+	i_lowC = argmin(gmm2_1D_means[:, 1])
+	gmm2_colors[i_highC] = c_highC
+	gmm2_colors[i_lowC] = c_lowC
+	ax[0].fill_between(
+		x, 
+		gmm2_1D_lin_means[i_highC,1]-sqrt(gmm2_1D_cov[i_highC,1]),
+		gmm2_1D_lin_means[i_highC,1]+sqrt(gmm2_1D_cov[i_highC,1]),
+		color=gmm2_colors[i_highC], alpha=0.1
+	)
+	ax[0].fill_between(
+		x, 
+		gmm2_1D_lin_means[i_lowC,1]-sqrt(gmm2_1D_cov[i_lowC,1]),
+		gmm2_1D_lin_means[i_lowC,1]+sqrt(gmm2_1D_cov[i_lowC,1]),
+		color=gmm2_colors[i_lowC], alpha=0.1
+	)
+	ax[0].axhline(gmm2_1D_lin_means[i_highC,1], ls="--", color=gmm2_colors[i_highC], lw=2)
+	ax[0].axhline(gmm2_1D_lin_means[i_lowC,1], ls="--", color=gmm2_colors[i_lowC], lw=2)
+	#ax[0].axhline((gmm2_1D_lin_means[1,1]+gmm2_1D_lin_means[2,1])/2, ls="-", lw=2, alpha=0.4, color="tomato")
+	lb = L"\rm A(C) = "*"$(round(gmm2_1D_lin_means[i_lowC,1], sigdigits=3))"*""*L"\rm\ (\sigma="*"$(round(sqrt(gmm2_1D_cov[i_lowC,1]), digits=2)))"
+	ax[0].text(-6.7, gmm2_1D_lin_means[i_lowC,1] -0.1, lb, ha="left", va="top", color="tomato", fontsize="small")
+	lb = L"\rm A(C) = "*"$(round(gmm2_1D_lin_means[i_highC,1], sigdigits=3))"*""*L"\rm\ (\sigma="*"$(round(sqrt(gmm2_1D_cov[i_highC,1]), digits=2)))"
+	ax[0].text(-6.7, gmm2_1D_lin_means[i_highC,1] +0.1, lb, ha="left", va="bottom", color="steelblue", fontsize="small")
+	
+	
+	i_highC = argmax(gmm2_3D_means[:, 1])
+	i_lowC = argmin(gmm2_3D_means[:, 1])
+	gmm2_colors[i_highC] = c_highC
+	gmm2_colors[i_lowC] = c_lowC
+	ax[1].fill_between(
+		x, 
+		gmm2_3D_lin_means[i_highC,1]-sqrt(gmm2_3D_cov[i_highC,1]),
+		gmm2_3D_lin_means[i_highC,1]+sqrt(gmm2_3D_cov[i_highC,1]),
+		color=gmm2_colors[i_highC], alpha=0.1
+	)
+	ax[1].fill_between(
+		x, 
+		gmm2_3D_lin_means[i_lowC,1]-sqrt(gmm2_3D_cov[i_lowC,1]),
+		gmm2_3D_lin_means[i_lowC,1]+sqrt(gmm2_3D_cov[i_lowC,1]),
+		color=gmm2_colors[i_lowC], alpha=0.1
+	)
+
+	ax[1].axhline(gmm2_3D_lin_means[i_highC,1], ls="--", color=gmm2_colors[i_highC], lw=2)
+	ax[1].axhline(gmm2_3D_lin_means[i_lowC,1], ls="--", color=gmm2_colors[i_lowC], lw=2)
+	#ax[1].axhline((gmm2_3D_lin_means[1,1]+gmm2_3D_lin_means[2,1])/2, ls="-", lw=2, alpha=0.4, color="tomato")
+	lb = L"\rm A(C) = "*"$(round(gmm2_3D_lin_means[i_lowC,1], sigdigits=3))"*""*L"\rm\ (\sigma="*"$(round(sqrt(gmm2_1D_cov[i_lowC,1]), digits=2)))"
+	ax[1].text(-6.7, gmm2_3D_lin_means[i_lowC,1] -0.25, lb, ha="left", va="top", color="tomato", fontsize="small")
+	lb = L"\rm A(C) = "*"$(round(gmm2_3D_lin_means[i_highC,1], sigdigits=3))"*""*L"\rm\ (\sigma="*"$(round(sqrt(gmm2_1D_cov[i_highC,1]), digits=2)))"
+	ax[1].text(-6.7, gmm2_3D_lin_means[i_highC,1] +0.1, lb, ha="left", va="bottom", color="steelblue", fontsize="small")
+	
+
+	ax[0].plot(x, cemp_line.(x), color="0.5", alpha=0.9, ls=":", lw=3)
+	ax[1].plot(x, cemp_line.(x), color="0.5", alpha=0.9, ls=":", lw=3)
+
+	ax[0].text(0.05, 0.87, L"\mathbf{1D}", color="k", transform=ax[0].transAxes, fontsize="x-large")
+	ax[1].text(0.05, 0.87, L"\mathbf{3D}", color="k", transform=ax[1].transAxes, fontsize="x-large")
+
+	ax[0].set_xlim(x[1], -0.9)
+	ax[0].set_ylim(4.2, 9.5)
+	ax[1].set_xlim(x[1], -0.9)
+	ax[1].set_ylim(4.2, 9.5)
+	
+	ax[0].set_ylabel(L"\rm A(C)")
+	ax[1].set_ylabel(L"\rm A(C)")
+	#ax[0].set_xlabel(L"\rm [Fe/H]")
+	ax[1].set_xlabel(L"\rm [Fe/H]")
+	ax[0].set_xlabel(L"\rm [Fe/H]")
+	
+	f
+end
+
+# ╔═╡ be111652-abbe-4776-9302-7f744ef1b876
+
+
+# ╔═╡ 84ecab1c-e762-4362-ad74-88091f903481
+md"Modified Assignment: With the assumption that the high-C band does not extend to low metallicities"
+
+# ╔═╡ b3105a8b-a316-4c35-a51b-3d3520507fdd
+begin
+	mask_1D_highm = x_1D_gmm[:,1] .> -3.5
+	mask_3D_highm = x_3D_gmm[:,1] .> -3.5
+
+	Niter = 2500
+	
+	# split the high metallicity part in 2
+	gmm_1D_group1 = GMM(2, x_1D_gmm[mask_1D_highm, 2], nIter=Niter, nInit=Niter)
+	gmm_3D_group1 = GMM(2, x_3D_gmm[mask_3D_highm, 2], nIter=Niter, nInit=Niter)
+
+	# select goup 1 targets based on this assignment
+	imax_1D_group1 = argmax(means(gmm_1D_group1)[:, 1])
+	prob_1D_group1 = gmmposterior(gmm_1D_group1, x_1D_gmm[:, 2:2])[1]
+	mask_1D_group1 = [(argmax(prob_1D_group1[i,:]) == imax_1D_group1) .& mask_1D_highm[i]  for i in axes(prob_1D_group1, 1)]
+
+	imax_3D_group1 = argmax(means(gmm_3D_group1)[:, 1])
+	prob_3D_group1 = gmmposterior(gmm_3D_group1, x_3D_gmm[:, 2:2])[1]
+	mask_3D_group1 = [(argmax(prob_3D_group1[i,:]) == imax_3D_group1) .& mask_3D_highm[i] for i in axes(prob_3D_group1, 1)]
+
+	# use the remaining points to find the other groups
+	gmm_1D_group23 = GMM(2, x_1D_gmm[.!mask_1D_group1, :], nIter=Niter, kind=:full,  nInit=Niter)
+	gmm_3D_group23 = GMM(2, x_3D_gmm[.!mask_3D_group1, :], nIter=Niter, kind=:full,  nInit=Niter)
+
+	# select goup 2 and 3 targets based on this assignment
+	imax_1D_group2 = argmax(means(gmm_1D_group23)[:, 1])
+	prob_1D_group23 = gmmposterior(gmm_1D_group23, x_1D_gmm)[1]
+	mask_1D_group2 = [(argmax(prob_1D_group23[i,:]) == imax_1D_group2) .& (.!mask_1D_group1[i]) for i in axes(prob_1D_group1, 1)]
+	mask_1D_group3 = [(argmax(prob_1D_group23[i,:]) != imax_1D_group2) .& (.!mask_1D_group1[i]) for i in axes(prob_1D_group1, 1)]
+
+	imax_3D_group2 = argmax(means(gmm_3D_group23)[:, 1])
+	prob_3D_group23 = gmmposterior(gmm_3D_group23, x_3D_gmm)[1]
+	mask_3D_group2 = [(argmax(prob_3D_group23[i,:]) == imax_3D_group2) .& (.!mask_3D_group1[i]) for i in axes(prob_3D_group1, 1)]
+	mask_3D_group3 = [(argmax(prob_3D_group23[i,:]) != imax_3D_group2) .& (.!mask_3D_group1[i]) for i in axes(prob_3D_group1, 1)]
+
+	# alternatively fit 3 as it is
+	gmm_1D_group123 = GMM(3, x_1D_gmm, nIter=Niter, kind=:full)
+	gmm_3D_group123 = GMM(3, x_3D_gmm, nIter=Niter, kind=:full)
+
+	# or split on C/Fe alone
+	gmm_1D_calone = GMM(2, x_1D_gmm[:, 2], nIter=Niter, nInit=Niter)
+	gmm_3D_calone = GMM(2, x_3D_gmm[:, 2], nIter=Niter, nInit=Niter)
+
+	imax_1D_highC = argmax(means(gmm_1D_calone)[:, 1])
+	prob_1D_calone = gmmposterior(gmm_1D_calone, x_1D_gmm[:, 2:2])[1]
+	mask_1D_highC = [(argmax(prob_1D_calone[i,:]) == imax_1D_highC) for i in axes(prob_1D_calone, 1)]
+	mask_1D_lowC = [(argmax(prob_1D_calone[i,:]) != imax_1D_highC) for i in axes(prob_1D_calone, 1)]
+
+	imax_3D_highC = argmax(means(gmm_3D_calone)[:, 1])
+	prob_3D_calone = gmmposterior(gmm_3D_calone, x_3D_gmm[:, 2:2])[1]
+	mask_3D_highC = [(argmax(prob_3D_calone[i,:]) == imax_3D_highC) for i in axes(prob_3D_calone, 1)]
+	mask_3D_lowC = [(argmax(prob_3D_calone[i,:]) != imax_3D_highC) for i in axes(prob_3D_calone, 1)]
+end
+
+# ╔═╡ 7cb50f0b-0701-48be-8083-7cb25fea4118
+get_assignment_mask(g, x, group) = begin
+	prob = gmmposterior(g, x)[1]
+	mask = [(argmax(prob[i, :]) == group) for i in axes(prob, 1)]
+end
+
+# ╔═╡ 0bf678b1-284e-459a-b578-f8f8a85ead01
+
+
+# ╔═╡ 8d98b051-73b7-4181-ae6d-e086d62ce5be
+
+
+# ╔═╡ 5df0bf43-6811-4ca9-bca2-05b19f39fa1f
+let
+	plt.close()
+	f, ax = plt.subplots(1, 2, figsize=(9, 5), sharex=true, sharey=true, layout="tight")
+
+	# 1D
+	ax[0].scatter(x_1D_gmm[mask_1D_group3, 1], x_1D_gmm[mask_1D_group3, 2], color="orange", alpha=0.5, s=15)
+	confidence_ellipse_data!(x_1D_gmm[mask_1D_group3, 1], x_1D_gmm[mask_1D_group3, 2], ax[0], 2, facecolor="orange", ec="orange", lw=4, alpha=0.3)
+	
+	ax[0].scatter(x_1D_gmm[mask_1D_group2, 1], x_1D_gmm[mask_1D_group2, 2], color="green", alpha=0.5, s=15)
+	confidence_ellipse_data!(x_1D_gmm[mask_1D_group2, 1], x_1D_gmm[mask_1D_group2, 2], ax[0], 2, facecolor="green", ec="green", lw=4, alpha=0.3)
+	
+	ax[0].scatter(x_1D_gmm[mask_1D_group1, 1], x_1D_gmm[mask_1D_group1, 2], color="blue", alpha=0.5, s=15)
+	confidence_ellipse_data!(x_1D_gmm[mask_1D_group1, 1], x_1D_gmm[mask_1D_group1, 2], ax[0], 2, facecolor="blue", ec="blue", lw=4, alpha=0.3)
+
+	#=ellipse3 = matplotlib.patches.Ellipse(
+		(-5.5, 6.9), -4.5, 0.9, color="orange", alpha=0.3, 
+	)
+	ellipse2 = matplotlib.patches.Ellipse(
+		(-3.75, 5.95), -3.5, 0.9, color="green", alpha=0.3, angle=45, 
+	)
+	ellipse1 = matplotlib.patches.Ellipse(
+		(-2.52, 7.9), -2, 3, color="blue", alpha=0.3, angle=-55, 
+	)
+	ax[0].add_patch(ellipse1)
+	ax[0].add_patch(ellipse2)
+	ax[0].add_patch(ellipse3)=#
+	#draw_ellipse_axes(ellipse1, ax[0], N=1, skip_horizontal=true, color="blue", ls="--", alpha=0.75)
+	#draw_ellipse_axes(ellipse2, ax[0], N=1, skip_vertical=true, color="green", ls="--", alpha=0.75)
+	#draw_ellipse_axes(ellipse3, ax[0], N=1, skip_vertical=true, color="orange", ls="--", alpha=0.75)
+	
+
+	# 3D
+	ax[1].scatter(x_3D_gmm[mask_3D_group3, 1], x_3D_gmm[mask_3D_group3, 2], color="orange", alpha=0.5, s=15)
+	confidence_ellipse_data!(x_3D_gmm[mask_3D_group3, 1], x_3D_gmm[mask_3D_group3, 2], ax[1], 2, facecolor="orange", ec="orange", lw=4, alpha=0.3)
+	
+	ax[1].scatter(x_3D_gmm[mask_3D_group2, 1], x_3D_gmm[mask_3D_group2, 2], color="green", alpha=0.5, s=15)
+	confidence_ellipse_data!(x_3D_gmm[mask_3D_group2, 1], x_3D_gmm[mask_3D_group2, 2], ax[1], 2, facecolor="green", ec="green", lw=4, alpha=0.3)
+	
+	ax[1].scatter(x_3D_gmm[mask_3D_group1, 1], x_3D_gmm[mask_3D_group1, 2], color="blue", alpha=0.5, s=15)
+	confidence_ellipse_data!(x_3D_gmm[mask_3D_group1, 1], x_3D_gmm[mask_3D_group1, 2], ax[1], 2, facecolor="blue", ec="blue", lw=4, alpha=0.3)
+	
+	#=
+	ax[1].scatter(x_3D_gmm[mask_3D_highC, 1], x_3D_gmm[mask_3D_highC, 2], color="k", alpha=0.5, s=15)
+	x_f = range(-6.9, 0, length=100)|>collect
+	ax[1].fill_between(
+		x_f, 
+		mean(x_3D_gmm[mask_3D_highC, 2]) - MUST.std(x_3D_gmm[mask_3D_highC, 2]),
+		mean(x_3D_gmm[mask_3D_highC, 2]) + MUST.std(x_3D_gmm[mask_3D_highC, 2]),
+		color="k", alpha=0.1
+	)
+	ax[1].axhline(mean(x_3D_gmm[mask_3D_highC, 2]), ls="--", color="k", lw=2)
+	
+	
+	ax[1].scatter(x_3D_gmm[mask_3D_lowC, 1], x_3D_gmm[mask_3D_lowC, 2], color="r", alpha=0.5, s=15)
+	ax[1].fill_between(
+		x_f, 
+		mean(x_3D_gmm[mask_3D_lowC, 2]) - MUST.std(x_3D_gmm[mask_3D_lowC, 2]),
+		mean(x_3D_gmm[mask_3D_lowC, 2]) + MUST.std(x_3D_gmm[mask_3D_lowC, 2]),
+		color="r", alpha=0.1
+	)
+	ax[1].axhline(mean(x_3D_gmm[mask_3D_lowC, 2]), ls="--", color="r", lw=2)
+	=#
+
+	ax[0].text(-6.7, 7.5, L"\rm \mathbf{Group\ III}", color="orange", fontsize="small")
+	ax[0].text(-3.1, 5.3, L"\rm \mathbf{Group\ II}", color="green", fontsize="small")
+	ax[0].text(-1.4, 9.4, L"\rm \mathbf{Group\ I}", color="blue", fontsize="small", ha="right")
+	ax[1].text(-6.7, 7.5, L"\rm \mathbf{Group\ III}", color="orange", fontsize="small")
+	ax[1].text(-3.1, 5.3, L"\rm \mathbf{Group\ II}", color="green", fontsize="small")
+	ax[1].text(-1.4, 9.4, L"\rm \mathbf{Group\ I}", color="blue", fontsize="small", ha="right")
+	
+	cemp_line(x) = 0.7 + x + 8.39
+	x = range(-6.9, 0, length=100)|>collect
+	ax[0].plot(x, cemp_line.(x), color="0.5", alpha=0.9, ls=":", lw=3)
+	ax[1].plot(x, cemp_line.(x), color="0.5", alpha=0.9, ls=":", lw=3)
+
+	ax[0].text(0.05, 0.87, L"\mathbf{1D}", color="tomato", transform=ax[0].transAxes, fontsize="x-large")
+	ax[1].text(0.05, 0.87, L"\mathbf{3D}", color="steelblue", transform=ax[1].transAxes, fontsize="x-large")
+
+	#ax.set_ylim(6, 8.5)
+	ax[0].set_xlim(-6.9, -0.9)
+	ax[0].set_ylim(4.5, 10.2)
+	
+	ax[0].set_ylabel(L"\rm A(C)")
+	ax[0].set_xlabel(L"\rm [Fe/H]")
+	ax[1].set_xlabel(L"\rm [Fe/H]")
+	
+	f
+end
+
+# ╔═╡ b0c3e067-891e-40c6-b91c-e01c861f1c53
+let
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 5), sharex=true, sharey=true, layout="tight")
+
+	
+	ax.scatter(x_3D_gmm[mask_3D_highC, 1], x_3D_gmm[mask_3D_highC, 2], color="steelblue", alpha=0.5, s=25)
+	x_f = range(-7.1, 0, length=100)|>collect
+	ax.fill_between(
+		x_f, 
+		mean(x_3D_gmm[mask_3D_highC, 2]) - MUST.std(x_3D_gmm[mask_3D_highC, 2]),
+		mean(x_3D_gmm[mask_3D_highC, 2]) + MUST.std(x_3D_gmm[mask_3D_highC, 2]),
+		color="steelblue", alpha=0.1
+	)
+	ax.axhline(mean(x_3D_gmm[mask_3D_highC, 2]), ls="--", color="steelblue", lw=2)
+	lb = L"\rm A(C) = "*"$(round(mean(x_3D_gmm[mask_3D_highC, 2]), sigdigits=3))"*""*L"\rm\ (\sigma="*"$(round(MUST.std(x_3D_gmm[mask_3D_highC, 2]), digits=2)))"
+	ax.text(-6.9, mean(x_3D_gmm[mask_3D_highC, 2])+0.1, lb, ha="left", va="bottom", color="steelblue", fontsize="small")
+	
+	ax.scatter(x_3D_gmm[mask_3D_lowC, 1], x_3D_gmm[mask_3D_lowC, 2], color="tomato", alpha=0.5, s=25)
+	ax.fill_between(
+		x_f, 
+		mean(x_3D_gmm[mask_3D_lowC, 2]) - MUST.std(x_3D_gmm[mask_3D_lowC, 2]),
+		mean(x_3D_gmm[mask_3D_lowC, 2]) + MUST.std(x_3D_gmm[mask_3D_lowC, 2]),
+		color="tomato", alpha=0.1
+	)
+	ax.axhline(mean(x_3D_gmm[mask_3D_lowC, 2]), ls="--", color="tomato", lw=2)
+	lb = L"\rm A(C) = "*"$(round(mean(x_3D_gmm[mask_3D_lowC, 2]), sigdigits=3))"*""*L"\rm\ (\sigma="*"$(round(MUST.std(x_3D_gmm[mask_3D_lowC, 2]), digits=2)))"
+	ax.text(-6.9, mean(x_3D_gmm[mask_3D_lowC, 2])-0.18, lb, ha="left", va="top", color="tomato", fontsize="small")
+	
+	cemp_line(x) = 0.7 + x + 8.39
+	x = range(-7.1, 0, length=100)|>collect
+	ax.plot(x, cemp_line.(x), color="0.5", alpha=0.9, ls=":", lw=3)
+
+	ax.text(0.05, 0.87, L"\mathbf{3D}", color="k", transform=ax.transAxes, fontsize="x-large")
+
+	#ax.set_ylim(6, 8.5)
+	ax.set_xlim(-7.1, -0.9)
+	ax.set_ylim(4.5, 9.5)
+	
+	ax.set_ylabel(L"\rm A(C)")
+	ax.set_xlabel(L"\rm [Fe/H]")
+	
+	f
+end
+
+# ╔═╡ 682709d9-89c3-43a0-9cd2-7e6566a24c5d
+let
+	plt.close()
+	f, ax = plt.subplots(1, 1, figsize=(5, 5), sharex=true, sharey=true, layout="tight")
+
+	
+	ax.scatter(x_1D_gmm[mask_1D_highC, 1], x_1D_gmm[mask_1D_highC, 2], color="steelblue", alpha=0.5, s=25)
+	x_f = range(-7.1, 0, length=100)|>collect
+	ax.fill_between(
+		x_f, 
+		mean(x_1D_gmm[mask_1D_highC, 2]) - MUST.std(x_1D_gmm[mask_1D_highC, 2]),
+		mean(x_1D_gmm[mask_1D_highC, 2]) + MUST.std(x_1D_gmm[mask_1D_highC, 2]),
+		color="steelblue", alpha=0.1
+	)
+	ax.axhline(mean(x_1D_gmm[mask_1D_highC, 2]), ls="--", color="steelblue", lw=2)
+	lb = L"\rm A(C) = "*"$(round(mean(x_1D_gmm[mask_1D_highC, 2]), sigdigits=3))"*""*L"\rm\ (\sigma="*"$(round(MUST.std(x_1D_gmm[mask_1D_highC, 2]), digits=2)))"
+	ax.text(-6.9, mean(x_1D_gmm[mask_1D_highC, 2])+0.18, lb, ha="left", va="top", color="steelblue", fontsize="small")
+	
+	ax.scatter(x_1D_gmm[mask_1D_lowC, 1], x_1D_gmm[mask_1D_lowC, 2], color="tomato", alpha=0.5, s=25)
+	ax.fill_between(
+		x_f, 
+		mean(x_1D_gmm[mask_1D_lowC, 2]) - MUST.std(x_1D_gmm[mask_1D_lowC, 2]),
+		mean(x_1D_gmm[mask_1D_lowC, 2]) + MUST.std(x_1D_gmm[mask_1D_lowC, 2]),
+		color="tomato", alpha=0.1
+	)
+	ax.axhline(mean(x_1D_gmm[mask_1D_lowC, 2]), ls="--", color="tomato", lw=2)
+	lb = L"\rm A(C) = "*"$(round(mean(x_1D_gmm[mask_1D_lowC, 2]), sigdigits=3))"*""*L"\rm\ (\sigma="*"$(round(MUST.std(x_1D_gmm[mask_1D_lowC, 2]), digits=2)))"
+	ax.text(-6.9, mean(x_1D_gmm[mask_1D_lowC, 2])+0.18, lb, ha="left", va="top", color="tomato", fontsize="small")
+	
+	cemp_line(x) = 0.7 + x + 8.39
+	x = range(-7.1, 0, length=100)|>collect
+	ax.plot(x, cemp_line.(x), color="0.5", alpha=0.9, ls=":", lw=3)
+
+	ax.text(0.05, 0.87, L"\mathbf{1D}", color="k", transform=ax.transAxes, fontsize="x-large")
+
+	#ax.set_ylim(6, 8.5)
+	ax.set_xlim(-7.1, -0.9)
+	ax.set_ylim(4.5, 9.5)
+	
+	ax.set_ylabel(L"\rm A(C)")
+	ax.set_xlabel(L"\rm [Fe/H]")
+	
+	f
+end
+
+# ╔═╡ 85bacda6-4982-487d-9fbe-62da780eefc6
+
 
 # ╔═╡ e7bad683-5550-4a48-82ef-620455f9f77e
 
@@ -3751,7 +4689,7 @@ end
 # ╟─1f6f5fe0-3f38-4547-b9e6-0482a76ea03a
 # ╟─1150c5dd-f486-46d6-b911-5fb1d70d3792
 # ╟─4ea802dc-b3e3-44ab-8758-b76bef9de441
-# ╠═f4a66407-d7c8-43f9-b68f-1f7f29b4eba6
+# ╟─f4a66407-d7c8-43f9-b68f-1f7f29b4eba6
 # ╟─06f0b894-d945-4941-aee5-e3e699e162f0
 # ╟─ea64c5f8-21e3-4685-ba30-2fd61ab34974
 # ╠═49ce048c-18ec-44d6-a782-f474ad11c83c
@@ -3782,6 +4720,7 @@ end
 # ╟─9ccc4261-0b53-4083-b8a3-850f10994048
 # ╟─e6f379f0-6cbf-4d74-9c5e-4fb567307eea
 # ╟─c8ad7b76-d063-457b-809e-65b818c796f4
+# ╟─40f4ec5a-b88c-4aa5-8e70-3f00850ce903
 # ╟─99e19910-17a3-4dd2-8ec0-72dd3da2726a
 # ╟─01ec615e-bc60-4e50-a076-692317095591
 # ╟─55b53af5-c8d3-4086-ac92-5995002d8c37
@@ -3809,7 +4748,7 @@ end
 # ╟─8e56ef77-75ac-4774-ab13-d9849c4f6d30
 # ╟─9365a10c-59e1-448f-9fc2-2dbf05bf66d6
 # ╟─cecc0bff-92f5-46d7-a523-287b13753c70
-# ╟─1c62bc8d-b0d0-4905-98f2-7c7c16cf27b7
+# ╠═1c62bc8d-b0d0-4905-98f2-7c7c16cf27b7
 # ╟─9be354b8-fcb0-44b5-ae8d-7ff137325a2a
 # ╟─b874cdbb-7496-471d-8e2e-4e3f47a126b0
 # ╠═d967809b-c044-49a6-a392-334d40c6d89e
@@ -3891,6 +4830,9 @@ end
 # ╠═51fa1fc7-5191-48a9-af04-648e8669ba3c
 # ╟─4edb9461-7f5b-41a0-ac30-4ae72a42d3c8
 # ╟─067154e6-09fa-46ba-b7dc-7e8a6757a932
+# ╟─c000ae23-ad64-4e91-9522-60fd72b7f5d3
+# ╟─b05a0a66-12e7-4c4a-bc0f-370a2d81ec0d
+# ╟─c8c4f045-9687-43ea-87e8-17266604406d
 # ╟─36cf99a4-d9cb-4282-a45c-50b7ff5833d3
 # ╟─990e7d73-3e8e-4900-a225-4e5cac6ac8c6
 # ╟─5e31351e-5e77-46a5-9e8c-baa53eeaee73
@@ -3919,8 +4861,33 @@ end
 # ╟─52dff81a-701b-461d-aa73-791239b135af
 # ╟─0ee1f4fc-da57-4f63-9713-c20dc2f0464d
 # ╟─9c789f14-0a75-45f7-912f-9a5190a3a54a
+# ╟─653a324e-8c70-435d-86f5-a8da7a56b226
+# ╠═32afc79c-26cc-4619-ace0-63aca71587c2
+# ╠═5159a983-d631-4658-9af7-da9875956183
+# ╠═71fd7ff2-c971-4a1b-803c-19879078b991
+# ╟─419bba01-4f4f-496b-bb97-7db1338cc2b2
 # ╟─76e3d925-6778-4d40-a02f-23e6aa6258eb
+# ╟─849242cb-0923-47d1-affa-74ccd0605f12
 # ╟─f4b9583a-9dfd-477b-beab-15ec8a5b82dd
+# ╠═dac3f89b-b1c5-40ab-8124-23d0312e3654
+# ╟─011305a6-f21a-42b0-a4f9-78fa3677c233
+# ╟─8c743021-db36-423a-9f77-2f226b75c0a2
+# ╟─db003ccf-d279-40a1-aea9-145730dd4083
+# ╟─ce472154-2bbe-4ab9-b624-2a674b76f0e7
+# ╟─720e5d1a-0216-4c67-8052-f37ba094bafa
+# ╟─4b8645f3-6161-4d49-a933-826202fcf996
+# ╟─81a4b6bb-c41f-4195-9cf8-869b25054be9
+# ╟─e5d8a438-83a3-439c-bb98-7e213e2ebc15
+# ╟─be111652-abbe-4776-9302-7f744ef1b876
+# ╟─84ecab1c-e762-4362-ad74-88091f903481
+# ╟─b3105a8b-a316-4c35-a51b-3d3520507fdd
+# ╠═7cb50f0b-0701-48be-8083-7cb25fea4118
+# ╟─0bf678b1-284e-459a-b578-f8f8a85ead01
+# ╟─8d98b051-73b7-4181-ae6d-e086d62ce5be
+# ╟─5df0bf43-6811-4ca9-bca2-05b19f39fa1f
+# ╟─b0c3e067-891e-40c6-b91c-e01c861f1c53
+# ╟─682709d9-89c3-43a0-9cd2-7e6566a24c5d
+# ╟─85bacda6-4982-487d-9fbe-62da780eefc6
 # ╟─e7bad683-5550-4a48-82ef-620455f9f77e
 # ╠═69dc31c5-4b08-442a-ad1f-5170efa9efad
 # ╟─1a4967b8-b19c-4e23-b6bb-6a09a30cea8e

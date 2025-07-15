@@ -15,4 +15,5 @@ numpy = ""
 scipy = ""
 
 [pip.deps]
+ipyformkit = ""
 idlsave = ""

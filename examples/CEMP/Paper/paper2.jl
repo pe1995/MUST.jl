@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.0
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
@@ -63,28 +63,28 @@ dispatchPath(runname, dir="CEMP_models2") = MUST.@in_dispatch(joinpath(dir, runn
 
 # ╔═╡ c7a6739a-8ae7-45c0-ab4f-e800a9ab1d2e
 runs3D = Dict(
-	"t50.00g25.00m-5.000 CEMP"    => dispatchPath("paper2_PC7M5_E_t50.00g25.00m-5.000_v1.0"),
-	"t57.50g45.00m-5.000 CEMP"    => dispatchPath("paper2_PC8M5_E_t57.50g45.00m-5.000_v1.0"),
-	"t52.50g30.00m-5.000 CEMP"    => dispatchPath("paper2_PC8M5_E_t52.50g30.00m-5.000_v1.0"),
-	"t50.00g25.00m-5.000 no-CEMP" => dispatchPath("paper2_PS7M5_E_t50.00g25.00m-5.000_v1.0"),
-	"t57.50g45.00m-5.000 no-CEMP" => dispatchPath("paper2_PS8M5_E_t57.50g45.00m-5.000_v1.0"),
-	"t52.50g30.00m-5.000 no-CEMP" => dispatchPath("paper2_PS8M5_E_t52.50g30.00m-5.000_v1.0"),
-	"t50.00g25.00m-4.000 CEMP"    => dispatchPath("paper2_PC7M4_E_t50.00g25.00m-4.000_v1.0"),
-	"t57.50g45.00m-4.000 CEMP"    => dispatchPath("paper2_PC8M4_E_t57.50g45.00m-4.000_v1.0"),
-	"t52.50g30.00m-4.000 CEMP"    => dispatchPath("paper2_PC8M4_E_t52.50g30.00m-4.000_v1.0"),
-	"t50.00g25.00m-4.000 no-CEMP" => dispatchPath("paper2_PS7M4_E_t50.00g25.00m-4.000_v1.0"),
-	"t57.50g45.00m-4.000 no-CEMP" => dispatchPath("paper2_PS8M4_E_t57.50g45.00m-4.000_v1.0"),
-	"t52.50g30.00m-4.000 no-CEMP" => dispatchPath("paper2_PS8M4_E_t52.50g30.00m-4.000_v1.0"),
-	"t50.00g25.00m-3.000 CEMP"    => dispatchPath("paper2_PC7M3_E_t50.00g25.00m-3.000_v1.0"),
-	"t57.50g45.00m-3.000 CEMP"    => dispatchPath("paper2_PC8M3_E_t57.50g45.00m-3.000_v1.0"),
-	"t52.50g30.00m-3.000 CEMP"    => dispatchPath("paper2_PC8M3_E_t52.50g30.00m-3.000_v1.0"),
-	"t50.00g25.00m-3.000 no-CEMP" => dispatchPath("paper2_PS7M3_E_t50.00g25.00m-3.000_v1.0"),
-	"t57.50g45.00m-3.000 no-CEMP" => dispatchPath("paper2_PS8M3_E_t57.50g45.00m-3.000_v1.0"),
-	"t52.50g30.00m-3.000 no-CEMP" => dispatchPath("paper2_PS8M3_E_t52.50g30.00m-3.000_v1.0"),
-	"t57.50g45.00m-2.000 CEMP"    => dispatchPath("paper2_PC8M2_E_t57.50g45.00m-2.000_v1.0"),
-	"t52.50g30.00m-2.000 CEMP"    => dispatchPath("paper2_PC8M2_E_t52.50g30.00m-2.000_v1.0"),
-	"t57.50g45.00m-2.000 no-CEMP" => dispatchPath("paper2_PS8M2_E_t57.50g45.00m-2.000_v1.0"),
-	"t52.50g30.00m-2.000 no-CEMP" => dispatchPath("paper2_PS8M2_E_t52.50g30.00m-2.000_v1.0"),
+	"t50.00g25.00m-5.000 CEMP"    => dispatchPath("CEMP_t50.00g25.00m-5.000_v1.0"),
+	"t57.50g45.00m-5.000 CEMP"    => dispatchPath("CEMP_t57.50g45.00m-5.000_v1.0"),
+	"t52.50g30.00m-5.000 CEMP"    => dispatchPath("CEMP_t52.50g30.00m-5.000_v1.0"),
+	"t50.00g25.00m-5.000 no-CEMP" => dispatchPath("ScaledSolar_t50.00g25.00m-5.000_v1.0"),
+	"t57.50g45.00m-5.000 no-CEMP" => dispatchPath("ScaledSolar_t57.50g45.00m-5.000_v1.0"),
+	"t52.50g30.00m-5.000 no-CEMP" => dispatchPath("ScaledSolar_t52.50g30.00m-5.000_v1.0"),
+	"t50.00g25.00m-4.000 CEMP"    => dispatchPath("CEMP_t50.00g25.00m-4.000_v1.0"),
+	"t57.50g45.00m-4.000 CEMP"    => dispatchPath("CEMP_t57.50g45.00m-4.000_v1.0"),
+	"t52.50g30.00m-4.000 CEMP"    => dispatchPath("CEMP_t52.50g30.00m-4.000_v1.0"),
+	"t50.00g25.00m-4.000 no-CEMP" => dispatchPath("ScaledSolar_t50.00g25.00m-4.000_v1.0"),
+	"t57.50g45.00m-4.000 no-CEMP" => dispatchPath("ScaledSolar_t57.50g45.00m-4.000_v1.0"),
+	"t52.50g30.00m-4.000 no-CEMP" => dispatchPath("ScaledSolar_t52.50g30.00m-4.000_v1.0"),
+	"t50.00g25.00m-3.000 CEMP"    => dispatchPath("CEMP_t50.00g25.00m-3.000_v1.0"),
+	"t57.50g45.00m-3.000 CEMP"    => dispatchPath("CEMP_t57.50g45.00m-3.000_v1.0"),
+	"t52.50g30.00m-3.000 CEMP"    => dispatchPath("CEMP_t52.50g30.00m-3.000_v1.0"),
+	"t50.00g25.00m-3.000 no-CEMP" => dispatchPath("ScaledSolar_t50.00g25.00m-3.000_v1.0"),
+	"t57.50g45.00m-3.000 no-CEMP" => dispatchPath("ScaledSolar_t57.50g45.00m-3.000_v1.0"),
+	"t52.50g30.00m-3.000 no-CEMP" => dispatchPath("ScaledSolar_t52.50g30.00m-3.000_v1.0"),
+	"t57.50g45.00m-2.000 CEMP"    => dispatchPath("CEMP_t57.50g45.00m-2.000_v1.0"),
+	"t52.50g30.00m-2.000 CEMP"    => dispatchPath("CEMP_t52.50g30.00m-2.000_v1.0"),
+	"t57.50g45.00m-2.000 no-CEMP" => dispatchPath("ScaledSolar_t57.50g45.00m-2.000_v1.0"),
+	"t52.50g30.00m-2.000 no-CEMP" => dispatchPath("ScaledSolar_t52.50g30.00m-2.000_v1.0"),
 )
 
 # ╔═╡ a343cf41-e425-4a59-81bd-87f8765251c0
@@ -108,17 +108,17 @@ md"## 1D Models"
 
 # ╔═╡ 9d8761fd-4880-4ff3-855f-f3713a55a6e5
 runs1D = Dict(
-	"MARCS t50.00g25.00m-5.000 no-CEMP" => dispatchPath("paper2_PS7M5_E_t50.00g25.00m-5.000_v1.0/s5000_g+2.5_m1.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t57.50g45.00m-5.000 no-CEMP" => dispatchPath("paper2_PS8M5_E_t57.50g45.00m-5.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t52.50g30.00m-5.000 no-CEMP" => dispatchPath("paper2_PS8M5_E_t52.50g30.00m-5.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t50.00g25.00m-4.000 no-CEMP" => dispatchPath("paper2_PS7M4_E_t50.00g25.00m-4.000_v1.0/s5000_g+2.5_m1.0_t05_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t57.50g45.00m-4.000 no-CEMP" => dispatchPath("paper2_PS8M4_E_t57.50g45.00m-4.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t52.50g30.00m-4.000 no-CEMP" => dispatchPath("paper2_PS8M4_E_t52.50g30.00m-4.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t50.00g25.00m-3.000 no-CEMP" => dispatchPath("paper2_PS7M3_E_t50.00g25.00m-3.000_v1.0/s5000_g+2.5_m1.0_t02_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t57.50g45.00m-3.000 no-CEMP" => dispatchPath("paper2_PS8M3_E_t57.50g45.00m-3.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t52.50g30.00m-3.000 no-CEMP" => dispatchPath("paper2_PS8M3_E_t52.50g30.00m-3.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t57.50g45.00m-2.000 no-CEMP" => dispatchPath("paper2_PS8M2_E_t57.50g45.00m-2.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-2.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
-	"MARCS t52.50g30.00m-2.000 no-CEMP" => dispatchPath("paper2_PS8M2_E_t52.50g30.00m-2.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-2.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t50.00g25.00m-5.000 no-CEMP" => dispatchPath("ScaledSolar_t50.00g25.00m-5.000_v1.0/s5000_g+2.5_m1.0_t02_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t57.50g45.00m-5.000 no-CEMP" => dispatchPath("ScaledSolar_t57.50g45.00m-5.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t52.50g30.00m-5.000 no-CEMP" => dispatchPath("ScaledSolar_t52.50g30.00m-5.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t50.00g25.00m-4.000 no-CEMP" => dispatchPath("ScaledSolar_t50.00g25.00m-4.000_v1.0/s5000_g+2.5_m1.0_t05_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t57.50g45.00m-4.000 no-CEMP" => dispatchPath("ScaledSolar_t57.50g45.00m-4.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t52.50g30.00m-4.000 no-CEMP" => dispatchPath("ScaledSolar_t52.50g30.00m-4.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-4.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t50.00g25.00m-3.000 no-CEMP" => dispatchPath("ScaledSolar_t50.00g25.00m-3.000_v1.0/s5000_g+2.5_m1.0_t02_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t57.50g45.00m-3.000 no-CEMP" => dispatchPath("ScaledSolar_t57.50g45.00m-3.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t52.50g30.00m-3.000 no-CEMP" => dispatchPath("ScaledSolar_t52.50g30.00m-3.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-3.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t57.50g45.00m-2.000 no-CEMP" => dispatchPath("ScaledSolar_t57.50g45.00m-2.000_v1.0/p5750_g+4.5_m0.0_t01_st_z-2.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
+	"MARCS t52.50g30.00m-2.000 no-CEMP" => dispatchPath("ScaledSolar_t52.50g30.00m-2.000_v1.0/p5250_g+3.0_m0.0_t01_st_z-2.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"),
 )
 
 # ╔═╡ b26dbd2d-85ce-41c2-a32a-c9a488f9469f
@@ -398,6 +398,9 @@ design_p1 = [
 # ╔═╡ d786a454-b820-4c2f-b968-f7dec0604598
 name1_p1 = "CEMP_vs_noCEMP_T_z_t57.50g45.00m-5.000.pdf"
 
+# ╔═╡ 52ffd5ea-6215-4644-8e27-5777e594567a
+name1_p1_1 = "CEMP_vs_noCEMP_T_tau_t57.50g45.00m-5.000.pdf"
+
 # ╔═╡ cbb98c8a-8ec3-46fa-a38f-4afc3d292f41
 let
 	f, ax = plt.subplots(1, 1, figsize=(6,5))
@@ -422,8 +425,35 @@ let
 	f
 end
 
+# ╔═╡ 2aadb41f-a64e-4769-a202-aa9d2d700104
+let
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+
+	for (i, p) in enumerate(design_p1)
+		k = p.key
+		x, y = profile(MUST.mean, models3D[k]|>last, :log10τ_ross, :T)
+		ax.plot(x, y, color=p.color, ls=p.ls, lw=p.lw, label=p.label)
+	end
+
+	ax.set_xlim(-4.2, 1)
+	ax.set_ylim(3200, 7900)
+	#ax.set_yscale("log")
+	ax.set_title(L"\rm T_{eff}=5\,750\ K,\ log(g)=4.5,\ [Fe/H] = -5,\ [C/Fe] = 3")
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{ross}]")
+	ax.set_ylabel(L"\rm temperature\ [K]")
+
+	ax.legend()
+
+	f.savefig(name1_p1_1)
+
+	f
+end
+
 # ╔═╡ 56d11775-333b-44ac-ba5f-39e1b372564d
 name2_p1 = "CEMP_vs_noCEMP_d_z_t57.50g45.00m-5.000.pdf"
+
+# ╔═╡ 58ff1560-c4ad-4ac5-bf29-33977b211b11
+name2_p1_1 = "CEMP_vs_noCEMP_d_tau_t57.50g45.00m-5.000.pdf"
 
 # ╔═╡ c421ceca-ee21-455c-bfec-371c6c260ea3
 let
@@ -448,6 +478,30 @@ let
 	f
 end
 
+# ╔═╡ 41671152-f0cb-4d1f-8aec-740a486c69b4
+let
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+
+	for (i, p) in enumerate(design_p1)
+		k = p.key
+		x, y = profile(MUST.mean, models3D[k]|>last, :log10τ_ross, :log10d)
+		ax.plot(x, y, color=p.color, ls=p.ls, lw=p.lw, label=p.label)
+	end
+
+	ax.set_xlim(-4.2, 1)
+	ax.set_ylim(-7, -5.9)
+	#ax.set_yscale("log")
+	ax.set_title(L"\rm T_{eff}=5\,750\ K,\ log(g)=4.5,\ [Fe/H] = -5,\ [C/Fe] = 3")
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{ross}]")
+	ax.set_ylabel(L"\rm density\ [g\ cm^{-3}]")
+
+	ax.legend()
+
+	f.savefig(name2_p1_1)
+
+	f
+end
+
 # ╔═╡ c437b8d0-3da5-4d74-b796-0accda21a1f6
 
 
@@ -459,6 +513,9 @@ design_p1B = [
 
 # ╔═╡ f3398799-5ad0-4487-9ae5-cc9d7b679f3f
 name1_p1B = "CEMP_vs_noCEMP_T_z_t52.50g30.00m-5.000.pdf"
+
+# ╔═╡ 01720034-cc2c-4bc5-9d99-f2073b5d0bcc
+name1_p1B_1 = "CEMP_vs_noCEMP_T_tau_t52.50g30.00m-5.000.pdf"
 
 # ╔═╡ 455ca2ac-6fe2-457a-941d-4f2b8c2f58b3
 let
@@ -484,8 +541,35 @@ let
 	f
 end
 
+# ╔═╡ 124e57c4-82e6-4abf-bb48-7f882da71c5b
+let
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+
+	for (i, p) in enumerate(design_p1B)
+		k = p.key
+		x, y = profile(MUST.mean, models3D[k]|>last, :log10τ_ross, :T)
+		ax.plot(x, y, color=p.color, ls=p.ls, lw=p.lw, label=p.label)
+	end
+
+	ax.set_xlim(-4.2, 1)
+	ax.set_ylim(3200, 7200)
+	#ax.set_yscale("log")
+	ax.set_title(L"\rm T_{eff}=5\,250\ K,\ log(g)=3.0,\ [Fe/H] = -5,\ [C/Fe] = 3")
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{ross}]")
+	ax.set_ylabel(L"\rm temperature\ [K]")
+
+	ax.legend()
+
+	f.savefig(name1_p1B_1)
+
+	f
+end
+
 # ╔═╡ 4d2a898f-8bc4-4c88-b35d-cb7542d55932
 name2_p1B = "CEMP_vs_noCEMP_d_z_t52.50g30.00m-5.000.pdf"
+
+# ╔═╡ ae9d6151-45cd-4301-bf3f-df319baa0870
+name2_p1B_1 = "CEMP_vs_noCEMP_d_tau_t52.50g30.00m-5.000.pdf"
 
 # ╔═╡ f8c93a98-ad4f-4d9c-b0cd-c66d432753ed
 let
@@ -506,6 +590,30 @@ let
 	ax.legend()
 
 	f.savefig(name2_p1B)
+
+	f
+end
+
+# ╔═╡ 0d0234bc-c6b5-4bcf-8409-01cf02c8c843
+let
+	f, ax = plt.subplots(1, 1, figsize=(6,5))
+
+	for (i, p) in enumerate(design_p1B)
+		k = p.key
+		x, y = profile(MUST.mean, models3D[k]|>last, :log10τ_ross, :log10d)
+		ax.plot(x, y, color=p.color, ls=p.ls, lw=p.lw, label=p.label)
+	end
+
+	ax.set_xlim(-4.2, 1)
+	ax.set_ylim(-7.78, -6.65)
+	#ax.set_yscale("log")
+	ax.set_title(L"\rm T_{eff}=5\,250\ K,\ log(g)=3.0,\ [Fe/H] = -5,\ [C/Fe] = 3")
+	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{ross}]")
+	ax.set_ylabel(L"\rm density\ [g\ cm^{-3}]")
+
+	ax.legend()
+
+	f.savefig(name2_p1B_1)
 
 	f
 end
@@ -6341,7 +6449,7 @@ let
 	x = range(-9, 0, length=100)|>collect
 	ax.plot(x, cemp_line.(x), color="0.5", alpha=1.0, ls="--", lw=2.5)
 
-	ax.set_xlim(-6.1, -1.5)
+	ax.set_xlim(-6.1, -1.1)
 	ax.set_ylim(4, 9.2)
 	ax.set_xlabel("[Fe/H]")
 	ax.set_ylabel("A(C)")
@@ -6355,27 +6463,85 @@ end
 # ╔═╡ 254cb2e0-4580-4858-a1fa-098038930b37
 let
 	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+	f = plt.figure(figsize=(8, 8))
 
+	gs = matplotlib.gridspec.GridSpec(
+		3, 3, 
+		width_ratios=[3, 1, 0.2], 
+		height_ratios=[1, 3, 0.2],
+        wspace=0.00, hspace=0.00
+	)
+	
+	# Create main scatter plot
+	ax = plt.subplot(gs[1, 0])
+	
+	# Create top histogram
+	ax_xhist = plt.subplot(gs[0, 0], sharex=ax)
+	
+	# Create right histogram
+	ax_yhist = plt.subplot(gs[1, 1], sharey=ax)
+
+
+	
 	ellipse3 = matplotlib.patches.Ellipse(
-		(-5.5, 6.8), -6, 0.8, color="orange", alpha=0.1
+		(-5.5, 6.8), -4.5, 0.8, color="orange", alpha=0.25, ec="0.5"
 	)
 	ellipse2 = matplotlib.patches.Ellipse(
-		(-3.7, 6.0), -4, 0.8, color="green", alpha=0.1, angle=45
+		(-3.7, 5.9), -3, 0.8, color="green", alpha=0.25, angle=45, ec="0.5"
 	)
 	ellipse1 = matplotlib.patches.Ellipse(
-		(-2.6, 7.9), -3, 2, color="blue", alpha=0.1, angle=10
+		(-2.6, 7.9), -2, 3, color="blue", alpha=0.25, angle=-30, ec="0.5"
 	)
-	#ax.add_patch(ellipse1)
-	#ax.add_patch(ellipse2)
-	#ax.add_patch(ellipse3)
+	ax.add_patch(ellipse1)
+	ax.add_patch(ellipse2)
+	ax.add_patch(ellipse3)
 
+	ax.text(-6.7, 7.4, L"\rm \mathbf{Group\ III}", color="0.3", fontsize="small")
+	ax.text(-3.2, 5.3, L"\rm \mathbf{Group\ II}", color="0.3", fontsize="small")
+	ax.text(-1.4, 9.4, L"\rm \mathbf{Group\ I}", color="0.3", fontsize="small", ha="right")
+	
+	ax.text(-5.5, 3.8, L"carbon"*"\n"*L"enhanced", color="0.5", fontsize="x-small", ha="right", va="bottom")
+	ax.text(-4.6, 3.8, L"carbon"*"\n"*L"normal", color="0.5", fontsize="x-small", ha="left", va="bottom")
+
+	text_group3 = """
+	$(L"\rm \mathbf{CEMP-no}")
+	Faint SNe
+	Pop III
+	"""
+	ax.text(-6.7, 7.5, text_group3, color="0.5", fontsize="x-small", ha="left", va="bottom")
+
+	
+	text_group2 = """
+	$(L"\rm \mathbf{CEMP-no}")
+	Standard CCSNe
+	Pop II
+	"""
+	ax.text(-3.2, 5.15, text_group2, color="0.5", fontsize="x-small", ha="left", va="top")
+
+
+	text_group1 = """
+	$(L"\rm \mathbf{CEMP-s\ +\ CEMP-r/s}")
+	MRSNe, NS-NS or NS-BH merger
+	AGB contribution
+	"""
+	ax.text(-1.4, 9.5, text_group1, color="0.5", fontsize="x-small", ha="right", va="bottom")
+	
+
+	
 	CEMP_mask = (parameters_all["cfe"] .>= cfe_limit) .& selection_mask
 	feh = parameters_all["feh"][CEMP_mask]
 	cfe = parameters_all["cfe"][CEMP_mask]
 	c = cfe .+ feh .+ 8.560
-	ax.scatter(feh, c, s=20, marker="s", c="k", alpha=0.2)
-	ax.scatter(feh, c+corrections_saga_all[CEMP_mask], s=20, marker="o", c="steelblue", alpha=0.2)
+	#ax.scatter(feh, c, s=20, marker="s", c="None", alpha=0.2, linewidth=1, edgecolor="k")
+	ax.scatter(feh, c+corrections_saga_all[CEMP_mask], s=15, marker="o", c="None", alpha=0.6, edgecolor="tomato", rasterized=true)
+
+	
+	# add histograms
+	ax_xhist.hist(feh, bins=30, color="0.5")
+	ax_yhist.hist(c, orientation="horizontal", bins=30, label="1D", color="0.5")
+	ax_yhist.hist(c+corrections_saga_all[CEMP_mask], orientation="horizontal", bins=30, label="3D", histtype="step", lw=3, color="tomato")
+	ax_yhist.legend()
+	
 
 	c_mean =  [mean(
 		parameters_all["cfe"][bins_CEMP[:, i]] .+ 
@@ -6387,7 +6553,7 @@ let
 		parameters_all["feh"][bins_CEMP[:, i]] .+ 
 		8.560
 	)  for i in eachindex(metallicity_bin_centers)]
-	ax.fill_between(metallicity_bin_centers, c_mean .- c_sigma, c_mean .+ c_sigma, color="0.5", alpha=0.3, ls="")
+	#ax.fill_between(metallicity_bin_centers, c_mean .- c_sigma, c_mean .+ c_sigma, color="0.5", alpha=0.3, ls="")
 	ax.plot(metallicity_bin_centers, c_mean, color="k", lw=3, label=L"\rm 1D")
 
 	
@@ -6401,21 +6567,33 @@ let
 		parameters_all["feh"][bins_CEMP_corr[:, i]] .+ 
 		8.560 .+corrections_saga_all[bins_CEMP_corr[:, i]]
 	)  for i in eachindex(metallicity_bin_centers)]
-	ax.fill_between(metallicity_bin_centers, c_mean .- c_sigma, c_mean .+ c_sigma, color="cyan", alpha=0.3, ls="")
-	ax.plot(metallicity_bin_centers, c_mean, color="cyan", label=L"\rm 3D", lw=3)
+	#ax.fill_between(metallicity_bin_centers, c_mean .- c_sigma, c_mean .+ c_sigma, color="cyan", alpha=0.3, ls="")
+	ax.plot(metallicity_bin_centers, c_mean, color="tomato", label=L"\rm 3D", lw=3)
 	
 	
 	
 	cemp_line(x) = 0.7 + x + 8.39
 	x = range(-9, 0, length=100)|>collect
-	ax.plot(x, cemp_line.(x), color="tomato", alpha=1.0, ls="-", lw=2)
+	ax.plot(x, cemp_line.(x), color="0.5", alpha=0.9, ls="--", lw=3)
 
-	ax.set_xlim(-6.1, -0.5)
-	ax.set_ylim(4, 10)
+	
+
+	ax.set_xlim(-6.9, -1.1)
+	ax.set_ylim(3.6, 10.9)
 	ax.set_xlabel("[Fe/H]")
 	ax.set_ylabel("A(C)")
 	ax.legend(loc="upper left")
+
+	# Hide labels on shared axes
+	plt.setp(ax_xhist.get_xticklabels(), visible=false)
+	plt.setp(ax_yhist.get_yticklabels(), visible=false)
 	
+	# Adjust spines
+	#=for ax in [ax_xhist, ax_yhist]
+	    ax.spines["top"].set_visible(false)
+	    ax.spines["right"].set_visible(false)
+	end=#
+
 	f.savefig(name2_p12)
 
 	f
@@ -6563,15 +6741,23 @@ end
 # ╟─8d7b17da-ead8-445c-9fb0-4a6d98ca5dda
 # ╠═4b636278-0e13-44d0-80c0-3c4fd9e1f0b6
 # ╠═d786a454-b820-4c2f-b968-f7dec0604598
+# ╠═52ffd5ea-6215-4644-8e27-5777e594567a
 # ╟─cbb98c8a-8ec3-46fa-a38f-4afc3d292f41
+# ╟─2aadb41f-a64e-4769-a202-aa9d2d700104
 # ╠═56d11775-333b-44ac-ba5f-39e1b372564d
+# ╠═58ff1560-c4ad-4ac5-bf29-33977b211b11
 # ╟─c421ceca-ee21-455c-bfec-371c6c260ea3
+# ╟─41671152-f0cb-4d1f-8aec-740a486c69b4
 # ╟─c437b8d0-3da5-4d74-b796-0accda21a1f6
 # ╠═13bdade4-3eb8-41cb-aa64-463124ccacf1
 # ╠═f3398799-5ad0-4487-9ae5-cc9d7b679f3f
+# ╠═01720034-cc2c-4bc5-9d99-f2073b5d0bcc
 # ╟─455ca2ac-6fe2-457a-941d-4f2b8c2f58b3
+# ╟─124e57c4-82e6-4abf-bb48-7f882da71c5b
 # ╠═4d2a898f-8bc4-4c88-b35d-cb7542d55932
+# ╠═ae9d6151-45cd-4301-bf3f-df319baa0870
 # ╟─f8c93a98-ad4f-4d9c-b0cd-c66d432753ed
+# ╟─0d0234bc-c6b5-4bcf-8409-01cf02c8c843
 # ╟─773a7896-a492-46a3-9813-fa739647142d
 # ╟─244f1b18-80fe-419a-8fd0-892aad803ca5
 # ╠═accdaadc-8912-48d2-8a0c-3c19e5b4ba19
@@ -6661,11 +6847,11 @@ end
 # ╟─f064d1a4-be5b-4cfc-9bf9-67002a333d2d
 # ╠═9987b27b-2437-45a3-9e83-116a01f13d1d
 # ╠═17ced5c3-080f-4d65-aa1c-b24a2950e783
-# ╟─75600b27-d640-438b-bd00-d35e18ff46f6
+# ╠═75600b27-d640-438b-bd00-d35e18ff46f6
 # ╟─14ee9206-f322-4e06-a65e-271c19d4c792
 # ╠═6c428722-39e9-4f1c-851a-ee90cb617377
 # ╠═059c7c73-acaa-468b-b7a4-e63a4748d358
-# ╠═df0a0a2d-52ea-4852-b450-6fc1baf5838d
+# ╟─df0a0a2d-52ea-4852-b450-6fc1baf5838d
 # ╟─9669b2e7-396d-4e09-827b-3138c3d8f70a
 # ╠═20e610c2-9054-4dc6-a551-6f63909715ee
 # ╠═5d9fc015-4d8b-4811-8f48-c4197eb95709
@@ -6824,7 +7010,7 @@ end
 # ╟─515b8fb8-2568-4200-b10f-6ef8e2318615
 # ╟─d08caaf5-e763-498d-a594-8915fc8eaaf9
 # ╟─1dcf4d03-7a20-4ff7-b891-958003c23d61
-# ╟─c8a6af9e-625a-4864-9ca2-1efad14fccd4
+# ╠═c8a6af9e-625a-4864-9ca2-1efad14fccd4
 # ╟─a21d6f31-f766-432f-856c-7726e989d42f
 # ╟─67aab606-2b0e-44f8-90ab-99d63830742d
 # ╠═29ff7a48-9110-4da3-b024-2a9c7af59477
@@ -6929,7 +7115,7 @@ end
 # ╠═bd5a7a2c-75cd-4a67-88a2-e09cf152f6a9
 # ╠═25822bc1-6e1b-41e8-928f-4d088f0eede5
 # ╠═0aaeeb0d-2740-4817-83a4-fd56d9f2c9ce
-# ╟─92293f19-535a-4b35-8d58-bf99cddabcd3
+# ╠═92293f19-535a-4b35-8d58-bf99cddabcd3
 # ╟─60b1f1ac-4fa5-48f6-b1fa-1c50a00447b3
 # ╟─65d7b527-baa6-4af2-972f-1960c0072d10
 # ╟─29d58861-8237-4cc9-a05a-c37b8228efaf
@@ -6946,7 +7132,7 @@ end
 # ╟─210a4e3c-6998-400f-9e0a-3da3e0efe557
 # ╠═0e5c7037-aa27-44f2-b563-94aca1da290b
 # ╠═f3442668-a393-4136-8d43-d597af23279b
-# ╟─0f92fa2a-7f2f-4a04-bcec-5eaf307ed3f3
+# ╠═0f92fa2a-7f2f-4a04-bcec-5eaf307ed3f3
 # ╠═ab9353b8-4b9d-4e93-b169-aafb0a44247b
 # ╟─0b489280-582d-47af-aed0-ac54a79a060c
 # ╟─6f03a4bb-63e2-46fc-a39a-680c67dc82b1
