@@ -3,11 +3,25 @@ using TSO
 using LazySets
 using Polyhedra
 using NaturalNeighbours
+using MLJ
 
+LinearRegressor = @load LinearRegressor pkg=GLM verbosity=0
 interpolationMethod="triangle"
 
 # read the grid of interpolation coefficients
 ip_coeffs_stagger = MUST.CSV.read(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "interpolation_coeffs.csv")), MUST.DataFrame)
+linear_regression_machines = Dict(
+	"bottom_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_bottom_rho.jlso")),
+	"bottom_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_bottom_T.jlso")),
+	"top_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_top_rho.jlso")),
+	"top_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_top_T.jlso")),
+)
+cubic_regression_machines = Dict(
+	"bottom_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_bottom_rho_cubic.jlso")),
+	"bottom_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_bottom_T_cubic.jlso")),
+	"top_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_top_rho_cubic.jlso")),
+	"top_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_top_T_cubic.jlso")),
+)
 
 
 #==================================================================== Models =#
@@ -509,12 +523,41 @@ predict_top_boundary(teff, logg, coefficients) = begin
 	rho_predicted + rho_correction, T_predicted + T_correction
 end
 
+predict_from_machine(teff, logg, feh; offsets=nothing, order="linear") = begin
+	data, machines = if order=="linear" 
+		MUST.DataFrame(:teff=>[teff],:logg=>[logg],:feh=>[feh]), linear_regression_machines
+	elseif order == "cubic"
+		d = MUST.DataFrame(
+			:teff=>[teff],:logg=>[logg],:feh=>[feh],
+			:teff2=>[teff^2],:logg2=>[logg^2],:feh2=>[feh^2],
+			:teff3=>[teff^3],:logg3=>[logg^3],:feh3=>[feh^3],
+		)
+		d, cubic_regression_machines
+	else
+		error("No regression machine with order $(order) available.")
+	end
+
+	rho_bot = MLJ.predict_mean(machine(machines["bottom_rho"]), data[1:1, :]) |> first
+	rho_top = MLJ.predict_mean(machine(machines["top_rho"]), data[1:1, :]) |> first
+	T_bot = MLJ.predict_mean(machine(machines["bottom_T"]), data[1:1, :]) |> first
+	T_top = MLJ.predict_mean(machine(machines["top_T"]), data[1:1, :]) |> first
+
+	@info "Predicting boundary from $(order) regression: $(rho_bot), $(T_bot), $(rho_top), $(T_top)"
+
+	if !isnothing(offsets)
+		@info "Adding offsets: $(offsets)"
+		rho_bot+offsets[1], T_bot+offsets[2], rho_top+offsets[3], T_top+offsets[4]
+	else
+		rho_bot, T_bot, rho_top, T_top
+	end
+end
+
 
 #===========================================================interpolate grid =#
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
 	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", 
-	τ_extrapolate=nothing, adiabatic_extrapolation=false, boundary_extrapolation=false, extrapolation_offsets=nothing, τbottom=8, τtop=-6, τbottom_extrapolate=nothing, kwargs...) where {F<:AbstractFloat}
+	τ_extrapolate=nothing, adiabatic_extrapolation=false, boundary_extrapolation=false, regression="cubic", extrapolation_offsets=nothing, τbottom=8, τtop=-6, τbottom_extrapolate=nothing, kwargs...) where {F<:AbstractFloat}
 
 	folder_name = "interpolated"
 	mesh   = "interpolated"
@@ -554,9 +597,14 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 
 	model = if boundary_extrapolation && (!isnothing(eos))
 		# pick the interpolation coefficients that are closest to the given metallicity
-		coeffs = get_ip_coeffs(feh; offsets=extrapolation_offsets)
-		rho_bot, t_bot = predict_bottom_boundary(teff, logg, coeffs)
-		rho_top, t_top = predict_top_boundary(teff, logg, coeffs)
+		rho_bot, t_bot, rho_top, t_top = if length(regression)==0
+			coeffs = get_ip_coeffs(feh; offsets=extrapolation_offsets)
+			rho_bot, t_bot = predict_bottom_boundary(teff, logg, coeffs)
+			rho_top, t_top = predict_top_boundary(teff, logg, coeffs)
+			rho_bot, t_bot, rho_top, t_top
+		else
+			predict_from_machine(teff, logg, feh, offsets=extrapolation_offsets, order=regression)
+		end
 		 
 		mc = @optical(TSO.flip(deepcopy(model), depth=true), eos)
 
@@ -590,14 +638,23 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 			model, eos; τ_target=τbottom_extrapolate
 		)
 
-		model_extra = if (extrapolation_offsets[1] > 0) | (extrapolation_offsets[2] > 0) 
+		model_extra = if (extrapolation_offsets[1] > -98) | (extrapolation_offsets[2] > -98) 
 			offset_T = exp(extrapolation_offsets[2].+ maximum(model_extra.lnT))
 			offset_ρ = exp(extrapolation_offsets[1] .+ maximum(model_extra.lnρ))
 			@info "shifting bottom boundary to T=$(exp.(maximum(model_extra.lnT)))->$(offset_T), ρ=$(exp.(maximum(model_extra.lnρ)))->$(offset_ρ)"
 
+			if extrapolation_offsets[3] > -98.0
+				top_T = exp(extrapolation_offsets[4] .+ minimum(model_extra.lnT))
+				top_ρ = exp(extrapolation_offsets[3] .+ minimum(model_extra.lnρ))
+				@info "shifting top boundary to T=$(exp.(minimum(model_extra.lnT)))->$(top_T), ρ=$(exp.(minimum(model_extra.lnρ)))->$(top_ρ)"
+
+				model_extra.lnT .= log.(exp.(model_extra.lnT) .+ top_T)
+				model_extra.lnρ .= log.(exp.(model_extra.lnρ) .+ top_ρ)
+			end
+
 			me = TSO.reverse_adiabatic_extrapolation(
 				model_extra, offset_ρ, offset_T, eos; kwargs...
-			) |> TSO.monotonic
+			)
 
 			# now extrapolate the model back in case that has changed
 			TSO.adiabatic_extrapolation(

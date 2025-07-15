@@ -6,7 +6,7 @@ end
 
 M3DISRun(path::String; kwargs...) = begin
     isnothing(multi_location) && error("No Multi module has been loaded.")
-    p = @in_m3dis(path)
+    p = isdir(path) ? path : @in_m3dis(path)
     @assert isdir(p)
     M3DISRun(m3dis.m3dis.read(p; kwargs...))
 end
