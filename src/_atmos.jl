@@ -2475,12 +2475,12 @@ Computes and saves average spectra.
   each containing `nsnaps` snapshots, starting from the end and moving backward.
 - For 1D runs, it processes the single specified model.
 """
-function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; datafolder="data", modelname1D="", selectedSnaps=[])
+function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; datafolder="data", modelname1D="", selectedSnaps=[], elements=nothing)
     #================================================================================#
     # Helper Function: Contains the core logic to process a given set of snapshots. #
     # This avoids code duplication and ensures 1D and 3D cases are treated identically. #
     #================================================================================#
-    function _process_and_write_batch(selectedSnaps_raw, header_info, filename_prefix, convspec, specTags, o)
+    function _process_and_write_batch(selectedSnaps_raw, header_info, filename_prefix, convspec, specTags, o; elements=nothing)
         if isempty(selectedSnaps_raw)
             @warn "No snapshots to process for prefix $(filename_prefix). Skipping."
             return false # Indicate that processing was skipped
@@ -2541,8 +2541,10 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             end
         end
         params_from_string(cs) = (abundance_from_composition_string(cs, "[Fe/H]"), abundance_from_composition_string(cs, "[alpha/Fe]"))
-            
+        contains_elements(cs) = isnothing(elements) ? true : all([occursin(e, cs) for e in elements])  
+
         abundanceGrid = sort(unique(vcat([[clean_comp_string(replace(sp[t][:composition], "α"=>"alpha")) for t in matchingTagsPerSnap[s]] for (s, sp) in spectraGrid]...)), rev=true)
+        abundanceGrid = abundanceGrid[contains_elements.(abundanceGrid)]
         abundanceGrid = abundanceGrid[sortperm_on_composition_strings(abundanceGrid, split_on=',')]
         chemParamGrid = unique(vcat([[params_from_string(replace(sp[t][:composition], "α"=>"alpha")) for t in matchingTagsPerSnap[s]] for (s, sp) in spectraGrid]...)) |> first
 
@@ -2550,7 +2552,9 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         for (s, sp) in spectraGrid
             for t in matchingTagsPerSnap[s]
                 c = clean_comp_string(replace(sp[t][:composition], "α"=>"alpha"))
-                append!(spectraGridAbundance[c], [sp[t]])
+                if c in abundanceGrid
+                    append!(spectraGridAbundance[c], [sp[t]])
+                end
             end
         end
 
@@ -2635,7 +2639,7 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         filename_prefix = "$(String(selectedSpecTagGrid))_$(modelname1D)"
         header_info = (is1D=true, batch_text="")
         
-        _process_and_write_batch(selectedSnaps_raw, header_info, filename_prefix, convspec, specTags, o)
+        _process_and_write_batch(selectedSnaps_raw, header_info, filename_prefix, convspec, specTags, o; elements=elements)
     else
         # --- 3D Case: Loop over batches ---
         snaps = sort([s for s in all_available_snaps if (s > 0 && haskey(specTags, s) && !isempty(specTags[s]))])
@@ -2654,7 +2658,7 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             filename_prefix = "$(String(selectedSpecTagGrid))_$(snaps[start_idx])-$(snaps[end_idx])"
             header_info = (is1D=false, batch_text=" - Batch $(batch_num)")
 
-            _process_and_write_batch(batch_snaps, header_info, filename_prefix, convspec, specTags, o)
+            _process_and_write_batch(batch_snaps, header_info, filename_prefix, convspec, specTags, o, elements=elements)
 
             # Update loop variables for the next iteration
             end_idx -= nsnaps
