@@ -156,3 +156,15 @@ function interpolate(spectra::Vector{S}, abundance) where {S<:MeanSpectrum}
 
     MeanSpectrum(λ_common, ip, Dict(el=>target), first(spectra).kind, first(spectra).model_info)
 end
+
+
+"""
+    is_mean_spectrum(path, tag; kind="flux", norm=false) = begin
+
+Check if the given path is a MeanSpectrum compatible file.
+"""
+is_mean_spectrum(path, tag; kind="flux", norm=false) = begin
+	p = basename(path)
+	t = String(tag)
+	norm ? (p[1:length(t)] == t) && occursin(kind, p) && (occursin("norm", p)) : (p[1:length(t)] == t) && occursin(kind, p) && (!occursin("norm", p))
+end
