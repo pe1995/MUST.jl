@@ -120,7 +120,7 @@ read_models_from_grid(grid::MUST.AbstractMUSTGrid; adiabats=nothing, eos=nothing
 		models
 	end
 
-	eos = if ((!isnothing(eos)) & ("matching_eos" in names(grid.info)))
+	eos = if ("matching_eos" in names(grid.info))
 		@info "EoS as given in the grid is loaded for grid nodes opacity."
 		[reload(
 			SqEoS, grid.info[i, "matching_eos"]
@@ -233,8 +233,12 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid; teff, logg, feh, commo
 	end
 
 	#r_target = scatter_int(r_models[femask], teff, logg)
-	r_target = MUST.interpolate_quantity(grid, "vres"; teff=teff, logg=logg, feh=feh)
-	npoints  = ceil(Int, abs(maximum(z) - minimum(z)) / r_target)
+	npoints = try
+		r_target = MUST.interpolate_quantity(grid, "vres"; teff=teff, logg=logg, feh=feh)
+		ceil(Int, abs(maximum(z) - minimum(z)) / r_target)
+	catch
+		500
+	end
 
 	TSO.upsample(Model1D(z=z, lnT=t, lnρ=d, logg=logg), npoints)
 end
@@ -331,7 +335,7 @@ function interpolate_average(grid::MUST.AbstractMUSTGrid, eos::SqEoS, opa=nothin
 
 	# upsample to match the desired interpolated resolution
 	#r_target = scatter_int(r_models[femask], teff, logg)
-	r_target = MUST.interpolate_quantity(grid, "vres"; teff=teff, logg=logg, feh=feh) 
+	#r_target = MUST.interpolate_quantity(grid, "vres"; teff=teff, logg=logg, feh=feh) 
 	npoints  = 500 #ceil(Int, abs(maximum(mnew.z) - minimum(mnew.z)) / r_target)
 
 	# We now can interpolate everthing to this new z scale
@@ -557,7 +561,7 @@ end
 
 function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, feh::F; 
 	eos=nothing, opa=nothing, adiabats=nothing, models=nothing, models_mod=nothing, folder="", 
-	τ_extrapolate=nothing, adiabatic_extrapolation=false, boundary_extrapolation=false, regression="cubic", extrapolation_offsets=nothing, τbottom=8, τtop=-6, τbottom_extrapolate=nothing, kwargs...) where {F<:AbstractFloat}
+	τ_extrapolate=nothing, adiabatic_extrapolation=false, boundary_extrapolation=false, regression="cubic", extrapolation_offsets=nothing, τbottom=8, τtop=-6, τbottom_extrapolate=nothing, name_prefix="", kwargs...) where {F<:AbstractFloat}
 
 	folder_name = "interpolated"
 	mesh   = "interpolated"
@@ -565,7 +569,7 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 	tname = MUST.@sprintf "%.2f" teff/100
 	gname = MUST.@sprintf "%.2f" logg*10
 	fname = MUST.@sprintf "%.3f" feh
-	name = "t$(tname)g$(gname)m$(fname)"
+	name = "$(name_prefix)t$(tname)g$(gname)m$(fname)"
 
 	snapshot = "interpolated"
 	ma_x = MUST.interpolate_quantity(grid, "ma_x"; teff=teff, logg=logg, feh=feh)
@@ -644,12 +648,12 @@ function interpolate_from_grid(grid::MUST.AbstractMUSTGrid, teff::F, logg::F, fe
 			@info "shifting bottom boundary to T=$(exp.(maximum(model_extra.lnT)))->$(offset_T), ρ=$(exp.(maximum(model_extra.lnρ)))->$(offset_ρ)"
 
 			if extrapolation_offsets[3] > -98.0
-				top_T = exp(extrapolation_offsets[4] .+ minimum(model_extra.lnT))
+				top_T = exp(extrapolation_offsets[4] .+ minimum(model_extra.lnT))  
 				top_ρ = exp(extrapolation_offsets[3] .+ minimum(model_extra.lnρ))
 				@info "shifting top boundary to T=$(exp.(minimum(model_extra.lnT)))->$(top_T), ρ=$(exp.(minimum(model_extra.lnρ)))->$(top_ρ)"
 
-				model_extra.lnT .= log.(exp.(model_extra.lnT) .+ top_T)
-				model_extra.lnρ .= log.(exp.(model_extra.lnρ) .+ top_ρ)
+				model_extra.lnT .= log.(exp.(model_extra.lnT) .+ top_T .- exp.(minimum(model_extra.lnT)))
+				model_extra.lnρ .= log.(exp.(model_extra.lnρ) .+ top_ρ .- exp.(minimum(model_extra.lnρ)))
 			end
 
 			me = TSO.reverse_adiabatic_extrapolation(

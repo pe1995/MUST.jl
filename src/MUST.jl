@@ -76,7 +76,7 @@ end
 export @import_dispatch, @in_dispatch, @import_m3dis, @in_m3dis
 export Space, spacebox, Box, add!, profile, time_average_profile, flip!
 export multiBox, snapshotBox
-export pick_snapshot, list_of_snapshots, converted_snapshots
+export pick_snapshot, list_of_snapshots, converted_snapshots, list_snapshots
 export ginterpolate, gevaluate, gevaluate!, gresample, Grid
 export plane_statistic 
 
