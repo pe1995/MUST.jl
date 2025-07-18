@@ -2315,10 +2315,35 @@ add_spectra!(to::Box, from::Box) = begin
     end
 end
 
-spectra_keys(b::Box, tag::Symbol; kwargs...) = begin
-    ks = [String(k) for k in keys(b.data) if occursin(String(tag), String(k))]
+spectra_keys(b::Box, tag::Symbol; kwargs...) = begin 
+    ks = [String(k) for k in keys(b.data) if is_idential_tag(tag, k)]
     [Symbol(split(k, "_", keepempty=false) |> last) for k in ks]
 end
+
+
+is_idential_tag(tag, to_check) = begin
+    # the key needs to be idential
+    # we thus need to check if the beginning of the key is the tag, and if the rest is really not belonging to the tag
+    main_tag = String(tag)
+    to_check_key = String(to_check)
+    nl = length(String(tag))
+
+    # fist check if it is even the main tag
+    im = is_main_tag(tag, to_check)
+
+    if im
+        # it is the main tag, so we need to check if the rest of the key is just the extension
+        # that means that it has to be followed by exactly one underscore and the rest of the key
+        rest_of_key = to_check_key[length(main_tag)+1:end]
+        stars_with_underscore = rest_of_key[1] == '_'
+        only_one_underscore = count(==('_'), rest_of_key) == 1
+        stars_with_underscore && only_one_underscore
+    else
+        # it is not even the main tag
+        false
+    end
+end
+
 
 """
     is_main_tag(tag, to_check)
@@ -2331,7 +2356,8 @@ something like `CHGBandLTE` and `CHGBandNLTE` both have the same main tag `CHGBa
 So looking for this main tag will group them together! Be specific about the main tags.
 """
 is_main_tag(tag, to_check) = begin
-    to_check_maintag = split(String(to_check), '_')[1]
+    #to_check_maintag = split(String(to_check), '_')[1:end-1]
+    to_check_maintag = String(to_check)
     # the main tag has to be identical.
     # there are possibly extensions added behind the main tag, but not before,
     # otherwise this counts as a differernt tag
@@ -2496,8 +2522,8 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         matchingTagsPerSnap = Dict(
             s=>[t for t in matchingTags if (t in specTags[s])] for s in selectedSnaps_raw 
         )
+
         @info "Including spectra with tags $(String.(matchingTags)) in averaging." 
-        
         selectedSnapsGrid = [s for s in selectedSnaps_raw if length(matchingTagsPerSnap[s]) > 0]
         
         if isempty(selectedSnapsGrid)
@@ -2591,11 +2617,34 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         
         getfilename(p) = joinpath(datafolder, available_run, "$(filename_prefix)_$(p).csv")
         
-        fluxDictGrid = Dict(a=>mean([s[:meanFlux] for s in sp]) for (a, sp) in spectraGridAbundance)
+        nanmean(x) = begin
+            nanx = [all(.!isnan.(x[i])) for i in eachindex(x)]
+            count(nanx) > 0 ? mean(x[nanx]) : [NaN for _ in eachindex(first(x))]
+        end
+
+        wvl_dims = Dict(a=>median([length(s[:wavelength]) for s in sp]) for (a, sp) in spectraGridAbundance)
+        wvl_dims = floor(Int, median([w for (_,w) in wvl_dims]))
+        # filter those that have a different wavelength dimension
+        for (a, sp) in spectraGridAbundance
+            s_new = []
+            for (i, s) in enumerate(sp)
+                if length(s[:wavelength]) != wvl_dims
+                    @warn "Entry for abundance $(a) has a different wavelength grid: $(length(s[:wavelength])) ≠ $(wvl_dims)"
+                else
+                    append!(s_new, [s])
+                end
+            end
+            spectraGridAbundance[a] = s_new
+        end
+
+        fluxDictGrid = Dict(a=>nanmean([s[:meanFlux] for s in sp]) for (a, sp) in spectraGridAbundance)
         fluxDictGrid["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
+        for (k, v) in  fluxDictGrid
+            @assert length(v) == length(fluxDictGrid["wavelength"])
+        end
         write_spectra(getfilename("mean_flux"), fluxDictGrid)
 
-        fluxDictGridNorm = Dict(a=>mean([s[:meanFluxNorm] for s in sp]) for (a, sp) in spectraGridAbundance)
+        fluxDictGridNorm = Dict(a=>nanmean([s[:meanFluxNorm] for s in sp]) for (a, sp) in spectraGridAbundance)
         fluxDictGridNorm["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
         write_spectra(getfilename("mean_flux_norm"), fluxDictGridNorm)
 
@@ -2605,11 +2654,11 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             mu_mask = mus[:, 3] .≈ muz
             mustring = @sprintf "%.3f" muz
             
-            fg = Dict(a=>mean([reshape(mean(s[:meanIntensity][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
+            fg = Dict(a=>nanmean([reshape(mean(s[:meanIntensity][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
             fg["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
             write_spectra(getfilename("mean_intensity_mu$(mustring)"), fg)
 
-            fg_norm = Dict(a=>mean([reshape(mean(s[:meanIntensityNorm][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
+            fg_norm = Dict(a=>nanmean([reshape(mean(s[:meanIntensityNorm][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
             fg_norm["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
             write_spectra(getfilename("mean_intensity_mu$(mustring)_norm"), fg_norm)
         end
@@ -2723,7 +2772,9 @@ equivalentwidth(model::Box, tag; λs=nothing, λe=nothing) = begin
         model[spectra_key_from_tag("wavelength", tag)],model[spectra_key_from_tag("meanFluxNorm", tag)]
     catch
         @warn "No mean flux available. Computing..."
-        mean_integrated_flux(model, tag, norm=true)
+        ll, ff = mean_integrated_flux(model, tag, norm=true)
+        model[spectra_key_from_tag("meanFluxNorm", tag)] = ff
+        ll, ff
     end
 
     # masking region
