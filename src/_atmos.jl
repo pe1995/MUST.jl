@@ -2406,7 +2406,24 @@ end
 
 
 
+get_μs(box, tag) = unique(box[MUST.spectra_key_from_tag("mu", tag)][:, 3])
 
+"""
+    angular_intensity(box::Box, tag, μ; norm=true)
+
+Compute the mean of the intensity in direction μ.
+"""
+angular_intensity(box::Box, tag, μ; norm=true) = begin
+    λ = box[spectra_key_from_tag("wavelength", tag)]
+    I = box[spectra_key_from_tag("intensity", tag)]
+	c = box[spectra_key_from_tag("continuum", tag)]
+    mu = box[spectra_key_from_tag("mu", tag)]
+	muz = mu[:, 3]
+    mu_mask = muz .≈ μ
+
+    z = norm ? I[:,:,:,mu_mask] ./ c[:,:,:,mu_mask] : I[:,:,:,mu_mask]
+	(λ, reshape(mean(z, dims=4), size(I)[1:3]...))
+end
 
 """
     mean_angular_intensity(box::Box, tag, μ; norm=true)
@@ -2501,7 +2518,7 @@ Computes and saves average spectra.
   each containing `nsnaps` snapshots, starting from the end and moving backward.
 - For 1D runs, it processes the single specified model.
 """
-function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; datafolder="data", modelname1D="", selectedSnaps=[], elements=nothing)
+function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; datafolder="data", modelname1D="", selectedSnaps=[], elements=nothing, skip_from_end=0)
     #================================================================================#
     # Helper Function: Contains the core logic to process a given set of snapshots. #
     # This avoids code duplication and ensures 1D and 3D cases are treated identically. #
@@ -2693,7 +2710,7 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         # --- 3D Case: Loop over batches ---
         snaps = sort([s for s in all_available_snaps if (s > 0 && haskey(specTags, s) && !isempty(specTags[s]))])
         
-        end_idx = length(snaps)
+        end_idx = length(snaps) - skip_from_end
         batch_num = 1
 
         @info "Starting 3D batch processing for run $(available_run). Total batches to run: $(nbatches)."
