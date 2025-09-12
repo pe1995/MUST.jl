@@ -2656,6 +2656,7 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
 
         fluxDictGrid = Dict(a=>nanmean([s[:meanFlux] for s in sp]) for (a, sp) in spectraGridAbundance)
         fluxDictGrid["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
+        
         for (k, v) in  fluxDictGrid
             @assert length(v) == length(fluxDictGrid["wavelength"])
         end
