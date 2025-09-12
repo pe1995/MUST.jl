@@ -241,7 +241,7 @@ function abund_abundances(;α=0.0, default="./input_multi3d/abund/abund_magg", e
     ele_names = lowercase.(abund_new[:, 1])
 	new_name = default*"_mod"
 	if α != 0.0
-		for ele in ["c", "o", "ne", "mg", "si", "s", "ar", "ca"]
+		for ele in ["o", "ne", "mg", "si", "s", "ar", "ca"]
 			iele = findfirst(lowercase(ele) .== ele_names)
 			if !isnothing(iele)
 				abund_new[iele, 2] = abund_default[iele, 2] + α
