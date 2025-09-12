@@ -16,7 +16,7 @@ macro bind(def, element)
     #! format: on
 end
 
-# ╔═╡ 3867ab6e-bcaf-4879-9eb9-f5b42dcc6709
+# ╔═╡ 1c7ee45a-8d60-11f0-29f2-abf8c4f707d2
 # ╠═╡ show_logs = false
 begin
 	using Pkg; Pkg.activate("..")
@@ -26,29 +26,28 @@ begin
 	using LaTeXStrings 
 	using PlutoUI
 	using KernelDensity
+	using PlutoUI: combine
 end
 
-# ╔═╡ 32afc79c-26cc-4619-ace0-63aca71587c2
+# ╔═╡ ef8e7bda-8c97-418d-864f-2e7e04c6cca9
 begin
 	using GaussianMixtures
 	using Distributions
 	using LinearAlgebra
 end
 
-# ╔═╡ dc377839-bd92-4c9c-9432-7bf08b71add6
-md"# Paper v3"
+# ╔═╡ 29b1890e-7361-40cc-a1f2-3b874faba043
+md"# Code Setup"
 
-# ╔═╡ 9818e49b-1a6d-44d3-9aa2-6486842b2efa
+# ╔═╡ f1473678-24b0-4a97-967a-4f6070de46d7
 begin
 	@import_dispatch "../../../../dispatch2"
 	@import_m3dis "../../../../Multi3D"
 end
 
-# ╔═╡ 1f6f5fe0-3f38-4547-b9e6-0482a76ea03a
-auxfuncs = MUST.pyimport("m3dis.auxfuncs")
-
-# ╔═╡ 1150c5dd-f486-46d6-b911-5fb1d70d3792
+# ╔═╡ f7e7ae1d-49dd-4c76-a9ff-cec1013c86aa
 begin
+	auxfuncs = MUST.pyimport("m3dis.auxfuncs")
 	mean = MUST.mean
 	plt = matplotlib.pyplot
 	matplotlib.style.use(joinpath(dirname(pathof(MUST)), "Hoppe2024.mplstyle"))
@@ -77,72 +76,79 @@ begin
 		last.(split.(runs, "/", keepempty=false))
 	end
 
+	function select_for_each(runs, entries, defaults)
+		return combine() do Child
+			namesChild = [
+				Child(runs[i], Select(entries[runs[i]], default=defaults[runs[i]]))
+				for i in eachindex(runs)
+			]
+			inputs = [
+				md""" $(name): $(
+					namesChild[i]
+				)"""
+				for (i, name) in enumerate(runs)
+			]
+			
+			md"""
+			## Selection for each model
+			$(inputs)
+			"""
+		end
+	end
+
 	pretty_from_name(name) = begin
 		mi = MUST.ModelInformation(name)
 		L"\rm T_{eff}="*"$(round(Int, mi.teff))"*L"\rm\ K,\ log(g)="*"$(round( mi.logg, digits=2))"*L"\rm,\ [Fe/H] ="*"$(round(mi.feh, digits=2))"
 	end
 	
-	TableOfContents()
+	pretty_from_name_short(name) = begin
+		mi = MUST.ModelInformation(name)
+		"$(round(Int, mi.teff)) K, "*"$(round( mi.logg, digits=2)), "*"$(round(mi.feh, digits=2))"
+	end
+	pretty_from_name_no_feh(name) = begin
+		mi = MUST.ModelInformation(name)
+		L"\rm T_{eff}="*"$(round(Int, mi.teff))"*L"\rm\ K,\ log(g)="*"$(round( mi.logg, digits=2))"
+	end
+	TableOfContents(title="CEMP paper")
+	
 end
 
-# ╔═╡ 4ea802dc-b3e3-44ab-8758-b76bef9de441
-pretty_from_name_short(name) = begin
-	mi = MUST.ModelInformation(name)
-	"$(round(Int, mi.teff)) K, "*"$(round( mi.logg, digits=2)), "*"$(round(mi.feh, digits=2))"
-end
+# ╔═╡ f7fa9c00-1bc2-4246-be6a-ac30ee3d6457
+md"# Model Selection"
 
-# ╔═╡ f4a66407-d7c8-43f9-b68f-1f7f29b4eba6
-pretty_from_name_no_feh(name) = begin
-	mi = MUST.ModelInformation(name)
-	L"\rm T_{eff}="*"$(round(Int, mi.teff))"*L"\rm\ K,\ log(g)="*"$(round( mi.logg, digits=2))"
-end
+# ╔═╡ cdedf1ac-7de7-4e61-83f7-03282f747445
+md"## 3D models"
 
-# ╔═╡ 06f0b894-d945-4941-aee5-e3e699e162f0
-
-
-# ╔═╡ ea64c5f8-21e3-4685-ba30-2fd61ab34974
-md"""
-# Models
-We load the models automatically and get their stellar parameters from the name, as is done in cubes_web.jl
-"""
-
-# ╔═╡ 49ce048c-18ec-44d6-a782-f474ad11c83c
+# ╔═╡ a7c4ab87-e3eb-456c-a41b-0a5d72501da4
 datadir = @in_dispatch "CEMP_models3/"
 
-# ╔═╡ d30fd639-00c4-433e-b5c4-cdc59e38281e
+# ╔═╡ ed0947be-f0bd-4054-86f7-afd8f36641bf
 snapshot_id = -1
 
-# ╔═╡ 8dfd95b6-144c-4bb0-986e-6f5cde660c3e
+# ╔═╡ eff9f59a-faaf-4f3c-ab1d-67c2bee0bdc0
+begin
+	models = String.(availableRuns(datadir))
+	models_info = Dict(
+		String(m) => MUST.ModelInformation(m) for m in models
+	)
+	cemp_models = [String(m) for m in models if MUST.ModelInformation(m).category=="CEMP"]
+	scaledSolar_models = [String(m) for m in models if MUST.ModelInformation(m).category=="ScaledSolar"]
+end
+
+# ╔═╡ 9b27ec05-9e7d-40e8-b004-62d45a0e8f25
 
 
-# ╔═╡ ccbdff2f-bc03-444b-9b0f-3ce318e10116
-models = availableRuns(datadir)
+# ╔═╡ ff4b6af5-11c5-48db-95f5-48dc055e12dc
+md"## MARCS models"
 
-# ╔═╡ 5952687e-2249-4a8e-ba83-54ab695da15a
-models_info = Dict(
-	m => MUST.ModelInformation(m) for m in models
-)
-
-# ╔═╡ d41e2628-ace8-483a-b3bd-8ddbb3bd9172
-cemp_models = [m for m in models if MUST.ModelInformation(m).category=="CEMP"]
-
-# ╔═╡ 2412db85-5a78-4eb0-89f3-00cad4ecdd14
-scaledSolar_models = [m for m in models if MUST.ModelInformation(m).category=="ScaledSolar"]
-
-# ╔═╡ 8c7f2268-27be-468c-9e61-32153a97e515
-
-
-# ╔═╡ 9c1a9d47-0389-4e7f-ab32-fb3e1c0e761c
+# ╔═╡ 895721c1-dc9d-47d4-b5fb-4e189b5184c0
 md"For each model, information about the spectra is stored in the models `m3dis` cubes. Each model also contains `MARCS` models that have spectra associated."
 
-# ╔═╡ d111e9e4-ce3f-4c6b-a65b-d11f005632c9
-listOfMARCS(name) = sort(MUST.glob("*.mod", joinpath(datadir, name)))
-
-# ╔═╡ 8f903dbe-4663-42da-8002-0dce3a6a9a66
-MARCSNames(name) = split(name, '/', keepempty=false) |> last
-
-# ╔═╡ deb4aeaa-b37c-47aa-a1a6-00d6385f8318
+# ╔═╡ 16f38c33-b243-45d0-8bf3-2a0b388a8d39
 begin
+	listOfMARCS(name) = sort(MUST.glob("*.mod", joinpath(datadir, name)))
+	MARCSNames(name) = split(name, '/', keepempty=false) |> last
+	
 	marcsmodelspaths = Dict()
 	for m in models
 		l = listOfMARCS(m)
@@ -159,32 +165,52 @@ begin
 				append!(mm, [p])
 			end
 		end
-		marcsmodelspaths[m] = mm
+		marcsmodelspaths[m] = String.(mm)
 	end
 
-	marcsmodels = Dict(k=>basename.(m) for (k, m) in marcsmodelspaths)
+	mip_models = Dict(m=>String(basename.(first(MUST.glob("marcsIP*", joinpath(datadir, m))))) for m in models)
+	marcsmodels = Dict(k=>[basename.(m)..., mip_models[k]] for (k, m) in marcsmodelspaths)
+	
 end
 
-# ╔═╡ 44d75cc5-2832-45ff-be3b-3a855cc1a636
+# ╔═╡ 550affe7-12a4-4b3f-8edb-4ff0c8c8a41b
 
 
-# ╔═╡ c6cf7c10-a62d-4c6c-8bdc-5acd9c007f40
+# ╔═╡ 06b5cd98-c60f-4d61-a723-5d2b0ac6460a
+md"For each model, we select a best matching MARCS model from the list. By default, the interpolated model is used that matches the effective temperature of the 3D model."
+
+# ╔═╡ c8469b97-df26-4753-b5be-e0b2b8a02b82
+
+
+# ╔═╡ 9a3a15f2-d167-47e5-85bf-327221203325
+
+
+# ╔═╡ 4f163103-84ce-4e36-9b69-2b6d3e880ca1
+md"## Utility functions"
+
+# ╔═╡ 82ce1cc4-350c-4ca3-9c01-21321414a240
 begin
 	get_snapshot(snapid::Int, folder, tau_name="tau500") = begin
 		pick_snapshot(folder, snapid, box_name="box", tau_name=tau_name)
 	end
 	get_snapshot(snapid::String, folder, tau_name="tau500") = begin
-		MUST.marcsBox(joinpath(folder, snapid))
+		@assert tau_name=="tau500"
+		b,b2 = pick_snapshot(folder, snapid, box_name="box_m3dis")
+
+		if ndims(b[:τ500]) == 1
+			b[:τ500] = reshape(b[:τ500], 1, 1, length(b[:τ500]))
+		end
+		b, b2
 	end
 end
 
-# ╔═╡ 533184b3-d690-4f44-87b6-6bb49ee7e2c2
+# ╔═╡ c3f55a57-397d-4b2c-87f8-0ebc133a9ab0
 get_spectra(snapid, folder) = begin
 	snapid_m3dis = MUST.snapshotid(folder |> MUST.converted_snapshots, snapid)
 	pick_snapshot(folder, snapid_m3dis, box_name="box_m3dis") |> first
 end
 
-# ╔═╡ bfc09acd-8fe3-44c9-a44f-8aefe85f3d76
+# ╔═╡ 3c6ef3eb-5ef7-43b3-946f-73049a7d9515
 get_m3d_spectra(snapid, folder; extension="lam_4297-4303_contr") = begin
 	i = if typeof(snapid) <: Int && (snapid<0)
 		"m3dis_$(MUST.list_snapshots(MUST.converted_snapshots(folder), numbered_only=true)[end+snapid+1])"
@@ -201,7 +227,7 @@ get_m3d_spectra(snapid, folder; extension="lam_4297-4303_contr") = begin
 	end
 end
 
-# ╔═╡ 5dc20e44-24eb-4e8f-bda1-fac7a1c0a5f4
+# ╔═╡ c508746d-879e-4e76-baed-136fa36d716c
 same_scaled_solar(cemp_model_name) = scaledSolar_models[
 	findfirst(
 		MUST.same_parameters(
@@ -211,13 +237,13 @@ same_scaled_solar(cemp_model_name) = scaledSolar_models[
 	)
 ]
 
-# ╔═╡ 4802eaa5-1c91-4813-b335-c217c5ceac87
+# ╔═╡ 2fa849f5-bf68-4548-9d0e-234ba6edf104
 
 
-# ╔═╡ e624d1fd-24e2-4277-8838-a9ce0026ec56
+# ╔═╡ d5e20abd-a153-4dc6-9895-d8142fcc6acc
 md"# Structure comparison"
 
-# ╔═╡ 0a3ce98b-40b5-4948-87c6-57d4cf9bbba9
+# ╔═╡ ba0a854b-5fa4-468d-91c9-380523e385cd
 """
 	plot_profile(s, q; ax, kwargs...)
 
@@ -252,39 +278,42 @@ plot_profile(b, bt, q; xvar=:τ500, ax=nothing,cmap="GnBu", alpha=1.0, bins=200,
 	x, y = profile(MUST.mean, bt, :log10τ500, q)
 end
 
-# ╔═╡ c0ef68e0-5b8a-4d6d-a529-8d6292799420
+# ╔═╡ 6d2305b8-b452-47c9-a0a2-b097029ade80
 
 
-# ╔═╡ 8749760d-4857-41ed-8a0a-f7464d5fbc67
+# ╔═╡ f4e30299-95e0-4861-919e-6a767adf1194
 md"## 3D vs. 1D"
 
-# ╔═╡ 6df206d1-6794-4bab-a10d-914c6f508137
+# ╔═╡ cfb5b8d3-4a10-44ba-9cc7-a566339a833f
 md"""
 3D model: $(@bind structure_3D_select Select(models, default=first(models)))
 """
 
-# ╔═╡ e735e811-975c-49ff-b99f-7b98e63e5150
+# ╔═╡ df166dde-2837-4440-a8dc-0c2a8194866e
 md"""
-1D model: $(@bind structure_1D_select Select(marcsmodels[structure_3D_select], default=first(marcsmodels[structure_3D_select])))
+1D model: $(@bind structure_1D_select Select(marcsmodels[structure_3D_select], default=marcsmodels[structure_3D_select][2])))
 """
 
-# ╔═╡ 6a2c237d-a0aa-4db7-9a87-b259eda25546
+# ╔═╡ 9834da27-c370-4795-a91e-89a382f7b81d
 begin
 	structure_3D1D_figsave_txt = "$(structure_3D_select)_structure"
 	md"Save figure at: $(@bind structure_3D1D_figsave confirm(TextField(length(structure_3D1D_figsave_txt)+1, default=structure_3D1D_figsave_txt)))"
 end
 
-# ╔═╡ 9ccc4261-0b53-4083-b8a3-850f10994048
+# ╔═╡ 53aa57c6-2b5c-4e04-94ab-c732ef7f2ec3
 md"""
 Formation height to overplot (3D): $(@bind formation_height_3D confirm(TextField(15)))
 """
 
-# ╔═╡ e6f379f0-6cbf-4d74-9c5e-4fb567307eea
+# ╔═╡ 64ee5874-29e7-49a3-b8b3-5f89c7156bb9
 md"""
 Formation height to overplot (1D): $(@bind formation_height_1D confirm(TextField(15)))
 """
 
-# ╔═╡ c8ad7b76-d063-457b-809e-65b818c796f4
+# ╔═╡ 73ebcfac-d1b0-496f-8f2d-df5ea3aa7830
+
+
+# ╔═╡ 7fb3939a-1709-4a77-be21-27924e2072cb
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(6, 5))
@@ -295,7 +324,8 @@ let
 	#ax.plot(profile(mean, bt, :log10τ500, :T)..., color="steelblue", lw=5)
 	
 	# 1D model
-	bmarcs = get_snapshot(structure_1D_select, joinpath(datadir, structure_3D_select))
+	bmarcs,_ = get_snapshot(structure_1D_select, joinpath(datadir, structure_3D_select))
+	@show size(bmarcs[:log10τ500]) size(bmarcs[:T])
 	ax.plot(profile(mean, bmarcs, :log10τ500, :T)..., color="tomato", lw=5)
 
 
@@ -355,7 +385,7 @@ let
 	f
 end
 
-# ╔═╡ 40f4ec5a-b88c-4aa5-8e70-3f00850ce903
+# ╔═╡ 7188fdf5-2366-47d6-b082-b476fc30ebf3
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(6, 6), layout="tight")
@@ -398,47 +428,44 @@ let
 	f
 end
 
-# ╔═╡ 99e19910-17a3-4dd2-8ec0-72dd3da2726a
+# ╔═╡ 6d6772d6-f956-4216-8731-de2fc4b32f3e
 
 
-# ╔═╡ 01ec615e-bc60-4e50-a076-692317095591
+# ╔═╡ 6174ea3c-c2e5-4c24-8299-0c7e74afa2ef
 md"## Two Model comparison"
 
-# ╔═╡ 55b53af5-c8d3-4086-ac92-5995002d8c37
+# ╔═╡ 68e0ac58-ed87-442d-a7b5-13053c9c1cdf
 md"""
 3D model (A): $(@bind structure_3D_select_A Select(cemp_models, default=first(cemp_models)))
 """
 
-# ╔═╡ 3b07d6ba-0e3f-484c-b3f8-da3840f5d020
+# ╔═╡ 52a7d86a-a6e0-4b9e-8f63-adc0cb9a0359
 md"""
-1D model (A): $(@bind structure_1D_select_A Select(marcsmodels[structure_3D_select_A], default=first(marcsmodels[structure_3D_select_A])))
+1D model (A): $(@bind structure_1D_select_A Select(marcsmodels[structure_3D_select_A], default=marcsmodels[structure_3D_select_A][2])))
 """
 
-# ╔═╡ 56a77efd-66d5-47aa-934b-99e3d1aff0a8
+# ╔═╡ e4c53afc-f220-420e-8f61-adcca2594767
 md"""
 3D model (B): $(@bind structure_3D_select_B Select(cemp_models, default=last(cemp_models)))
 """
 
-# ╔═╡ 989f922a-9596-4045-b4fc-186a18ca5725
+# ╔═╡ ae363cc0-a747-4e26-808b-97df38543144
 md"""
-1D model (B): $(@bind structure_1D_select_B Select(marcsmodels[structure_3D_select_B], default=first(marcsmodels[structure_3D_select_B])))
+1D model (B): $(@bind structure_1D_select_B Select(marcsmodels[structure_3D_select_B], default=marcsmodels[structure_3D_select_B][2]))
 """
 
-# ╔═╡ 8cebfa74-030a-4e3a-9c91-49160c1f8f64
-
-
-# ╔═╡ de37b6dc-cf8b-4a1c-95b8-ac59ac04837a
+# ╔═╡ 2275bda1-cd48-42c7-9462-89aefd5e3f8c
 begin
 	structure_3D3D_figsave_txt = "$(structure_3D_select_A)_vs_$(structure_3D_select_B)"
 	md"Save figure at: $(@bind structure_3D3D_figsave confirm(TextField(length(structure_3D3D_figsave_txt)+1, default=structure_3D3D_figsave_txt)))"
 end
 
-# ╔═╡ 687bd929-41a2-416e-ad7a-681e98096c98
+# ╔═╡ bf6c434a-0fd9-420b-ac06-bb8e215e9fdd
 begin
 	test_model_marcs = MUST.readdlm("../marcs_cemp_5800_4.5_-5.txt", skipstart=2)
 end;
 
-# ╔═╡ 212b2d0b-fbcc-4934-8ebb-627545fea549
+# ╔═╡ 951cf3cb-8f2f-4952-96fc-0318e866724e
 let
 	plt.close()
 	f, ax = plt.subplots(2, 2, figsize=(8, 11), sharey=true)
@@ -529,7 +556,7 @@ let
 		b2, bt2 = get_snapshot(
 			-1, joinpath(datadir, same_scaled_solar(structure_3D_select_A))
 		)
-		bmarcs = get_snapshot(
+		bmarcs,_ = get_snapshot(
 			structure_1D_select_A, joinpath(datadir, structure_3D_select_A)
 		)
 		d1, T1, d2, T2, d3, T3, xlim1 = panel_data(
@@ -545,7 +572,7 @@ let
 		b2, bt2 = get_snapshot(
 			-1, joinpath(datadir, same_scaled_solar(structure_3D_select_B))
 		)
-		bmarcs = get_snapshot(
+		bmarcs,_ = get_snapshot(
 			structure_1D_select_B, joinpath(datadir, structure_3D_select_B)
 		)
 		d1B, T1B, d2B, T2B, d3B, T3B, xlim1B = panel_data(
@@ -561,7 +588,7 @@ let
 		b2, bt2 = get_snapshot(
 			-1, joinpath(datadir, same_scaled_solar(structure_3D_select_A))
 		)
-		bmarcs = get_snapshot(
+		bmarcs,_ = get_snapshot(
 			structure_1D_select_A, joinpath(datadir, structure_3D_select_A)
 		)
 		tau1, tT1, tau2, tT2, tau3, tT3, xlim2 = panel_data(
@@ -577,7 +604,7 @@ let
 		b2, bt2 = get_snapshot(
 			-1, joinpath(datadir, same_scaled_solar(structure_3D_select_B))
 		)
-		bmarcs = get_snapshot(
+		bmarcs, _ = get_snapshot(
 			structure_1D_select_B, joinpath(datadir, structure_3D_select_B)
 		)
 		tau1B, tT1B, tau2B, tT2B, tau3B, tT3B, xlim2B = panel_data(
@@ -678,185 +705,121 @@ let
 	f
 end
 
-# ╔═╡ bb9ebb4c-4065-4b5c-82a6-05d88be2c55e
+# ╔═╡ d883c7c9-ef6d-49cf-b1e3-46ba8b92f2ac
 
 
-# ╔═╡ 45cd645d-055d-41a7-a7e9-0f0867d0d183
+# ╔═╡ b0653e46-ae33-4725-98aa-443a2198c3a0
+md"# Abundance Corrections"
 
-
-# ╔═╡ 69bf13d1-3f9a-45c6-98c0-523951ed812f
-md"# Spectra"
-
-# ╔═╡ d51a843b-168e-411f-8641-e02d96371678
-md"## Comparison"
-
-# ╔═╡ 44694a88-c977-4d56-9fba-a42da6f60682
-md"""
-3D CEMP model: $(@bind spectra_CEMP_select Select([nothing, cemp_models...], default=nothing))
-"""
-
-# ╔═╡ f86f0d5b-ffc1-429a-b31c-8aad4aeb396a
-if !isnothing(spectra_CEMP_select)
-md"""
-1D model: $(@bind spectra_1D_select Select(marcsmodels[spectra_CEMP_select], default=first(marcsmodels[spectra_CEMP_select])))
-"""
-end
-
-# ╔═╡ 685e9c27-dc91-4f82-8112-998383271de0
-if !isnothing(spectra_CEMP_select)
-	spectra_3D1D_tag_txt= "GBand_DC+0"
-	md"Spectra to show (CEMP): $(@bind spectra_3D1D_tag confirm(TextField(length(spectra_3D1D_tag_txt)+5, default=spectra_3D1D_tag_txt)))"
-else
-	spectra_3D1D_tag = "GBand_DC+0"
-	nothing
-end
-
-# ╔═╡ c7fb5cc8-5a09-47d7-bb4a-579fb5a085f9
-if !isnothing(spectra_CEMP_select)
-	md"Spectra to show (scaled-solar): $(@bind spectra_3D1D_ss_tag confirm(TextField(length(spectra_3D1D_tag_txt)+5, default=spectra_3D1D_tag_txt)))"
-end
-
-# ╔═╡ 136db4eb-c274-46ef-bac2-03a3bf300cac
-if !isnothing(spectra_CEMP_select)
-	spectra_3D1D_figsave_txt = "$(spectra_CEMP_select)_spectrum.pdf"
-	md"Save figure at: $(@bind spectra_3D1D_figsave confirm(TextField(length(spectra_3D1D_figsave_txt)+1, default=spectra_3D1D_figsave_txt)))"
-end
-
-# ╔═╡ 560fcc8a-a9ee-4420-bc97-eb53b9f6de94
-if !isnothing(spectra_CEMP_select)
-let
-	f, ax = plt.subplots(1, 1, figsize=(12, 4))
-	
-	# 3D CEMP spectrum
-	b = get_spectra(snapshot_id, joinpath(datadir, spectra_CEMP_select))
-	λ, F = MUST.mean_integrated_flux(b, Symbol(spectra_3D1D_tag))
-	ax.plot(λ, F, color="k", lw=1.7, label=L"\rm 3D\ CEMP")
-
-	# scaled-solar
-	smod = scaledSolar_models[
-		findfirst(
-			MUST.same_parameters(
-				MUST.ModelInformation(a), 
-				MUST.ModelInformation(spectra_CEMP_select),
-			) for a in scaledSolar_models
-		)
-	]
-	b = get_spectra(snapshot_id, joinpath(datadir, smod))
-	λ, F = MUST.mean_integrated_flux(b, Symbol(spectra_3D1D_ss_tag))
-	ax.plot(λ, F, color="steelblue", lw=1.7, label=L"\rm 3D\ \text{scaled-solar}", ls="--")
-
-	
-	# 1D model
-	try
-		bmarcs = get_spectra(spectra_1D_select, joinpath(datadir, spectra_CEMP_select))
-		λM, FM = MUST.mean_integrated_flux(bmarcs, Symbol(spectra_3D1D_tag))
-		ax.plot(λM, FM, color="tomato", lw=1.7, label=L"\rm 1D")
-	catch
-		nothing
-	end
-
-
-	ax.set_xlabel(L"\rm wavelength\ [\AA]")
-	ax.set_ylabel(L"\rm flux\ [normalized]")
-	ax.legend(loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.05), framealpha=0)
-
-	ax.set_ylim(-0.14, 1.01)
-	ax.set_xlim(4297, 4303)
-
-	cs = b[MUST.spectra_key_from_tag("composition", Symbol(spectra_3D1D_tag))]
-	ax.set_title(pretty_from_name(spectra_CEMP_select)*L"\rm,\ [C/Fe]="*"$(MUST.abundance_from_composition_string(cs, "[C/Fe]"))")
-
-	f.savefig(spectra_3D1D_figsave)
-	f
-end
-end
-
-# ╔═╡ 3fef366c-b34b-4747-ac5c-7e3ef5377ef8
-
-
-# ╔═╡ efae7789-e54d-46fa-ae43-063575e522bf
-
-
-# ╔═╡ dc3f65a6-a4f5-4bae-bb83-1287384a2e10
-md"## Abundance corrections"
-
-# ╔═╡ 3389b1ca-c595-4d78-aabf-dfee9e9672a3
-#abundance_correction_parameters = [(5250.0, 3.0), (5750.0, 4.5), (6250.0, 4.0)]
-abundance_correction_parameters = [(5250.0, 3.0), (5750.0, 4.5)]
-
-# ╔═╡ 8e56ef77-75ac-4774-ab13-d9849c4f6d30
-
-
-# ╔═╡ 9365a10c-59e1-448f-9fc2-2dbf05bf66d6
-md"We compute the abundance corrections based on the equivalent width for each of the desired models as a function of metallicity. We compute the corrections w.r.t. 1D MARCS and 3D scaled-solar reference."
-
-# ╔═╡ cecc0bff-92f5-46d7-a523-287b13753c70
+# ╔═╡ e0d62ec9-04fc-4b9b-b215-a7160ba20205
 begin
-	cemp_models_for_each_parameter = []
-	for (teff_para, logg_para) in abundance_correction_parameters
-		# find all metallicities at those parameters
-		para_mask = [
-			(m.teff==teff_para)&&(m.logg==logg_para)
-			for m in MUST.ModelInformation.(cemp_models)
-		]
+	@bind cemp_marcs_selected confirm(select_for_each(cemp_models, marcsmodels, mip_models))
+end
+
+# ╔═╡ 47b98cc4-0ecc-4d95-a257-f09076283b22
+
+
+# ╔═╡ 75efbc2c-8be3-427d-bf62-16c9a64d2e6a
+md"## Compute corrections"
+
+# ╔═╡ bedda209-be73-49d4-8bc0-b1a902a1aac3
+md"Specify the spectrum tag: $(@bind tag_sel confirm(TextField(35, default=\"GBand_DC\")))"
+
+# ╔═╡ 79da8fae-65eb-4ddf-9826-93df48bb6a2f
+md"Specify the element: $(@bind ele_sel confirm(TextField(10, default=\"[C/Fe]\")))"
+
+# ╔═╡ 80b78da6-881b-4fed-9dd0-aa7d613b6d71
+get_mean_spectra(run; onedimensional="") = begin
+	time_average_spectra = MUST.glob("$(tag_sel)*.csv", joinpath(datadir, run))
+	time_average_spectra_mask = [MUST.is_mean_spectrum(p, tag_sel, kind="flux", norm=true) for p in time_average_spectra]
+
+	modelpath = time_average_spectra[time_average_spectra_mask]
+	modelname = basename.(modelpath)
+	
+	# check if the model is actually 3D or 1D
+	irest = [findfirst("mean_flux_norm.csv", mn) for mn in modelname]
+	relevant_part = [mn[length(tag_sel)+2:first(irest[i])-2] for (i,mn) in enumerate(modelname)]
+	accepted_model = if length(onedimensional)==0
+		# we want a 3D model
+		accs = Ref(1)
+		for (i, mn) in enumerate(relevant_part)
+			a = try 
+				ss = split(mn, '-')
+				parse(Float64, ss[1]), parse(Float64, ss[2])
+				true
+			catch
+				false
+			end
+			if a
+				accs[] = i
+				break
+			end
+		end
+		accs[]
+	else
+		findfirst(x->occursin(onedimensional, x), modelname)
+	end
+	#@show accepted_model modelpath[accepted_model]
+	isnothing(accepted_model) ? nothing : MUST.MeanSpectra(modelpath[accepted_model])
+end
+
+# ╔═╡ 7c2b57e4-1c06-4adc-9017-a176fd36fe82
+function abundance_correction_time(run, reference_abundance; λs=nothing, λe=nothing)
+	corrections = Dict()
+	eqws = Dict()
+	abs = Dict()
+
+	# read the time averaged spectra for this run with this tag
+	sp3D = get_mean_spectra(run)
+	nanmask = [all(.!isnan.(s.spectrum)) for s in sp3D]
+	sp3D = sp3D[nanmask]
+
+	if occursin("CEMP", run)
+		ss_run = replace(run, "CEMP"=>"ScaledSolar")
+		sp3D_ss = get_mean_spectra(ss_run)
+		nanmask = [all(.!isnan.(s.spectrum)) for s in sp3D_ss]
+		sp3D_ss = sp3D_ss[nanmask]
+
+		sp3D_ref = MUST.interpolate(sp3D_ss, (ele_sel=>reference_abundance))
 		
-		append!(cemp_models_for_each_parameter, [cemp_models[para_mask]])
+		ab_ref, ew_ref, ab, ew, Δab = MUST.curve_of_growth(
+			ele_sel,
+			sp3D_ref,
+			sp3D,
+			λs=λs,
+			λe=λe,
+		)
+		corrections[ss_run] = Δab
 	end
 
-	cemp_models_for_each_parameter
+	snap1 = cemp_marcs_selected[Symbol(replace(run, "ScaledSolar"=>"CEMP"))]
+	sp1D = get_mean_spectra(replace(run, "ScaledSolar"=>"CEMP"), onedimensional=snap1)
+	sp1D_ref = MUST.interpolate(sp1D, (ele_sel=>reference_abundance))
+	ab_ref, ew_ref, ab, ew, Δab = MUST.curve_of_growth(
+		ele_sel,
+		sp1D_ref,
+		sp3D,
+		λs=λs,
+		λe=λe,
+	)
+	corrections[snap1] = Δab
+	eqws[run] = ew
+	abs[run] = ab
+
+	ab_ref, ew_ref, ab, ew, Δab = MUST.curve_of_growth(
+		ele_sel,
+		sp1D_ref,
+		sp1D,
+		λs=λs,
+		λe=λe,
+	)
+	eqws[snap1] = ew
+	abs[snap1] = ab
+
+	corrections, eqws, abs
 end
 
-# ╔═╡ 1c62bc8d-b0d0-4905-98f2-7c7c16cf27b7
-
-
-# ╔═╡ 9be354b8-fcb0-44b5-ae8d-7ff137325a2a
-md"Abundance corrections can now be computed for each of those parameters, for multiple references"
-
-# ╔═╡ b874cdbb-7496-471d-8e2e-4e3f47a126b0
-struct AbundanceCorrection
-	refmodel
-	model
-	ab_ref
-	ew_ref
-	ab
-	ew
-	Δab
-end
-
-# ╔═╡ d967809b-c044-49a6-a392-334d40c6d89e
-spectra_name_reference = "GBand_DC+0"
-
-# ╔═╡ e6d97f9d-7069-4b09-9486-d6a6c279838c
-spectra_name_models = [
-	"GBand_DC+0",
-	"GBand_DC+02",
-	"GBand_DC+04",
-	#"GBand_DC+06",
-	#"GBand_DC+08",
-	"GBand_DC-01",
-	"GBand_DC-02",
-	"GBand_DC-03",
-	"GBand_DC-04",
-	"GBand_DC-05",
-	"GBand_DC-06",
-	"GBand_DC-07",
-	"GBand_DC-08",
-	"GBand_DC-10",
-	"GBand_DC-12"
-]
-
-# ╔═╡ 4f2b6d24-9157-47ea-a11b-53a30dc34c7a
-spectra_reference_interpolation = [
-	"GBand_DC+0",
-	"GBand_DC-01",
-	"GBand_DC-02",
-	"GBand_DC+02",
-]
-
-# ╔═╡ 16832859-9c38-4ed7-8adc-b1af377fd658
-tag_sel = "GBand_DC"
-
-# ╔═╡ daccbade-c2b4-4c5c-a212-91168c56fdce
+# ╔═╡ 3826dca1-246c-4c61-95ee-8e497f42aa72
 begin
 	feh_scaling = [-6, -5, -4, -3, -2]
 	cfe_scaling = [4.0, 3.0, 2.0, 1.0, 1.0]
@@ -864,1744 +827,235 @@ begin
 		i = argmin(abs.(feh.-feh_scaling))
 		cfe_scaling[i]
 	end
-end
-
-# ╔═╡ 4ff6bac5-7f46-4f4b-a221-8b75bdb6b53f
-begin
-	corrections_1D = []
-	corrections_ss_1D = []
-	corrections_3D = []
-	for i in eachindex(cemp_models_for_each_parameter)
-		metallicity_corrections = Dict()
-		metallicity_ss_corrections = Dict()
-		metallicity_corrections_3D = Dict()
-		
-		for j in eachindex(cemp_models_for_each_parameter[i])
-			# current model
-			model3D_name = cemp_models_for_each_parameter[i][j]
-
-			# current metallicity
-			feh = MUST.ModelInformation(model3D_name).feh
-
-			metallicity_corrections[feh] = []
-			metallicity_ss_corrections[feh] = []
-			metallicity_corrections_3D[feh] = []
-
-			# current model spectra
-			model3D = get_spectra(snapshot_id, joinpath(datadir, model3D_name))
-
-			# compute corrections w.r.t to the scaled solar model
-			scaledsolarmodel = get_spectra(
-				snapshot_id, joinpath(datadir, same_scaled_solar(model3D_name))
-			)
-
-			tags_model = MUST.spectra_tags(model3D)
-			tags_model_mask = [MUST.is_main_tag(tag_sel, t) for t in tags_model]
-
-			tags_reference = MUST.spectra_tags(scaledsolarmodel)
-			tags_reference_mask = [MUST.is_main_tag(tag_sel, t) for t in tags_reference]
-				
-			@show same_scaled_solar(model3D_name)
-			ab_ref, ew_ref, ab, ew, Δab = if true
-				MUST.curve_of_growth(
-					"[C/Fe]", 
-					scaledsolarmodel, tags_reference[tags_reference_mask],
-					model3D, tags_model[tags_model_mask], λs=4297.0, λe=4303.0, interpolate_reference_to=reference_composition(feh)
-				)
-			else
-				@warn "Problem detected. Try interpolating ther reference"
-				ab_test = MUST.abundance_from_tag(model3D, spectra_name_reference, "[C/Fe]")
-				MUST.curve_of_growth(
-					"[C/Fe]", 
-					scaledsolarmodel, spectra_reference_interpolation,
-					model3D, spectra_name_models,
-					interpolate_reference_to=ab_test, λs=4297.0, λe=4303.0
-				)
-			end
-			ac = AbundanceCorrection(
-				same_scaled_solar(model3D_name),
-				model3D_name,
-				ab_ref,
-				ew_ref,
-				ab,
-				ew,
-				Δab,
-			)
-			append!(metallicity_corrections_3D[feh], [ac])
-
-			for marcsmodelname in marcsmodels[model3D_name]					
-				# compute corrections w.r.t all MARCS models
-				marcsmodel = get_spectra(
-					marcsmodelname, joinpath(datadir, model3D_name)
-				)
-				
-				tags_reference_marcs = MUST.spectra_tags(marcsmodel)
-				tags_reference_marcs_mask = [MUST.is_main_tag(tag_sel, t) for t in tags_reference_marcs]
-				
-				ab_ref, ew_ref, ab, ew, Δab = MUST.curve_of_growth(
-					"[C/Fe]", 
-					marcsmodel, tags_reference_marcs[tags_reference_marcs_mask],
-					model3D, tags_model[tags_model_mask], λs=4297.0, λe=4303.0, interpolate_reference_to=reference_composition(feh)
-				)
-				ac = AbundanceCorrection(
-					marcsmodelname,
-					model3D_name,
-					ab_ref,
-					ew_ref,
-					ab,
-					ew,
-					Δab,
-				)
-				append!(metallicity_corrections[feh], [ac])
-
-				# same for the scaled solar model
-				ab_ref, ew_ref, ab, ew, Δab = MUST.curve_of_growth(
-					"[C/Fe]", 
-					marcsmodel, tags_reference_marcs[tags_reference_marcs_mask],
-					scaledsolarmodel, tags_reference[tags_reference_mask], λs=4297.0, λe=4303.0, interpolate_reference_to=reference_composition(feh)
-				)
-				ac = AbundanceCorrection(
-					marcsmodelname,
-					same_scaled_solar(model3D_name),
-					ab_ref,
-					ew_ref,
-					ab,
-					ew,
-					Δab,
-				)
-				append!(metallicity_ss_corrections[feh], [ac])
-			end
-		end
-
-		# in metallicity_corrections we have stored the abundance corrections
-		# for each metallicity of a given set of parameters
-		append!(corrections_1D, [metallicity_corrections])
-		append!(corrections_ss_1D, [metallicity_ss_corrections])
-		append!(corrections_3D, [metallicity_corrections_3D])
+	
+	corrections_time = Dict()
+	eqws_time = Dict()
+	abs_time = Dict()
+	for run in models
+		mi = MUST.ModelInformation(run)
+		reference_abundance = reference_composition(mi.feh)
+		c = abundance_correction_time(run, reference_abundance, λs=4297.0, λe=4303.0)
+		corrections_time[run] = c[1]
+		eqws_time[run] = c[2]
+		abs_time[run] = c[3]
 	end
+	@info "abundance corrections computed."
 end
 
-# ╔═╡ 258d76cb-ac6b-453e-b541-29ad51461195
+# ╔═╡ 3d760565-3e87-4c13-9e78-ed6394baecaf
+corrections_time
+
+# ╔═╡ 41af66b7-2811-4bd5-972d-5260f67fbfd7
 
 
-# ╔═╡ f77ae3e8-374a-4e3c-b8b3-7985747bccc4
-md"We can now interpolate in metallicity, and store the correction functions sorted for each reference"
+# ╔═╡ d6226d59-d4e3-4652-a7a9-dbe41666511f
+md"## Select models to show"
 
-# ╔═╡ a58d4a2d-45ad-4bb3-9000-6a05f43e5d71
-get_info_from_name(name) = begin
-	if occursin(".mod", name)
-		splitname = split(name, '_')
-		teff = parse(Float64, splitname[1][2:end])
-		logg = parse(Float64, splitname[2][2:end])
-		feh  = parse(Float64, splitname[6][2:end])
-		vmic  = parse(Float64, splitname[4][2:end])
-
-		MUST.ModelInformation(
-			category="$(splitname[1][1])", 
-			teff=teff, logg=logg, feh=feh, 
-			extension=vmic, 
-			original_name=name
-		)
-	else
-		MUST.ModelInformation(name)
-	end
-end
-
-# ╔═╡ 53fef078-5301-4772-981c-68fbb1349f8d
-get_closest_model(models, reference) = begin
-	models_teff = [m.teff for m in models] ./1000.
-	models_logg = [m.logg for m in models]
-	models_feh  = [m.feh for m in models]
-
-	teff_select = reference.teff / 1000.
-	logg_select = reference.logg 
-	feh_select = reference.feh
-	
-	# compute the 3D distance to all MARCS models
-	d = (models_teff .- teff_select) .^2 .+
-		(models_logg .- logg_select) .^2 .+
-		(models_feh .- feh_select) .^2
-
-	# pick the closest 
-	argmin(d)
-end
-
-# ╔═╡ 7a831dfa-f216-4d6b-9370-5f286d7f3e77
-function read_z_corrections(corrs, reference; what=:Δab, vmic=nothing)
-	
-	metallicities = sort(keys(corrs) |> collect)
-	reference_corrections = []
-	reference_metallicities = []
-
-	for z in metallicities
-		# check if there is a reference with that name
-		mod = if reference==:closest
-			infos = [a.refmodel for a in corrs[z]] .|> get_info_from_name
-			vmic_mask = if isnothing(vmic)
-				trues(length(infos))
-			else
-				allvmics = [i.extension for i in infos]
-				closest_vmic = allvmics[argmin(abs.(allvmics .- vmic))]
-				[i.extension ≈ closest_vmic for i in infos]
-			end
-			ic = get_closest_model(
-				[a.refmodel for a in corrs[z]][vmic_mask] .|> get_info_from_name, 
-				corrs[z][1].model |> get_info_from_name
-			) 
-
-			corrs[z][vmic_mask][ic]
-		else
-			ic = findfirst([a.refmodel==reference for a in corrs[z]])
-			isnothing(ic) ? nothing : corrs[z][ic]
-		end
-		if !isnothing(mod)
-			append!(reference_corrections, [getfield(mod, what)])
-			append!(reference_metallicities, [z])
-		end
-	end
-
-	reference_metallicities, reference_corrections
-end
-
-# ╔═╡ 631410d5-7e7a-458f-a7fb-74b462913bd8
-
-
-# ╔═╡ 1149d154-42e0-4e94-b26f-716504872afa
+# ╔═╡ b606dca3-665e-4e3c-9218-eaff570551d0
 begin
-	corrections_feh_1D = [
-		read_z_corrections(
-			corrections_1D[i],
-			:closest, vmic=1
-		) for i in eachindex(corrections_1D)
+	metallcities = [-6.0, -5.0, -4.0, -3.0, -2.0]
+	# hot MS star
+	cemp_models_hot = [
+		"CEMP_t62.50g40.00m$(MUST.@sprintf("%.3f",m))_v1.0" 
+		for m in metallcities
 	]
-	
-	ab_feh_1D = [
-		read_z_corrections(
-			corrections_1D[i],
-			:closest, vmic=1, what=:ab
-		) for i in eachindex(corrections_1D)
+	scaledsolar_models_hot = [
+		"ScaledSolar_t62.50g40.00m$(MUST.@sprintf("%.3f",m))_v1.0" 
+		for m in metallcities
 	]
-	
-	ew_feh_1D = [
-		read_z_corrections(
-			corrections_1D[i],
-			:closest, vmic=1, what=:ew
-		) for i in eachindex(corrections_1D)
-	]
-	
-	ab_ref_feh_1D = [
-		read_z_corrections(
-			corrections_1D[i],
-			:closest, vmic=1, what=:ab_ref
-		) for i in eachindex(corrections_1D)
-	]
-	
-	ew_ref_feh_1D = [
-		read_z_corrections(
-			corrections_1D[i],
-			:closest, vmic=1, what=:ew_ref
-		) for i in eachindex(corrections_1D)
-	]
-	
-	correctionfunctions_feh_1D = [
-		MUST.linear_interpolation(
-			corrections_feh_1D[i][1], corrections_feh_1D[i][2], extrapolation_bc=MUST.Line()
-		) for i in eachindex(corrections_feh_1D)
-	]
-	@info "1D corrections computed."
-end;
 
-# ╔═╡ 8d19d381-a19e-4073-a19a-39bd2ff1be7c
-begin
-	corrections_feh_ss_1D = [
-		read_z_corrections(
-			corrections_ss_1D[i],
-			:closest, vmic=1
-		) for i in eachindex(corrections_ss_1D)
+	# cool sub-giant
+	cemp_models_ms = [
+		"CEMP_t57.50g45.00m$(MUST.@sprintf("%.3f",m))_v1.0" 
+		for m in metallcities
 	]
-	
-	ab_feh_ss_1D = [
-		read_z_corrections(
-			corrections_ss_1D[i],
-			:closest, vmic=1, what=:ab
-		) for i in eachindex(corrections_ss_1D)
+	scaledsolar_models_ms = [
+		"ScaledSolar_t57.50g45.00m$(MUST.@sprintf("%.3f",m))_v1.0" 
+		for m in metallcities
 	]
-	
-	ew_feh_ss_1D = [
-		read_z_corrections(
-			corrections_ss_1D[i],
-			:closest, vmic=1, what=:ew
-		) for i in eachindex(corrections_ss_1D)
-	]
-	
-	ab_ref_feh_ss_1D = [
-		read_z_corrections(
-			corrections_ss_1D[i],
-			:closest, vmic=1, what=:ab_ref
-		) for i in eachindex(corrections_ss_1D)
-	]
-	
-	ew_ref_feh_ss_1D = [
-		read_z_corrections(
-			corrections_ss_1D[i],
-			:closest, vmic=1, what=:ew_ref
-		) for i in eachindex(corrections_ss_1D)
-	]
-	
-	correctionfunctions_feh_ss_1D = [
-		MUST.linear_interpolation(
-			corrections_feh_ss_1D[i][1], corrections_feh_ss_1D[i][2], extrapolation_bc=MUST.Line()
-		) for i in eachindex(corrections_feh_ss_1D)
-	]
-	@info "1D (scaled-solar) corrections computed."
-end;
 
-# ╔═╡ ffd0e8b7-7c9a-4e51-9a1e-1982dc59754c
-begin
-	corrections_feh_3D = [
-		read_z_corrections(
-			corrections_3D[i],
-			:closest
-		) for i in eachindex(corrections_3D)
+	# hot sub-giant
+	cemp_models_sg = [
+		"CEMP_t52.50g30.00m$(MUST.@sprintf("%.3f",m))_v1.0" 
+		for m in metallcities
 	]
-	
-	ab_feh_3D = [
-		read_z_corrections(
-			corrections_3D[i],
-			:closest, what=:ab
-		) for i in eachindex(corrections_3D)
+	scaledsolar_models_sg = [
+		"ScaledSolar_t52.50g30.00m$(MUST.@sprintf("%.3f",m))_v1.0" 
+		for m in metallcities
 	]
-	
-	ew_feh_3D = [
-		read_z_corrections(
-			corrections_3D[i],
-			:closest, what=:ew
-		) for i in eachindex(corrections_3D)
-	]
-	
-	ab_ref_feh_3D = [
-		read_z_corrections(
-			corrections_3D[i],
-			:closest, what=:ab_ref
-		) for i in eachindex(corrections_3D)
-	]
-	
-	ew_ref_feh_3D = [
-		read_z_corrections(
-			corrections_3D[i],
-			:closest, what=:ew_ref
-		) for i in eachindex(corrections_3D)
-	]
-	
-	correctionfunctions_feh_3D = [
-		MUST.linear_interpolation(
-			corrections_feh_3D[i][1], corrections_feh_3D[i][2], extrapolation_bc=MUST.Line()
-		) for i in eachindex(corrections_feh_3D)
-	]
-	@info "3D corrections computed."
-end;
+end
 
-# ╔═╡ 87aaadf1-2d46-4d14-8723-8c843040d1d1
+# ╔═╡ b292f8a3-9288-4851-baae-31eb00e7f571
 
 
-# ╔═╡ f3dc3826-c36e-4292-9431-a86d4325903c
+# ╔═╡ e2b8a4f0-e180-4f2a-8e15-793bbd320282
 let
 	plt.close()
-
-	f, ax = plt.subplots(1, 3, figsize=(10, 4), sharex=true, sharey=true)
-	plt.subplots_adjust(wspace=0)
-
+	f, ax = plt.subplots(1, 3, figsize=(10, 4), sharey=true, sharex=true, layout="tight")
 	
-	ax[0].axhline(0.0, color="0.5", lw=1, ls=":")
-	ax[1].axhline(0.0, color="0.5", lw=1, ls=":")
-	ax[2].axhline(0.0, color="0.5", lw=1, ls=":")
+	plot_model(cemp_models, scaledsolar_models; kwargs...) = begin
+		marcsmodel_name = [cemp_marcs_selected[Symbol(m)] for m in cemp_models]
+		ax[0].plot(metallcities, [corrections_time[m][marcsmodel_name[i]] for (i,m) in enumerate(cemp_models)]; marker="s", markersize=11, kwargs...)
+	
+		ax[1].plot(metallcities, [corrections_time[m][scaledsolar_models[i]] for (i,m) in enumerate(cemp_models)]; marker="s", markersize=11, kwargs...)
+	
+		ax[2].plot(metallcities, [corrections_time[m][marcsmodel_name[i]] for (i,m) in enumerate(scaledsolar_models)]; marker="s", markersize=11, kwargs...)	
+	end
+
+	plot_model(cemp_models_hot, scaledsolar_models_hot; color="0.6", label=L"\rm 6250\, K,\ 4.0", ls=":", lw=2.5)
+	plot_model(cemp_models_ms, scaledsolar_models_ms; color="steelblue", label=L"\rm 5750\, K,\ 4.5", ls="--", lw=2.5)
+	plot_model(cemp_models_sg, scaledsolar_models_sg; color="tomato", label=L"\rm 5250\, K,\ 3.0", ls="-", lw=2.5)
+
+	#ax[0].scatter([-5.0], [corrections_t57g30_1D[end]], color="magenta", marker="X", s=100, label=L"\rm 5750\, K,\ 3.0")
+	#ax[0].scatter([-5.0], [corrections_t52g45_1D[end]], color="cyan", marker="X", s=100, label=L"\rm 5250\, K,\ 4.5")
 	
 
-	color = ["tomato", "steelblue", "0.7"]
-	ls = ["-", "--", ":"]
-	lw = [2.5, 2.5, 2.5]
-	marker = ["s", "s", "s"]
-	markerfacecolor = ["tomato", "steelblue", "0.7"]
-	markersize=10
+	ax[0].set_title(L"\rm 3D\ CEMP\ -\ 1D")
+	ax[1].set_title(L"\rm 3D\ CEMP\ -\ 3D\ scaled \text{-} solar")
+	ax[2].set_title(L"\rm 3D\ scaled \text{-} solar - 1D")
 
-	for i in eachindex(corrections_feh_ss_1D)
-		ax[2].plot(
-			corrections_feh_ss_1D[i][1], corrections_feh_ss_1D[i][2], 
-			color=color[i], marker=marker[i], ls=ls[i], lw=lw[i],
-			markersize=markersize, markerfacecolor=markerfacecolor[i], markeredgewidth=2,
-			#label=L"\rm T_{eff}="*"$(round(Int,abundance_correction_parameters[i][1]))"*L"\rm \ K"*"\n"*"log(g)="*"$(round(abundance_correction_parameters[i][2], digits=2))"
-			label="$(round(Int,abundance_correction_parameters[i][1])) K, $(round(abundance_correction_parameters[i][2], digits=2))"
-		)
-	end
-
-	for i in eachindex(corrections_feh_3D)
-		ax[1].plot(
-			corrections_feh_3D[i][1], corrections_feh_3D[i][2], 
-			color=color[i], marker=marker[i], ls=ls[i], lw=lw[i],
-			markersize=markersize, markerfacecolor=markerfacecolor[i], markeredgewidth=2,
-			#label=L"\rm T_{eff}="*"$(round(Int,abundance_correction_parameters[i][1]))"*L"\rm \ K"*"\n"*"log(g)="*"$(round(abundance_correction_parameters[i][2], digits=2))"
-			label="$(round(Int,abundance_correction_parameters[i][1])) K, $(round(abundance_correction_parameters[i][2], digits=2))"
-		)
-	end
-
-	for i in eachindex(corrections_feh_1D)
-		ax[0].plot(
-			corrections_feh_1D[i][1], corrections_feh_1D[i][2], 
-			color=color[i], marker=marker[i], ls=ls[i], lw=lw[i],
-			markersize=markersize, markerfacecolor=markerfacecolor[i], markeredgewidth=2,
-			#label=L"\rm T_{eff}="*"$(round(Int,abundance_correction_parameters[i][1]))"*L"\rm \ K"*"\n"*"log(g)="*"$(round(abundance_correction_parameters[i][2], digits=2))"
-			label="$(round(Int,abundance_correction_parameters[i][1])) K, $(round(abundance_correction_parameters[i][2], digits=2))"
-		)
-	end
-
-	# panel labels
-	ax[0].text(
-		0.95,0.95,"A",
-		ha="right",va="top", transform=ax[0].transAxes, fontweight="bold"
-	)
-	ax[1].text(
-		0.95,0.95,"B",
-		ha="right",va="top", transform=ax[1].transAxes, fontweight="bold"
-	)
-	ax[2].text(
-		0.95,0.95,"C",
-		ha="right",va="top", transform=ax[2].transAxes, fontweight="bold"
-	)
-
-	ax[1].legend(ncol=1, loc="lower center")
 	ax[0].set_xlabel(L"\rm [Fe/H]")
 	ax[1].set_xlabel(L"\rm [Fe/H]")
 	ax[2].set_xlabel(L"\rm [Fe/H]")
-	ax[0].set_ylabel(L"\rm \Delta A(C)\ [dex]")
-	ax[0].set_ylim(-0.97, 0.37)
-	ax[0].set_xlim(-6.3, -1.7)
+	ax[0].set_ylabel(L"\rm \Delta\, A(C)")
 
-	ax[2].set_title(L"\rm 3D\ \text{scaled-solar} - 1D")
-	ax[1].set_title(L"\rm 3D\ CEMP - 3D\ \text{scaled-solar}")
-	ax[0].set_title(L"\rm 3D\ CEMP - 1D")
+	ax[1].legend(labelspacing=0.1)
+	#ax[0].legend(labelspacing=0.1, loc="upper right")
+	ax[0].axhline(0.0, color="k", ls=":", alpha=0.5)
+	ax[1].axhline(0.0, color="k", ls=":", alpha=0.5)
+	ax[2].axhline(0.0, color="k", ls=":", alpha=0.5)
 
-	
-	#=ax[0].text(0.07, 0.5, L"\rm 3D\ \text{scaled-solar} - 1D", rotation=90, transform=ax[0].transAxes, ha="left", va="center", alpha=0.7, bbox=Dict("facecolor"=>"none", "edgecolor"=>"k"))
-	ax[1].text(0.07, 0.5, L"\rm 3D\ CEMP - 3D\ \text{scaled-solar}", rotation=90, transform=ax[1].transAxes, ha="left", va="center", alpha=0.7, bbox=Dict("facecolor"=>"none", "edgecolor"=>"k"))
-	ax[2].text(0.07, 0.5, L"\rm 3D\ CEMP - 1D", rotation=90, transform=ax[2].transAxes, ha="left", va="center", alpha=0.7, bbox=Dict("facecolor"=>"none", "edgecolor"=>"k"))
-	=#
-	f.savefig("abundance_corrections_split.pdf", bbox_inches="tight")
-
+	ax[0].set_ylim(-1.1, 0.37)
 	f
 end
 
-# ╔═╡ 093b3783-af82-4e34-a1e6-65a0df5bb35c
+# ╔═╡ 387c093e-49cf-40cb-a757-b5a8d50f50fc
 
 
-# ╔═╡ c85b36d4-ff22-4ba6-a4d1-c1791fd94ee2
-md"## CoG"
+# ╔═╡ 01aab765-3346-4212-b28f-c8bc5b51174f
+corrections_time
 
-# ╔═╡ 3a59080e-f925-48c7-b01d-660c45a7f541
-md"Choose parameters: $(@bind i_cog_p_select Select([i=>a for (i, a) in enumerate(abundance_correction_parameters)]))"
+# ╔═╡ fc4cf849-36da-4006-85c4-418e85d5e23a
 
-# ╔═╡ d8f6a261-88ab-4222-8a51-ce1b359df452
+
+# ╔═╡ 66af10ce-e791-4cf0-88ef-bceabffe0d20
+models_stellarParameters = MUST.ModelInformation.(sort(keys(corrections_time)|>collect))
+
+# ╔═╡ 59ac0194-f85c-400a-8940-20fc1f4eef03
+models_teff = [m.teff for m in models_stellarParameters]
+
+# ╔═╡ 5c7a35ae-86ee-4eb8-affa-7ff0d5e99f45
+models_logg = [m.logg for m in models_stellarParameters]
+
+# ╔═╡ 85ad8731-b3a3-4960-9ebb-732cc179525e
+models_feh = [m.feh for m in models_stellarParameters]
+
+# ╔═╡ 6aad86e1-0e90-4a1f-9ffd-fb29d9c50686
+
+
+# ╔═╡ c1b44ff5-924e-40b5-9914-0cf87825db4b
+"""
+	Finds the closest point in a set of points to a given test point.
+
+Args:
+	points: An array of points, where each point is a tuple (teff, logg).
+    test_point: The test point, as a tuple (teff, logg).
+
+Returns:
+    The closest point to the test point.
+"""
+function closest_point(points, test_point)
+  # Normalize the points to account for different magnitudes
+  teff_max = maximum(p[1] for p in points)
+  logg_max = maximum(p[2] for p in points)
+  normalized_points = [(p[1]/teff_max, p[2]/logg_max) for p in points]
+  normalized_test_point = (test_point[1]/teff_max, test_point[2]/logg_max)
+
+  # Calculate the distances between the normalized points and the normalized test point
+  distances = [sqrt((p[1] - normalized_test_point[1])^2 + (p[2] - normalized_test_point[2])^2) for p in normalized_points]
+
+  # Find the index of the closest point
+  closest_index = argmin(distances)
+
+  # Return the original (unnormalized) closest point
+  return closest_index
+end
+
+# ╔═╡ 22a6add8-76ac-4c25-8acf-c869620505a5
+md"A choice needs to be made in what quantities one wants to interpolate. It seems sensible to interpolate in logg and feh. However, the difference in the correction is not solely due to Teff or logg, but a combined effect. This means it should be not be considered lineary in any of them. Maybe it is actually better to just take the closest point."
+
+# ╔═╡ 9f9c5bc2-5926-4d5e-881c-1a403c931272
 begin
-	cog_p_select = abundance_correction_parameters[i_cog_p_select]
-	md"Choose metallicity: $(@bind cog_z_select confirm(Slider(ab_feh_1D[i_cog_p_select][1], show_value=true)))"
+	cemp_models_corr = [cemp_models_hot, cemp_models_ms, cemp_models_sg]
+	ss_models_corr = [scaledsolar_models_hot, scaledsolar_models_ms, scaledsolar_models_sg]
+	#cemp_models_corr = [cemp_models_sg, cemp_models_ms]
+	#ss_models_corr = [scaledsolar_models_sg, scaledsolar_models_ms]
 end
 
-# ╔═╡ 2dd8fd87-f543-413e-b8f3-4187ff67e52c
-let
-	f, ax = plt.subplots(1, 1, figsize=(6, 6))
-
-	feh_cog_select = ab_feh_1D[i_cog_p_select][1]
-	i_cog_feh_select = argmin(abs.(feh_cog_select .- cog_z_select))
-
-	ab = ab_feh_1D[i_cog_p_select][2][i_cog_feh_select]
-	ew = ew_feh_1D[i_cog_p_select][2][i_cog_feh_select]
-	ab_ref = ab_ref_feh_1D[i_cog_p_select][2][i_cog_feh_select]
-	ew_ref = ew_ref_feh_1D[i_cog_p_select][2][i_cog_feh_select]
-	Δab = corrections_feh_1D[i_cog_p_select][2][i_cog_feh_select]
-
-	ab_ref_3D = ab_ref_feh_3D[i_cog_p_select][2][i_cog_feh_select]
-	ew_ref_3D = ew_ref_feh_3D[i_cog_p_select][2][i_cog_feh_select]
-	Δab_3D = corrections_feh_3D[i_cog_p_select][2][i_cog_feh_select]
-
-	ew_int = MUST.linear_interpolation(ab, ew, extrapolation_bc=MUST.Line())
-	da = maximum(ab) - minimum(ab)
-	ab_arr = range(minimum(ab) - 0.1*da, maximum(ab) +0.1*da, length=100)
-	ew_arr = ew_int.(ab_arr)
-	
-	ax.plot(
-		ab_arr, ew_arr, 
-		marker="", color="k", markersize=10, ls="--"
-	)
-	ax.plot(ab, ew, marker="s", color="k", label="3D CEMP", markersize=11, ls="", markerfacecolor="w", markeredgewidth=2)
-	
-	ax.plot([ab_ref], [ew_ref], 
-		marker="X", color="tomato", ls="",
-		label="1D", markersize=12
-	)
-
-	ax.plot([ab_ref_3D], [ew_ref_3D], 
-		marker="X", color="steelblue", ls="",
-		label="3D scaled-solar", markersize=12
-	)
-
-	ax.set_ylabel(L"\rm EW\ [\AA]")
-	ax.set_xlabel(L"\rm [C/Fe]")
-
-	paras_as_name = L"\rm T_{eff}="*"$(round(Int,cog_p_select[1]))"*L"\rm ,\  log(g)="*"$(round(cog_p_select[2], digits=2))"
-	ax.set_title(paras_as_name*L"\rm ,\ [Fe/H] ="*"$(cog_z_select)")
-	ax.text(
-		0.95, 0.05, 
-		L"\rm \Delta [C/Fe]_{1D}="*"$(round(Δab, sigdigits=2))",
-		ha="right", va="bottom", transform=ax.transAxes,
-		color="tomato",
-	)
-	ax.text(
-		0.95, 0.11, 
-		L"\rm \Delta [C/Fe]_{CEMP}="*"$(round(Δab_3D, sigdigits=2))",
-		ha="right", va="bottom", transform=ax.transAxes,
-		color="steelblue",
-	)
-	ax.set_xlim(minimum(ab_arr), maximum(ab_arr))
-
-	#ax.axvline(ab_ref, color="tomato", alpha=0.5, ls=":", zorder=0, lw=1.5)
-	ax.axvline(ab_ref+ Δab, color="tomato", alpha=0.5, ls=":", zorder=0, lw=1.5)
-	ax.axhline(ew_int(ab_ref + Δab), color="tomato", alpha=0.5, ls=":", zorder=0, lw=1.5)
-	#ax.axhline(ew_int(ab_ref), color="tomato", alpha=0.5, ls=":", zorder=0, lw=1.5)
-
-	ax.axvline(ab_ref_3D, color="k", alpha=0.5, ls=":", zorder=0, lw=1.5)
-	ax.axvline(ab_ref_3D+ Δab_3D, color="steelblue", alpha=0.5, ls=":", zorder=0, lw=1.5)
-	ax.axhline(ew_int(ab_ref_3D + Δab_3D), color="steelblue", alpha=0.5, ls=":", zorder=0, lw=1.5)
-	ax.axhline(ew_int(ab_ref_3D), color="k", alpha=0.5, ls=":", zorder=0, lw=1.5)
-
-
-	ax.legend(loc="upper left")
-	ax.xaxis.set_major_locator(plt.MaxNLocator(6))
-
-	f
-end
-
-# ╔═╡ 75f3327c-00c4-4594-86ac-e2b5237dc0bc
-
-
-# ╔═╡ 1cf58f8e-e1d0-48eb-9c00-c22fc3144688
-md"## 3D - 1D evolution with metallicity"
-
-# ╔═╡ 6c9b537b-60a8-4888-ba5d-be97621e03e8
+# ╔═╡ 4ffb9e96-89f5-458e-bb36-5abaed2ba7fa
 begin
-	color_index = range(0, 100) |> collect	
-	cmap = plt.get_cmap("gnuplot2")
-	colors = [MUST.pyconvert(Tuple, cmap((i % 10)/ 10)) for i in color_index]
-	get_color!(icl) = begin
-		c = colors[icl[]]
-		icl[] += 1
-		c
+	model_parameters_corr = [MUST.ModelInformation.(m) for m in cemp_models_corr]
+	model_teff_corr = [m[1].teff for m in model_parameters_corr]
+	model_logg_corr = [m[1].logg for m in model_parameters_corr]
+	sortmask_logg_corr = sortperm(model_logg_corr)
+
+	get_feh_1Dcorrections(m; is_ss=false) = corrections_time[m][cemp_marcs_selected[is_ss ? Symbol(replace(m, "ScaledSolar"=>"CEMP")) : Symbol(m)]]
+	get_feh_3Dcorrections(m) = corrections_time[m][replace(m, "CEMP"=>"ScaledSolar")]
+	
+
+	# feh interpolators for each model
+	feh_interpolators_CEMP3D1D = [
+		MUST.linear_interpolation(
+			metallcities, 
+			get_feh_1Dcorrections.(m),
+			extrapolation_bc=MUST.Flat()
+		) for (i, m) in enumerate(cemp_models_corr)
+	]
+	feh_interpolators_ScaledSolar3D1D = [
+		MUST.linear_interpolation(
+			metallcities, 
+			get_feh_1Dcorrections.(m, is_ss=true),
+			extrapolation_bc=MUST.Flat()
+		) for (i, m) in enumerate(ss_models_corr)
+	]
+	feh_interpolators_CEMPScaledSolar3D = [
+		MUST.linear_interpolation(
+			metallcities, 
+			get_feh_3Dcorrections.(m),
+			extrapolation_bc=MUST.Flat()
+		) for (i, m) in enumerate(cemp_models_corr)
+	]
+
+	# contruct the final interpolator
+	get_correction(teff, logg, feh, interpolator) = begin
+		ΔA = [f(feh) for f in interpolator]
+		#MUST.linear_interpolation(
+		#	model_logg_corr[sortmask_logg_corr], ΔA[sortmask_logg_corr],
+		#	extrapolation_bc=MUST.Flat()
+		#)(logg)
+		ΔA[closest_point(zip(model_teff_corr, model_logg_corr), (teff, logg))]
 	end
-	cmap
+	get_CEMP3D1D_correction(teff, logg, feh) = get_correction(teff, logg, feh, feh_interpolators_CEMP3D1D)
+	get_ScaledSolar3D1D_correction(teff, logg, feh) = get_correction(teff, logg, feh, feh_interpolators_ScaledSolar3D1D)
+	get_CEMPScaledSolar3D_correction(teff, logg, feh) = get_correction(teff, logg, feh, feh_interpolators_CEMPScaledSolar3D)
 end
 
-# ╔═╡ 537080cd-02e8-4daa-86af-2eee60d1a1ca
-let
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
+# ╔═╡ 925ce950-46ca-45fe-8580-b2db83230a4a
 
-	i_para = 1
-	xlim = [-3.7, -1.2]
 
-	get_difference(f, bt, bmarcs; same_scale=nothing) = begin
-		x3D, y3D = profile(f, bt, :log10τ500, :T)
-		x1D, y1D = profile(f, bmarcs, :log10τ500, :T)
-
-		mask3D = (xlim[1] -0.1) .< x3D .< (xlim[2] +0.1)
-		mask1D = (xlim[1] -0.1) .< x1D .< (xlim[2] +0.1)
-
-		x3D, y3D = x3D[mask3D], y3D[mask3D]
-		x1D, y1D = x1D[mask1D], y1D[mask1D]
-		
-		same_scale = if isnothing(same_scale) 
-			range(
-				minimum(x3D), maximum(x3D), length=300
-			) |> collect
-		else
-			same_scale
-		end
-
-		ip3D = MUST.linear_interpolation(
-			x3D[sortperm(x3D)], y3D[sortperm(x3D)], extrapolation_bc=MUST.Line()
-		).(same_scale)
-
-		ip1D = MUST.linear_interpolation(
-			x1D[sortperm(x1D)], y1D[sortperm(x1D)], extrapolation_bc=MUST.Line()
-		).(same_scale)
-
-		same_scale, ip1D, ip3D
-	end
-
-	ic = Ref(1)
-	FH = []
-	COLS = []
-	for mfp in cemp_models_for_each_parameter[i_para]
-		mi = get_info_from_name(mfp)
-		marcsmi = get_info_from_name.(marcsmodels[mfp])
-		mclose = get_closest_model(marcsmi, mi)
-
-		col = get_color!(ic)
-		ic[] +=1
-		append!(COLS, [col])
-		X, Y3D, Y1D = [], [], []
-		YSTD3D = []
-		bmarcs = get_snapshot(marcsmodels[mfp][mclose], joinpath(datadir, mfp))
-		for i in [-1, -3, -5, -7, -9]
-			b, bt = get_snapshot(i, joinpath(datadir, mfp))
-
-			same_scale, ip1D, ip3D = if i == -1
-				get_difference(mean, bt, bmarcs)
-			else
-				get_difference(mean, bt, bmarcs, same_scale=X[1])
-			end
-
-			_, _, ipstd3D = get_difference(MUST.std, bt, bmarcs)
-			
-
-			append!(X, [same_scale])
-			append!(Y3D, [ip3D])
-			append!(YSTD3D, [ipstd3D])
-			append!(Y1D, [ip1D])
-		end
-
-		YSTD = [MUST.std([Y3D[i][j] for i in eachindex(X)]) for j in eachindex(X[1])]
-		YMEAN = [mean([Y3D[i][j] for i in eachindex(X)]) for j in eachindex(X[1])]
-		YMAX = [maximum([Y3D[i][j] for i in eachindex(X)]) for j in eachindex(X[1])]
-		YMIN = [minimum([Y3D[i][j] for i in eachindex(X)]) for j in eachindex(X[1])]
-		#=ax.fill_between(
-			X[1], 
-			((Y3D[1] .- YSTD) .- Y1D[1]) ./ (Y1D[1]) .*100,  
-			((Y3D[1] .+ YSTD) .- Y1D[1]) ./ (Y1D[1]) .*100
-		)=#
-
-		#=ax.fill_between(
-			X[1], 
-			(YMIN .- Y1D[1]) ./ (Y1D[1]) .*100,  
-			(YMAX .- Y1D[1]) ./ (Y1D[1]) .*100,
-			alpha=0.5
-		)=#
-
-
-		# we can get the contribution functions for each model like this
-		s = get_m3d_spectra(-1, joinpath(datadir, mfp))
-		krs = MUST.pyconvert(Array, s.run.nml["line_mask"]["cntrbf_lines"]) .-1
-		line = s.run.atom.trans[krs[1]]
-		xf, yf = line.get_cntrbf(gmean=true, df=0, norm=true)
-		xf = MUST.pyconvert(Array, xf)
-		yf = MUST.pyconvert(Array, yf)
-		fh = xf[argmax(yf)]
-		append!(FH, [fh])
-		#ax.axvline(fh, color=col, ls="--", alpha=0.3, lw=5)
-
-		ax.fill_between(
-			X[1], 
-			((YMEAN .- YSTD) .- Y1D[1]) ./ (Y1D[1]) .*100,  
-			((YMEAN .+ YSTD) .- Y1D[1]) ./ (Y1D[1]) .*100,
-			color=col,
-			alpha=0.6
-		)
-
-		#=ax.fill_between(
-			X[1], 
-			((Y3D[1] .- YSTD3D[1]) .- Y1D[1]) ./ (Y1D[1]) .*100,  
-			((Y3D[1] .+ YSTD3D[1]) .- Y1D[1]) ./ (Y1D[1]) .*100,
-			color=col,
-			alpha=0.2
-		)=#
-		ax.plot(
-			[],
-			[],  
-			label="[Fe/H] = $(mi.feh)", color=col, 
-			lw=5
-		)
-		
-		#=ax.plot(
-			X[1], 
-			(Y3D[1] .- Y1D[1]) ./ (Y1D[1]) .*100,  
-			label="[Fe/H] = $(mi.feh)", color=col, 
-			lw=5
-		)=#
-	end
-
-	ylim = MUST.pyconvert(Array, ax.get_ylim())
-	ylim = [ylim[1] - 0.07*(ylim[2]-ylim[1]), max(2, ylim[2] + 0.0*(ylim[2]-ylim[1]))]
-	ax.set_ylim(ylim...)
-	llim = ylim[1]
-	yrange = ylim[2] - ylim[1]
-	for i in eachindex(FH)
-		ax.hlines(
-			llim +0.03*yrange + 0.035*(i-1)*yrange, FH[i], xlim[2], ls="-", color=COLS[i], alpha=0.4, lw=7
-		)
-		ax.text(
-			FH[i]-0.1, llim +0.03*yrange + 0.035*(i-1)*yrange, 
-			"$(MUST.ModelInformation(cemp_models_for_each_parameter[i_para][i]).feh)", 
-			ha="right", va="center", fontsize="small",
-			color=COLS[i]
-		)
-	end
-
-	ax.axhline(0.0, ls=":", alpha=0.3, color="k")
-	ax.set_xlim(xlim...)
-	#ax.legend(labelspacing=0.1)
-
-	ax.set_title(
-		pretty_from_name_no_feh(cemp_models_for_each_parameter[i_para] |> first)
-	)
-	ax.set_xlabel(L"\rm optical\ depth\ [\log\tau_{500}]")
-	ax.set_ylabel(L"\rm T_{3D\ CEMP}\ /\ T_{1D} - 1\ [\%]")
-
-	tefflogg(name) = begin
-		mi = MUST.ModelInformation(name)
-		"$(mi.teff)_$(mi.logg)"
-	end
-
-	s = tefflogg(cemp_models_for_each_parameter[i_para] |> first)
-	s *= "_difference_marcs.pdf"
-	f.savefig(s)
-	f
-end
-
-# ╔═╡ 87366f88-2d35-4f90-bb71-0e7c9bcb0811
-molec_abund(s, name) = begin
-	totn = MUST.pyconvert(
-		Array, 
-		s.run.read_patch_save(name, lazy=false, concat=true, fdim=0, zdim=2)[0]
-	)
-	x = MUST.pyconvert(Array, s.run.ltau)
-	toth = MUST.pyconvert(Array, s.run.get_toth())
-
-	toth = if ndims(toth) < ndims(totn)
-		reshape(toth, size(totn)...)
-	else
-		toth
-	end
-
-	x = if ndims(x) < ndims(totn)
-		reshape(x, size(totn)...)
-	else
-		x
-	end
-	
-	y = log10.(totn./ toth) .+ 12
-
-	x = [MUST.mean(x[:, :, z]) for z in axes(x, 3)]
-	y = [MUST.mean(y[:, :, z]) for z in axes(y, 3)]
-
-	x, y
-end
-
-# ╔═╡ 9a3df65f-d469-42d9-b5c4-7cf66f1ed5f6
-get_contr_function(s; k=1) = begin
-	krs = MUST.pyconvert(Array, s.run.nml["line_mask"]["cntrbf_lines"]) .-1
-	line = s.run.atom.trans[krs[k]]
-	xf, yf = line.get_cntrbf(gmean=true, df=0, norm=true)
-	xf = MUST.pyconvert(Array, xf)
-	yf = MUST.pyconvert(Array, yf)
-
-	xf, yf
-end
-
-# ╔═╡ 46d9bb97-1fd7-4d57-bcaa-8123754f195c
-begin
-	data_3D1DForm = []
-	for i_para in eachindex(cemp_models_for_each_parameter)
-		FH3D_3D1DForm = []
-		FH1D_3D1DForm = []
-		T3D_3D1DForm = []
-		T1D_3D1DForm = []
-		D3D_3D1DForm = []
-		D1D_3D1DForm = []
-		N3D_3D1DForm = []
-		N1D_3D1DForm = []
-		FEH_3D1DForm = []
-		for mfp in cemp_models_for_each_parameter[i_para]
-			mi = get_info_from_name(mfp)
-			marcsmi = get_info_from_name.(marcsmodels[mfp])
-			mclose = get_closest_model(marcsmi, mi)
-			
-			bmarcs = get_snapshot(marcsmodels[mfp][mclose], joinpath(datadir, mfp))
-			b, bt = get_snapshot(snapshot_id, joinpath(datadir, mfp))
-	
-			# we can get the contribution functions for each model like this
-			s = get_m3d_spectra(-1, joinpath(datadir, mfp))
-			xf, yf = get_contr_function(s)
-			xCH3D, NCH3D = molec_abund(s, "CH")
-			fh = xf[argmax(yf)]
-			append!(FH3D_3D1DForm, [fh])
-	
-			# for the marcs model
-			s = get_m3d_spectra(marcsmodels[mfp][mclose], joinpath(datadir, mfp))
-			xCH1D, NCH1D = molec_abund(s, "CH")
-			xf, yf = get_contr_function(s)
-			fh = xf[argmax(yf)]
-			append!(FH1D_3D1DForm, [fh])
-	
-			# compute the mean temperature at that formation height
-			b_ip = MUST.interpolate_to(b, :T, logspace=true, τ500=FH3D_3D1DForm|>last)
-			append!(T3D_3D1DForm, [mean(b_ip[:T])])
-			b_ip = MUST.interpolate_to(bmarcs, :T, logspace=true, τ500=FH1D_3D1DForm|>last)
-			append!(T1D_3D1DForm, [mean(b_ip[:T])])
-
-			b_ip = MUST.interpolate_to(b, :d, logspace=true, τ500=FH3D_3D1DForm|>last)
-			append!(D3D_3D1DForm, [mean(b_ip[:log10d])])
-			b_ip = MUST.interpolate_to(bmarcs, :d, logspace=true, τ500=FH1D_3D1DForm|>last)
-			append!(D1D_3D1DForm, [mean(b_ip[:log10d])])
-
-			# compute the CH number density
-			n_ip = MUST.linear_interpolation(xCH3D[sortperm(xCH3D)], NCH3D[sortperm(xCH3D)], extrapolation_bc=MUST.Flat()).(FH3D_3D1DForm|>last)
-			append!(N3D_3D1DForm, [n_ip])
-
-			n_ip = MUST.linear_interpolation(xCH1D[sortperm(xCH1D)], NCH1D[sortperm(xCH1D)], extrapolation_bc=MUST.Flat()).(FH1D_3D1DForm|>last)
-			append!(N1D_3D1DForm, [n_ip])
-			
-			append!(FEH_3D1DForm, [mi.feh])
-		end
-
-		append!(data_3D1DForm, [(
-			FH3D_3D1DForm,
-			FH1D_3D1DForm,
-			T3D_3D1DForm,
-			T1D_3D1DForm,
-			D3D_3D1DForm,
-			D1D_3D1DForm,
-			N3D_3D1DForm,
-			N1D_3D1DForm,
-			FEH_3D1DForm
-		)])
-	end
-end
-
-# ╔═╡ b0e95f8f-0059-4575-bab6-80f086ba3e4a
-let
-	plt.close()
-	f, ax = plt.subplots(3, 1, figsize=(5., 9), sharex=true)
-	plt.subplots_adjust(wspace=0, hspace=0)
-
-	ax[0].axhline(0.0, ls=":", alpha=0.3, color="k")
-	ax[1].axhline(0.0, ls=":", alpha=0.3, color="k")
-	ax[2].axhline(1.0, ls=":", alpha=0.3, color="k")
-
-	#i_para = 1
-	colors = ["tomato", "steelblue", "0.7"]
-	ls = ["-", "--", ":"]
-	for i_para in eachindex(cemp_models_for_each_parameter)
-		FH3D_3D1DForm,FH1D_3D1DForm,T3D_3D1DForm,T1D_3D1DForm,D3D_3D1DForm,D1D_3D1DForm,N3D_3D1DForm,N1D_3D1DForm,FEH_3D1DForm = data_3D1DForm[i_para]
-		#=ax.plot(
-			FEH, (exp.(diss_CH ./(MUST.KBoltzmann .* T3D)) ./ exp.(diss_CH ./ (MUST.KBoltzmann .*T1D)) .* T3D.^(-3/2) ./ T1D.^(-3/2)), #./ T1D .* 100, 
-			color=colors[i_para], marker="s", markersize=12, lw=3, markeredgewidth=3, ls=ls[i_para],
-			label=pretty_from_name_no_feh(cemp_models_for_each_parameter[i_para] |> first)
-		)=#
-
-		@show cemp_models_for_each_parameter[i_para] FH3D_3D1DForm FH1D_3D1DForm
-		mi = MUST.ModelInformation(cemp_models_for_each_parameter[i_para]|>first)
-		name = "$(round(Int,mi.teff)) K, $(round(mi.logg, digits=2))"
-
-		d_CH = 5.527509387E-12
-		n_CH(T) = log10(exp(d_CH/(MUST.KBoltzmann * T)))
-		ax[0].plot(
-			FEH_3D1DForm, (T3D_3D1DForm .- T1D_3D1DForm) ./ T1D_3D1DForm .*100, 
-			color=colors[i_para], marker="s", markersize=10, lw=2.5, markeredgewidth=3, ls=ls[i_para],
-			label=name
-		)
-		ax[1].plot(
-			FEH_3D1DForm, (D3D_3D1DForm .- D1D_3D1DForm), 
-			color=colors[i_para], marker="s", markersize=10, lw=2.5, markeredgewidth=3, ls=ls[i_para],
-			label=name
-		)
-		ax[2].plot(
-			FEH_3D1DForm, exp10.(N3D_3D1DForm .- N1D_3D1DForm), 
-			color=colors[i_para], marker="s", markersize=10, lw=2.5, markeredgewidth=3, ls=ls[i_para],
-			label=name
-		)
-	end
-
-	# panel labels
-	ax[0].text(
-		0.95,0.95,"A",
-		ha="right",va="top", transform=ax[0].transAxes, fontweight="bold", fontsize="large"
-	)
-	ax[1].text(
-		0.95,0.95,"B",
-		ha="right",va="top", transform=ax[1].transAxes, fontweight="bold", fontsize="large"
-	)
-	ax[2].text(
-		0.95,0.95,"C",
-		ha="right",va="top", transform=ax[2].transAxes, fontweight="bold", fontsize="large"
-	)
-	
-	ax[1].legend(labelspacing=0.02, loc="center left", bbox_to_anchor=(0.05, 0.65))
-
-	ax[0].set_ylim(-40, 4)
-	ax[1].set_ylim(-0.77, 0.13)
-	ax[2].set_ylim(0.3, 4.5)
-
-	ax[2].set_xlabel(L"\rm [Fe/H]")
-	ax[0].set_ylabel(L"\rm T_{3D}\ /\ T_{1D} - 1\ [\%]")
-	#ax.set_ylabel(L"\rm T_{3D\ CEMP} - T_{1D}\ [K]")
-	ax[1].set_ylabel(L"\rm \log_{10}(\rho_{3D}\ /\ \rho_{1D})")
-	#ax[1].set_ylabel(L"\rm \log_{10}(\rho_{3D}) - \log_{10}(\rho_{1D})")
-	#ax[2].set_ylabel(L"\rm A(CH)_{3D} - A(CH)_{1D}")
-	#ax[2].set_ylabel(L"\rm log(n_{CH,3D}\ /\ n_{CH,1D})")
-	#ax[2].set_ylabel(L"\rm log \left( \left[ \frac{n_{CH}}{n_H}\right]_{3D}\ /\ \left[ \frac{n_{CH}}{n_H}\right]_{1D} \right)")
-	#ax[2].set_ylabel(L"\rm \log\left(\frac{n_{CH}}{n_{H}} \right)_{3D} - \log\left(\frac{n_{CH}}{n_{H}} \right)_{1D} ")
-	ax[2].set_ylabel(L"\rm n^*_{3D}\ /\ n^*_{1D}")
-
-	s = "differences_marcs_lte.pdf"
-	f.savefig(s)
-	
-	f
-end
-
-# ╔═╡ ef9fef62-5e50-4a1d-b1a9-4db7289663a7
-
-
-# ╔═╡ 331f1016-df68-4330-8983-a2db6219f966
-md"# Molecule formation"
-
-# ╔═╡ 924ea3f0-c822-44dc-9faa-1629c14f5232
-md"## Number densities"
-
-# ╔═╡ 494823c4-50b7-4e23-894c-caafaab48b29
-"""
-	plot_abund_3D(s, name; ax, cmap="Greys")
-
-Plot abundances as a function of optical depth (500).
-"""
-plot_abund_3D(s, name; ax, cmap="Greys", alpha=0.8) = begin
-	totn = MUST.pyconvert(
-		Array, 
-		s.run.read_patch_save(name, lazy=false, concat=true, fdim=0, zdim=2)[0]
-	)
-	toth = MUST.pyconvert(
-		Array, s.run.get_toth()
-	)
-	totn[totn .<= 0.0] .= minimum(totn[totn .> 0.0])
-	C1 = log10.(totn ./ toth) .+ 12
-
-	#= Plot =#
-	x = MUST.pyconvert(Array, s.run.ltau)
-	y = C1
-	
-	H, xedges, yedges = MUST.numpy.histogram2d(reshape(x, :), reshape(y, :), bins=150)
-
-	xe = MUST.pyconvert(Array, xedges)
-	ye = MUST.pyconvert(Array, yedges)
-	H = MUST.pyconvert(Array, H.T)
-
-	xx, yy = meshgrid(xe, ye)
-	
-	#=ax.imshow(
-		H, interpolation="bicubic", origin="lower", aspect="auto",
-		extent=[xe[1], xe[end], ye[1], ye[end]], cmap=cmap, norm=matplotlib.colors.LogNorm()
-	)=#
-
-	ax.imshow(
-		H, 
-		origin="lower",
-		interpolation = "bicubic", 
-		extent=[minimum(xe), maximum(xe), minimum(ye), maximum(ye)],
-		cmap=cmap, norm=matplotlib.colors.LogNorm(vmin=1), aspect="auto",
-		rasterized=true,alpha=alpha
-	)
-	#ax.pcolormesh(xx, yy, H', cmap=cmap, norm=matplotlib.colors.LogNorm(), rasterized=true)
-end
-
-# ╔═╡ 1bd82fae-afb3-4197-999e-61fba6ccfe71
-"""
-	plot_abund_av_3D(s, name; ax, kwargs...)
-
-Plot abundances (averages) as a function of optical depth (500).
-"""
-plot_abund_av_3D(s, name; ax, relative=true, kwargs...) = begin
-	try
-		totn = MUST.pyconvert(
-			Array, 
-			s.run.read_patch_save(name, lazy=false, concat=true, fdim=0, zdim=2)[0]
-		)
-		C1 = toth = MUST.pyconvert(Array, s.run.get_toth())
-		C1 = relative ? log10.(totn ./ toth) .+ 12 : log10.(totn)
-
-		#= Plot =#
-		x = MUST.pyconvert(Array, s.run.ltau)
-		y = C1
-
-		x = [MUST.mean(x[:, :, z]) for z in axes(x, 3)]
-		y = [MUST.mean(y[:, :, z]) for z in axes(y, 3)]
-		
-		ax.plot(x, y; kwargs...)
-
-		x, y
-	catch
-		totn = MUST.pyconvert(
-			Array, 
-			s.run.read_patch_save(
-				name, lazy=false, concat=true, fdim=0, zdim=2
-			)[0][0][0]
-		)
-		toth = MUST.pyconvert(Array, s.run.get_toth())
-		C1 = relative ? log10.(totn ./ toth) .+ 12 : log10.(totn)
-
-		#= Plot =#
-		x = MUST.pyconvert(Array, s.run.ltau)
-		y = C1
-
-		ax.plot(x, y; kwargs...)
-
-		x, y
-	end
-end
-
-# ╔═╡ 731fadcd-c03a-4f7d-8f49-f7c2c29c099b
-
-
-# ╔═╡ 981e31b0-7073-431c-b1a4-d82fd6e57350
-md"""
-3D model: $(@bind mol_3D_select Select(cemp_models, default=first(cemp_models)))
-"""
-
-# ╔═╡ 7e487942-9681-4441-8969-050c8328a19a
-md"""
-1D model: $(@bind mol_1D_select Select(marcsmodels[mol_3D_select], default=first(marcsmodels[mol_3D_select])))
-"""
-
-# ╔═╡ 08fba04e-f041-4c49-865e-ec254a99fc98
-if !isnothing(mol_3D_select)
-	mol_3D_figsave_txt = "$(mol_3D_select)_molec"
-	md"Save figure at: $(@bind mol_3D_figsave confirm(TextField(length(mol_3D_figsave_txt)+5, default=mol_3D_figsave_txt)))"
-end
-
-# ╔═╡ 0e7e6f79-7225-4d29-8693-b2b93ddf4812
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(5, 5))
-
-	lw_CH = 4.0
-	lw_CII = 10.0
-	alpha_CII = 0.25
-	relative=false
-
-	# 1D MARCS model
-	s = get_m3d_spectra(mol_1D_select, joinpath(datadir, mol_3D_select))
-	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 1D", color="tomato", ls="-", lw=lw_CH, relative=relative)
-	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 1D", color="lime", ls=":")
-	#plot_abund_av_3D(s, "C_I", ax=ax, color="tomato", ls="-")
-	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="tomato", ls="-", lw=lw_CII, alpha=alpha_CII, relative=relative)
-
-	xloc_ch = -1.5
-	yloc_ch = ych[argmin(abs.(xch.-xloc_ch))] - 0.1
-	ax.text(xloc_ch, yloc_ch, L"\mathbf{CH}", color="tomato", ha="left", va="top", fontsize=15)
-
-	xloc_cii = -1.5
-	yloc_cii = ycii[argmin(abs.(xcii.-xloc_cii))] + 0.4
-	ax.text(xloc_cii, yloc_cii, L"\mathbf{C\ II}", color="tomato", ha="left", va="bottom", fontsize=15, alpha=alpha_CII*2)
-
-
-	
-	
-	# scaled_solar model
-	s = get_m3d_spectra(-1, joinpath(datadir, same_scaled_solar(mol_3D_select)))
-	#plot_abund_3D(s, "CH", ax=ax, cmap="Reds", alpha=0.6)
-	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 3D\ \text{scaled-solar}", color="steelblue", lw=lw_CH, relative=relative)
-	#plot_abund_3D(s, "CO", ax=ax, cmap="Greys", alpha=0.6)
-	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 3D\ \text{scaled-solar}", color="lime")
-	
-	#plot_abund_av_3D(s, "C_I", ax=ax, color="steelblue", ls="-")
-	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="steelblue", ls="-", lw=lw_CII, alpha=alpha_CII, relative=relative)
-
-	xloc_ch = -3.9
-	yloc_ch = ych[argmin(abs.(xch.-xloc_ch))] + 0.2
-	ax.text(xloc_ch, yloc_ch, L"\mathbf{CH}", color="steelblue", ha="left", va="bottom", fontsize=15)
-
-	xloc_cii = -3.9
-	yloc_cii = ycii[argmin(abs.(xcii.-xloc_cii))] - 0.2
-	ax.text(xloc_cii, yloc_cii, L"\mathbf{C\ II}", color="steelblue", ha="left", va="top", fontsize=15, alpha=alpha_CII*2)
-	
-
-	
-	# CEMP model
-	s = get_m3d_spectra(-1, joinpath(datadir, mol_3D_select))
-	#plot_abund_3D(s, "CH", ax=ax, cmap="Reds", alpha=0.6)
-	xch, ych = plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm 3D\ CEMP", color="steelblue", ls="", marker="x", lw=lw_CH, relative=relative)
-	#plot_abund_av_3D(s, "C_I", ax=ax, color="steelblue", ls="", marker="x")
-	xcii, ycii = plot_abund_av_3D(s, "C_II", ax=ax, color="steelblue", ls="", lw=lw_CII, marker="x", alpha=alpha_CII, markersize=15, relative=relative)
-
-	#=xloc_ch = -3.9
-	yloc_ch = ych[argmin(abs.(xch.-xloc_ch))] - 0.1
-	ax.text(xloc_ch, yloc_ch, L"\mathbf{CH}", color="steelblue", ha="left", va="top", fontsize=15)
-
-	xloc_cii = -3.9
-	yloc_cii = ycii[argmin(abs.(xcii.-xloc_cii))] + 0.1
-	ax.text(xloc_cii, yloc_cii, L"\mathbf{C\ II}", color="steelblue", ha="left", va="bottom", fontsize=15, alpha=alpha_CII*2)
-	=#
-
-	ax.legend(labelspacing=0.1, loc="lower right", ncol=1)
-
-	ax.set_xlim(-4, 0)
-	if relative
-		ax.set_ylabel(L"\rm log_{10}(n_X\ /\ n_H) + 12")
-		ax.set_ylim(0.1, 4.9)
-	else
-		ax.set_ylabel(L"\rm log_{10}(n_X)\ [cm^{-3}]")
-		ax.set_ylim(3.3, 9.7)
-	end
-	ax.set_xlabel(L"\rm optical\ depth\ [\log_{10} \tau_{500}]")
-	#ax.set_ylim(3.2, 10.2)
-
-	ax.set_title(pretty_from_name(mol_3D_select))
-
-	f.savefig(mol_3D_figsave_txt*"3D.pdf", bbox_inches="tight")
-	
-	f
-end
-
-# ╔═╡ 217e0937-4b2d-4948-9a72-c236a8fc5c5a
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(7.5, 5))
-
-	# scaled_solar model
-	s = get_m3d_spectra(-1, joinpath(datadir, same_scaled_solar(mol_3D_select)))
-	#plot_abund_3D(s, "CH", ax=ax, cmap="Reds", alpha=0.6)
-	plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm CH\ -\ 3D\ \text{scaled-solar}", color="tomato")
-	#plot_abund_3D(s, "CO", ax=ax, cmap="Greys", alpha=0.6)
-	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 3D\ \text{scaled-solar}", color="lime")
-	
-	plot_abund_av_3D(s, "C_I", ax=ax, label=L"\rm C\ I\ -\ 3D\ \text{scaled-solar}", color="steelblue")
-	plot_abund_av_3D(s, "C_II", ax=ax, label=L"\rm C\ II\ -\ 3D\ \text{scaled-solar}", color="k")
-
-	
-	# 1D MARCS model
-	s = get_m3d_spectra(mol_1D_select, joinpath(datadir, mol_3D_select))
-	plot_abund_av_3D(s, "CH", ax=ax, label=L"\rm CH\ -\ 1D", color="tomato", ls=":")
-	#plot_abund_av_3D(s, "CO", ax=ax, label=L"\rm CO\ -\ 1D", color="lime", ls=":")
-	plot_abund_av_3D(s, "C_I", ax=ax, label=L"\rm C\ I\ -\ 1D", color="steelblue", ls=":")
-	plot_abund_av_3D(s, "C_II", ax=ax, label=L"\rm C\ II\ -\ 1D", color="k", ls=":")
-
-	ax.legend(labelspacing=0.1, loc="upper center", bbox_to_anchor=(0.5, 0.95), ncol=2)
-
-	ax.set_xlim(-4, 0)
-	ax.set_ylabel("[X/H]")
-	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
-	ax.set_title(pretty_from_name(mol_3D_select))
-	ax.set_ylim(0, 6.9)
-
-	f.savefig(mol_3D_figsave_txt*"1D.pdf", bbox_inches="tight")
-
-	f
-end
-
-# ╔═╡ b942b4f4-6979-42ee-8f18-b9e7b64c0379
-
-
-# ╔═╡ a84ea668-6701-4e31-9f04-cb0feb70290d
-
-
-# ╔═╡ 7dae5609-0148-438f-a207-98da5c9173d4
-md"## Constribution functions"
-
-# ╔═╡ e4232daa-7174-493d-968e-21a012204fcb
-begin
-	"""
-		plot_contr_av(s; ax, kwargs...)
-	
-	Plot contribution function (averages) as a function of optical depth (500).
-	"""
-	plot_contr_av(s; ax, kwargs...) = begin
-		krs = MUST.pyconvert(Array, s.run.nml["line_mask"]["cntrbf_lines"]) .-1
-		line = s.run.atom.trans[krs[1]]
-		x, y = line.get_cntrbf(gmean=true, df=0, norm=true)
-	
-		x = MUST.pyconvert(Array, x)
-		y = MUST.pyconvert(Array, y)
-	
-		ax.plot(x, y; kwargs...)
-
-		x, y
-	end
-	
-	"""
-		plot_contr_1D(s; ax, kwargs...)
-	
-	Plot contribution function (averages) as a function of optical depth (500).
-	"""
-	plot_contr_1D(s; ax, kwargs...) = begin
-		krs = MUST.pyconvert(Array, s.run.nml["line_mask"]["cntrbf_lines"]) .-1
-		line = s.run.atom.trans[krs[1]]
-		x, y = line.get_cntrbf(df=0, norm=true)
-
-		x = MUST.pyconvert(Array, x)
-		y = MUST.pyconvert(Array, y)
-	
-		ax.plot(x, y; kwargs...)
-
-		x, y
-	end
-end
-
-# ╔═╡ e502770d-d765-4757-a075-3fadcdd88eed
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
-
-	# scaled_solar model
-	s = get_m3d_spectra(-1, joinpath(datadir, same_scaled_solar(mol_3D_select)))
-	x, y = plot_contr_av(s, ax=ax, color="steelblue", label=L"\rm 3D\ \text{scaled-solar}")
-	formHeight_3DSS = x[argmax(y)]
-	
-	# CEMP model
-	s = get_m3d_spectra(-1, joinpath(datadir, mol_3D_select))
-	x, y = plot_contr_av(s, ax=ax, color="steelblue", ls="--", label=L"\rm 3D\ CEMP")
-	formHeight_3DCEMP = x[argmax(y)]
-
-	# 1D model
-	s = get_m3d_spectra(mol_1D_select, joinpath(datadir, mol_3D_select))
-	x, y = plot_contr_1D(s, ax=ax, color="tomato", ls="-", label=L"\rm 1D")
-	formHeight_1D = x[argmax(y)]
-
-	ax.legend(labelspacing=0.1, loc="upper left", ncol=1)
-
-	ax.set_ylabel("contribution function")
-	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
-
-	ax.set_title(pretty_from_name(mol_3D_select))
-
-	ax.set_xlim(-6, 2)
-	ax.set_ylim(-0.1, 1.1)
-
-	
-	@info "Maxima at:" formHeight_3DCEMP formHeight_3DSS formHeight_1D
-
-	f.savefig(mol_3D_figsave_txt*"contr.pdf", bbox_inches="tight")
-	
-	f
-end
-
-# ╔═╡ f64c0cd9-c0ec-44e3-9e0c-440b6fdc23e8
-
-
-# ╔═╡ 635d415f-aa91-4d25-8162-a550119e3f12
-md"# Stellar parameter dependence"
-
-# ╔═╡ 2caf0768-3202-4d16-8c24-4f9a6433076e
-md"To investigate the effect of stellar parameters one can have a look at models with same log(g), but different temperature. Two example models are prepared for this purpose"
-
-# ╔═╡ ac81d133-8894-46da-b85c-ab5d580ecd12
-switch_dir = @in_dispatch "CEMP_models3_switch"
-
-# ╔═╡ 01752527-37fd-4175-9982-02877ca4ae69
-begin
-	hot_big_CEMP_name = "CEMP_t57.50g30.00m-5.000_v1.0"
-	cold_small_CEMP_name = "CEMP_t52.50g45.00m-5.000_v1.0"
-	hot_small_CEMP_name = "CEMP_t57.50g45.00m-5.000_v1.0"
-	cold_big_CEMP_name = "CEMP_t52.50g30.00m-5.000_v1.0"
-
-	hot_big_ss_name = "ScaledSolar_t57.50g30.00m-5.000_v1.0"
-	cold_small_ss_name = "ScaledSolar_t52.50g45.00m-5.000_v1.0"
-	hot_small_ss_name = "ScaledSolar_t57.50g45.00m-5.000_v1.0"
-	cold_big_ss_name = "ScaledSolar_t52.50g30.00m-5.000_v1.0"
-
-	marcs_hot_big = "p5750_g+3.0_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"
-	marcs_cold_small = "p5250_g+4.5_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"
-	marcs_hot_small = "p5750_g+4.5_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"
-	marcs_cold_big = "p5250_g+3.0_m0.0_t01_st_z-5.00_a+0.40_c+0.00_n+0.00_o+0.40_r+0.00_s+0.00.mod"
-end
-
-# ╔═╡ 2d18e394-484d-4aef-bcb5-c45627fcf824
-let
-	plt.close()
-
-	f, ax = plt.subplots(2, 1, figsize=(12, 5), sharex=true, sharey=true)
-	plt.subplots_adjust(hspace=0, wspace=0)
-	
-	hot_big_CEMP = get_spectra(-1, joinpath(switch_dir, hot_big_CEMP_name))
-	cold_small_CEMP = get_spectra(-1, joinpath(switch_dir, cold_small_CEMP_name))
-	hot_small_CEMP = get_spectra(-1, joinpath(datadir, hot_small_CEMP_name))
-	cold_big_CEMP = get_spectra(-1, joinpath(datadir, cold_big_CEMP_name))
-
-	λ, F = MUST.mean_integrated_flux(hot_big_CEMP, Symbol(spectra_3D1D_tag))
-	ax[0].plot(
-		λ, F, 
-		color="steelblue", lw=1.7, label=pretty_from_name_short(hot_big_CEMP_name)
-	)
-	λ, F = MUST.mean_integrated_flux(cold_big_CEMP, Symbol(spectra_3D1D_tag))
-	ax[0].plot(
-		λ, F, 
-		color="tomato", lw=1.7, label=pretty_from_name_short(cold_big_CEMP_name)
-	)
-
-	# for legend
-	ax[0].plot([],[],lw=1.7,ls="--",color="steelblue",label=pretty_from_name_short(hot_small_CEMP_name))
-	ax[0].plot([],[],lw=1.7,ls="--",color="tomato",label=pretty_from_name_short(cold_small_CEMP_name))
-
-	
-	λ, F = MUST.mean_integrated_flux(hot_small_CEMP, Symbol(spectra_3D1D_tag))
-	ax[1].plot(
-		λ, F, 
-		color="steelblue", ls ="--",lw=1.7, label=pretty_from_name_short(hot_small_CEMP_name)
-	)
-	λ, F = MUST.mean_integrated_flux(cold_small_CEMP, Symbol(spectra_3D1D_tag))
-	ax[1].plot(
-		λ, F, 
-		color="tomato",ls ="--", lw=1.7, label=pretty_from_name_short(cold_small_CEMP_name)
-	)
-
-	# abundance corrections
-	model3D = get_spectra(-1, joinpath(switch_dir, hot_big_CEMP_name))
-	model3D_ss = get_spectra(-1, joinpath(switch_dir, hot_big_ss_name))
-	marcsmodel = get_spectra(
-		marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name)
-	)
-	ab_ref, ew_ref, ab, ew, Δab = MUST.curve_of_growth(
-		"[C/Fe]", 
-		model3D_ss, "GBand_DC+0",
-		model3D, [
-			"GBand_DC+0",
-			"GBand_DC+02",
-			"GBand_DC+04",
-			#"GBand_DC+06",
-			#"GBand_DC+08",
-			"GBand_DC-01",
-			"GBand_DC-02",
-			"GBand_DC-03",
-			"GBand_DC-04",
-			"GBand_DC-05",
-			"GBand_DC-06",
-			"GBand_DC-07",
-			"GBand_DC-08",
-			"GBand_DC-10",
-			"GBand_DC-12"
-		],
-	)
-	@info "$(pretty_from_name_short(hot_big_CEMP_name)), 3D CEMP vs. 3D non-CEMP: $(Δab)"
-	ab_ref, ew_ref, ab, ew, Δab = MUST.curve_of_growth(
-		"[C/Fe]", 
-		marcsmodel, "GBand_DC+0",
-		model3D_ss, [
-			"GBand_DC+0",
-			"GBand_DC+02",
-			"GBand_DC+04",
-			#"GBand_DC+06",
-			#"GBand_DC+08",
-			"GBand_DC-01",
-			"GBand_DC-02",
-			"GBand_DC-03",
-			"GBand_DC-04",
-			"GBand_DC-05",
-			"GBand_DC-06",
-			"GBand_DC-07",
-			"GBand_DC-08",
-			"GBand_DC-10",
-			"GBand_DC-12"
-		],
-	)
-	@info "$(pretty_from_name_short(hot_big_CEMP_name)), 3D non-CEMP vs. 1D: $(Δab)"
-
-
-	ax[0].set_ylim(-0.1, 1.1)
-	ax[1].set_xlabel(L"\rm wavelength\ [\AA]")
-	ax[1].set_ylabel(L"\rm flux\ [normalized]")
-	ax[0].set_ylabel(L"\rm flux\ [normalized]")
-
-	ax[0].legend(loc="lower center", ncol=4, bbox_to_anchor=(0.5, 0.9))
-
-	f
-end
-
-# ╔═╡ 4b18b95c-e574-468a-92ce-73931621e442
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
-
-	hot_big_CEMP = get_snapshot(-1, joinpath(switch_dir, hot_big_CEMP_name)) |>last
-	#cold_small_CEMP = get_snapshot(-1, joinpath(switch_dir, cold_small_CEMP_name)) |>last
-	#hot_small_CEMP = get_snapshot(-1, joinpath(datadir, hot_small_CEMP_name))
-	cold_big_CEMP = get_snapshot(-1, joinpath(datadir, cold_big_CEMP_name)) |> last
-
-	hot_big_marcs = get_snapshot(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
-	#cold_small_marcs = get_snapshot(marcs_cold_small, joinpath(switch_dir, cold_small_CEMP_name))
-	#hot_small_marcs = get_snapshot(marcs_hot_small, joinpath(datadir, hot_small_CEMP_name))
-	cold_big_marcs = get_snapshot(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
-
-	ax.plot(
-		profile(mean, hot_big_CEMP, :log10τ500, :T)..., label=pretty_from_name_short(hot_big_CEMP_name)*", 3D CEMP", color="k"
-	)
-	ax.plot(
-		profile(mean, cold_big_CEMP, :log10τ500, :T)..., label=pretty_from_name_short(cold_big_CEMP_name)*", 3D CEMP", color="tomato"
-	)
-	
-	ax.plot(
-		profile(mean, hot_big_marcs, :log10τ500, :T)..., label=pretty_from_name_short(hot_big_CEMP_name)*", MARCS", color="k", ls="--"
-	)
-	ax.plot(
-		profile(mean, cold_big_marcs, :log10τ500, :T)..., label=pretty_from_name_short(cold_big_CEMP_name)* ", MARCS", color="tomato", ls="--"
-	)
-
-	ax.legend()
-
-	ax.set_xlim(-4.2, 1)
-	ax.set_ylim(2800, 9000)
-	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
-	ax.set_ylabel(L"\rm temperature\ [K]")
-	
-	f
-end
-
-# ╔═╡ af94af20-6618-448e-b146-b3ba1b1a20f1
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
-
-	hot_big_CEMP = get_snapshot(-1, joinpath(switch_dir, hot_big_CEMP_name)) |>last
-	#cold_small_CEMP = get_snapshot(-1, joinpath(switch_dir, cold_small_CEMP_name)) |>last
-	hot_small_CEMP = get_snapshot(-1, joinpath(datadir, hot_small_CEMP_name)) |> last
-	#cold_big_CEMP = get_snapshot(-1, joinpath(datadir, cold_big_CEMP_name)) |> last
-
-	hot_big_marcs = get_snapshot(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
-	#cold_small_marcs = get_snapshot(marcs_cold_small, joinpath(switch_dir, cold_small_CEMP_name))
-	hot_small_marcs = get_snapshot(marcs_hot_small, joinpath(datadir, hot_small_CEMP_name))
-	#cold_big_marcs = get_snapshot(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
-
-	ax.plot(
-		profile(mean, hot_big_CEMP, :log10τ500, :T)..., label=pretty_from_name_short(hot_big_CEMP_name)*", 3D CEMP", color="k"
-	)
-	ax.plot(
-		profile(mean, hot_small_CEMP, :log10τ500, :T)..., label=pretty_from_name_short(hot_small_CEMP_name)*", 3D CEMP", color="tomato"
-	)
-	
-	ax.plot(
-		profile(mean, hot_big_marcs, :log10τ500, :T)..., label=pretty_from_name_short(hot_big_CEMP_name)*", MARCS", color="k", ls="--"
-	)
-	ax.plot(
-		profile(mean, hot_small_marcs, :log10τ500, :T)..., label=pretty_from_name_short(hot_small_CEMP_name)* ", MARCS", color="tomato", ls="--"
-	)
-
-	ax.axvline(log10(2/3), color="0.5", alpha=0.5, ls=":")
-
-	ax.legend()
-
-	ax.set_xlim(-4.2, 1)
-	ax.set_ylim(2800, 9000)
-	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
-	ax.set_ylabel(L"\rm temperature\ [K]")
-	
-	f
-end
-
-# ╔═╡ 22932761-ae92-4cd6-b828-07e3f86a4d0f
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
-
-	hot_big_CEMP = get_snapshot(-1, joinpath(switch_dir, hot_big_CEMP_name)) |>last
-	#cold_small_CEMP = get_snapshot(-1, joinpath(switch_dir, cold_small_CEMP_name)) |>last
-	#hot_small_CEMP = get_snapshot(-1, joinpath(datadir, hot_small_CEMP_name))
-	cold_big_CEMP = get_snapshot(-1, joinpath(datadir, cold_big_CEMP_name)) |> last
-
-	hot_big_marcs = get_snapshot(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
-	#cold_small_marcs = get_snapshot(marcs_cold_small, joinpath(switch_dir, cold_small_CEMP_name))
-	#hot_small_marcs = get_snapshot(marcs_hot_small, joinpath(datadir, hot_small_CEMP_name))
-	cold_big_marcs = get_snapshot(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
-
-	ax.plot(
-		profile(mean, hot_big_CEMP, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_big_CEMP_name)*", 3D CEMP", color="k"
-	)
-	ax.plot(
-		profile(mean, cold_big_CEMP, :log10τ500, :log10d)..., label=pretty_from_name_short(cold_big_CEMP_name)*", 3D CEMP", color="tomato"
-	)
-	
-	ax.plot(
-		profile(mean, hot_big_marcs, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_big_CEMP_name)*", MARCS", color="k", ls="--"
-	)
-	ax.plot(
-		profile(mean, cold_big_marcs, :log10τ500, :log10d)..., label=pretty_from_name_short(cold_big_CEMP_name)* ", MARCS", color="tomato", ls="--"
-	)
-
-	ax.legend()
-
-	ax.set_xlim(-4.2, 1)
-	ax.set_ylim(-10.2, -5.9)
-	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
-	ax.set_ylabel(L"\rm density\ [g\ cm^{-3}]")
-	
-	f
-end
-
-# ╔═╡ a6ee120f-0dfc-433a-8c9c-0f9f828ffe29
-let
-	plt.close()
-
-	f, ax = plt.subplots(1, 1, figsize=(6, 5))
-
-	hot_big_CEMP = get_snapshot(-1, joinpath(switch_dir, hot_big_CEMP_name)) |>last
-	#cold_small_CEMP = get_snapshot(-1, joinpath(switch_dir, cold_small_CEMP_name)) |>last
-	hot_small_CEMP = get_snapshot(-1, joinpath(datadir, hot_small_CEMP_name)) |> last
-	#cold_big_CEMP = get_snapshot(-1, joinpath(datadir, cold_big_CEMP_name)) |> last
-
-	hot_big_marcs = get_snapshot(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
-	#cold_small_marcs = get_snapshot(marcs_cold_small, joinpath(switch_dir, cold_small_CEMP_name))
-	hot_small_marcs = get_snapshot(marcs_hot_small, joinpath(datadir, hot_small_CEMP_name))
-	#cold_big_marcs = get_snapshot(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
-
-	ax.plot(
-		profile(mean, hot_big_CEMP, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_big_CEMP_name)*", 3D CEMP", color="k"
-	)
-	ax.plot(
-		profile(mean, hot_small_CEMP, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_small_CEMP_name)*", 3D CEMP", color="tomato"
-	)
-	
-	ax.plot(
-		profile(mean, hot_big_marcs, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_big_CEMP_name)*", MARCS", color="k", ls="--"
-	)
-	ax.plot(
-		profile(mean, hot_small_marcs, :log10τ500, :log10d)..., label=pretty_from_name_short(hot_small_CEMP_name)* ", MARCS", color="tomato", ls="--"
-	)
-
-	ax.axvline(log10(2/3), color="0.5", alpha=0.5, ls=":")
-
-	ax.legend()
-
-	ax.set_xlim(-4.2, 1)
-	ax.set_ylim(-10.2, -5.9)
-	ax.set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
-	ax.set_ylabel(L"\rm density\ [g\ cm^{-3}]")
-	
-	f
-end
-
-# ╔═╡ 421da8e3-f710-46f1-a602-bdc4a3266a26
-let
-	plt.close()
-
-	f, ax = plt.subplots(2, 1, figsize=(10, 10), sharex=true)
-	plt.subplots_adjust(hspace=0, wspace=0)
-
-	ax = MUST.pyconvert(Array, ax)
-
-
-	marker_alpha =0.5
-	marker_lw =1.5
-	line_alpha=1.0
-	line_lw = 3.0
-	
-	mi = MUST.ModelInformation(hot_big_CEMP_name)
-	mi2 = MUST.ModelInformation(cold_big_CEMP_name)
-	th = "$(round(Int, mi.teff)) K"
-	tc = "$(round(Int, mi2.teff)) K"
-	
-	s = get_m3d_spectra(-1, joinpath(switch_dir, hot_big_CEMP_name))
-	x_3D_hot,y_3D_hot = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ "*th, color="steelblue", lw=line_lw, alpha=line_alpha)
-	
-	s = get_m3d_spectra(-1, joinpath(datadir, cold_big_CEMP_name))
-	x_3D_cold,y_3D_cold = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ "*tc, color="tomato", ls="-", lw=line_lw, alpha=line_alpha)
-	
-	s = get_m3d_spectra(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
-	x_1D_hot,y_1D_hot = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ (MARCS)\ "*th, color="steelblue", ls="--", lw=line_lw, alpha=line_alpha)
-	
-	s = get_m3d_spectra(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
-	x_1D_cold,y_1D_cold = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ (MARCS)\ "*tc, color="tomato", ls="--", lw=line_lw, alpha=line_alpha)
-
-
-	ax[1].legend(labelspacing=0.1, loc="upper center", bbox_to_anchor=(0.5, 0.95), ncol=2)
-
-	ax[1].set_xlim(-4, 0)
-	ax[1].set_ylabel("[X/H]")
-	ax[1].set_title("log(g) = $(round(mi.logg, digits=2))")
-	ax[1].set_ylim(0, 6.9)
-
-	
-
-	# CEMP model
-	s = get_m3d_spectra(-1, joinpath(switch_dir, hot_big_CEMP_name))
-	x, y = plot_contr_av(s, ax=ax[2], color="steelblue", ls="-", label=L"\rm 3D\ CEMP,\  "*pretty_from_name_short(hot_big_CEMP_name))
-	formHeight_3D_hot = x[argmax(y)]
-
-	# 1D model
-	s = get_m3d_spectra(marcs_hot_big, joinpath(switch_dir, hot_big_CEMP_name))
-	x, y = plot_contr_1D(s, ax=ax[2], color="steelblue", ls="--", label=L"\rm 1D,\ "*pretty_from_name_short(hot_big_CEMP_name))
-	formHeight_1D_hot = x[argmax(y)]
-
-	# CEMP model
-	s = get_m3d_spectra(-1, joinpath(datadir, cold_big_CEMP_name))
-	x, y = plot_contr_av(s, ax=ax[2], color="tomato", ls="-", label=L"\rm 3D\ CEMP,\ "*pretty_from_name_short(cold_big_CEMP_name))
-	formHeight_3D_cold = x[argmax(y)]
-
-	# 1D model
-	s = get_m3d_spectra(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
-	x, y = plot_contr_1D(s, ax=ax[2], color="tomato", ls="--", label=L"\rm 1D,\ "*pretty_from_name_short(cold_big_CEMP_name))
-	formHeight_1D_cold = x[argmax(y)]
-
-
-	ax[1].axvline(formHeight_3D_hot, color="steelblue", alpha=marker_alpha, lw=marker_lw)
-	ax[1].axvline(formHeight_3D_cold, color="tomato", alpha=marker_alpha, lw=marker_lw)
-	ax[1].axvline(formHeight_1D_hot, color="steelblue", ls="--", alpha=marker_alpha, lw=marker_lw)
-	ax[1].axvline(formHeight_1D_cold, color="tomato", ls="--", alpha=marker_alpha, lw=marker_lw)
-
-	closest_temp_at_form(x, y, form) = begin
-		iclose = argmin(abs.(x .- form))
-		y[iclose]
-	end
-	ax[1].axhline(
-		closest_temp_at_form(x_3D_hot, y_3D_hot, formHeight_3D_hot), 
-			color="steelblue", alpha=marker_alpha, lw=marker_lw
-		)
-	ax[1].axhline(
-		closest_temp_at_form(x_3D_cold, y_3D_cold, formHeight_3D_cold), 
-			color="tomato", alpha=marker_alpha, lw=marker_lw
-		)
-	ax[1].axhline(
-		closest_temp_at_form(x_1D_hot, y_1D_hot, formHeight_1D_hot), 
-			color="steelblue", ls="--", alpha=marker_alpha, lw=marker_lw
-		)
-	ax[1].axhline(
-		closest_temp_at_form(x_1D_cold, y_1D_cold, formHeight_1D_cold), 
-			color="tomato", ls="--", alpha=marker_alpha, lw=marker_lw
-		)
-
-	
-
-	ax[2].legend(labelspacing=0.1, loc="upper left", ncol=2)
-
-	ax[2].set_ylabel("contribution function")
-	ax[2].set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
-
-	#ax.set_title(pretty_from_name(hot_big_CEMP_name))
-
-
-	#ax[2].set_xlim(-6, 2)
-	ax[2].set_ylim(-0.1, 1.1)
-	
-	f
-end
-
-# ╔═╡ 213822d8-0d1c-4ea0-905c-dd0897de9ae3
-let
-	plt.close()
-
-	f, ax = plt.subplots(2, 1, figsize=(10, 10), sharex=true)
-	plt.subplots_adjust(hspace=0, wspace=0)
-
-	ax = MUST.pyconvert(Array, ax)
-
-
-	marker_alpha =0.5
-	marker_lw =1.5
-	line_alpha=1.0
-	line_lw = 3.0
-	
-	mi = MUST.ModelInformation(cold_small_CEMP_name)
-	mi2 = MUST.ModelInformation(cold_big_CEMP_name)
-	th = "$(round(Int, mi.teff)) K"
-	tc = "$(round(Int, mi2.teff)) K"
-	
-	s = get_m3d_spectra(-1, joinpath(switch_dir, cold_small_CEMP_name))
-	x_3D_hot,y_3D_hot = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ "*th, color="steelblue", lw=line_lw, alpha=line_alpha)
-	
-	s = get_m3d_spectra(-1, joinpath(datadir, cold_big_CEMP_name))
-	x_3D_cold,y_3D_cold = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ "*tc, color="tomato", ls="-", lw=line_lw, alpha=line_alpha)
-	
-	s = get_m3d_spectra(marcs_cold_small, joinpath(switch_dir, cold_small_CEMP_name))
-	x_1D_hot,y_1D_hot = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ (MARCS)\ "*th, color="steelblue", ls="--", lw=line_lw, alpha=line_alpha)
-	
-	s = get_m3d_spectra(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
-	x_1D_cold,y_1D_cold = plot_abund_av_3D(s, "CH", ax=ax[1], label=L"\rm CH\ -\ (MARCS)\ "*tc, color="tomato", ls="--", lw=line_lw, alpha=line_alpha)
-
-
-	ax[1].legend(labelspacing=0.1, loc="upper center", bbox_to_anchor=(0.5, 0.95), ncol=2)
-
-	ax[1].set_xlim(-4, 0)
-	ax[1].set_ylabel("[X/H]")
-	ax[1].set_title("log(g) = $(round(mi.logg, digits=2))")
-	ax[1].set_ylim(0, 6.9)
-
-	
-
-	# CEMP model
-	s = get_m3d_spectra(-1, joinpath(switch_dir, cold_small_CEMP_name))
-	x, y = plot_contr_av(s, ax=ax[2], color="steelblue", ls="-", label=L"\rm 3D\ CEMP,\  "*pretty_from_name_short(cold_small_CEMP_name))
-	formHeight_3D_hot = x[argmax(y)]
-
-	# 1D model
-	s = get_m3d_spectra(marcs_cold_small, joinpath(switch_dir, cold_small_CEMP_name))
-	x, y = plot_contr_1D(s, ax=ax[2], color="steelblue", ls="--", label=L"\rm 1D,\ "*pretty_from_name_short(cold_small_CEMP_name))
-	formHeight_1D_hot = x[argmax(y)]
-
-	# CEMP model
-	s = get_m3d_spectra(-1, joinpath(datadir, cold_big_CEMP_name))
-	x, y = plot_contr_av(s, ax=ax[2], color="tomato", ls="-", label=L"\rm 3D\ CEMP,\ "*pretty_from_name_short(cold_big_CEMP_name))
-	formHeight_3D_cold = x[argmax(y)]
-
-	# 1D model
-	s = get_m3d_spectra(marcs_cold_big, joinpath(datadir, cold_big_CEMP_name))
-	x, y = plot_contr_1D(s, ax=ax[2], color="tomato", ls="--", label=L"\rm 1D,\ "*pretty_from_name_short(cold_big_CEMP_name))
-	formHeight_1D_cold = x[argmax(y)]
-
-
-	ax[1].axvline(formHeight_3D_hot, color="steelblue", alpha=marker_alpha, lw=marker_lw)
-	ax[1].axvline(formHeight_3D_cold, color="tomato", alpha=marker_alpha, lw=marker_lw)
-	ax[1].axvline(formHeight_1D_hot, color="steelblue", ls="--", alpha=marker_alpha, lw=marker_lw)
-	ax[1].axvline(formHeight_1D_cold, color="tomato", ls="--", alpha=marker_alpha, lw=marker_lw)
-
-	closest_temp_at_form(x, y, form) = begin
-		iclose = argmin(abs.(x .- form))
-		y[iclose]
-	end
-	ax[1].axhline(
-		closest_temp_at_form(x_3D_hot, y_3D_hot, formHeight_3D_hot), 
-			color="steelblue", alpha=marker_alpha, lw=marker_lw
-		)
-	ax[1].axhline(
-		closest_temp_at_form(x_3D_cold, y_3D_cold, formHeight_3D_cold), 
-			color="tomato", alpha=marker_alpha, lw=marker_lw
-		)
-	ax[1].axhline(
-		closest_temp_at_form(x_1D_hot, y_1D_hot, formHeight_1D_hot), 
-			color="steelblue", ls="--", alpha=marker_alpha, lw=marker_lw
-		)
-	ax[1].axhline(
-		closest_temp_at_form(x_1D_cold, y_1D_cold, formHeight_1D_cold), 
-			color="tomato", ls="--", alpha=marker_alpha, lw=marker_lw
-		)
-
-	
-
-	ax[2].legend(labelspacing=0.1, loc="upper left", ncol=2)
-
-	ax[2].set_ylabel("contribution function")
-	ax[2].set_xlabel(L"\rm optical\ depth\ [\tau_{500}]")
-
-	#ax.set_title(pretty_from_name(hot_big_CEMP_name))
-
-
-	#ax[2].set_xlim(-6, 2)
-	ax[2].set_ylim(-0.1, 1.1)
-	
-	f
-end
-
-# ╔═╡ b28a34da-219e-424e-bed3-17ac707fad74
-
-
-# ╔═╡ 874f7823-d626-45c9-aac8-72b22fe872c6
+# ╔═╡ 06ee2904-3e62-4d8f-a873-068384d3bfe6
 md"# Data comparison"
 
-# ╔═╡ 8649e73c-ddf0-42b0-b0e1-93295bcdda5f
+# ╔═╡ 6cc7f3f0-f4f9-4f7a-aceb-c79e7a278154
 md"## SAGA data"
 
-# ╔═╡ 35c27a34-6c3d-4b9f-ba87-305e81eadaff
+# ╔═╡ 1f66327a-5581-4250-ba81-a286e0a04181
 saga_all_path = "../cgisess_32aefcdc405d0a0c9fb7936f6f1324aa_data.tsv"
 
-# ╔═╡ 1f1a0d0f-cc24-448b-9291-91325a9d72eb
+# ╔═╡ dcf005c3-98cd-490a-874d-f922f8d49f3f
 saga_co_path = "../cgisess_co.tsv"
 
-# ╔═╡ 0bbf88db-b471-4c9c-999f-c3ace82841be
+# ╔═╡ 9effae34-66bb-47a4-a1a9-c4a8e12475a3
 begin
 	saga_all_data = MUST.readdlm(saga_all_path, '\t', String, skipstart=1)
 	saga_co_data = MUST.readdlm(saga_co_path, '\t', String, skipstart=1)
@@ -2691,265 +1145,49 @@ begin
 	parameters_all
 end
 
-# ╔═╡ 8eb12511-d69c-4e4a-9eeb-052471784a32
-
-
-# ╔═╡ 023e815c-5831-4445-8fb3-58981fcb09fb
+# ╔═╡ 8be627f4-3fe6-481a-a322-8ed2d6a015aa
 md"To isolate the giant stars, one has to define a limiting log(g)."
 
-# ╔═╡ 26a8f45f-e3fa-427a-82ab-004b598182a4
+# ╔═╡ addf8b42-5994-4073-a595-33df2f3b3fd4
 logg_limit = 2.7
 
-# ╔═╡ bb39c096-108c-4920-8eda-0eb60e225f35
-
-
-# ╔═╡ 05779478-7a59-43bb-badc-83c90a37016f
+# ╔═╡ 481caf39-bc3f-42f5-8edd-94ea4ca6f409
 md"We can furthermore define multiple sub-limits for different CEMP groups"
 
-# ╔═╡ 8781d794-ad28-483b-8fd1-cf8fd6d907dd
+# ╔═╡ 54261a34-ee49-434b-8cdc-6e0e9ffe3368
 # For CEMP in general
 cfe_limit = 0.7
 
-# ╔═╡ f7bd519c-01c7-42ad-ab22-5998cd0590ff
+# ╔═╡ 09b8ee6d-e9f5-4cf1-ab91-305952b3972d
 # For CEMP-s and CEMP-r/s
 ba_limit = 1.0
 
-# ╔═╡ ea87f29c-10ba-494e-8d58-ba324c7b15e1
+# ╔═╡ 1a860a43-3fd2-4b5c-8c8f-bf4341cea882
 # For CEMP-r
 eu_limit = 1.0
 
-# ╔═╡ 96fe954a-f6e0-414e-8100-48fe0c8ae271
-
-
-# ╔═╡ 94f5e285-198d-4a09-936c-5c19509eba10
+# ╔═╡ 57b503a1-e7b2-464a-a49a-359576688e58
 md"Apply r/s cut from Yoon et al. (2016) at A(C)=7.1"
 
-# ╔═╡ 8131eeff-aa5e-4434-a1e5-af46220b92e2
+# ╔═╡ dd18395c-e88f-4cb1-af1d-a5a347380464
 c_limit = 7.1
 
-# ╔═╡ c5702c96-0a5d-4420-8271-fdf38d7a5a3d
+# ╔═╡ d325fc52-afd9-474d-8e4b-05455fc340d9
 parameters_all["r/s"] = (parameters_all["cfe"] .+ parameters_all["feh"] .+ 8.560) .> c_limit
 
-# ╔═╡ d7b304d3-79ea-42e7-817d-3f35d003653a
+# ╔═╡ 5aa85e3d-8e21-47b8-a4cc-8897dc49b756
 parameters_all["no"] = (parameters_all["cfe"] .+ parameters_all["feh"] .+ 8.560) .<= c_limit
 
-# ╔═╡ 7ab6c379-1747-4ae6-94c1-6ef3a3c83f72
-
-
-# ╔═╡ 51fa1fc7-5191-48a9-af04-648e8669ba3c
+# ╔═╡ f4c3987b-e002-4db5-b166-d80bf67ddf75
 selection_mask = parameters_all["logg"] .>= logg_limit
 
-# ╔═╡ 4edb9461-7f5b-41a0-ac30-4ae72a42d3c8
-
-
-# ╔═╡ 067154e6-09fa-46ba-b7dc-7e8a6757a932
+# ╔═╡ 0e30cd20-184c-4015-b780-1e94be606e00
 let
 	teff = parameters_all["teff"][selection_mask]
 	logg = parameters_all["logg"][selection_mask]
 
-	mod_teff = [a[1] for a in abundance_correction_parameters]
-	mod_logg = [a[2] for a in abundance_correction_parameters]
-
-	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(6, 6), layout="tight")
-
-	ax.scatter(teff, logg, s=15, rasterized=true, color="k", alpha=0.06, label=L"\rm SAGA", marker="s")
-	ax.scatter([mod_teff[1]], [mod_logg[1]], color="tomato", marker="X", s=600, label=L"\rm 3D\ RHD\ models", edgecolor="none")
-	ax.scatter([mod_teff[2]], [mod_logg[2]], color="steelblue", marker="X", s=600, label=L"\rm 3D\ RHD\ models", edgecolor="none")
-	
-
-	# add text
-	labelnice(teff, logg) = L"\rm T_{eff}=\ "*"$(round(Int, teff))"*L"\rm \, K "*"\n"*L"\rm \log g =\ "*"$(round(logg, digits=3))"
-	ax.text(mod_teff[2]-550, mod_logg[2], L"Main-sequence"*"\n"*labelnice(mod_teff[2], mod_logg[2]), ha="left", va="center", color="steelblue", fontsize=15)
-
-	ax.text(mod_teff[1]+500, mod_logg[1], L"sub-giant"*"\n"*labelnice(mod_teff[1], mod_logg[1]), ha="right", va="center", color="tomato", fontsize=15)
-
-	ax.set_ylim(ax.get_ylim()[1], ax.get_ylim()[0])
-	ax.set_xlim(ax.get_xlim()[1], ax.get_xlim()[0])
-
-	ax.set_ylabel(L"\rm log(g)")
-	ax.set_xlabel(L"\rm T_{eff}\ [K]")
-	#ax.legend(labelspacing=0.1, loc="lower center", ncol=2, columnspacing=0.5)
-
-	ax.set_ylim(4.9, 2.7)
-	ax.set_xlim(7300, 3800)
-
-	f
-end
-
-# ╔═╡ c000ae23-ad64-4e91-9522-60fd72b7f5d3
-let
-	teff = parameters_all["teff"][selection_mask]
-	logg = parameters_all["logg"][selection_mask]
-
-	mod_teff = [a[1] for a in abundance_correction_parameters]
-	mod_logg = [a[2] for a in abundance_correction_parameters]
-
-	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(6, 6), layout="tight")
-
-	ax.hist(teff, bins=50)
-	ax.axvline(5750, color="tomato")
-	ax.axvline(5250, color="tomato")
-
-	f
-end
-
-# ╔═╡ b05a0a66-12e7-4c4a-bc0f-370a2d81ec0d
-let
-	teff = parameters_all["teff"][selection_mask]
-	feh = parameters_all["feh"][selection_mask]
-
-	mod_teff = [a[1] for a in abundance_correction_parameters]
-	mod_logg = [a[2] for a in abundance_correction_parameters]
-
-	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(6, 6), layout="tight")
-
-	ax.scatter(feh, teff, s=10)
-
-	f
-end
-
-# ╔═╡ c8c4f045-9687-43ea-87e8-17266604406d
-let
-	#=iso1  = MUST.readdlm("iso_1", comments=true)[:, [3, 4]]
-	iso4  = MUST.readdlm("iso_4", comments=true)[:, [3, 4]]
-	iso8  = MUST.readdlm("iso_8", comments=true)[:, [3, 4]]
-	iso12 = MUST.readdlm("iso_12", comments=true)[:, [3, 4]]
-	
-	iso12_mist = MUST.readdlm("MIST_iso_6874f11008232.txt", comments=true)[:, [11, 13]]
-	iso13_mist = MUST.readdlm("MIST_iso_13.txt", comments=true)[:, [11, 13]]
-	iso135_mist = MUST.readdlm("MIST_iso_135.txt", comments=true)[:, [11, 13]]=#
-	
-	teff = parameters_all["teff"][selection_mask]
-	logg = parameters_all["logg"][selection_mask]
-
-	mod_teff = [a[1] for a in abundance_correction_parameters]
-	mod_logg = [a[2] for a in abundance_correction_parameters]
-
-	plt.close()
-	f, ax = plt.subplots(1, 1, figsize=(7, 7), layout="tight")
-
-	#ax.plot(exp10.(iso1[:,1]), iso1[:,2])
-	#=ax.plot(exp10.(iso4[:,1]), iso4[:,2])
-	ax.plot(exp10.(iso8[:,1]), iso8[:,2])
-	ax.plot(exp10.(iso12[:,1]), iso12[:,2])
-	ax.plot(exp10.(iso12_mist[:,1]), iso12_mist[:,2])
-	ax.plot(exp10.(iso13_mist[:,1]), iso13_mist[:,2])
-	ax.plot(exp10.(iso135_mist[:,1]), iso135_mist[:,2])=#
-
-
-	# inset sub-giant
-	left, bottom, width, height = [0.18, 0.57, 0.32, 0.32]
-	ax2 = f.add_axes([left, bottom, width, height])
-	ax2.tick_params(labelsize=12)
-	b, bt = get_snapshot(snapshot_id, joinpath(datadir, "CEMP_t52.50g30.00m-5.000_v1.0"))
-	plot_profile(b, bt, :T, ax=ax)
-	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ500=0.0)[:T][:,:,1]
-	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
-	vmin = 4100
-	vmax = 6600
-	im = ax2.imshow(
-		Tplane', 
-		rasterized=true, 
-		origin="lower",
-		extent=extent,
-		cmap="gist_heat",
-		aspect="equal",
-		vmin=vmin,
-		vmax=vmax
-	)
-	cbar = f.colorbar(im, ax=ax2, fraction=0.046, pad=0.05, location="top", orientation="horizontal")
-	cbar.set_label(L"\rm temperature\ [K]", loc="left")
-	ax2.set_xlabel(L"\rm [10^{3}\, km]", loc="left")
-	ax2.xaxis.set_major_locator(plt.MaxNLocator(3))
-	ax2.yaxis.set_major_locator(plt.MaxNLocator(3))
-
-	# Create a Rectangle patch
-	rect = matplotlib.patches.Rectangle((40, -40), 5, 5, linewidth=3, edgecolor="steelblue", facecolor="none")
-	
-	# Add the patch to the Axes
-	ax2.add_patch(rect)
-	#ax2.set_title(pretty_from_name_short("CEMP_t52.50g30.00m-5.000_v1.0"))
-
-
-	# inset MS
-	left, bottom, width, height = [0.69, 0.18, 0.23, 0.23]
-	ax2 = f.add_axes([left, bottom, width, height])
-	ax2.tick_params(labelsize=12)
-	b, bt = get_snapshot(snapshot_id, joinpath(datadir, "CEMP_t57.50g45.00m-5.000_v1.0"))
-	plot_profile(b, bt, :T, ax=ax)
-	Tplane = MUST.interpolate_to(b, :T; logspace=true, τ500=0.0)[:T][:,:,1]
-	extent = [minimum(b.x), maximum(b.x), minimum(b.y), maximum(b.y)] ./1e8
-	vmin = 4100
-	vmax = 6600
-	im = ax2.imshow(
-		Tplane', 
-		rasterized=true, 
-		origin="lower",
-		extent=extent,
-		cmap="gist_heat",
-		aspect="equal",
-		vmin=vmin,
-		vmax=vmax
-	)
-	cbar = f.colorbar(im, ax=ax2, fraction=0.046, pad=0.04, location="top", orientation="horizontal")
-	cbar.set_label(L"\rm temperature\ [K]", loc="left")
-	ax2.set_xlabel(L"\rm [10^{3}\, km]", loc="left")
-	ax2.xaxis.set_major_locator(plt.MaxNLocator(3))
-	ax2.yaxis.set_major_locator(plt.MaxNLocator(3))
-	#ax2.set_title(pretty_from_name_short("CEMP_t52.50g30.00m-5.000_v1.0"))
-	
-
-	#ax.hist2d(teff, logg, rasterized=true, cmap="Greys", bins=20)
-	mean_and_nan(x) = length(x) > 0 ? mean(x) : NaN
-	std_and_nan(x) = length(x) > 0 ? MUST.std(x) : NaN
-	bins = range(2.5, 4.7, length=25)
-	bincenters = (bins[2:end] .+ bins[1:end-1]) ./ 2
-	meanT = [
-		mean_and_nan(teff[bins[i-1] .< logg .< bins[i]]) for i in 2:length(bins)
-	]
-	sigmaT = [
-		std_and_nan(teff[bins[i-1] .< logg .< bins[i]]) for i in 2:length(bins)
-	]
-	
-	ax.scatter(teff, logg, s=55, rasterized=true, color="0.3", alpha=0.1, label=L"\rm SAGA", marker="o", zorder=1)
-	ax.scatter(parameters_all["teff"][.!selection_mask], parameters_all["logg"][.!selection_mask], s=35, rasterized=true, color="0.8", alpha=0.15, label=L"\rm SAGA", marker="o", zorder=1)
-	ax.axhline(logg_limit, color="k", ls="--", alpha=0.5)
-	
-	ax.plot(meanT, bincenters, color="k", lw=4, zorder=2)
-	ax.fill_betweenx(bincenters, meanT.-sigmaT, meanT.+sigmaT, color="0.5", alpha=0.5)
-	
-	ax.scatter([mod_teff[1]], [mod_logg[1]], color="tomato", marker="X", s=600, label=L"\rm 3D\ RHD\ models", edgecolor="k", zorder=3)
-	ax.scatter([mod_teff[2]], [mod_logg[2]], color="steelblue", marker="X", s=600, label=L"\rm 3D\ RHD\ models", edgecolor="k", zorder=3)
-
-	# add text
-	labelnice(teff, logg) = L"\rm T_{eff}=\ "*"$(round(Int, teff))"*L"\rm \, K "*"\n"*L"\rm \log g =\ "*"$(round(logg, digits=3))"
-	ax.text(mod_teff[2]+600, mod_logg[2]+0.1, L"\mathbf{main-sequence}"*"\n"*labelnice(mod_teff[2], mod_logg[2]), ha="right", va="center", color="steelblue", fontsize=15)
-
-	ax.text(mod_teff[1]-600, mod_logg[1]-0.04, L"\mathbf{sub-giant}"*"\n"*labelnice(mod_teff[1], mod_logg[1]), ha="left", va="center", color="tomato", fontsize=15)
-
-	ax.set_ylim(ax.get_ylim()[1], ax.get_ylim()[0])
-	ax.set_xlim(ax.get_xlim()[1], ax.get_xlim()[0])
-
-	ax.set_ylabel(L"\rm \log g")
-	ax.set_xlabel(L"\rm T_{eff}\ [K]")
-	#ax.legend(labelspacing=0.1, loc="lower center", ncol=2, columnspacing=0.5)
-
-	ax.set_ylim(4.95, 1.2)
-	ax.set_xlim(8400, 2800)
-
-	f
-end
-
-# ╔═╡ 5fdfa96b-0ec1-49c4-9ebb-8fbe0bad0c69
-let
-	teff = parameters_all["teff"][selection_mask]
-	logg = parameters_all["logg"][selection_mask]
-
-	mod_teff = [a[1] for a in abundance_correction_parameters]
-	mod_logg = [a[2] for a in abundance_correction_parameters]
+	mod_teff = model_teff_corr
+	mod_logg = model_logg_corr
 
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(6.5, 7), layout="tight")
@@ -3160,7 +1398,7 @@ let
 	
 	ax.scatter([mod_teff[1]], [mod_logg[1]], color="tomato", marker="X", s=600, label=L"\rm 3D\ RHD\ models", edgecolor="k", zorder=100)
 	ax.scatter([mod_teff[2]], [mod_logg[2]], color="steelblue", marker="X", s=600, label=L"\rm 3D\ RHD\ models", edgecolor="k", zorder=100)
-	ax.scatter([6250, 6000, 5750, 5500, 5250, 5000], [4.0,4.0,4.0,4,4,4], color="yellowgreen", marker="X", s=100, zorder=100)
+	ax.scatter([6250, 6000, 5750], [4.0,4.0,4.0], color="yellowgreen", marker="X", s=100, zorder=100)
 
 
 	
@@ -3184,62 +1422,10 @@ let
 	f
 end
 
-# ╔═╡ 36cf99a4-d9cb-4282-a45c-50b7ff5833d3
+# ╔═╡ b377a70f-c7cf-43d8-b6c9-cd8d42fa2835
 
 
-# ╔═╡ 990e7d73-3e8e-4900-a225-4e5cac6ac8c6
-md"Next we can correct the data by using the abundance corrections from above"
-
-# ╔═╡ 5e31351e-5e77-46a5-9e8c-baa53eeaee73
-"""
-	Finds the closest point in a set of points to a given test point.
-
-Args:
-	points: An array of points, where each point is a tuple (teff, logg).
-    test_point: The test point, as a tuple (teff, logg).
-
-Returns:
-    The closest point to the test point.
-"""
-function closest_point(points, test_point)
-  # Normalize the points to account for different magnitudes
-  teff_max = maximum(p[1] for p in points)
-  logg_max = maximum(p[2] for p in points)
-  normalized_points = [(p[1]/teff_max, p[2]/logg_max) for p in points]
-  normalized_test_point = (test_point[1]/teff_max, test_point[2]/logg_max)
-
-  # Calculate the distances between the normalized points and the normalized test point
-  distances = [sqrt((p[1] - normalized_test_point[1])^2 + (p[2] - normalized_test_point[2])^2) for p in normalized_points]
-
-  # Find the index of the closest point
-  closest_index = argmin(distances)
-
-  # Return the original (unnormalized) closest point
-  return closest_index
-end
-
-# ╔═╡ 73b3581d-a484-4ff4-8e69-445192946a3b
-"""
-	interpolate_corrections(teff, logg, feh; feh_interpolators=interpolators)
-
-Interpolate the corrections in metallicity based on the closest point in the Teff, logg plane.
-"""
-function interpolate_corrections(teff, logg, feh; feh_interpolators=interpolators)
-	logg_gr = getindex.(abundance_correction_parameters, 2)
-	teff_gr = getindex.(abundance_correction_parameters, 1)
-
-	# closest point teff-logg plane
-	tefflogg = closest_point(zip(teff_gr,logg_gr)|>collect, (teff, logg))
-
-	# interpolate the corrections in metallicity
-	if !isnan(feh)
-		feh_interpolators[tefflogg](feh)
-	else
-		feh
-	end
-end
-
-# ╔═╡ 2fc5e72e-4c17-4519-915d-88479d11228f
+# ╔═╡ dfe8046d-a75e-424c-bc51-a2e429b97f70
 begin
 	corrections_saga_all = fill!(similar(parameters_all["cfe"]), 0.0)
 	
@@ -3247,40 +1433,35 @@ begin
 		logg = parameters_all["logg"][i]
 		teff = parameters_all["teff"][i]
 		feh = parameters_all["feh"][i]
-		corrections_saga_all[i] = interpolate_corrections(
-			teff, logg, feh, feh_interpolators=correctionfunctions_feh_1D
-		)
+		corrections_saga_all[i] = get_CEMP3D1D_correction(teff, logg, feh)
 	end
 
 	@info "3D corrections applied."
 end
 
-# ╔═╡ c012c57f-ea9c-44fa-ab8d-e2794953b214
+# ╔═╡ 92228544-f92c-4c50-ad50-3cb818bb4523
 
 
-# ╔═╡ 0bb30e77-41a2-4e73-a032-cf6b408f3d7c
+# ╔═╡ a7707e78-18f9-4c96-b5ff-c51cb9311652
 md"## Galactic CEMP Distributions"
 
-# ╔═╡ f6d84057-c57e-4f50-90bf-f5cba97aca2a
+# ╔═╡ dea25815-eebf-4308-a06f-09a7a49862c3
 md"Predictions from Hartwig et al. 2018, extracted from their Figure:"
 
-# ╔═╡ dd9203c7-7c19-4e49-9458-bfa11fa089b6
+# ╔═╡ 80ba8489-3a1a-4d3b-88fe-56954397c7df
 begin
 	hartwig18_fiducial = MUST.readdlm("../hartwig18_fiducial.csv", ',')
 	hartwig18_faint20 = MUST.readdlm("../hartwig18_faint20.csv", ',')
 end;
 
-# ╔═╡ 570da95e-276c-4173-a5d1-77106cd1e8ff
-
-
-# ╔═╡ 216a0e5c-12ee-4e04-9f50-cb5bd4fa510e
+# ╔═╡ c0a0d7cd-6b6f-47a2-a666-959e2cb68b7c
 #metallicity_bin_edges = [-6.5, -5.5, -4.5, -3.5, -2.5, -1.5, -0.5, 0.0]
 metallicity_bin_edges = [-7.5, -6.5, -5.5, -4.5, -3.5, -2.5, -1.5, -0.5, 0.0]
 
-# ╔═╡ 27b5837f-b21a-434b-a074-a18e9ef7f3d2
+# ╔═╡ 5709600f-4817-43bd-b34b-404e173efb43
 metallicity_bin_centers = (metallicity_bin_edges[2:end] .+ metallicity_bin_edges[1:end-1]) ./ 2
 
-# ╔═╡ 952d802f-82dd-47e9-a1f9-fa98fc505d28
+# ╔═╡ c2cae081-827b-4606-91c6-a5610b3f72b9
 function bin_parameter(bins, general_mask=trues(size(data, 1)); data=saga_all_data, para=parameters_all, selection=selection_mask, name="feh")
 	bin_centers = (bins[2:end] .+ bins[1:end-1]) ./ 2
 	bin_masks = falses(size(data, 1), length(bin_centers))
@@ -3294,7 +1475,7 @@ function bin_parameter(bins, general_mask=trues(size(data, 1)); data=saga_all_da
 	bin_masks
 end
 
-# ╔═╡ e465e7b6-91a7-4826-859b-5b60382bc96f
+# ╔═╡ ff2843c9-a864-466c-b8fc-87b95e1da2f2
 begin
 	bins_general = bin_parameter(
 		metallicity_bin_edges, 
@@ -3400,20 +1581,20 @@ begin
 	@info "Bin counts (non-binarity): $(count_bins_binary)"
 end
 
-# ╔═╡ 35534a50-475a-40b9-a6f3-a352da70ab7f
+# ╔═╡ 2404c7e6-b3cb-4c92-9261-bdef297e727f
 get_n_below(lower_than_feh, feh, mask) = begin
 	below_limit = (feh .<= lower_than_feh) .& selection_mask .& mask
 	count(below_limit)
 end
 
-# ╔═╡ 7c9d2201-4078-4f42-9466-57f7bc8f4e1f
+# ╔═╡ b9b2059c-c098-48d8-94bb-587715552774
 get_n_below_frac(lower_than_feh, feh, mask) = begin
 	below_limit = (feh .<= lower_than_feh) .& selection_mask
 	below_limit_mask = (feh .<= lower_than_feh) .& selection_mask .& mask
 	count(below_limit_mask) / count(below_limit)
 end
 
-# ╔═╡ 48bf4d88-82e0-4aaa-b1e8-35d375a03910
+# ╔═╡ ea48b2d1-c752-4047-8523-474aaecc82b0
 begin
 	@info "cumsum of those bins:"
 	@info cumsum(count_bins_general)
@@ -3421,19 +1602,16 @@ begin
 	@info cumsum(count_bins_CEMP_corr)
 end
 
-# ╔═╡ a625e31c-a113-45b5-b7c8-a21e31df18b1
+# ╔═╡ 67ddc416-4cbb-4fb5-9d3c-b83ce557d141
 @info "Stars with log(g) higher than limit: $(count(selection_mask .& (parameters_all["feh"] .< 0.0)))"
 
-# ╔═╡ fd8d8aaa-7cf7-4b64-a823-cbd2f4781f05
+# ╔═╡ 64b264bd-d556-4b08-8c64-b77c51849be2
 @info "Stars with log(g) higher than limit + [C/Fe]: $(count(selection_mask .& (.!isnan.(parameters_all["cfe"])) .& (parameters_all["feh"] .< 0.0)))"
 
-# ╔═╡ 6a49c831-5b6b-4c7c-9146-db03db278004
+# ╔═╡ d67f968c-7405-46ff-8588-da811fc79dbc
 @info "CEMP stars: $(count(selection_mask .& (.!isnan.(parameters_all["cfe"])) .& (parameters_all["feh"] .< 0.0) .& (parameters_all["cfe"] .> 0.7)))"
 
-# ╔═╡ f07880a2-bbaa-47c9-897a-fd94d93ede4f
-
-
-# ╔═╡ 6e1e3bf9-7299-4ec3-8802-bbe798089fcb
+# ╔═╡ bd9e94c2-1b09-4cb7-82f9-df86ee21a5aa
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(6, 5))
@@ -3496,7 +1674,7 @@ let
 	f
 end
 
-# ╔═╡ 17521b74-d37b-4c84-87ad-0e4f155b3790
+# ╔═╡ 98316a96-6b40-4f04-8817-7bb8c9b992fc
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(6, 5))
@@ -3532,7 +1710,7 @@ let
 	f
 end
 
-# ╔═╡ 892a04e1-3758-435a-b8cd-e7c03b777923
+# ╔═╡ 37c90a88-2615-461b-9e52-6a5df9e9d76a
 let
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(6.5, 7), sharex=true, sharey=true)
@@ -3628,7 +1806,7 @@ let
 	f
 end
 
-# ╔═╡ 222ffed0-a355-4e08-aa6a-fa305c078d2c
+# ╔═╡ d6ee50f7-d83a-40ff-b6d8-d24eb55d758f
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(6, 7))
@@ -3719,7 +1897,7 @@ let
 	f
 end
 
-# ╔═╡ 52dff81a-701b-461d-aa73-791239b135af
+# ╔═╡ 96ca3162-7ccf-4027-978f-238613e5413e
 let
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(7, 8), sharex=true, sharey=true)
@@ -3805,10 +1983,7 @@ let
 	f
 end
 
-# ╔═╡ 0ee1f4fc-da57-4f63-9713-c20dc2f0464d
-
-
-# ╔═╡ 9c789f14-0a75-45f7-912f-9a5190a3a54a
+# ╔═╡ 556f2faa-a86e-4988-b697-af42f5b9be84
 draw_ellipse_axes(ellipse, ax; N=1, skip_vertical=false, skip_horizontal=false, kwargs...) = begin
 	    # Extract parameters from the Ellipse object
 	    x0, y0 = MUST.pyconvert(Array, ellipse.center)
@@ -3839,10 +2014,7 @@ draw_ellipse_axes(ellipse, ax; N=1, skip_vertical=false, skip_horizontal=false, 
 		end
 	end
 
-# ╔═╡ 653a324e-8c70-435d-86f5-a8da7a56b226
-
-
-# ╔═╡ 5159a983-d631-4658-9af7-da9875956183
+# ╔═╡ f7605825-8a21-4b20-87c9-cdf54f2f04de
 begin
 	g1_dat = MUST.readdlm("G1.csv", ',')
 	g2_dat = MUST.readdlm("G2.csv", ',')
@@ -3854,7 +2026,7 @@ begin
 	g3_yoon = GMM(1, g3_dat, nIter=1500, nInit=1500, kind=:full)
 end
 
-# ╔═╡ 71fd7ff2-c971-4a1b-803c-19879078b991
+# ╔═╡ f9032b6e-2a5c-43d5-9ff9-1cf4c442b858
 begin
 	transform_to_ellipse(sigma) = begin
 		# 2. Calculate eigenvalues and eigenvectors
@@ -3921,10 +2093,7 @@ begin
 	el3_yoon123_3D = transform_to_ellipse(covars(g123_yoon_3D)[3])
 end
 
-# ╔═╡ 419bba01-4f4f-496b-bb97-7db1338cc2b2
-
-
-# ╔═╡ 76e3d925-6778-4d40-a02f-23e6aa6258eb
+# ╔═╡ 6d3bb0c2-b17d-49e8-8141-e22131f65f33
 let
 	plt.close()
 	f = plt.figure(figsize=(8, 8))
@@ -4057,10 +2226,7 @@ let
 	f
 end
 
-# ╔═╡ 849242cb-0923-47d1-affa-74ccd0605f12
-
-
-# ╔═╡ f4b9583a-9dfd-477b-beab-15ec8a5b82dd
+# ╔═╡ 716d2ed3-817e-4909-92ad-a83d7b79c171
 let
 	plt.close()
 	f, ax = plt.subplots(2, 1, figsize=(5, 9), sharex=true, sharey=true)
@@ -4188,7 +2354,7 @@ let
 	f
 end
 
-# ╔═╡ dac3f89b-b1c5-40ab-8124-23d0312e3654
+# ╔═╡ a1b28a53-a3b5-4e87-bc2d-5ce112c1f280
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(5, 5), layout="tight")
@@ -4328,10 +2494,7 @@ let
 	f
 end
 
-# ╔═╡ 011305a6-f21a-42b0-a4f9-78fa3677c233
-
-
-# ╔═╡ 8c743021-db36-423a-9f77-2f226b75c0a2
+# ╔═╡ fac3be33-656b-4c3c-9fb4-eae4dc47d71b
 begin
 	lowfeh_mask = selection_mask .& (parameters_all["feh"] .<= -1)
 	CEMP_mask_gmm = (parameters_all["cfe"] .>= cfe_limit) .& lowfeh_mask
@@ -4365,10 +2528,7 @@ begin
 	gmm2_3D_lin = GMM(2, x_3D_gmm[:, 2], nIter=2500, nInit=2500)
 end
 
-# ╔═╡ db003ccf-d279-40a1-aea9-145730dd4083
-
-
-# ╔═╡ ce472154-2bbe-4ab9-b624-2a674b76f0e7
+# ╔═╡ b6020aa9-c570-4cef-b41d-629eff19f542
 function confidence_ellipse!(μ, Σ, ax, n_std=1.0; kwargs...)
     cov = Σ
     pearson = cov[1, 2]/sqrt(cov[1, 1] * cov[2, 2])
@@ -4394,7 +2554,7 @@ function confidence_ellipse!(μ, Σ, ax, n_std=1.0; kwargs...)
     ax.add_patch(ellipse)
 end
 
-# ╔═╡ 720e5d1a-0216-4c67-8052-f37ba094bafa
+# ╔═╡ 0bd75590-be29-48da-ab79-92a9be005d29
 function confidence_ellipse_data!(x::AbstractVector, y::AbstractVector, ax, n_std::Real=1.0; kwargs...)
     length(x) == length(y) || throw(ArgumentError("x and y must have the same length"))
 
@@ -4432,8 +2592,7 @@ function confidence_ellipse_data!(x::AbstractVector, y::AbstractVector, ax, n_st
     return ellipse
 end
 
-
-# ╔═╡ 4b8645f3-6161-4d49-a933-826202fcf996
+# ╔═╡ 38efffde-0ebb-4beb-97c9-8a639761a6fd
 function rescale_range(arr, new_min, new_max)
     min_val = minimum(arr)
     max_val = maximum(arr)
@@ -4449,10 +2608,7 @@ function rescale_range(arr, new_min, new_max)
     return new_min .+ ((arr .- min_val) .* (new_max - new_min)) ./ (max_val - min_val)
 end
 
-# ╔═╡ 81a4b6bb-c41f-4195-9cf8-869b25054be9
-
-
-# ╔═╡ e5d8a438-83a3-439c-bb98-7e213e2ebc15
+# ╔═╡ 6fe595f7-e8d0-42b9-aab4-752151128bcf
 let
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(10, 5), sharex=true, sharey=false, layout="tight")
@@ -4569,13 +2725,10 @@ let
 	f
 end
 
-# ╔═╡ be111652-abbe-4776-9302-7f744ef1b876
-
-
-# ╔═╡ 84ecab1c-e762-4362-ad74-88091f903481
+# ╔═╡ bfb45894-1667-4582-896a-63597c6e82ab
 md"Modified Assignment: With the assumption that the high-C band does not extend to low metallicities"
 
-# ╔═╡ b3105a8b-a316-4c35-a51b-3d3520507fdd
+# ╔═╡ 2065ce06-76de-40c7-bd8f-e9beaa4cc02d
 begin
 	#mask_1D_highm = (x_1D_gmm[:,1] .> -3.5)
 	#mask_3D_highm = (x_3D_gmm[:,1] .> -3.5)
@@ -4631,19 +2784,13 @@ begin
 	mask_3D_lowC = [(argmax(prob_3D_calone[i,:]) != imax_3D_highC) for i in axes(prob_3D_calone, 1)]
 end
 
-# ╔═╡ 7cb50f0b-0701-48be-8083-7cb25fea4118
+# ╔═╡ d687f757-226e-4571-bb54-d6a69de69b89
 get_assignment_mask(g, x, group) = begin
 	prob = gmmposterior(g, x)[1]
 	mask = [(argmax(prob[i, :]) == group) for i in axes(prob, 1)]
 end
 
-# ╔═╡ 0bf678b1-284e-459a-b578-f8f8a85ead01
-
-
-# ╔═╡ 8d98b051-73b7-4181-ae6d-e086d62ce5be
-
-
-# ╔═╡ 5df0bf43-6811-4ca9-bca2-05b19f39fa1f
+# ╔═╡ c20c8129-bdbe-4bb8-a7a0-36a23d8bc1ba
 let
 	plt.close()
 	f, ax = plt.subplots(1, 2, figsize=(9, 5), sharex=true, sharey=true, layout="tight")
@@ -4733,7 +2880,7 @@ let
 	f
 end
 
-# ╔═╡ 202ba34d-cd20-4028-9243-71cad21f1872
+# ╔═╡ 2cd3aede-d981-4974-ab31-63f11a76b377
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(5, 5), sharex=true, sharey=true, layout="tight")
@@ -4832,7 +2979,7 @@ let
 	f
 end
 
-# ╔═╡ b0c3e067-891e-40c6-b91c-e01c861f1c53
+# ╔═╡ 02504ac9-7af2-4f1c-8cce-f6d952f26bc1
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(5, 5), sharex=true, sharey=true, layout="tight")
@@ -4877,7 +3024,7 @@ let
 	f
 end
 
-# ╔═╡ 324ae147-79d0-4dc6-8efa-efb67ef0ba03
+# ╔═╡ 71dd0c9a-e623-4806-82be-73e2456b5774
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1)
@@ -4889,7 +3036,7 @@ let
 	f
 end
 
-# ╔═╡ 682709d9-89c3-43a0-9cd2-7e6566a24c5d
+# ╔═╡ 87e865b0-7f1c-44b5-9173-b2a65e77ba51
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(5, 5), sharex=true, sharey=true, layout="tight")
@@ -4934,13 +3081,7 @@ let
 	f
 end
 
-# ╔═╡ 85bacda6-4982-487d-9fbe-62da780eefc6
-
-
-# ╔═╡ e7bad683-5550-4a48-82ef-620455f9f77e
-
-
-# ╔═╡ 69dc31c5-4b08-442a-ad1f-5170efa9efad
+# ╔═╡ f3ddcd1a-d600-4008-83c4-e2b3de687b36
 let
 	open("Eitner2025_CEMP.txt", "w") do f
 		write(f, "# object_id,reference,teff,logg,[Fe/H],[C/Fe]_1D,[C/Fe]_3D \n")
@@ -4970,10 +3111,7 @@ let
 	end
 end
 
-# ╔═╡ 1a4967b8-b19c-4e23-b6bb-6a09a30cea8e
-
-
-# ╔═╡ 30bef587-80f6-4d36-a2b7-283b44f1db13
+# ╔═╡ 83afde32-04ce-477d-844b-af40762e1557
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(5, 5))
@@ -5032,13 +3170,10 @@ let
 	f
 end
 
-# ╔═╡ c08c0fd5-808f-46cd-8617-c2db2d5dc181
-
-
-# ╔═╡ e897badd-4296-454d-807b-af34bfa35c9d
+# ╔═╡ 70491b18-373c-4986-be3d-34580e207769
 md"## Galactic C/O ratio"
 
-# ╔═╡ 39de6e5e-8c11-46db-b047-c0a389596c23
+# ╔═╡ 951e2dc3-389a-4b90-a167-95ea61b2a6e6
 let
 	plt.close()
 	f, ax = plt.subplots(1, 1, figsize=(5, 5))
@@ -5085,220 +3220,138 @@ let
 end
 
 # ╔═╡ Cell order:
-# ╟─dc377839-bd92-4c9c-9432-7bf08b71add6
-# ╠═3867ab6e-bcaf-4879-9eb9-f5b42dcc6709
-# ╠═9818e49b-1a6d-44d3-9aa2-6486842b2efa
-# ╠═1f6f5fe0-3f38-4547-b9e6-0482a76ea03a
-# ╠═1150c5dd-f486-46d6-b911-5fb1d70d3792
-# ╠═4ea802dc-b3e3-44ab-8758-b76bef9de441
-# ╠═f4a66407-d7c8-43f9-b68f-1f7f29b4eba6
-# ╠═06f0b894-d945-4941-aee5-e3e699e162f0
-# ╟─ea64c5f8-21e3-4685-ba30-2fd61ab34974
-# ╠═49ce048c-18ec-44d6-a782-f474ad11c83c
-# ╠═d30fd639-00c4-433e-b5c4-cdc59e38281e
-# ╟─8dfd95b6-144c-4bb0-986e-6f5cde660c3e
-# ╟─ccbdff2f-bc03-444b-9b0f-3ce318e10116
-# ╟─5952687e-2249-4a8e-ba83-54ab695da15a
-# ╟─d41e2628-ace8-483a-b3bd-8ddbb3bd9172
-# ╟─2412db85-5a78-4eb0-89f3-00cad4ecdd14
-# ╟─8c7f2268-27be-468c-9e61-32153a97e515
-# ╟─9c1a9d47-0389-4e7f-ab32-fb3e1c0e761c
-# ╟─d111e9e4-ce3f-4c6b-a65b-d11f005632c9
-# ╟─8f903dbe-4663-42da-8002-0dce3a6a9a66
-# ╟─deb4aeaa-b37c-47aa-a1a6-00d6385f8318
-# ╟─44d75cc5-2832-45ff-be3b-3a855cc1a636
-# ╟─c6cf7c10-a62d-4c6c-8bdc-5acd9c007f40
-# ╟─533184b3-d690-4f44-87b6-6bb49ee7e2c2
-# ╟─bfc09acd-8fe3-44c9-a44f-8aefe85f3d76
-# ╟─5dc20e44-24eb-4e8f-bda1-fac7a1c0a5f4
-# ╟─4802eaa5-1c91-4813-b335-c217c5ceac87
-# ╟─e624d1fd-24e2-4277-8838-a9ce0026ec56
-# ╟─0a3ce98b-40b5-4948-87c6-57d4cf9bbba9
-# ╟─c0ef68e0-5b8a-4d6d-a529-8d6292799420
-# ╟─8749760d-4857-41ed-8a0a-f7464d5fbc67
-# ╟─6df206d1-6794-4bab-a10d-914c6f508137
-# ╟─e735e811-975c-49ff-b99f-7b98e63e5150
-# ╟─6a2c237d-a0aa-4db7-9a87-b259eda25546
-# ╟─9ccc4261-0b53-4083-b8a3-850f10994048
-# ╟─e6f379f0-6cbf-4d74-9c5e-4fb567307eea
-# ╟─c8ad7b76-d063-457b-809e-65b818c796f4
-# ╟─40f4ec5a-b88c-4aa5-8e70-3f00850ce903
-# ╟─99e19910-17a3-4dd2-8ec0-72dd3da2726a
-# ╟─01ec615e-bc60-4e50-a076-692317095591
-# ╟─55b53af5-c8d3-4086-ac92-5995002d8c37
-# ╟─3b07d6ba-0e3f-484c-b3f8-da3840f5d020
-# ╟─56a77efd-66d5-47aa-934b-99e3d1aff0a8
-# ╟─989f922a-9596-4045-b4fc-186a18ca5725
-# ╟─8cebfa74-030a-4e3a-9c91-49160c1f8f64
-# ╟─de37b6dc-cf8b-4a1c-95b8-ac59ac04837a
-# ╟─687bd929-41a2-416e-ad7a-681e98096c98
-# ╟─212b2d0b-fbcc-4934-8ebb-627545fea549
-# ╟─bb9ebb4c-4065-4b5c-82a6-05d88be2c55e
-# ╟─45cd645d-055d-41a7-a7e9-0f0867d0d183
-# ╟─69bf13d1-3f9a-45c6-98c0-523951ed812f
-# ╟─d51a843b-168e-411f-8641-e02d96371678
-# ╟─44694a88-c977-4d56-9fba-a42da6f60682
-# ╟─f86f0d5b-ffc1-429a-b31c-8aad4aeb396a
-# ╟─685e9c27-dc91-4f82-8112-998383271de0
-# ╟─c7fb5cc8-5a09-47d7-bb4a-579fb5a085f9
-# ╟─136db4eb-c274-46ef-bac2-03a3bf300cac
-# ╟─560fcc8a-a9ee-4420-bc97-eb53b9f6de94
-# ╟─3fef366c-b34b-4747-ac5c-7e3ef5377ef8
-# ╟─efae7789-e54d-46fa-ae43-063575e522bf
-# ╟─dc3f65a6-a4f5-4bae-bb83-1287384a2e10
-# ╠═3389b1ca-c595-4d78-aabf-dfee9e9672a3
-# ╟─8e56ef77-75ac-4774-ab13-d9849c4f6d30
-# ╟─9365a10c-59e1-448f-9fc2-2dbf05bf66d6
-# ╟─cecc0bff-92f5-46d7-a523-287b13753c70
-# ╟─1c62bc8d-b0d0-4905-98f2-7c7c16cf27b7
-# ╟─9be354b8-fcb0-44b5-ae8d-7ff137325a2a
-# ╟─b874cdbb-7496-471d-8e2e-4e3f47a126b0
-# ╠═d967809b-c044-49a6-a392-334d40c6d89e
-# ╠═e6d97f9d-7069-4b09-9486-d6a6c279838c
-# ╠═4f2b6d24-9157-47ea-a11b-53a30dc34c7a
-# ╠═16832859-9c38-4ed7-8adc-b1af377fd658
-# ╠═daccbade-c2b4-4c5c-a212-91168c56fdce
-# ╟─4ff6bac5-7f46-4f4b-a221-8b75bdb6b53f
-# ╟─258d76cb-ac6b-453e-b541-29ad51461195
-# ╟─f77ae3e8-374a-4e3c-b8b3-7985747bccc4
-# ╟─a58d4a2d-45ad-4bb3-9000-6a05f43e5d71
-# ╟─53fef078-5301-4772-981c-68fbb1349f8d
-# ╟─7a831dfa-f216-4d6b-9370-5f286d7f3e77
-# ╟─631410d5-7e7a-458f-a7fb-74b462913bd8
-# ╟─1149d154-42e0-4e94-b26f-716504872afa
-# ╟─8d19d381-a19e-4073-a19a-39bd2ff1be7c
-# ╟─ffd0e8b7-7c9a-4e51-9a1e-1982dc59754c
-# ╟─87aaadf1-2d46-4d14-8723-8c843040d1d1
-# ╟─f3dc3826-c36e-4292-9431-a86d4325903c
-# ╟─093b3783-af82-4e34-a1e6-65a0df5bb35c
-# ╟─c85b36d4-ff22-4ba6-a4d1-c1791fd94ee2
-# ╟─3a59080e-f925-48c7-b01d-660c45a7f541
-# ╟─d8f6a261-88ab-4222-8a51-ce1b359df452
-# ╟─2dd8fd87-f543-413e-b8f3-4187ff67e52c
-# ╟─75f3327c-00c4-4594-86ac-e2b5237dc0bc
-# ╟─1cf58f8e-e1d0-48eb-9c00-c22fc3144688
-# ╟─6c9b537b-60a8-4888-ba5d-be97621e03e8
-# ╟─537080cd-02e8-4daa-86af-2eee60d1a1ca
-# ╟─87366f88-2d35-4f90-bb71-0e7c9bcb0811
-# ╟─9a3df65f-d469-42d9-b5c4-7cf66f1ed5f6
-# ╟─46d9bb97-1fd7-4d57-bcaa-8123754f195c
-# ╟─b0e95f8f-0059-4575-bab6-80f086ba3e4a
-# ╟─ef9fef62-5e50-4a1d-b1a9-4db7289663a7
-# ╟─331f1016-df68-4330-8983-a2db6219f966
-# ╟─924ea3f0-c822-44dc-9faa-1629c14f5232
-# ╟─494823c4-50b7-4e23-894c-caafaab48b29
-# ╟─1bd82fae-afb3-4197-999e-61fba6ccfe71
-# ╟─731fadcd-c03a-4f7d-8f49-f7c2c29c099b
-# ╟─981e31b0-7073-431c-b1a4-d82fd6e57350
-# ╟─7e487942-9681-4441-8969-050c8328a19a
-# ╟─08fba04e-f041-4c49-865e-ec254a99fc98
-# ╟─0e7e6f79-7225-4d29-8693-b2b93ddf4812
-# ╟─217e0937-4b2d-4948-9a72-c236a8fc5c5a
-# ╟─b942b4f4-6979-42ee-8f18-b9e7b64c0379
-# ╟─a84ea668-6701-4e31-9f04-cb0feb70290d
-# ╟─7dae5609-0148-438f-a207-98da5c9173d4
-# ╟─e4232daa-7174-493d-968e-21a012204fcb
-# ╟─e502770d-d765-4757-a075-3fadcdd88eed
-# ╟─f64c0cd9-c0ec-44e3-9e0c-440b6fdc23e8
-# ╟─635d415f-aa91-4d25-8162-a550119e3f12
-# ╟─2caf0768-3202-4d16-8c24-4f9a6433076e
-# ╠═ac81d133-8894-46da-b85c-ab5d580ecd12
-# ╠═01752527-37fd-4175-9982-02877ca4ae69
-# ╟─2d18e394-484d-4aef-bcb5-c45627fcf824
-# ╟─4b18b95c-e574-468a-92ce-73931621e442
-# ╟─af94af20-6618-448e-b146-b3ba1b1a20f1
-# ╟─22932761-ae92-4cd6-b828-07e3f86a4d0f
-# ╟─a6ee120f-0dfc-433a-8c9c-0f9f828ffe29
-# ╟─421da8e3-f710-46f1-a602-bdc4a3266a26
-# ╟─213822d8-0d1c-4ea0-905c-dd0897de9ae3
-# ╟─b28a34da-219e-424e-bed3-17ac707fad74
-# ╟─874f7823-d626-45c9-aac8-72b22fe872c6
-# ╟─8649e73c-ddf0-42b0-b0e1-93295bcdda5f
-# ╠═35c27a34-6c3d-4b9f-ba87-305e81eadaff
-# ╠═1f1a0d0f-cc24-448b-9291-91325a9d72eb
-# ╟─0bbf88db-b471-4c9c-999f-c3ace82841be
-# ╟─8eb12511-d69c-4e4a-9eeb-052471784a32
-# ╟─023e815c-5831-4445-8fb3-58981fcb09fb
-# ╠═26a8f45f-e3fa-427a-82ab-004b598182a4
-# ╟─bb39c096-108c-4920-8eda-0eb60e225f35
-# ╟─05779478-7a59-43bb-badc-83c90a37016f
-# ╠═8781d794-ad28-483b-8fd1-cf8fd6d907dd
-# ╠═f7bd519c-01c7-42ad-ab22-5998cd0590ff
-# ╠═ea87f29c-10ba-494e-8d58-ba324c7b15e1
-# ╟─96fe954a-f6e0-414e-8100-48fe0c8ae271
-# ╟─94f5e285-198d-4a09-936c-5c19509eba10
-# ╠═8131eeff-aa5e-4434-a1e5-af46220b92e2
-# ╠═c5702c96-0a5d-4420-8271-fdf38d7a5a3d
-# ╠═d7b304d3-79ea-42e7-817d-3f35d003653a
-# ╟─7ab6c379-1747-4ae6-94c1-6ef3a3c83f72
-# ╠═51fa1fc7-5191-48a9-af04-648e8669ba3c
-# ╟─4edb9461-7f5b-41a0-ac30-4ae72a42d3c8
-# ╟─067154e6-09fa-46ba-b7dc-7e8a6757a932
-# ╟─c000ae23-ad64-4e91-9522-60fd72b7f5d3
-# ╟─b05a0a66-12e7-4c4a-bc0f-370a2d81ec0d
-# ╟─c8c4f045-9687-43ea-87e8-17266604406d
-# ╟─5fdfa96b-0ec1-49c4-9ebb-8fbe0bad0c69
-# ╟─36cf99a4-d9cb-4282-a45c-50b7ff5833d3
-# ╟─990e7d73-3e8e-4900-a225-4e5cac6ac8c6
-# ╟─5e31351e-5e77-46a5-9e8c-baa53eeaee73
-# ╟─73b3581d-a484-4ff4-8e69-445192946a3b
-# ╠═2fc5e72e-4c17-4519-915d-88479d11228f
-# ╟─c012c57f-ea9c-44fa-ab8d-e2794953b214
-# ╟─0bb30e77-41a2-4e73-a032-cf6b408f3d7c
-# ╟─f6d84057-c57e-4f50-90bf-f5cba97aca2a
-# ╠═dd9203c7-7c19-4e49-9458-bfa11fa089b6
-# ╟─570da95e-276c-4173-a5d1-77106cd1e8ff
-# ╠═216a0e5c-12ee-4e04-9f50-cb5bd4fa510e
-# ╟─27b5837f-b21a-434b-a074-a18e9ef7f3d2
-# ╟─952d802f-82dd-47e9-a1f9-fa98fc505d28
-# ╟─e465e7b6-91a7-4826-859b-5b60382bc96f
-# ╠═35534a50-475a-40b9-a6f3-a352da70ab7f
-# ╠═7c9d2201-4078-4f42-9466-57f7bc8f4e1f
-# ╟─48bf4d88-82e0-4aaa-b1e8-35d375a03910
-# ╟─a625e31c-a113-45b5-b7c8-a21e31df18b1
-# ╟─fd8d8aaa-7cf7-4b64-a823-cbd2f4781f05
-# ╟─6a49c831-5b6b-4c7c-9146-db03db278004
-# ╟─f07880a2-bbaa-47c9-897a-fd94d93ede4f
-# ╟─6e1e3bf9-7299-4ec3-8802-bbe798089fcb
-# ╟─17521b74-d37b-4c84-87ad-0e4f155b3790
-# ╟─892a04e1-3758-435a-b8cd-e7c03b777923
-# ╟─222ffed0-a355-4e08-aa6a-fa305c078d2c
-# ╟─52dff81a-701b-461d-aa73-791239b135af
-# ╟─0ee1f4fc-da57-4f63-9713-c20dc2f0464d
-# ╟─9c789f14-0a75-45f7-912f-9a5190a3a54a
-# ╟─653a324e-8c70-435d-86f5-a8da7a56b226
-# ╠═32afc79c-26cc-4619-ace0-63aca71587c2
-# ╟─5159a983-d631-4658-9af7-da9875956183
-# ╟─71fd7ff2-c971-4a1b-803c-19879078b991
-# ╟─419bba01-4f4f-496b-bb97-7db1338cc2b2
-# ╟─76e3d925-6778-4d40-a02f-23e6aa6258eb
-# ╟─849242cb-0923-47d1-affa-74ccd0605f12
-# ╟─f4b9583a-9dfd-477b-beab-15ec8a5b82dd
-# ╟─dac3f89b-b1c5-40ab-8124-23d0312e3654
-# ╟─011305a6-f21a-42b0-a4f9-78fa3677c233
-# ╟─8c743021-db36-423a-9f77-2f226b75c0a2
-# ╟─db003ccf-d279-40a1-aea9-145730dd4083
-# ╟─ce472154-2bbe-4ab9-b624-2a674b76f0e7
-# ╟─720e5d1a-0216-4c67-8052-f37ba094bafa
-# ╟─4b8645f3-6161-4d49-a933-826202fcf996
-# ╟─81a4b6bb-c41f-4195-9cf8-869b25054be9
-# ╟─e5d8a438-83a3-439c-bb98-7e213e2ebc15
-# ╟─be111652-abbe-4776-9302-7f744ef1b876
-# ╟─84ecab1c-e762-4362-ad74-88091f903481
-# ╟─b3105a8b-a316-4c35-a51b-3d3520507fdd
-# ╠═7cb50f0b-0701-48be-8083-7cb25fea4118
-# ╟─0bf678b1-284e-459a-b578-f8f8a85ead01
-# ╟─8d98b051-73b7-4181-ae6d-e086d62ce5be
-# ╟─5df0bf43-6811-4ca9-bca2-05b19f39fa1f
-# ╟─202ba34d-cd20-4028-9243-71cad21f1872
-# ╟─b0c3e067-891e-40c6-b91c-e01c861f1c53
-# ╟─324ae147-79d0-4dc6-8efa-efb67ef0ba03
-# ╟─682709d9-89c3-43a0-9cd2-7e6566a24c5d
-# ╟─85bacda6-4982-487d-9fbe-62da780eefc6
-# ╟─e7bad683-5550-4a48-82ef-620455f9f77e
-# ╠═69dc31c5-4b08-442a-ad1f-5170efa9efad
-# ╟─1a4967b8-b19c-4e23-b6bb-6a09a30cea8e
-# ╟─30bef587-80f6-4d36-a2b7-283b44f1db13
-# ╟─c08c0fd5-808f-46cd-8617-c2db2d5dc181
-# ╟─e897badd-4296-454d-807b-af34bfa35c9d
-# ╟─39de6e5e-8c11-46db-b047-c0a389596c23
+# ╟─29b1890e-7361-40cc-a1f2-3b874faba043
+# ╠═1c7ee45a-8d60-11f0-29f2-abf8c4f707d2
+# ╠═f1473678-24b0-4a97-967a-4f6070de46d7
+# ╟─f7e7ae1d-49dd-4c76-a9ff-cec1013c86aa
+# ╟─f7fa9c00-1bc2-4246-be6a-ac30ee3d6457
+# ╟─cdedf1ac-7de7-4e61-83f7-03282f747445
+# ╟─a7c4ab87-e3eb-456c-a41b-0a5d72501da4
+# ╟─ed0947be-f0bd-4054-86f7-afd8f36641bf
+# ╟─eff9f59a-faaf-4f3c-ab1d-67c2bee0bdc0
+# ╟─9b27ec05-9e7d-40e8-b004-62d45a0e8f25
+# ╟─ff4b6af5-11c5-48db-95f5-48dc055e12dc
+# ╟─895721c1-dc9d-47d4-b5fb-4e189b5184c0
+# ╟─16f38c33-b243-45d0-8bf3-2a0b388a8d39
+# ╟─550affe7-12a4-4b3f-8edb-4ff0c8c8a41b
+# ╟─06b5cd98-c60f-4d61-a723-5d2b0ac6460a
+# ╟─c8469b97-df26-4753-b5be-e0b2b8a02b82
+# ╟─9a3a15f2-d167-47e5-85bf-327221203325
+# ╟─4f163103-84ce-4e36-9b69-2b6d3e880ca1
+# ╟─82ce1cc4-350c-4ca3-9c01-21321414a240
+# ╟─c3f55a57-397d-4b2c-87f8-0ebc133a9ab0
+# ╟─3c6ef3eb-5ef7-43b3-946f-73049a7d9515
+# ╟─c508746d-879e-4e76-baed-136fa36d716c
+# ╟─2fa849f5-bf68-4548-9d0e-234ba6edf104
+# ╟─d5e20abd-a153-4dc6-9895-d8142fcc6acc
+# ╟─ba0a854b-5fa4-468d-91c9-380523e385cd
+# ╟─6d2305b8-b452-47c9-a0a2-b097029ade80
+# ╟─f4e30299-95e0-4861-919e-6a767adf1194
+# ╟─cfb5b8d3-4a10-44ba-9cc7-a566339a833f
+# ╟─df166dde-2837-4440-a8dc-0c2a8194866e
+# ╟─9834da27-c370-4795-a91e-89a382f7b81d
+# ╟─53aa57c6-2b5c-4e04-94ab-c732ef7f2ec3
+# ╟─64ee5874-29e7-49a3-b8b3-5f89c7156bb9
+# ╟─73ebcfac-d1b0-496f-8f2d-df5ea3aa7830
+# ╟─7fb3939a-1709-4a77-be21-27924e2072cb
+# ╟─7188fdf5-2366-47d6-b082-b476fc30ebf3
+# ╟─6d6772d6-f956-4216-8731-de2fc4b32f3e
+# ╟─6174ea3c-c2e5-4c24-8299-0c7e74afa2ef
+# ╟─68e0ac58-ed87-442d-a7b5-13053c9c1cdf
+# ╟─52a7d86a-a6e0-4b9e-8f63-adc0cb9a0359
+# ╟─e4c53afc-f220-420e-8f61-adcca2594767
+# ╟─ae363cc0-a747-4e26-808b-97df38543144
+# ╟─2275bda1-cd48-42c7-9462-89aefd5e3f8c
+# ╟─bf6c434a-0fd9-420b-ac06-bb8e215e9fdd
+# ╟─951cf3cb-8f2f-4952-96fc-0318e866724e
+# ╟─d883c7c9-ef6d-49cf-b1e3-46ba8b92f2ac
+# ╟─b0653e46-ae33-4725-98aa-443a2198c3a0
+# ╟─e0d62ec9-04fc-4b9b-b215-a7160ba20205
+# ╟─47b98cc4-0ecc-4d95-a257-f09076283b22
+# ╟─75efbc2c-8be3-427d-bf62-16c9a64d2e6a
+# ╟─bedda209-be73-49d4-8bc0-b1a902a1aac3
+# ╟─79da8fae-65eb-4ddf-9826-93df48bb6a2f
+# ╟─80b78da6-881b-4fed-9dd0-aa7d613b6d71
+# ╟─7c2b57e4-1c06-4adc-9017-a176fd36fe82
+# ╟─3826dca1-246c-4c61-95ee-8e497f42aa72
+# ╟─3d760565-3e87-4c13-9e78-ed6394baecaf
+# ╟─41af66b7-2811-4bd5-972d-5260f67fbfd7
+# ╟─d6226d59-d4e3-4652-a7a9-dbe41666511f
+# ╠═b606dca3-665e-4e3c-9218-eaff570551d0
+# ╟─b292f8a3-9288-4851-baae-31eb00e7f571
+# ╟─e2b8a4f0-e180-4f2a-8e15-793bbd320282
+# ╟─387c093e-49cf-40cb-a757-b5a8d50f50fc
+# ╟─01aab765-3346-4212-b28f-c8bc5b51174f
+# ╟─fc4cf849-36da-4006-85c4-418e85d5e23a
+# ╠═66af10ce-e791-4cf0-88ef-bceabffe0d20
+# ╠═59ac0194-f85c-400a-8940-20fc1f4eef03
+# ╠═5c7a35ae-86ee-4eb8-affa-7ff0d5e99f45
+# ╠═85ad8731-b3a3-4960-9ebb-732cc179525e
+# ╟─6aad86e1-0e90-4a1f-9ffd-fb29d9c50686
+# ╟─c1b44ff5-924e-40b5-9914-0cf87825db4b
+# ╟─22a6add8-76ac-4c25-8acf-c869620505a5
+# ╠═9f9c5bc2-5926-4d5e-881c-1a403c931272
+# ╠═4ffb9e96-89f5-458e-bb36-5abaed2ba7fa
+# ╟─925ce950-46ca-45fe-8580-b2db83230a4a
+# ╟─06ee2904-3e62-4d8f-a873-068384d3bfe6
+# ╟─6cc7f3f0-f4f9-4f7a-aceb-c79e7a278154
+# ╠═1f66327a-5581-4250-ba81-a286e0a04181
+# ╠═dcf005c3-98cd-490a-874d-f922f8d49f3f
+# ╟─9effae34-66bb-47a4-a1a9-c4a8e12475a3
+# ╟─8be627f4-3fe6-481a-a322-8ed2d6a015aa
+# ╠═addf8b42-5994-4073-a595-33df2f3b3fd4
+# ╟─481caf39-bc3f-42f5-8edd-94ea4ca6f409
+# ╠═54261a34-ee49-434b-8cdc-6e0e9ffe3368
+# ╠═09b8ee6d-e9f5-4cf1-ab91-305952b3972d
+# ╠═1a860a43-3fd2-4b5c-8c8f-bf4341cea882
+# ╟─57b503a1-e7b2-464a-a49a-359576688e58
+# ╠═dd18395c-e88f-4cb1-af1d-a5a347380464
+# ╠═d325fc52-afd9-474d-8e4b-05455fc340d9
+# ╠═5aa85e3d-8e21-47b8-a4cc-8897dc49b756
+# ╠═f4c3987b-e002-4db5-b166-d80bf67ddf75
+# ╟─0e30cd20-184c-4015-b780-1e94be606e00
+# ╟─b377a70f-c7cf-43d8-b6c9-cd8d42fa2835
+# ╟─dfe8046d-a75e-424c-bc51-a2e429b97f70
+# ╟─92228544-f92c-4c50-ad50-3cb818bb4523
+# ╟─a7707e78-18f9-4c96-b5ff-c51cb9311652
+# ╟─dea25815-eebf-4308-a06f-09a7a49862c3
+# ╠═80ba8489-3a1a-4d3b-88fe-56954397c7df
+# ╠═c0a0d7cd-6b6f-47a2-a666-959e2cb68b7c
+# ╠═5709600f-4817-43bd-b34b-404e173efb43
+# ╟─c2cae081-827b-4606-91c6-a5610b3f72b9
+# ╟─ff2843c9-a864-466c-b8fc-87b95e1da2f2
+# ╟─2404c7e6-b3cb-4c92-9261-bdef297e727f
+# ╟─b9b2059c-c098-48d8-94bb-587715552774
+# ╟─ea48b2d1-c752-4047-8523-474aaecc82b0
+# ╟─67ddc416-4cbb-4fb5-9d3c-b83ce557d141
+# ╟─64b264bd-d556-4b08-8c64-b77c51849be2
+# ╟─d67f968c-7405-46ff-8588-da811fc79dbc
+# ╟─bd9e94c2-1b09-4cb7-82f9-df86ee21a5aa
+# ╟─98316a96-6b40-4f04-8817-7bb8c9b992fc
+# ╟─37c90a88-2615-461b-9e52-6a5df9e9d76a
+# ╟─d6ee50f7-d83a-40ff-b6d8-d24eb55d758f
+# ╟─96ca3162-7ccf-4027-978f-238613e5413e
+# ╟─556f2faa-a86e-4988-b697-af42f5b9be84
+# ╠═ef8e7bda-8c97-418d-864f-2e7e04c6cca9
+# ╟─f7605825-8a21-4b20-87c9-cdf54f2f04de
+# ╟─f9032b6e-2a5c-43d5-9ff9-1cf4c442b858
+# ╟─6d3bb0c2-b17d-49e8-8141-e22131f65f33
+# ╟─716d2ed3-817e-4909-92ad-a83d7b79c171
+# ╟─a1b28a53-a3b5-4e87-bc2d-5ce112c1f280
+# ╟─fac3be33-656b-4c3c-9fb4-eae4dc47d71b
+# ╟─b6020aa9-c570-4cef-b41d-629eff19f542
+# ╟─0bd75590-be29-48da-ab79-92a9be005d29
+# ╟─38efffde-0ebb-4beb-97c9-8a639761a6fd
+# ╟─6fe595f7-e8d0-42b9-aab4-752151128bcf
+# ╟─bfb45894-1667-4582-896a-63597c6e82ab
+# ╟─2065ce06-76de-40c7-bd8f-e9beaa4cc02d
+# ╟─d687f757-226e-4571-bb54-d6a69de69b89
+# ╟─c20c8129-bdbe-4bb8-a7a0-36a23d8bc1ba
+# ╟─2cd3aede-d981-4974-ab31-63f11a76b377
+# ╟─02504ac9-7af2-4f1c-8cce-f6d952f26bc1
+# ╟─71dd0c9a-e623-4806-82be-73e2456b5774
+# ╟─87e865b0-7f1c-44b5-9173-b2a65e77ba51
+# ╟─f3ddcd1a-d600-4008-83c4-e2b3de687b36
+# ╟─83afde32-04ce-477d-844b-af40762e1557
+# ╟─70491b18-373c-4986-be3d-34580e207769
+# ╟─951e2dc3-389a-4b90-a167-95ea61b2a6e6
