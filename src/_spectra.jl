@@ -144,14 +144,14 @@ function interpolate(spectra::Vector{S}, abundance) where {S<:MeanSpectrum}
 
     vals = zeros(eltype(λ_common), length(spectra), length(λ_common))
     for (i, s) in enumerate(spectra)
-        vals[i, :] = linear_interpolation(s.λ, s.spectrum).(λ_common)
+        vals[i, :] = linear_interpolation(s.λ, s.spectrum, extrapolation_bc=Line()).(λ_common)
     end
 
     # interpolate in abundance wavelength by wavelength
     #ip = [linear_interpolation(ab, vals[:, i]).(target) for i in eachindex(λ_common)]
     ip = zeros(eltype(vals), length(λ_common))
     @inbounds for i in eachindex(λ_common)
-        ip[i] = linear_interpolation(ab, vals[:, i])(target)
+        ip[i] = linear_interpolation(ab, vals[:, i], extrapolation_bc=Line())(target)
     end
 
     MeanSpectrum(λ_common, ip, Dict(el=>target), first(spectra).kind, first(spectra).model_info)
