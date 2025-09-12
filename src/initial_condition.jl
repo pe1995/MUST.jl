@@ -168,7 +168,7 @@ function prepare(
     τ_rho0 =  0.0,                   # Density normaliztion height
     dxdz_max = 3.0,                  # how much bigger is box in x than z (max)
     scale_resolution = 0.75,         # Down or upsampling of simulation domain
-	namelist_kwargs = Dict(),
+	namelist_kwargs = nothing,
 	recompute_ross = false,
 	Nbins = 8,
 	skip_binning = false,
@@ -371,7 +371,7 @@ function prepare(
         )
     end
 
-    create_namelist!(grid, eos_dispatch_root; namelist_kwargs...)
+    create_namelist!(grid, eos_dispatch_root, namelist_kwargs)
     for i in 1:nrow(grid.info)
         cp(grid.info[i, "namelist_name"], joinpath(grid.info[i, "binned_E_tables"], "ininml.dat"), force=true)
         cp(joinpath(grid.info[i, "binned_tables"], "bin_assignment.hdf5"), joinpath(grid.info[i, "binned_E_tables"], "bin_assignment.hdf5"), force=true)

@@ -730,9 +730,10 @@ resolution!(grid::MUST.AbstractMUSTGrid;
     nothing
 end
 
-create_namelist!(grid::MUST.Atmos1DGrid, eos_dispatch_root="input_data/grd/"; kwargs...) = begin
+create_namelist!(grid::MUST.Atmos1DGrid, eos_dispatch_root="input_data/grd/", namelist_kwargs=nothing) = begin
     g(i, v) = grid.info[i, v]
 
+    kwargs = isnothing(namelist_kwargs) ? [Dict() for _ in 1:nrow(grid.info)] : namelist_kwargs
     names = []
     for i in 1:nrow(grid.info)
         name = create_namelist( g(i, "name"), 
@@ -764,7 +765,7 @@ create_namelist!(grid::MUST.Atmos1DGrid, eos_dispatch_root="input_data/grd/"; kw
                                 g(i, "tscale"),
                                 g(i, "vmax"),
                                 g(i, "vmin");
-                                kwargs...)
+                                kwargs[i]...)
         append!(names, [name])
     end
 
