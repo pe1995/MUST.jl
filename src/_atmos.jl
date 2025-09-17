@@ -2316,8 +2316,12 @@ function spectra_tags(cs::Dict; check_for=["wavelength","composition"])
     st = Dict()
 
     for snapname in list_snapshots(cs)
-        b, _ = pick_snapshot(cs, snapname)
-        st[snapname] = spectra_tags(b; check_for=check_for)
+        try
+            b, _ = pick_snapshot(cs, snapname)
+            st[snapname] = spectra_tags(b; check_for=check_for)
+        catch
+            st[snapname] = []
+        end
     end
 
     st
