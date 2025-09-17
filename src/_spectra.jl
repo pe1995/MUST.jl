@@ -86,7 +86,7 @@ sort_on_composition(spectra, element=nothing) = begin
 
     mask = if isnothing(element)
         # sort based on this
-        st = [Tuple(comp[e] for e in appearance_sorted_elements) for comp in c]
+        st = [Tuple(e in keys(comp) ? comp[e] : 99.0 for e in appearance_sorted_elements) for comp in c]
         sortperm(st)
     else
         # check if element is available in all, if not put those to the back

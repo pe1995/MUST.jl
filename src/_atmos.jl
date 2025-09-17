@@ -891,6 +891,19 @@ function save(s::MUST.Box; folder=nothing, name=nothing, mode="w")
     path
 end
 
+function delete(to_delete; folder=nothing, name=nothing, mode="r+")
+    path = _check_path(folder, name)
+    fid  = HDF5.h5open(path, mode)
+    for q in keys(fid)
+        sq = String(q)
+        if occursin(to_delete, sq)
+            delete_object(fid, k)
+        end
+    end
+    close(fid)
+    path
+end
+
 """
     save(s::Box, number::Int)
 
@@ -1861,6 +1874,12 @@ function Boxes(folder::String; snaps=nothing)
 end
 
 
+
+
+
+
+
+
 """
     converted_snapshots(folder)
 
@@ -1907,6 +1926,9 @@ function converted_snapshots(folder; box_name="box", tau_name="tau")
 	snaps["folder"] = folder
 	snaps
 end
+
+find_snapshots(args...; kwargs...) = converted_snapshots(args...; kwargs...)
+
 
 """
     list_snapshots(snapshots; numbered_only=false)
@@ -2831,7 +2853,7 @@ The spectra obtained via `reference_tag` is used to compute the difference in eq
 Abundances are obtained from the `composition` entry of those spectra. The correction is `abund_model(ew_ref) - abund_ref`.
 Returns: ab_ref, ew_ref, ab, ew, Δab
 """
-function curve_of_growth(element, reference_model::Box, reference_tag, model::Box, model_tags; λs=nothing, λe=nothing, interpolate_reference_to=nothing)
+function curve_of_growth(element, reference_model::Box, reference_tag, model::Box, model_tags; λs=nothing, λe=nothing, interpolate_reference_to=nothing, use_log=true)
 	ew_ref, ab_ref = if isnothing(interpolate_reference_to)
         ew_ref = equivalentwidth(reference_model, reference_tag; λs=λs, λe=λe)
         ab_ref = abundance_from_tag(reference_model, reference_tag, element)
@@ -2881,12 +2903,14 @@ function curve_of_growth(element, reference_model::Box, reference_tag, model::Bo
 	abmask = sortperm(abundances)
 	ewmask = sortperm(equivalent_widths)
 
+    fl = use_log ? log10 : identity
+
 	# interpolation
 	f_ab = linear_interpolation(
-		equivalent_widths[ewmask], abundances[ewmask], extrapolation_bc=Line()
+		fl.(equivalent_widths[ewmask]), abundances[ewmask], extrapolation_bc=Line()
 	)
 	#f_ew = linear_interpolation(abundances[abmask], equivalent_widths[abmask], extrapolation_bc=Line())
-	Δab = f_ab(ew_ref) - ab_ref
+	Δab = f_ab(fl(ew_ref)) - ab_ref
 
 	ab_ref, ew_ref, abundances[abmask], equivalent_widths[abmask], Δab
 end
@@ -2900,7 +2924,7 @@ The spectra is used to compute the difference in equivalent width to all spectra
 Abundances are obtained from the `composition` entry of those spectra. The correction is `abund_model(ew_ref) - abund_ref`.
 Returns: ab_ref, ew_ref, ab, ew, Δab
 """
-function curve_of_growth(element, reference_model::S, models::Vector{S}; λs=nothing, λe=nothing) where {S<:MeanSpectrum}
+function curve_of_growth(element, reference_model::S, models::Vector{S}; λs=nothing, λe=nothing, use_log=true) where {S<:MeanSpectrum}
     element = Symbol(element)
 
     λ_min = max(minimum(reference_model.λ),[minimum(s.λ) for s in models]...)
@@ -2931,12 +2955,13 @@ function curve_of_growth(element, reference_model::S, models::Vector{S}; λs=not
 	abmask = sortperm(abundances)
 	ewmask = sortperm(equivalent_widths)
 
+    fl = use_log ? log10 : identity
 	# interpolation
 	f_ab = linear_interpolation(
-		equivalent_widths[ewmask], abundances[ewmask], extrapolation_bc=Line()
+		fl.(equivalent_widths[ewmask]), abundances[ewmask], extrapolation_bc=Line()
 	)
 	#f_ew = linear_interpolation(abundances[abmask], equivalent_widths[abmask], extrapolation_bc=Line())
-	Δab = f_ab(ew_ref) - ab_ref
+	Δab = f_ab(fl(ew_ref)) - ab_ref
 
 	ab_ref, ew_ref, abundances[abmask], equivalent_widths[abmask], Δab
 end
