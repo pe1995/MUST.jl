@@ -5,24 +5,26 @@
 Read a Muram 3D data cube from path in the NetCDF format and convert it to a Box.
 """
 function MURaMBox(model_path)
-    U  = ncread(model_path, "U")
-    W  = ncread(model_path, "W")
-    T  = ncread(model_path, "T")
-    P  = ncread(model_path, "P")
-    By = ncread(model_path, "By")
-    V  = ncread(model_path, "V")
-    Bx = ncread(model_path, "Bx")
-    R  = ncread(model_path, "R")
-    E  = ncread(model_path, "E")
-    Bz = ncread(model_path, "Bz")
+    ds = NCDataset(model_path, "r")
+    U  = ds["U"][:,:,:]
+    W  = ds["W"][:,:,:]
+    T  = ds["T"][:,:,:]
+    P  = ds["P"][:,:,:]
+    By = ds["By"][:,:,:]
+    V  = ds["V"][:,:,:]
+    Bx = ds["Bx"][:,:,:]
+    R  = ds["R"][:,:,:]
+    E  = haskey(ds, "E") ? ds["E"][:,:,:] : nothing
+    Bz = ds["Bz"][:,:,:]
+    tau = haskey(ds, "tau") ? ds["tau"][:,:,:] : nothing
 
     s = size(U);
 
-    dx = ncgetatt(model_path, "Global", "dx")
-    dy = ncgetatt(model_path, "Global", "dy")
-    dz = ncgetatt(model_path, "Global", "dz")
+    dx = ds.attrib["dx"]
+    dy = ds.attrib["dy"]
+    dz = ds.attrib["dz"]
 
-    time  = ncgetatt(model_path, "Global", "time")
+    time  = ds.attrib["time"]
     paras = AtmosphericParameters() 
     paras.time = time;
 
@@ -40,15 +42,22 @@ function MURaMBox(model_path)
                                                 :uy  => V ,
                                                 :Bx  => Bx,
                                                 :d   => R ,
-                                                :E   => E ,
-                                                :Bz  => Bz )
+                                                :Bz  => Bz)
+
+    if !isnothing(E)
+        data[:E] = E
+    end
+
+    if !isnothing(tau)
+        data[:tau] = tau
+    end
 
     Box(xx, yy, zz, data, paras)
 end
 
 
 """
-    MURaMBox(path, eos)
+    MURaMBox_optical_depth(path, opacity)
 
 Read a Muram 3D data cube from path in the NetCDF format and convert it to a Box.
 Compute the rosseland optical depth scale and interpolate the cube to it. Return both.
@@ -56,10 +65,7 @@ Can either be computed with the MUST eos interface or with the more convenient T
 
 (exp.(lookup(eos, :lnRoss, log.(b[:d]), log.(b[:T]))) for TSO.jl)
 """
-function MURaMBox(model_path, opacity)
-    ## The default box without rosseland
-    b = MURaMBox(model_path)
-
+function MURaMBox_optical_depth(b, opacity)
     ## lookup the rosseland opacity
     b.data[:kr] = opacity
 
@@ -68,7 +74,5 @@ function MURaMBox(model_path, opacity)
     b.data[:τ_ross] = τ
 
     ## Interpolate cube
-    b_t = height_scale(b, :τ_ross)
-
-    return b, b_t
+    height_scale(b, :τ_ross)
 end

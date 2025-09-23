@@ -17,7 +17,7 @@ HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 Integrals = "de52edbc-65ea-441a-8357-d3a637375a31"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 Mmap = "a63ad114-7e13-5084-954f-fe012c677804"
-NetCDF = "30363a11-5582-574a-97bb-aa9a979735b9"
+NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -26,6 +26,7 @@ TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [compat]
 Downloads = "1.6.0"
+NCDatasets = "0.14.8"
 julia = "1"
 
 [extras]

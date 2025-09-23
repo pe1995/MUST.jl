@@ -163,8 +163,15 @@ end
 
 Check if the given path is a MeanSpectrum compatible file.
 """
-is_mean_spectrum(path, tag; kind="flux", norm=false) = begin
-	p = basename(path)
+is_mean_spectrum(path, tag; kwargs...) = is_mean_spectrum(path; tag=tag, kwargs...)
+
+"""
+    is_mean_spectrum(path; tag=nothing, kind="flux", norm=false) = begin
+
+Check if the given path is a MeanSpectrum compatible file.
+"""
+is_mean_spectrum(path; tag="", kind="flux", norm=false) = begin
+    p = basename(path)
 	t = String(tag)
 	norm ? (p[1:length(t)] == t) && occursin(kind, p) && (occursin("norm", p)) : (p[1:length(t)] == t) && occursin(kind, p) && (!occursin("norm", p))
 end

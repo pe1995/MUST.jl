@@ -16,7 +16,8 @@ using Distributed
 using ArgParse
 using DelimitedFiles
 using TimerOutputs
-using NetCDF
+#using NetCDF
+using NCDatasets
 using Integrals
 using Mmap
 using Downloads
@@ -125,6 +126,9 @@ include("_convert.jl")
 
 # co5bold reader
 #include("_co5bold.jl")
+
+# muram reader
+include("_muram.jl")
 
 # physical utilities
 include("_physical_quantities.jl")

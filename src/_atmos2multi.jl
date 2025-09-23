@@ -35,17 +35,22 @@ function _write_atmos_multi(b, path, eos=nothing; downsample_xy=1, downsamlpe_z=
     ne = similar(res, size(b[:d])[1:3]...)
 
     if !haskey(b.data, :ne)
-        @info "recomputing Ne"
-        for k in axes(res, 3)
-            for j in axes(res,2 )
-                for i in axes(res, 1)
-                    ee[i, j, k] = MUST.bisect(eos, ee=limits(eos)[3:4], d=b[:d][i, j, k], T=b[:T][i, j, k])
-                    ne[i, j, k] = Base.convert(Float32, lookup(eos, :Ne, b[:d][i, j, k], ee[i, j, k]))
-                    if ne[i, j, k] == 0.0
-                        @info "Ne is 0, i,j,k,d,T,ee: $(i),$(j),$(k),$(b[:d][i, j, k]),$(b[:T][i, j, k]),$(ee[i, j, k])"
+        if !isnothing(eos)
+            @info "recomputing Ne"
+            for k in axes(res, 3)
+                for j in axes(res,2 )
+                    for i in axes(res, 1)
+                        ee[i, j, k] = MUST.bisect(eos, ee=limits(eos)[3:4], d=b[:d][i, j, k], T=b[:T][i, j, k])
+                        ne[i, j, k] = Base.convert(Float32, lookup(eos, :Ne, b[:d][i, j, k], ee[i, j, k]))
+                        if ne[i, j, k] == 0.0
+                            @info "Ne is 0, i,j,k,d,T,ee: $(i),$(j),$(k),$(b[:d][i, j, k]),$(b[:T][i, j, k]),$(ee[i, j, k])"
+                        end
                     end
                 end
             end
+        else
+            @warn "No electron density present as :ne. Setting to 1.0"
+            fill!(ne, 1.0)
         end
     else
         ne .= b[:ne]
