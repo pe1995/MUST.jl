@@ -1,17 +1,19 @@
 ### A Pluto.jl notebook ###
-# v0.20.0
+# v0.20.8
 
 using Markdown
 using InteractiveUtils
 
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
-    quote
+    #! format: off
+    return quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
+    #! format: on
 end
 
 # ╔═╡ 49ce5a16-bc56-11ef-0e57-1f9a55abaaf8
@@ -61,24 +63,27 @@ availableRuns(folder, inName...) = begin
 end
 
 # ╔═╡ a2e3351b-fd71-4231-b010-1f55aead47a0
-model_extension = ["ST20", "ST24"]
+model_extension = ["PLATO"]#["ST20", "ST24", "P1A", "P1B", "P1C", "P1D"]
 
 # ╔═╡ 9ed0a9ef-8f97-4aeb-9e52-c05ae6ec59c9
 allRuns = availableRuns(gridfolder, model_extension...)
 
 # ╔═╡ ac701824-7442-48ff-85bb-72315b2ad23f
 begin
-	grid1 = MUST.Atmos1DGrid("MS_models/ST20_dispatch_2024-12-13.mgrid")
+	grids = [
+		#=MUST.Atmos1DGrid(joinpath(gridfolder, "ST20_dispatch_2024-12-13.mgrid")),
+		MUST.Atmos1DGrid(joinpath(gridfolder, "ST24A_dispatch_2024-12-17.mgrid")),
+		MUST.Atmos1DGrid(joinpath(gridfolder, "ST24B_dispatch_2024-12-17.mgrid")),
+		MUST.Atmos1DGrid(joinpath(gridfolder, "ST24C_dispatch_2024-12-17.mgrid")),
+		MUST.Atmos1DGrid(joinpath(gridfolder, "ST24D_dispatch_2024-12-17.mgrid")),
+		MUST.Atmos1DGrid(joinpath(gridfolder, "P1A_dispatch_2025-02-19.mgrid")),
+		MUST.Atmos1DGrid(joinpath(gridfolder, "P1B_dispatch_2025-02-19.mgrid")),
+		MUST.Atmos1DGrid(joinpath(gridfolder, "P1C_dispatch_2025-02-19.mgrid")),
+		MUST.Atmos1DGrid(joinpath(gridfolder, "P1D_dispatch_2025-02-19.mgrid"))=#
+		MUST.Atmos1DGrid(mg) for mg in MUST.glob("*.mgrid", gridfolder)
+	]
 
-	grid2 = MUST.Atmos1DGrid("MS_models/ST24A_dispatch_2024-12-17.mgrid")
-	
-	grid3 = MUST.Atmos1DGrid("MS_models/ST24B_dispatch_2024-12-17.mgrid")
-
-	grid4 = MUST.Atmos1DGrid("MS_models/ST24C_dispatch_2024-12-17.mgrid")
-
-	grid5 = MUST.Atmos1DGrid("MS_models/ST24D_dispatch_2024-12-17.mgrid")
-
-	grid = grid1 + grid2 + grid3 + grid4 + grid5
+	grid = sum(grids)
 end
 
 # ╔═╡ 8c1bcdae-0d29-436f-9e81-4c7f8c763dcb
@@ -253,6 +258,7 @@ let
 	failed = .!grid.info[!, :completed]
 	solar = grid.info[!, :feh] .== 0.0
 	m1 = grid.info[!, :feh] .== -1.0
+	@info "Following metallicites have been found: $(sort(unique(grid.info[!, :feh])))"
 	ax.scatter(
 		grid.info[.!failed .& solar, :teff], grid.info[.!failed .& solar, :logg], marker="s", color="steelblue", s=63, edgecolor="k", alpha=1, label=L"\rm [Fe/H]=0"
 	)
@@ -1140,7 +1146,7 @@ end
 # ╟─4ec4a69e-0a15-4353-ac0c-bfb9e02ebdee
 # ╠═a2e3351b-fd71-4231-b010-1f55aead47a0
 # ╠═9ed0a9ef-8f97-4aeb-9e52-c05ae6ec59c9
-# ╠═ac701824-7442-48ff-85bb-72315b2ad23f
+# ╟─ac701824-7442-48ff-85bb-72315b2ad23f
 # ╟─8c1bcdae-0d29-436f-9e81-4c7f8c763dcb
 # ╟─865e1497-bc8f-403b-be99-c30d59c2f493
 # ╟─7d853824-7b07-4dc9-8a00-ba026efb6c1b
