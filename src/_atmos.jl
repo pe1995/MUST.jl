@@ -2634,18 +2634,17 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         feh_ref = chemParamGrid[1]
         
         header_line1 = "# Average spectra for $(available_run)\n"
+        header_line11(k, n, a) = "# $(k),$(selectedSpecTagGrid),$(n),$(a)\n"
         header_line2 = "# Teff_min[K],Teff_max[K],logg,feh,alpha,n_snapshots,dt[h],firstSnap,lastSnap,firstSnapTime,lastSnapTime\n# "
         header_line3 = if is1D_local
             @sprintf "%.2f,%.2f,%.3f,%.3f,%.3f,%i,%.7E,%s,%s,%.7E,%.7E" minimum(teffsGrid) maximum(teffsGrid) -99.0 feh_ref alpha_ref length(selectedSnapsGrid) dt first(selectedSnapsGrid) last(selectedSnapsGrid) time1 time2
         else
             @sprintf "%.2f,%.2f,%.3f,%.3f,%.3f,%i,%.7E,%i,%i,%.7E,%.7E" minimum(teffsGrid) maximum(teffsGrid) ModelInformation(available_run).logg feh_ref alpha_ref length(selectedSnapsGrid) dt first(selectedSnapsGrid) last(selectedSnapsGrid) time1 time2
         end
-        full_header = header_line1 * header_line2 * header_line3 * "\n"
-        ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
-
-        write_spectra(fname, specDict) = begin
+        
+        write_spectra(fname, specDict; header) = begin
             open(fname, "w") do f
-                write(f, ab_header)
+                write(f, header)
                 λ = specDict["wavelength"]
                 for i in eachindex(λ)
                     line_str = @sprintf "%.7f," λ[i]
@@ -2680,17 +2679,29 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             spectraGridAbundance[a] = s_new
         end
 
+
+
+
         fluxDictGrid = Dict(a=>nanmean([s[:meanFlux] for s in sp]) for (a, sp) in spectraGridAbundance)
         fluxDictGrid["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
-        
         for (k, v) in  fluxDictGrid
             @assert length(v) == length(fluxDictGrid["wavelength"])
         end
-        write_spectra(getfilename("mean_flux"), fluxDictGrid)
+        full_header = header_line1 * header_line11("flux", "absolute", "integrated") *header_line2 * header_line3 * "\n"
+        ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
+        write_spectra(getfilename("mean_flux"), fluxDictGrid, header=ab_header)
+
+
+
 
         fluxDictGridNorm = Dict(a=>nanmean([s[:meanFluxNorm] for s in sp]) for (a, sp) in spectraGridAbundance)
         fluxDictGridNorm["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
-        write_spectra(getfilename("mean_flux_norm"), fluxDictGridNorm)
+        full_header = header_line1 * header_line11("flux", "normalized", "integrated") *header_line2 * header_line3 * "\n"
+        ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
+        write_spectra(getfilename("mean_flux_norm"), fluxDictGridNorm, header=ab_header)
+
+
+
 
         mus = first(spectraGridAbundance[first(abundanceGrid)])[:mu]
         muzs = sort(unique(mus[:, 3]), rev=true)
@@ -2700,11 +2711,15 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             
             fg = Dict(a=>nanmean([reshape(mean(s[:meanIntensity][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
             fg["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
-            write_spectra(getfilename("mean_intensity_mu$(mustring)"), fg)
+            full_header = header_line1 * header_line11("intensity", "absolute", "$(mustring)") *header_line2 * header_line3 * "\n"
+            ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
+            write_spectra(getfilename("mean_intensity_mu$(mustring)"), fg, header=ab_header)
 
             fg_norm = Dict(a=>nanmean([reshape(mean(s[:meanIntensityNorm][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
             fg_norm["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
-            write_spectra(getfilename("mean_intensity_mu$(mustring)_norm"), fg_norm)
+            full_header = header_line1 * header_line11("intensity", "normalized", "$(mustring)") *header_line2 * header_line3 * "\n"
+            ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
+            write_spectra(getfilename("mean_intensity_mu$(mustring)_norm"), fg_norm, header=ab_header)
         end
         return true # Indicate success
     end

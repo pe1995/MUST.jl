@@ -23,14 +23,15 @@ Read mean spectra from file. The format is assumed to follow (see `average_spect
 
 Note that abundances are expected as [X/Fe]=xxx_[Y/Fe]=yyy, etc.
 """
-MeanSpectra(path; kind=nothing) = begin
-    data = CSV.read(path, DataFrame, header=4)
+MeanSpectra(path) = begin
+    data = CSV.read(path, DataFrame, header=5)
     header = open(path, "r") do f
-        readlines(f)[1:4]
+        readlines(f)[1:5]
     end
     modelname = strip(split(header[1], ' ', keepempty=false)[end])
-    params = split(strip(header[2][2:end]), ',', keepempty=false)
-    params_vals = split(strip(header[3][2:end]), ',', keepempty=false)
+    kind, tag, normalized, angle  = strip.(split(header[2][2:end], ',', keepempty=false))
+    params = split(strip(header[3][2:end]), ',', keepempty=false)
+    params_vals = split(strip(header[4][2:end]), ',', keepempty=false)
     model_info = Dict{String}{Any}()
     for (p, v) in zip(params, params_vals)
         model_info[p] = try
@@ -40,27 +41,9 @@ MeanSpectra(path; kind=nothing) = begin
         end
     end
     model_info["modelname"] = modelname
-
-    kind = if isnothing(kind)
-        try 
-            #s = String.(split(basename(path), '_', keepempty=false)[2:end])
-            #s[end] = split(s[end], ".csv", keepempty=false)[1]
-
-            istart = findfirst("mean_", basename(path))
-            basename(path)[first(istart):end-4]
-        catch
-            basename(path)
-        end
-    else
-        kind
-    end
-
-    tag = try
-        String(split(basename(path), '_')[1])
-    catch
-        ""
-    end
     model_info["tag"] = tag
+    model_info["normalized"] = normalized == "normalized" ? true : false
+    model_info["angle"] = angle == "integrated" ? -1.0 : parse(Float64, angle)
 
     comps = [c for c in [n for n in names(data) if !(n=="# wavelength")]]
     sort_on_composition([MeanSpectrum(data[!,"# wavelength"][:], data[!, c][:], abundance_from_composition_string(c, split_on='_'), kind, model_info) for c in comps])
@@ -170,8 +153,21 @@ is_mean_spectrum(path, tag; kwargs...) = is_mean_spectrum(path; tag=tag, kwargs.
 
 Check if the given path is a MeanSpectrum compatible file.
 """
-is_mean_spectrum(path; tag="", kind="flux", norm=false) = begin
-    p = basename(path)
-	t = String(tag)
-	norm ? (p[1:length(t)] == t) && occursin(kind, p) && (occursin("norm", p)) : (p[1:length(t)] == t) && occursin(kind, p) && (!occursin("norm", p))
+is_mean_spectrum(path; tag="", kind="flux", norm=false, angle=nothing) = begin
+    s, is_readable = try
+        MeanSpectra(path)[1], true
+    catch
+        nothing, false
+    end
+    if !is_readable
+        return false
+    end
+
+    p = s.kind
+	t = s.model_info["tag"]
+    n = s.model_info["normalized"]
+    a = s.model_info["angle"]
+    angle = isnothing(angle) ? a : angle 
+    
+	(is_main_tag(tag, t) && (kind==p) && (norm==n) && (angle≈a))
 end
