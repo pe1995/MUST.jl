@@ -2439,7 +2439,7 @@ get_μs(box, tag) = unique(box[MUST.spectra_key_from_tag("mu", tag)][:, 3])
 
 Compute the mean of the intensity in direction μ.
 """
-angular_intensity(box::Box, tag, μ; norm=true) = begin
+angular_intensity(box::Box, tag, μ; norm=true, intensity="intensity") = begin
     λ = box[spectra_key_from_tag("wavelength", tag)]
     I = box[spectra_key_from_tag("intensity", tag)]
 	c = box[spectra_key_from_tag("continuum", tag)]
@@ -2456,9 +2456,9 @@ end
 
 Compute the horizontal mean of the intensity in direction μ.
 """
-mean_angular_intensity(box::Box, tag, μ; norm=true) = begin
+mean_angular_intensity(box::Box, tag, μ; norm=true, intensity="intensity") = begin
     λ = box[spectra_key_from_tag("wavelength", tag)]
-    I = box[spectra_key_from_tag("intensity", tag)]
+    I = box[spectra_key_from_tag(intensity, tag)]
 	c = box[spectra_key_from_tag("continuum", tag)]
     mu = box[spectra_key_from_tag("mu", tag)]
 	muz = mu[:, 3]
@@ -2473,9 +2473,9 @@ end
 
 Compute the horizontal mean of the intensity in direction μ.
 """
-mean_intensity(box::Box, tag; norm=true) = begin
+mean_intensity(box::Box, tag; norm=true, intensity="intensity") = begin
     λ = box[spectra_key_from_tag("wavelength", tag)]
-    I = box[spectra_key_from_tag("intensity", tag)]
+    I = box[spectra_key_from_tag(intensity, tag)]
 	c = box[spectra_key_from_tag("continuum", tag)]
 
     z = norm ? I ./ c : I
@@ -2487,9 +2487,9 @@ end
 
 Integrate angular intensity using the weights stored in box. Then average horizontally.
 """
-mean_integrated_flux(box::Box, tag; norm=true) = begin
+mean_integrated_flux(box::Box, tag; norm=true, intensity="intensity") = begin
     λ = box[spectra_key_from_tag("wavelength", tag)]
-	I = box[spectra_key_from_tag("intensity", tag)]
+	I = box[spectra_key_from_tag(intensity, tag)]
 	c = box[spectra_key_from_tag("continuum", tag)]
 	w = box[spectra_key_from_tag("weights", tag)]
 
@@ -2509,9 +2509,9 @@ end
 
 Integrate angular intensity using the weights stored in box.
 """
-function integrated_flux(box::Box, tag; norm=true)
+function integrated_flux(box::Box, tag; norm=true, intensity="intensity")
     λ = box[spectra_key_from_tag("wavelength", tag)]
-	I = box[spectra_key_from_tag("intensity", tag)]
+	I = box[spectra_key_from_tag(intensity, tag)]
 	c = box[spectra_key_from_tag("continuum", tag)]
 	w = box[spectra_key_from_tag("weights", tag)]
 
@@ -2700,8 +2700,32 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
         write_spectra(getfilename("mean_flux_norm"), fluxDictGridNorm, header=ab_header)
 
+        
+
+        # See if there is LTE as well
+        LTEAvail = try
+            Dict(a=>nanmean([s[:meanFluxLTE] for s in sp]) for (a, sp) in spectraGridAbundance)
+            true
+        catch
+            false
+        end
+        if LTEAvail
+            fluxDictGrid = Dict(a=>nanmean([s[:meanFluxLTE] for s in sp]) for (a, sp) in spectraGridAbundance)
+            fluxDictGrid["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
+            for (k, v) in  fluxDictGrid
+                @assert length(v) == length(fluxDictGrid["wavelength"])
+            end
+            full_header = header_line1 * header_line11("flux_LTE", "absolute", "integrated") *header_line2 * header_line3 * "\n"
+            ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
+            write_spectra(getfilename("mean_flux_LTE"), fluxDictGrid, header=ab_header)
 
 
+            fluxDictGridNorm = Dict(a=>nanmean([s[:meanFluxNormLTE] for s in sp]) for (a, sp) in spectraGridAbundance)
+            fluxDictGridNorm["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
+            full_header = header_line1 * header_line11("flux_LTE", "normalized", "integrated") *header_line2 * header_line3 * "\n"
+            ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
+            write_spectra(getfilename("mean_flux_LTE_norm"), fluxDictGridNorm, header=ab_header)
+        end
 
         mus = first(spectraGridAbundance[first(abundanceGrid)])[:mu]
         muzs = sort(unique(mus[:, 3]), rev=true)
@@ -2720,6 +2744,27 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             full_header = header_line1 * header_line11("intensity", "normalized", "$(mustring)") *header_line2 * header_line3 * "\n"
             ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
             write_spectra(getfilename("mean_intensity_mu$(mustring)_norm"), fg_norm, header=ab_header)
+
+            # See if there is LTE as well
+            LTEAvail = try
+                Dict(a=>nanmean([reshape(mean(s[:meanIntensityLTE][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
+                true
+            catch
+                false
+            end
+            if LTEAvail
+                fg = Dict(a=>nanmean([reshape(mean(s[:meanIntensityLTE][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
+                fg["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
+                full_header = header_line1 * header_line11("intensity_LTE", "absolute", "$(mustring)") *header_line2 * header_line3 * "\n"
+                ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
+                write_spectra(getfilename("mean_intensity_mu$(mustring)_LTE"), fg, header=ab_header)
+
+                fg_norm = Dict(a=>nanmean([reshape(mean(s[:meanIntensityNormLTE][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
+                fg_norm["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
+                full_header = header_line1 * header_line11("intensity_LTE", "normalized", "$(mustring)") *header_line2 * header_line3 * "\n"
+                ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
+                write_spectra(getfilename("mean_intensity_mu$(mustring)_LTE_norm"), fg_norm, header=ab_header)
+            end
         end
         return true # Indicate success
     end
