@@ -101,6 +101,7 @@ export MeanSpectra, spectra_tags, spectra_keys, spectra
 
 #= Julia code files =#
 include("_constants.jl")
+include("_heightscales.jl")
 include("_argparse.jl")
 include("_grids.jl")
 include("_grid_interpolation.jl")
@@ -122,6 +123,7 @@ include("_multi.jl")
 include("_atmos2legacy.jl")
 include("_atmos2multi.jl")
 include("_read_marcs.jl")
+include("_mafags.jl")
 include("_convert.jl")
 
 # co5bold reader

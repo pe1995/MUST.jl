@@ -4940,36 +4940,6 @@ end
 # ╔═╡ e7bad683-5550-4a48-82ef-620455f9f77e
 
 
-# ╔═╡ 69dc31c5-4b08-442a-ad1f-5170efa9efad
-let
-	open("Eitner2025_CEMP.txt", "w") do f
-		write(f, "# object_id,reference,teff,logg,[Fe/H],[C/Fe]_1D,[C/Fe]_3D \n")
-
-		mask = selection_mask .& (.!isnan.(parameters_all["cfe"])) .& (parameters_all["feh"] .< 0.0)
-		obid = parameters_all["object_id"][mask]
-		ref = replace.(parameters_all["reference"][mask], ','=>'_', ' '=>"")
-		teff = parameters_all["teff"][mask]
-		logg = parameters_all["logg"][mask]
-		feh = parameters_all["feh"][mask]
-		cfe1D = parameters_all["cfe"][mask]
-		cfe3D = parameters_all["cfe"][mask] .+ corrections_saga_all[mask]
-		
-		for i in eachindex(obid)
-			line = MUST.@sprintf(
-				"%s,%s,%i,%.2f,%.2f,%.2f,%.2f\n", 
-				obid[i],
-				ref[i],
-				teff[i],
-				logg[i],
-				feh[i],
-				cfe1D[i],
-				cfe3D[i]
-			)
-			write(f, line)
-		end
-	end
-end
-
 # ╔═╡ 1a4967b8-b19c-4e23-b6bb-6a09a30cea8e
 
 
@@ -5032,7 +5002,43 @@ let
 	f
 end
 
+# ╔═╡ 47efed9b-6d3a-4aa3-a7bf-d43af41d4293
+
+
+# ╔═╡ 4c3ea95d-187d-4ffa-b149-6c562cf73f0f
+md"## Online Table"
+
 # ╔═╡ c08c0fd5-808f-46cd-8617-c2db2d5dc181
+let
+	open("Eitner2025_CEMP.txt", "w") do f
+		write(f, "# object_id,reference,teff,logg,[Fe/H],[C/Fe]_1D,[C/Fe]_3D \n")
+
+		mask = selection_mask .& (.!isnan.(parameters_all["cfe"])) .& (parameters_all["feh"] .< 0.0)
+		obid = parameters_all["object_id"][mask]
+		ref = replace.(parameters_all["reference"][mask], ','=>'_', ' '=>"")
+		teff = parameters_all["teff"][mask]
+		logg = parameters_all["logg"][mask]
+		feh = parameters_all["feh"][mask]
+		cfe1D = parameters_all["cfe"][mask]
+		cfe3D = parameters_all["cfe"][mask] .+ corrections_saga_all[mask]
+		
+		for i in eachindex(obid)
+			line = MUST.@sprintf(
+				"%s,%s,%i,%.2f,%.2f,%.2f,%.2f\n", 
+				obid[i],
+				ref[i],
+				teff[i],
+				logg[i],
+				feh[i],
+				cfe1D[i],
+				cfe3D[i]
+			)
+			write(f, line)
+		end
+	end
+end
+
+# ╔═╡ 481fb2b0-501b-4b64-8297-ac09316edef4
 
 
 # ╔═╡ e897badd-4296-454d-807b-af34bfa35c9d
@@ -5242,7 +5248,7 @@ end
 # ╟─990e7d73-3e8e-4900-a225-4e5cac6ac8c6
 # ╟─5e31351e-5e77-46a5-9e8c-baa53eeaee73
 # ╟─73b3581d-a484-4ff4-8e69-445192946a3b
-# ╠═2fc5e72e-4c17-4519-915d-88479d11228f
+# ╟─2fc5e72e-4c17-4519-915d-88479d11228f
 # ╟─c012c57f-ea9c-44fa-ab8d-e2794953b214
 # ╟─0bb30e77-41a2-4e73-a032-cf6b408f3d7c
 # ╟─f6d84057-c57e-4f50-90bf-f5cba97aca2a
@@ -5296,9 +5302,11 @@ end
 # ╟─682709d9-89c3-43a0-9cd2-7e6566a24c5d
 # ╟─85bacda6-4982-487d-9fbe-62da780eefc6
 # ╟─e7bad683-5550-4a48-82ef-620455f9f77e
-# ╠═69dc31c5-4b08-442a-ad1f-5170efa9efad
 # ╟─1a4967b8-b19c-4e23-b6bb-6a09a30cea8e
 # ╟─30bef587-80f6-4d36-a2b7-283b44f1db13
-# ╟─c08c0fd5-808f-46cd-8617-c2db2d5dc181
+# ╟─47efed9b-6d3a-4aa3-a7bf-d43af41d4293
+# ╟─4c3ea95d-187d-4ffa-b149-6c562cf73f0f
+# ╠═c08c0fd5-808f-46cd-8617-c2db2d5dc181
+# ╟─481fb2b0-501b-4b64-8297-ac09316edef4
 # ╟─e897badd-4296-454d-807b-af34bfa35c9d
 # ╟─39de6e5e-8c11-46db-b047-c0a389596c23
