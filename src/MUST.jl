@@ -87,6 +87,9 @@ export whole_spectrum, spectrum, Teff, flux, M3DISRun, window
 # Marcs
 export marcsBox
 
+# Mafags
+export mafagsBox
+
 export axis, closest
 export ingredients
 
