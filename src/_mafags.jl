@@ -39,7 +39,7 @@ function mafagsBox(path::String)
 
     xx = zeros(1, 1, length(z))
     yy = zeros(1, 1, length(z))
-    zz = reshape(z, 1, 1, :)
+    zz = reshape(-z, 1, 1, :)
 
     d = reshape(rho, 1, 1, :) 
     T = reshape(t, 1, 1, :)    

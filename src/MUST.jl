@@ -80,6 +80,7 @@ export multiBox, snapshotBox
 export pick_snapshot, list_of_snapshots, converted_snapshots, list_snapshots, find_snapshots
 export ginterpolate, gevaluate, gevaluate!, gresample, Grid
 export plane_statistic 
+export height_scale
 
 # Multi
 export whole_spectrum, spectrum, Teff, flux, M3DISRun, window
