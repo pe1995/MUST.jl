@@ -5,7 +5,8 @@ multi_location   = nothing
 multi_experiment_location = ""
 
 dispatch = PythonCall.pynew()
-m3dis = PythonCall.pynew()
+tumult = PythonCall.pynew()
+m3dis = tumult
 
 
 """
@@ -127,10 +128,11 @@ Load the dispatch module. Either the global location is used or
 a specific path is given to the function. If submodules are listed, those are
 imported only.
 """
-macro import_m3dis(location=nothing,submodules...)
+macro import_tumult(location=nothing,submodules...)
 	location_l    = esc(location)
 	submodules_l  = esc(submodules)
-	dispatch_name = esc(:m3dis)
+	#dispatch_name = esc(:m3dis)
+	dispatch_name = esc(:tumult)
 	submodules_e  =[esc(m) for m in submodules]
 	expressions   = []
 	if length(submodules) >0
@@ -148,6 +150,8 @@ macro import_m3dis(location=nothing,submodules...)
 	end
 end
 
+const var"@import_m3dis" = var"@import_tumult"
+
 """
 Load the dispatch module. Either the global location is used or 
 a specific path is given to the function
@@ -160,13 +164,14 @@ function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
 	sys = pyimport("sys")
 	global multi_location = abspath(pyconvert(String, os.getenv("D", location)))
 
-	multi_python_path = if isdir(joinpath(multi_location, "experiments/Multi3D/m3dis"))
+	#multi_python_path = if isdir(joinpath(multi_location, "experiments/Multi3D/m3dis"))
+	multi_python_path = if isdir(joinpath(multi_location, "experiments/Multi3D/tumult"))
 		global multi_experiment_location = joinpath(multi_location, "experiments/Multi3D")
 		os."path".abspath(os."path".join(os.getenv("D", location), "experiments/Multi3D"))
-	elseif isdir(joinpath(multi_location, "m3dis"))
+	elseif isdir(joinpath(multi_location, "tumult"))
 		os."path".abspath(os.getenv("D", location))
 	else
-		throw(error("$(multi_location) is not a m3dis installation."))
+		throw(error("$(multi_location) is not a tumult installation."))
 	end
 		
 	if !(multi_python_path in sys."path")
@@ -175,8 +180,8 @@ function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
 	end
 
 	if length(submodules) == 0
-		PythonCall.pycopy!(m3dis, pyimport("m3dis.m3dis"))
-		return m3dis
+		PythonCall.pycopy!(tumult, pyimport("tumult"))
+		return tumult
 	else
 		return [pyimport("$(String(m))") for m in submodules]
 	end
@@ -185,8 +190,9 @@ end
 """
 The given path is converted from relative to the expermiment to absolute.
 """
-macro in_m3dis(relative_path)
+macro in_tumult(relative_path)
 	relative_path_l = esc(relative_path)
 	:(_in_m3dis($(relative_path_l)))
 end
+const var"@in_m3dis" = var"@in_tumult"
 _in_m3dis(relative_path) = abspath(joinpath(multi_location,multi_experiment_location,relative_path))

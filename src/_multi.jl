@@ -1,19 +1,22 @@
 #= Wrapper for the MULTI output =#
 
-struct M3DISRun{P<:PythonCall.Py}
+struct TUMULTRun{P<:PythonCall.Py}
     run::P
 end
 
-M3DISRun(path::String; kwargs...) = begin
+TUMULTRun(path::String; kwargs...) = begin
     isnothing(multi_location) && error("No Multi module has been loaded.")
     p = isdir(path) ? path : @in_m3dis(path)
     @assert isdir(p)
-    M3DISRun(m3dis.m3dis.read(p; kwargs...))
+    TUMULTRun(tumult.read(p; kwargs...))
 end
 
-M3DISRun(path::String, folder::String; kwargs...) = begin
-    M3DISRun(joinpath(folder, path); kwargs...)
+TUMULTRun(path::String, folder::String; kwargs...) = begin
+    TUMULTRun(joinpath(folder, path); kwargs...)
 end
+
+# alias for old Multi package
+M3DISRun = TUMULTRun
 
 
 
@@ -24,7 +27,7 @@ end
 
 #= Utility functions =#
 
-Base.getproperty(m::M3DISRun, arg::Symbol) = begin
+Base.getproperty(m::TUMULTRun, arg::Symbol) = begin
     if arg in fieldnames(typeof(m))
         getfield(m, arg)
     else
@@ -305,7 +308,7 @@ function whole_spectrum(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs
     end
 
     # read the output
-    M3DISRun(joinpath(nml.io_params["datadir"], model_name), read_atmos=false)
+    TUMULTRun(joinpath(nml.io_params["datadir"], model_name), read_atmos=false)
 end
 
 """
@@ -344,7 +347,7 @@ function whole_spectrum(model_names::AbstractVector{String}; namelist_kwargs=Dic
     end
 
     # read the output
-    [M3DISRun(joinpath(data_dir, model_name), read_atmos=false) for model_name in model_names]
+    [TUMULTRun(joinpath(data_dir, model_name), read_atmos=false) for model_name in model_names]
 end
 
 opacityTable(models; folder, linelist, λs, λe, δλ, H_atom="input_multi3d/atoms/atom.h20",
@@ -446,7 +449,7 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
 
 
     # read the output
-    M3DISRun(joinpath(nml.io_params["datadir"], mn(model_name)))
+    TUMULTRun(joinpath(nml.io_params["datadir"], mn(model_name)))
 end
 
 """
@@ -538,7 +541,7 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
             @info "$(model_names[i]) finished with success status $(s)."
         end
         # read the output
-        [M3DISRun(joinpath(data_dir, model_name)) for model_name in model_names]
+        [TUMULTRun(joinpath(data_dir, model_name)) for model_name in model_names]
 
     else
         results
@@ -570,7 +573,7 @@ function spectrum(model_names::AbstractVector{String}, runnames::Dict; kwargs...
 
     for (i, model_name) in enumerate(model_names)
         for (j, input_params) in enumerate(namelist_kwargs)
-            r = M3DISRun(joinpath(data_dir, join([model_name, names[j]], "_")))
+            r = TUMULTRun(joinpath(data_dir, join([model_name, names[j]], "_")))
             append!(runs, [r])
         end
     end
@@ -608,7 +611,7 @@ function heating(model_name::String, opacity_table=nothing; slurm=true, namelist
     end
 
     # read the output
-    M3DISRun(joinpath(nml.io_params["datadir"], "$(model_name)$(binned_ext)"))
+    TUMULTRun(joinpath(nml.io_params["datadir"], "$(model_name)$(binned_ext)"))
 end
 
 """
@@ -647,7 +650,7 @@ function heating(model_names::AbstractVector{String}, opacity_table=nothing; nam
     end
 
     # read the output
-    [M3DISRun(joinpath(data_dir, "$(model_name)$(name)$(binned_ext)")) for model_name in model_names]
+    [TUMULTRun(joinpath(data_dir, "$(model_name)$(name)$(binned_ext)")) for model_name in model_names]
 end
 
 
@@ -683,7 +686,7 @@ function multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dic
     end
 
     # read the output
-    M3DISRun(joinpath(nml.io_params["datadir"], mn(model_name)))
+    TUMULTRun(joinpath(nml.io_params["datadir"], mn(model_name)))
 end
 
 
@@ -706,7 +709,7 @@ window(line::PythonCall.Py, args...; kwargs...) = begin
     pyconvert.(Array, line.crop(args...; kwargs...))
 end
 
-window(run::M3DISRun, iline, args...; kwargs...) = begin
+window(run::TUMULTRun, iline, args...; kwargs...) = begin
     line = run.line[iline]
     window(line, args...; kwargs...)
 end
@@ -755,7 +758,7 @@ end
 
 Teff(F::AbstractVector{T}) where {T<:AbstractFloat} = (sum(F) /σ_S)^(1/4)
 
-Teff(run::M3DISRun) = Teff(run.lam, run.flux)
+Teff(run::TUMULTRun) = Teff(run.lam, run.flux)
 
 """
     Teff(run)
@@ -778,7 +781,7 @@ Teff
 _is_1D(x) = ndims(x) == 1
 _set_size_1D_to_3D(x) = _is_1D(x) ? reshape(x, 1, 1, length(x)) : x
 
-function Box(result::M3DISRun)
+function Box(result::TUMULTRun)
     x = Base.convert.(Float32, pyconvert(Array, result.run.xx) .* 1e8)
     y = Base.convert.(Float32, pyconvert(Array, result.run.yy) .* 1e8)
     z = Base.convert.(Float32, pyconvert(Array, result.run.zz) .* 1e8)

@@ -74,7 +74,7 @@ end
 
 
 #= MUST interface =#
-export @import_dispatch, @in_dispatch, @import_m3dis, @in_m3dis
+export @import_dispatch, @in_dispatch, @import_m3dis, @in_m3dis, @import_tumult, @in_tumult
 export Space, spacebox, Box, add!, profile, time_average_profile, flip!
 export multiBox, snapshotBox
 export pick_snapshot, list_of_snapshots, converted_snapshots, list_snapshots, find_snapshots
@@ -83,7 +83,7 @@ export plane_statistic
 export height_scale
 
 # Multi
-export whole_spectrum, spectrum, Teff, flux, M3DISRun, window
+export whole_spectrum, spectrum, Teff, flux, M3DISRun, window, TUMULTRun
 
 # Marcs
 export marcsBox

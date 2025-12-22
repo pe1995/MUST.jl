@@ -13,6 +13,7 @@ numba = ""
 astropy = ""
 numpy = ""
 scipy = ""
+requests = ""
 
 [pip.deps]
 ipyformkit = ""
