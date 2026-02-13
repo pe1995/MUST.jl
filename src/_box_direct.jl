@@ -276,7 +276,7 @@ end
 
 Collect meta data from all ranks.
 """
-function _patchmeta(datadir, rank_nmls, snapshot_nml)
+function _patchmeta(datadir, rank_nmls, snapshot_nml, newformat=false)
 	patchMeta = []
 	patchDataFiles = []
 	patchAuxFiles = []
@@ -290,8 +290,10 @@ function _patchmeta(datadir, rank_nmls, snapshot_nml)
 			pnml = rank_nml[p]
 			id = nmlValue(pnml, "id")
 			
-			auxname = joinpath(datadir, @sprintf("%05d", id)*".aux")
-			if save_aux
+			auxname = newformat ? joinpath(datadir, "snapshot_"*@sprintf("%05d", rank-1)*".aux") : joinpath(datadir, @sprintf("%05d", id)*".aux")
+			#auxname = joinpath(datadir, @sprintf("%05d", id)*".aux")
+			if save_aux && isfile(auxname) &&(!newformat)
+				#@show auxname
 				aux = readaux(auxname)
 				append!(auxnames, [a.name for a in aux])
 				save_aux = false
@@ -311,7 +313,7 @@ end
 
 Assemble all data from all patches and save them in the big storage arrays.
 """
-function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patchDataFiles, idxs, auxnames, patchAuxFiles, variablesAndAux, variablesDerived, quantities, eos_quantities, eos_sq, units, converters, l_conv, fid, lookup_generator=nothing)
+function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patchDataFiles, idxs, auxnames, patchAuxFiles, variablesAndAux, variablesDerived, quantities, eos_quantities, eos_sq, units, converters, l_conv, fid, lookup_generator=nothing, newformat=false)
 	# Lookup function can be generated from the input generator
 	# this is a useful hook to use EoS outside of MUST (e.g. TSO)
 	# without needing to include TSO inside MUST
@@ -336,12 +338,29 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 	end
 	
 	buffer = Array{Float32, length(Tuple(patchMeta[1].ncell))}(undef, Tuple(patchMeta[1].ncell))
+	active_auxfile = Ref("")
+	files_read = []
+	faux = nothing
 	@inbounds for (i, patch) in enumerate(patchMeta)
-		r .= patch_range[:, :, i]
+		r = patch_range[:, :, i]
 		li = patch.li
 		ui = patch.ui
 		liwg = patch.li_with_guards
 		uiwg = patch.ui_with_guards
+		faux = if active_auxfile[] != patchAuxFiles[i]
+			@assert !(patchAuxFiles[i] in files_read)
+			append!(files_read, [patchAuxFiles[i]])
+			try
+				close(faux)
+			catch
+				nothing
+			end
+			active_auxfile[] = patchAuxFiles[i]
+			MUST.FortranFiles.FortranFile(active_auxfile[])
+		else
+			faux
+		end
+
 		@optionalTiming varFromPatchTime  open(patchDataFiles[i], "r") do f
 			for (j, var) in enumerate(variablesSym)
 				_var_from_patch_direct_arr!(
@@ -361,9 +380,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 		xx, yy, zz = @optionalTiming meshgridTime meshgrid(patch.xi, patch.yi, patch.zi)
 		
 		@optionalTiming auxTime if length(auxnames) > 0
-			auxname = patchAuxFiles[i]
-			aux = readaux(auxname)
-
+			aux = readaux(faux, newformat=newformat, nvars=length(auxnames))
 			for a in aux
 				asym = Symbol(a.name)
 				if asym in variablesAndAux
@@ -384,6 +401,9 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 		# Check if there are convertsion that we need to apply
 		@optionalTiming convertersTime for d in quantities
 			temp_storage[d.name] .*= converters[d.name]
+
+			@assert !any(isnan.(temp_storage[d.name]))
+			@assert !any(isinf.(temp_storage[d.name]))
 		end
 
 		xx .*= l_conv(units)
@@ -402,7 +422,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 		end
 
 		@optionalTiming saveToStructureTime for d in quantities
-			var = String(d.name)
+			var = String(d.name)			
 			_save_to_structure!(fid[var], r, temp_storage[d.name])
 		end
 
@@ -413,6 +433,10 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 		@optionalTiming saveToStructureTime _save_to_structure!(fid["x"], r, xx)
 		@optionalTiming saveToStructureTime _save_to_structure!(fid["y"], r, yy)
 		@optionalTiming saveToStructureTime _save_to_structure!(fid["z"], r, zz)
+
+		if (i == length(patchMeta))
+			close(faux)
+		end
 	end
 end
 
@@ -548,6 +572,12 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 
 	# rank namelists
     rank_files = [f for f in glob("*", datadir) if occursin("_patches.nml", f)]
+	newformat = length(rank_files) == 0
+	rank_files = sort(if newformat
+		[f for f in glob("*", datadir) if occursin("snapshot_", f) && occursin(".nml", f)]
+	else
+		rank_files
+	end)
 	rank_nmls = FreeNamelist.(rank_files, :patch_nml)
 
 	# general quantities
@@ -559,9 +589,17 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 	
 	# First we read the meta data so that we can build the data cube
 	patchMeta, patchDataFiles, patchAuxFiles, auxnames = @optionalTiming patchMetaTime _patchmeta(
-		datadir, rank_nmls, snapshot_nml
+		datadir, rank_nmls, snapshot_nml, newformat
 	)
 
+	auxnames = if newformat
+		a = nmlField(params_list, :aux_params)["select"]
+		v = (typeof(a) <: AbstractArray) ? a : [a]
+		v = [strip(replace(vi, '\''=>' ')) for vi in v]
+	else
+		auxnames
+	end
+	
 	# decide if there are quantities to skip because there is no aux data for them
 	# and they can not be derived otherwise
 	variableMaskOk = [ (!q.derived)|(q.name in Symbol.(auxnames))|(!isnothing(q.recipe)) for q in quantities]
@@ -614,7 +652,8 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 		converters,
 		l_conv,
 		fid,
-		lookup_generator
+		lookup_generator,
+		newformat
 	)
 
 	@optionalTiming saveSnapshotTime if save_snapshot

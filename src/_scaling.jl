@@ -21,6 +21,7 @@ struct AtmosUnits
     m_H    ::Float64
     m_He   ::Float64
     B      ::Float64
+    gamma  ::Float64
 end
 
 """
@@ -49,8 +50,9 @@ function StandardUnits(;system = "cgs",
                     k_B  = 1.380658E-16,
                     m_H  = 1.6726219E-24, 
                     m_He = 6.65e-24,
-                    B = sqrt(4.0*π*d)*u)
-    AtmosUnits(system,l,d,t,n,u,m,p,pm,ee,e,flux,src,qr,k,rk,mu,b,k_B,m_H,m_He,B)
+                    B = sqrt(4.0*π*d)*u,
+                    gamma=1.0)
+    AtmosUnits(system,l,d,t,n,u,m,p,pm,ee,e,flux,src,qr,k,rk,mu,b,k_B,m_H,m_He,B,gamma)
 end
 
 """

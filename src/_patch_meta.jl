@@ -117,46 +117,81 @@ function PatchMeta(patch, snap)
     )
 end
 
+
+
+
+
+
+
+
 """
     readaux(fname)
 
 Read auxiliar data from the given filename.
 """
-function readaux(fname)
-    auxs = []
+function readaux(fname::String; newformat=false, nvars=-1)
     if isfile(fname)
         f = FortranFiles.FortranFile(fname)
-        version, id = read(f, (Int32, 2))
+        auxs = readaux(f, newformat=newformat, nvars=nvars)
+        close(f)
+    end
+    auxs
+end
+
+readaux_entry(f) = begin
+    name = read_string(f)
+    rnk = read_numbers(f)
+    shp = read_numbers(f)
+    tp = read_string(f)
+
+    data = if first(tp) == 'r'
+        a = zeros(Float32, shp...)
+        read(f, a)
+        a
+    elseif first(tp) == 'd'
+        a = zeros(Float64, shp...)
+        read(f, a)
+        a
+    else
+        a = zeros(Int32, shp...)
+        read(f, a)
+        a
+    end
+
+    name, rnk, shp, tp, data
+end
+
+function readaux(f; newformat=false, nvars=-1)
+    auxs = []
+    version, id = if !newformat
+        read(f, (Int32, 2))
+    else
+        -1, -1
+    end
+
+    if nvars < 0
+        # read the entire file
         while true
             try		
-                name = read_string(f)
-                rnk = read_numbers(f)
-                shp = read_numbers(f)
-                tp = read_string(f)
-        
-                data = if first(tp) == 'r'
-                    a = zeros(Float32, shp...)
-                    read(f, a)
-                    a
-                elseif first(tp) == 'd'
-                    a = zeros(Float64, shp...)
-                    read(f, a)
-                    a
-                else
-                    a = zeros(Int32, shp...)
-                    read(f, a)
-                    a
-                end
-
+                name, rnk, shp, tp, data = readaux_entry(f)
                 append!(auxs, [AuxPatch(version, id, name, rnk, shp, tp, data)])
             catch
                 break
             end
         end
-        close(f)
+    else
+        # read the first nvars entries
+        for i in 1:nvars
+            name, rnk, shp, tp, data = readaux_entry(f)
+            append!(auxs, [AuxPatch(version, id, name, rnk, shp, tp, data)])
+        end
     end
+    
     auxs
 end
+
+
+
 
 
 

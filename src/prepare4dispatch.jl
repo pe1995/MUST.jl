@@ -485,7 +485,7 @@ function create_namelist(name, x_resolution, z_resolution, x_size, z_size,
             :rt_llc=>[-x/2, -x/2, -round((z_size/2 + ddown)/l_cgs_raw -shift_atmosphere_by, sigdigits=5)], 
             :rt_urc=>[ x/2,  x/2,  round((z_size/2 - ddown)/l_cgs_raw +shift_atmosphere_by, sigdigits=5)], 
             :n_bin=>n_bin,
-            :courant=>courant_rt,
+            #:courant=>courant_rt,
             :rt_freq=>0.0,
             :rt_grace=>0.1,
             :rt_res=>[-1,-1,rt_patch_size]
