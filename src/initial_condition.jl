@@ -189,8 +189,7 @@ function prepare(
 			TSO.Quadrant((4.0, 100.0), (qlim, 100), 1, stripes=:κ),
 			TSO.Quadrant((0.0, 100.0), (-100, qlim), 4, stripes=:λ),
 		]
-	end
-)
+	end)
 	# make sure that the grid exists
 	grid = deepcopy(g)
 	deleteat!(grid.info, .!isfile.(grid["av_path"]))

@@ -1803,13 +1803,6 @@ end
 optical_depth(b::MUST.Box, k, rho) = optical_depth(b, k .* rho)
 
 function optical_depth(b::MUST.Box, rk)
-    #=τ(z,ix,iy) = begin
-        mask   = b.z[ix,iy,:] .>= z
-        count(mask) < 2 ? 
-            0.0 : 
-            integrate(b.z[ix,iy,mask],rk[ix,iy,mask])
-    end=#
-
     Nx = size(b.x,1)
     Ny = size(b.x,2)
     Nz = size(b.x,3)
@@ -1827,23 +1820,6 @@ function optical_depth(b::MUST.Box, rk)
             end
         end
     end
-
-    #=for k in Nz-1:-1:1
-        for j in 1:Ny
-            for i in 1:Nx
-                z = b.z[i,j,k]
-                optical_depth[i,j,k] = τ(z, i, j)
-            end
-        end
-    end=#
-
-    # Always compute the log, makes the extrapolation easier
-    #optical_depth = log10.(optical_depth)
-
-    # Last point extrapolate
-    #m = (optical_depth[:,:,end-2] .- optical_depth[:,:,end-1]) ./ (b.z[:,:,end-2] .- b.z[:,:,end-1])
-    #a = optical_depth[:,:,end-1] .- m .* b.z[:,:,end-1]
-    #optical_depth[:,:,end] = m .* b.z[:,:,end] .+ a
 
     optical_depth
 end
@@ -2260,7 +2236,9 @@ function flip!(box::Box; density=:d, uz=:uz)
     # Now it is from bottom to top, so the first value in z should be the smallest value
     if box.z[1, 1, 1] > box.z[1, 1, end]
         box.z .*= -1
-        box.data[uz] .*= -1
+        if haskey(box.data, uz)
+            box.data[uz] .*= -1
+        end
     end
 
     box

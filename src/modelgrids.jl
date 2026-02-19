@@ -111,8 +111,7 @@ end
 
 read_models_from_grid(grid::MUST.AbstractMUSTGrid; adiabats=nothing, eos=nothing, opa=nothing, common_size=1000, τbottom=8, τtop=-6, kwargs...) = begin
 	# read all average models and interpolate them to the same number of points
-	models = Any[initial_model(grid, String(name))
-					for name in grid.info[!, "name"]]
+	models = Any[initial_model(grid, String(name)) for name in grid.info[!, "name"]]
 
 	models = if !isnothing(adiabats)
 		Any[TSO.flip!(Average3D(grid.info[i, "ad_path"], logg=grid.info[i, "logg"]) for i in 1:MUST.nrow(grid.info))]

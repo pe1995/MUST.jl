@@ -838,13 +838,18 @@ Load the monitoring of the given WatchDog. Optionally specify a list of groups y
 want to load, or how many snapshots you want to read from the end. This is 
 usefull when you only need a specific field of the last couple of snapshots.
 """
-reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all) where {S<:AbstractWatchDog} = begin
+reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all, snapshots=[]) where {S<:AbstractWatchDog} = begin
     listOfSnaps = availableSnaps(w)
     w.snapshotsCompleted = []
     firstSnap = lastN == :all ? 1 : max(length(listOfSnaps) - (lastN-1), 1)
+    if length(snapshots) > 0
+        listOfSnaps = snapshots
+    else
+        listOfSnaps = listOfSnaps[firstSnap:end]
+    end
     if !asDict
         l  = []
-        for snap in listOfSnaps[firstSnap:end]
+        for snap in listOfSnaps
             try
                 si = reload(w, snapshotnumber(snap); mmap=mmap, groups=groups)
                 append!(l, [si])
@@ -857,7 +862,7 @@ reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all) where {S<:Ab
         l
     else
         l = Dict()
-        for snap in listOfSnaps[firstSnap:end]
+        for snap in listOfSnaps
             try
                 l[snap] = reload(w, snapshotnumber(snap); mmap=mmap, groups=groups)
                 append!(w.snapshotsCompleted, [snapshotnumber(snap)])
