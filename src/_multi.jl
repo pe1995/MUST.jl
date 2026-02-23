@@ -350,32 +350,50 @@ function whole_spectrum(model_names::AbstractVector{String}; namelist_kwargs=Dic
     [TUMULTRun(joinpath(data_dir, model_name), read_atmos=false) for model_name in model_names]
 end
 
-opacityTable(models; folder, linelist, λs, λe, δλ, H_atom="input_multi3d/atoms/atom.h20",
-				in_log=true, slurm=false, kwargs...) = begin
-    whole_spectrum(
-		models, 
+"""
+    computeEosTable(model; folder, linelist, λ_file, λs, λe, δλ, δlnT, δlnρ, FeH, nν,
+				in_log=true, slurm=false, m3dis_kwargs=Dict(), abund_file, tmolim, kwargs...)
+
+Compute opacity and EoS tables using M3D.
+"""
+function opacityTable(model; folder, linelist, λ_file, λs, λe, δλ, δlnT, δlnρ, FeH, nν,
+				in_log=true, slurm=false, m3dis_kwargs=Dict(), abund_file, tmolim, kwargs...)
+	spec_para = (!isnothing(λ_file)) ? Dict(:lam_file=>λ_file, :in_air=>false) : Dict(:daa=>δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>in_log, :in_air=>false)
+    MUST.whole_spectrum(
+		model, 
 		namelist_kwargs=(
 			:model_folder=>folder,
 			:linelist=>nothing,
 			:absmet=>nothing,
-			:linelist_params=>(:line_lists=>linelist,),
-			:atom_params=>(:atom_file=>H_atom, ),
-			:spectrum_params=>(:daa=>δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>in_log),
+			:linelist_params=>(:linelist_folder=>linelist,),
+			:atom_params=>(:atom_file=>"", ),
+			:spectrum_params=>(spec_para...,),
 			:atmos_params=>(
 				:dims=>1, 
 				:atmos_format=>"Text",
 				:use_rho=>true, 
-				:use_ne=>false
+				:use_ne=>false,
+				:FeH=>FeH,
+				:nz=>2,
+				:amr=>false
 			),
 			:m3d_params=>(
-				:n_nu=>1, 
+				:n_nu=>nν, 
 				:ilambd=>0,
 				:short_scheme=>"disk_center",
-				:long_scheme=>"disk_center",
-				:make_opac_table=>true
+				:long_scheme=>"none",
+				:make_eos=>true
+			),
+			:composition_params=>(
+                :abund_file=>abund_file,
+				:ldtemp=>δlnT,
+				:ldrho=>δlnρ,
+				:tmolim=>tmolim,
+				:mhd_eos=>false,
 			),
             kwargs...
 		),
+		m3dis_kwargs=m3dis_kwargs,
 		slurm=slurm
 	)
 end
