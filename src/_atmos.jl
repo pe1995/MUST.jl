@@ -2218,7 +2218,7 @@ mesh(m::Box) = meshgrid(
 Flip the box object and possibly reverse the sign of the height scale (only geometrical).
 It used the density to determine where the bottom is.
 """
-function flip!(box::Box; density=:d, uz=:uz)
+function flip!(box::Box; density=:d, uz=:uz, depth=false)
     # Determine if it is oriented from bottom to top
     d = box[density][1, 1, :]
     is_upside_down = first(d) < last(d)
@@ -2241,8 +2241,31 @@ function flip!(box::Box; density=:d, uz=:uz)
         end
     end
 
+    if depth
+        for (k, v) in box.data
+            reverse!(box.data[k]; dims=3)
+        end
+
+        reverse!(box.x, dims=3)
+        reverse!(box.y, dims=3)
+        reverse!(box.z, dims=3)
+
+        if box.z[1,1,1] > box.z[1,1,end]
+            box.z .*= -1
+            if haskey(box.data, uz)
+                box.data[uz] .*= -1
+            end
+        end
+    end
+
     box
-end
+end 
+
+function flip(box::Box; kwargs...)
+    b = deepcopy(box)
+    flip!(b; kwargs...)
+    b
+end 
 
 
 
