@@ -249,7 +249,7 @@ function abund_abundances(;α=0.0, default="./input_multi3d/abund/abund_magg", e
 			if !isnothing(iele)
 				abund_new[iele, 2] = abund_default[iele, 2] + α
 			else
-				@warn "element $(ele) not found in absdat $(default)."
+				@warn "element $(ele) not found in abund $(default)."
 			end
 		end
 		new_name *= "_a$(α)"
@@ -262,7 +262,7 @@ function abund_abundances(;α=0.0, default="./input_multi3d/abund/abund_magg", e
 			abund_new[iele, 2] = abund_default[iele, 2] + val
 			new_name *= "_$(ele)$(val)"
 		else
-			@warn "element $(string(eleS)) not found in absdat $(default)."
+			@warn "element $(string(eleS)) not found in abund $(default)."
 		end
 	end
 
