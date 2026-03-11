@@ -2685,9 +2685,6 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             spectraGridAbundance[a] = s_new
         end
 
-
-
-
         fluxDictGrid = Dict(a=>nanmean([s[:meanFlux] for s in sp]) for (a, sp) in spectraGridAbundance)
         fluxDictGrid["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
         for (k, v) in  fluxDictGrid
@@ -2697,16 +2694,11 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
         write_spectra(getfilename("mean_flux"), fluxDictGrid, header=ab_header)
 
-
-
-
         fluxDictGridNorm = Dict(a=>nanmean([s[:meanFluxNorm] for s in sp]) for (a, sp) in spectraGridAbundance)
         fluxDictGridNorm["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
         full_header = header_line1 * header_line11("flux", "normalized", "integrated") *header_line2 * header_line3 * "\n"
         ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
         write_spectra(getfilename("mean_flux_norm"), fluxDictGridNorm, header=ab_header)
-
-        
 
         # See if there is LTE as well
         LTEAvail = try
@@ -2774,7 +2766,6 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         end
         return true # Indicate success
     end
-
 
     #=====================================================#
     # Main Function Body: Setup and execution control.    #

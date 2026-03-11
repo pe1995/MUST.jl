@@ -503,7 +503,7 @@ _whole_spectrum_namelist!(nml::M3DNamelist;
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
 	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
-    atom_params=(:atom_file=>"./input_multi3d/atoms/atom.h20", 
+    atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
 				:lvlcheck=>1,
@@ -517,8 +517,8 @@ _whole_spectrum_namelist!(nml::M3DNamelist;
 		nml; 
 		io_params=io_params, 
 		timer_params=timer_params,
-		atmos_params=atmos_params
-		,m3d_params=m3d_params,
+		atmos_params=atmos_params,
+		m3d_params=m3d_params,
 		#linelist_params=linelist_params,
 		#spectrum_params=spectrum_params,
         atom_params=atom_params,
