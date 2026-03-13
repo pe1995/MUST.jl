@@ -157,7 +157,7 @@ Save the model in a format readable by M3D.
 save_text_m1d(f_new, τ, T, ne; logg, header=nothing, information=nothing, vmic=zeros(length(τ)), v=zeros(length(τ))) = begin
     open(f_new, "w") do f
         h = isnothing(header) ? "Average 3D" : header
-        information = isnothing(information) "*" : information
+        information = isnothing(information) ? "*" : information
 		write(f, "  "*h*"\n")
 		write(f, "  TAU\n")
         write(f, "  "*information*"\n")
