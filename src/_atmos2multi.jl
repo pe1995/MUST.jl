@@ -160,7 +160,7 @@ save_text_m1d(f_new, τ, T, ne; logg, header=nothing, information=nothing, vmic=
         information = isnothing(information) ? "*" : information
 		write(f, "  "*h*"\n")
 		write(f, "  TAU\n")
-        write(f, "  "*information*"\n")
+        write(f, information*"\n")
 		write(f, "* surface gravity log(g)\n")
 		write(f, "  $(logg)\n")
 		write(f, "* Number of depth points\n")
