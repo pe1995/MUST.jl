@@ -34,15 +34,17 @@ function MURaMBox(model_path)
 
     xx, yy, zz = meshgrid(x, y, z)
 
-    data = Dict{Symbol, Array{eltype(U), 3}}(   :ux  => U ,
-                                                :uz  => W ,
-                                                :T   => T ,
-                                                :P   => P ,
-                                                :By  => By,
-                                                :uy  => V ,
-                                                :Bx  => Bx,
-                                                :d   => R ,
-                                                :Bz  => Bz)
+    data = Dict{Symbol, Array{eltype(U), 3}}(
+        :ux  => U ,
+        :uz  => W ,
+        :T   => T ,
+        :P   => P ,
+        :By  => By,
+        :uy  => V ,
+        :Bx  => Bx,
+        :d   => R ,
+        :Bz  => Bz
+    )
 
     if !isnothing(E)
         data[:E] = E

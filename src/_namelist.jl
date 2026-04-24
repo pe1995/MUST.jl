@@ -134,13 +134,6 @@ SnapshotNamelist() = SnapshotNamelist([Dict{String,Any}() for f in fieldnames(Sn
 SnapshotNamelist(path::String) = begin 
     s = SnapshotNamelist()
     read!(s, path)
-    #=for field in nmlFields(s)
-        d = nmlField(s, field)
-        for key in keys(d)
-            !(typeof(d[key])<:AbstractArray) ? continue : nothing
-            d[key] = parse_from_namelist.(d[key][1:end-1])
-        end
-    end=#
     s
 end
 
@@ -148,13 +141,6 @@ FreeNamelist() = FreeNamelist(Dict{Symbol, Any}())
 FreeNamelist(path::String; buzzword=nothing) = begin 
     s = FreeNamelist()
     read!(s, path, buzzword=buzzword)
-    #=for field in nmlFields(s)
-        d = nmlField(s, field)
-        for key in keys(d)
-            (!(typeof(d[key])<:AbstractArray)) && continue 
-            d[key] = parse_from_namelist.(d[key][1:end-1])
-        end
-    end=#
     s
 end
 FreeNamelist(path::String, stack) = begin 
@@ -186,53 +172,89 @@ end
 
 #= Utility Functions for Namelists =#
 
-"""
-Read a namelist from path.
-"""
 function read!(nml::AbstractNamelist, path::String; buzzword=nothing)
     content = Dict{Symbol, Dict{String, Any}}()
-
-    # Read the data line by line and save the parameter
-    lines = readlines(path)
-    para  = :nothing
-    buzzcount = 0
-    stop_at_next = false
-    skip_this_field = false
-    for line in lines
-        occursin("!", line) ? continue : nothing
-        
-        # If there is a & it is a new parameter, then remove this from the line
-        if occursin("&", line) 
-            para = Symbol(lowercase(split(line)[1][2:end]))
-
-            # If the buzzword is detected for the nth time, we stop afterwards
-            if stop_at_next
-                break
+    raw_text = read(path, String)
+    
+    text_no_comments = Char[]
+    masked_text = Char[]
+    
+    in_sq, in_dq = false, false
+    in_comment = false
+    
+    for c in raw_text
+        if in_comment
+            if c == '\n'
+                in_comment = false
+                push!(text_no_comments, c)
+                push!(masked_text, c)
             end
-            if !isnothing(buzzword)
-                if para==buzzword[1]
-                    buzzcount += 1
-                end
-                if (buzzcount == buzzword[2]) && (para==buzzword[1])
-                    stop_at_next = true
-                    skip_this_field = false
-                else
-                    skip_this_field = true
-                end
-            end
-
-            skip_this_field && continue 
-            content[para] = Dict{String, Any}()
-            line = line[length(String(para))+2:end]
+            continue
         end
-
-        skip_this_field && continue 
-
-        # Split the lines at the = sign. Every second entry is value then
-        line_s = split_namelist_line(line)
-        for i in 1:2:length(line_s)
-            (length(line_s) >= 2) ? key = lowercase(strip(line_s[i])) : continue
-            content[para][key] = parse_from_namelist(strip(line_s[i+1])) 
+        
+        # Toggle string states
+        if c == '\'' && !in_dq; in_sq = !in_sq; end
+        if c == '"'  && !in_sq; in_dq = !in_dq; end
+        
+        # Skip comments (unless the '!' is inside a string)
+        if c == '!' && !in_sq && !in_dq
+            in_comment = true
+            continue
+        end
+        
+        push!(text_no_comments, c)
+        
+        if (in_sq || in_dq) && (c == '/' || c == '=' || c == '&')
+            push!(masked_text, ' ')
+        else
+            push!(masked_text, c)
+        end
+    end
+    
+    clean_text = String(text_no_comments)
+    safe_text = String(masked_text)
+    
+    buzzcount = 0
+    block_matches = collect(eachmatch(r"&([a-zA-Z_][a-zA-Z0-9_]*)", safe_text))
+    
+    for b_match in block_matches
+        para = Symbol(lowercase(b_match.captures[1]))
+        
+        if !isnothing(buzzword)
+            if para == buzzword[1]
+                buzzcount += 1
+            end
+            if para != buzzword[1] || buzzcount != buzzword[2]
+                continue
+            end
+        end
+        
+        start_search_idx = b_match.offset + length(b_match.match)
+        end_idx = findnext('/', safe_text, start_search_idx)
+        end_idx = isnothing(end_idx) ? length(safe_text) : end_idx
+        
+        block_safe = safe_text[start_search_idx:end_idx-1]
+        block_clean = clean_text[start_search_idx:end_idx-1]
+        
+        content[para] = Dict{String, Any}()
+        
+        key_regex = r"([a-zA-Z_][a-zA-Z0-9_]*)\s*="
+        k_matches = collect(eachmatch(key_regex, block_safe))
+        
+        for (k_idx, k_match) in enumerate(k_matches)
+            key = lowercase(k_match.captures[1])
+            
+            val_start = k_match.offset + length(k_match.match)
+            val_end = (k_idx < length(k_matches)) ? k_matches[k_idx+1].offset - 1 : length(block_clean)
+            
+            raw_val = block_clean[val_start:val_end]
+            clean_val = strip(raw_val, [' ', '\t', '\n', '\r', ','])
+            
+            content[para][key] = parse_from_namelist(clean_val)
+        end
+        
+        if !isnothing(buzzword)
+            break
         end
     end
 
@@ -247,58 +269,146 @@ function read!(nml::AbstractNamelist, path::String; buzzword=nothing)
 end
 
 function parse_from_namelist(value_string)
-    if length(value_string) == 0
+    if length(strip(value_string)) == 0
         return ""
     end
-    value_string = ("$(strip(value_string)[end])" == "/") ? strip(strip(value_string)[1:end-1]) : value_string
-    val = if occursin(",", value_string)|occursin("*", value_string)
-        v = parse_multiple(value_string)
-        if length(v) == 1
-            first(v)
-        else
-            v
-        end
-    elseif occursin(".", value_string)
+    
+    v_str = ("$(strip(value_string)[end])" == "/") ? strip(strip(value_string)[1:end-1]) : strip(value_string)
+    
+    val = if occursin(",", v_str) || occursin("*", v_str)
+        v = parse_multiple(v_str) 
+        length(v) == 1 ? first(v) : v
+    elseif occursin(".", v_str) || occursin("E", uppercase(v_str)) || occursin("D", uppercase(v_str))
         try
-            parse(Float64, value_string)
+            safe_float_str = replace(uppercase(v_str), "D" => "E")
+            parse(Float64, safe_float_str)
         catch
-            String(value_string)
+            String(v_str)
         end
     else
         try
-            parse(Int64, value_string)
+            parse(Int64, v_str)
         catch
-            String(value_string)
+            String(v_str)
         end
     end
 
     val = if typeof(val) <: AbstractString
-        if lowercase(val) in ["t", ".true."]
+        v_lower = lowercase(strip(val))
+        if v_lower in ["t", ".true."]
             true
-        elseif lowercase(val) in ["f", ".false."]
+        elseif v_lower in ["f", ".false."]
             false
         else
-            val
+            # Strip delimiters, remove line breaks, and strip the resulting Fortran space padding
+            cleaned = strip(val, ['\'', '"'])
+            cleaned = replace(cleaned, r"[\r\n]+" => "")
+            strip(cleaned)
         end
-    elseif (typeof(val) <: AbstractArray) && (typeof(first(val)) <: AbstractString)
+    elseif (typeof(val) <: AbstractArray) && !isempty(val) && (typeof(first(val)) <: AbstractString)
         v = []
         for iv in val
-            vi = if lowercase(iv) in ["t", ".true."]
+            iv_lower = lowercase(strip(iv))
+            vi = if iv_lower in ["t", ".true."]
                 true
-            elseif lowercase(iv) in ["f", ".false."]
+            elseif iv_lower in ["f", ".false."]
                 false
             else
-                iv
+                # Do the same for string arrays
+                cleaned = strip(iv, ['\'', '"'])
+                cleaned = replace(cleaned, r"[\r\n]+" => "")
+                strip(cleaned)
             end
-            append!(v, [vi])
+            push!(v, vi)
         end
-
         v
     else
         val
     end
 
     return val
+end
+
+function parse_multiple(s)
+    sComponents = []
+    
+    sComma = String[]
+    in_sq, in_dq = false, false
+    current_chunk = Char[]
+    
+    for c in s
+        if c == '\'' && !in_dq; in_sq = !in_sq; end
+        if c == '"'  && !in_sq; in_dq = !in_dq; end
+        
+        if c == ',' && !in_sq && !in_dq
+            push!(sComma, strip(String(current_chunk)))
+            empty!(current_chunk)
+        else
+            push!(current_chunk, c)
+        end
+    end
+    push!(sComma, strip(String(current_chunk)))
+    filter!(!isempty, sComma)
+
+    sMulti = []
+    for si in sComma
+        in_sq, in_dq = false, false
+        found_star = false
+        left_chunk = Char[]
+        right_chunk = Char[]
+        
+        for c in si
+            if c == '\'' && !in_dq; in_sq = !in_sq; end
+            if c == '"'  && !in_sq; in_dq = !in_dq; end
+            
+            if c == '*' && !in_sq && !in_dq && !found_star
+                found_star = true
+                continue
+            end
+            
+            if found_star
+                push!(right_chunk, c)
+            else
+                push!(left_chunk, c)
+            end
+        end
+        
+        if found_star
+            push!(sMulti, [strip(String(left_chunk)), strip(String(right_chunk))])
+        else
+            push!(sMulti, [strip(String(left_chunk))])
+        end
+    end
+
+    for component in sMulti
+        c = if length(component) > 1
+            repeat([last(component)], parse(Int, first(component)))
+        else
+            component
+        end
+        append!(sComponents, c)
+    end
+
+    sComponentsParsed = []
+    for component in sComponents
+        c_new = if occursin(".", component) || occursin("E", uppercase(component)) || occursin("D", uppercase(component))
+            try 
+                safe_float_str = replace(uppercase(component), "D" => "E")
+                parse(Float64, safe_float_str)
+            catch
+                component
+            end
+        else
+            try 
+                parse(Int, component)
+            catch
+                component
+            end
+        end
+        push!(sComponentsParsed, c_new)
+    end
+        
+    return sComponentsParsed
 end
 
 function reverse_parse(value)
@@ -308,13 +418,13 @@ function reverse_parse(value)
             val_str = val_str * "$(reverse_parse(val)),"
         end
         val_str = val_str[1:end-1]
-    elseif typeof(value) <:String
-        if (value in ["t", "f", ".true.", ".false."]) | (occursin('*', value))
+    elseif typeof(value) <: String
+        if (value in ["t", "f", ".true.", ".false."]) || (occursin('*', value))
             v = strip(value)
             v = (v[1] == '\'') ? v[2:end] : v
             v = (v[end] == '\'') ? v[1:end-1] : v
             val_str = "$(strip(v))"
-        elseif (occursin("'", value)) | (occursin('"', value))
+        elseif (occursin("'", value)) || (occursin('"', value))
             v = strip(value)
             v = (v[1] == '\'') ? v[2:end] : v
             v = (v[end] == '\'') ? v[1:end-1] : v
@@ -333,7 +443,7 @@ function reverse_parse(value)
                 val_str = "'$(value)'"
             end
         end
-    elseif typeof(value) <:Bool
+    elseif typeof(value) <: Bool
         val_str = ".$(value)."
     else
         val_str = "$(value)"
@@ -341,7 +451,7 @@ function reverse_parse(value)
     return val_str
 end
 
-function split_namelist_line(line)
+#=function split_namelist_line(line)
     # First split at =
     line_s = split(strip(line), "=")
     out    = String[]
@@ -359,7 +469,8 @@ function split_namelist_line(line)
     end
 
     out
-end
+end=#
+
 
 
 
@@ -441,54 +552,6 @@ read_eos_params(path::String) = begin
         lines = [strip.(split(strip(l), "=")) for l in lines]
         lines = Dict(kv[1]=>kv[2] for kv in lines if length(kv)==2)
     end
-end
-
-"""
-    parse_multiple(s)
-
-Parse namelist strings that have a multiplication sign in them.
-"""
-function parse_multiple(s)
-	sComponents = []
-	
-	# split at commas
-	sComma = strip.(split(s, ",", keepempty=false))
-
-	# split for multiplication signs
-	sMulti = [strip.(split(si, "*", keepempty=false)) for si in sComma]
-
-	# flatten the list
-	for component in sMulti
-		c = if length(component) > 1
-			repeat([last(component)], parse(Int, first(component)))
-		else
-			component
-		end
-
-		append!(sComponents, c)
-	end
-
-	# try to convert to number
-	sComponentsParsed = []
-	for component in sComponents
-		c_new = if occursin(".", component)
-			try 
-				parse(Float64, component)
-			catch
-				component
-			end
-		else
-			try 
-				parse(Int, component)
-			catch
-				component
-			end
-		end
-
-		append!(sComponentsParsed, [c_new])
-	end
-		
-	sComponentsParsed
 end
 
 

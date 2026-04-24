@@ -58,14 +58,10 @@ function _write_atmos_multi(b, path, eos=nothing; downsample_xy=1, downsamlpe_z=
 
     res[:, :, :, 1] .= ne[ 1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]
     res[:, :, :, 2] .= b[:T][ 1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]
-    res[:, :, :, 3] .= b[:ux][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
-    res[:, :, :, 4] .= b[:uy][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
-    res[:, :, :, 5] .= b[:uz][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end] #.* b[:d][1:downsample_xy:end,1:downsample_xy:end,1:downsamlpe_z:end]
+    res[:, :, :, 3] .= b[:ux][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]
+    res[:, :, :, 4] .= b[:uy][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]
+    res[:, :, :, 5] .= b[:uz][1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]
     res[:, :, :, 6] .= b[:d][ 1:downsample_xy:end, 1:downsample_xy:end, 1:downsamlpe_z:end]
-    
-    #@show minimum(res[:,:,:,1])
-
-    #reverse!(res, dims=3)
 
     f = open(path, "w")
     write(f, res)
