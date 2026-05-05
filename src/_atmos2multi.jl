@@ -161,7 +161,7 @@ save_text_m1d(f_new, τ, T, ne; logg, header=nothing, information=nothing, vmic=
 		write(f, "  $(logg)\n")
 		write(f, "* Number of depth points\n")
 		write(f, "  $(length(τ))\n")
-		write(f, "* log10 tau (500nm), temperature [K], electron density [g cm-3], v [km s-1], microturbulence [km s-1]\n")
+		write(f, "* log10 tau (500nm), temperature [K], electron density [particles cm-3], v [km s-1], microturbulence [km s-1]\n")
 		
 		for i in eachindex(τ)
 			line = @sprintf "  %15.6E  %15.6E  %15.6E  %.1f  %15.6E\n" τ[i] T[i] ne[i] v[i] vmic[i]
