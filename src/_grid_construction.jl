@@ -1,4 +1,6 @@
-#= Constructing grids from existing Boxes =#
+# ============================================================================= 
+# Constructing grids from existing Boxes 
+# ============================================================================= 
 
 """
     Grid(box::Box)
@@ -38,11 +40,9 @@ Grid(b::Box, zscale::Symbol; order=[1, 2, 3], scale=log) = begin
     RegularBoxGrid(axes)
 end
 
-
-
-
-
-#= Utilities =#
+# ============================================================================= 
+# Utilities
+# ============================================================================= 
 
 check_uniform(b::Box) = begin
     x, y, z = axis(b, :x), axis(b, :y), axis(b, :z)
@@ -83,7 +83,7 @@ end
 Scale the number of points on an axis by the given factor or to a specific number.
 """
 function scale_axis(axis; factor=nothing, N=nothing)
-    if isnothing(factor) & isnothing(N)
+    if isnothing(factor) && isnothing(N)
         error("N or factor required.")
     end
 
@@ -97,11 +97,9 @@ function scale_axis(axis; factor=nothing, N=nothing)
 	Base.convert.(eltype(axis), axis_new)
 end
 
-
-
-
-
-#= Scaling a box in resolution =#
+# ============================================================================= 
+# Scaling a box in resolution 
+# ============================================================================= 
 
 """
     gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), method=:linear, order=[1, 2, 3], dont_log=[:T, :ux, :uy, :uz, :ee, :e])
@@ -139,22 +137,23 @@ function gresample(b::Box;
     TN = eltype(b.x)
 
 	for f in keys(b.data)
-		d_tmp .= if all(b.data[f] .> 0.0) & (eltype(b.data[f]) <: AbstractFloat) & !(f in dont_log)
-            #@info "logging $(f)"
-			permutedims(log.(b.data[f]), order)
+        is_log = all(x -> x > 0.0, b.data[f]) && (eltype(b.data[f]) <: AbstractFloat) && !(f in dont_log)
+
+		if is_log
+			d_tmp .= log.(PermutedDimsArray(b.data[f], order))
 		else
-			permutedims(b.data[f], order)
+			d_tmp .= PermutedDimsArray(b.data[f], order)
 		end
 		
-        # interpolate
-		data_new[f] = Base.convert.(TN, permutedims(gevaluate!(ip, d_tmp), natural_order))
+        # interpolate without copying buffer
+		interpolated = gevaluate!(ip, d_tmp; return_copy=false)
+        p_interpolated = PermutedDimsArray(interpolated, natural_order)
 
-        # apply exp again if needed
-		data_new[f] .= if all(b.data[f] .> 0.0) & 
-							(eltype(b.data[f]) <: AbstractFloat) & !(f in dont_log)
-			exp.(data_new[f])
+        # fuse convert, permutation, and optional exp
+		data_new[f] = if is_log
+			@. TN(exp(p_interpolated))
 		else
-			data_new[f]
+			@. TN(p_interpolated)
 		end
 	end
 
