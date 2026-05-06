@@ -1,3 +1,7 @@
+# =============================================================================
+# Watchdog data structures
+# =============================================================================
+
 abstract type AbstractWatchDog end
 abstract type DISPATCHWatchDog <:AbstractWatchDog end
 abstract type PostProcessingWatchDog <:AbstractWatchDog end
@@ -21,12 +25,9 @@ end
 
 WatchDog(name; folder=@in_dispatch("data/"), functions...) = WatchDog(name, joinpath(folder, name), [], [], 0, 0, functions)
 
-
-
-
-
-
-#= Monitoring of DISPATCH runs =#
+# =============================================================================
+# Monitoring of DISPATCH runs
+# =============================================================================
 
 """
     monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10)
@@ -161,13 +162,9 @@ function monitor(w::DISPATCHWatchDog; timeout=2*60*60, check_every=5, delay=0, s
     end
 end
 
-
-
-
-
-
-
-#= WatchDog analysis of snapshot =#
+# =============================================================================
+# WatchDog analysis of snapshot
+# =============================================================================
 
 """
     analyse(w::WatchDog, snapshot; save_box=false)
@@ -218,13 +215,9 @@ convert(w::DISPATCHWatchDog, snapshot; save_box=false) = begin
     )
 end
 
-
-
-
-
-
-
-#= Default monitoring functions =#
+# =============================================================================
+# Default monitoring functions
+# =============================================================================
 
 atmosphericParameters(w::AbstractWatchDog, b, bτ) = begin
     Dict(
@@ -233,8 +226,6 @@ atmosphericParameters(w::AbstractWatchDog, b, bτ) = begin
         "time" => b.parameter.time
     )
 end
-
-
 
 _geostatistic(f, b) = begin
     variables = keys(b.data) |> collect
@@ -253,7 +244,6 @@ _geostatistic(f, b) = begin
     results
 end
 
-# quantiles
 geometrical15thQuantile(w::AbstractWatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.15), b)
 geometrical30thQuantile(w::AbstractWatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.30), b)
 geometrical45thQuantile(w::AbstractWatchDog, b, bτ) = _geostatistic(x->quantile(reshape(x, :), 0.45), b)
@@ -421,10 +411,6 @@ centerVerticalCut(w::AbstractWatchDog, b, bτ) = begin
     d
 end
 
-
-
-
-
 _optstatistic(f, bτ) = begin
     variables = keys(bτ.data) |> collect
     
@@ -498,12 +484,9 @@ opticalSurfaces(w::AbstractWatchDog, b, bτ) = begin
     d
 end
 
-
-
-
-
-
-#= Spectrum synthesis =#
+# =============================================================================
+# Spectrum synthesis
+# =============================================================================
 
 resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ=nothing) = begin
     dλ = if isnothing(Δλ)
@@ -616,9 +599,9 @@ resolvedSpectraGaiaRVSCATriplet(w::AbstractWatchDog, b, bτ) = resolvedSpectra(8
 resolvedSpectraHalpha(w::AbstractWatchDog, b, bτ) = resolvedSpectra(6562.8-20.0, 6562.8+20.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 resolvedSpectraGBand(w::AbstractWatchDog, b, bτ) = resolvedSpectra(4297.0, 4303.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 
-
-
-
+# =============================================================================
+# Default construction
+# =============================================================================
 
 """
     defaultMonitoring(name; additional_functions...) 
@@ -661,13 +644,9 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = W
     additional_functions...
 )
 
-
-
-
-
-
-
-#= Utility functions =#
+# =============================================================================
+# Utility functions
+# =============================================================================
 
 updatesnaps!(w::DISPATCHWatchDog) = begin
     w.snapshots = sort(list_of_snapshots(w.folder))
@@ -688,6 +667,9 @@ end
 
 convertedBoxes(w::AbstractWatchDog) = converted_snapshots(w.folder)
 
+# =============================================================================
+# File manipulation
+# =============================================================================
 
 """
     add!(w::WatchDog, snapshot; stats...)
@@ -711,10 +693,6 @@ function add!(w::AbstractWatchDog, snapshot; stats...)
     # save the updated monitoring
     save(w, data)
 end
-
-
-
-
 
 """
     deleteSnapshot(w, snap)
@@ -755,12 +733,6 @@ deleteMonitoring(w::DISPATCHWatchDog, snap) = begin
    rm(monitoringPath(w, snap))
 end
 
-
-
-
-
-
-
 add_to_hdf5!(fid, fname, val)       = fid["$(fname)"] = val
 add_to_hdf5!(fid, fname, val::Bool) = fid["$(fname)"] = Int(val)
 
@@ -788,9 +760,9 @@ save(w::AbstractWatchDog, monitoring) = begin
     close(fid)
 end
 
-
-
-
+# =============================================================================
+# Loading monitoring
+# =============================================================================
 
 reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false, groups=nothing) where {S<:AbstractWatchDog} = begin
     reload(s(name; folder=folder), snap, mmap=mmap, groups=groups)
@@ -875,15 +847,9 @@ reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all, snapshots=[]
     end
 end
 
-
-
-
-
-
-
-
-
-#= Convenience functions =#
+# =============================================================================
+# Time evolution
+# =============================================================================
 
 """
     timeevolution(m, group, field) 
@@ -910,16 +876,10 @@ timeevolution(m, group) = begin
     )
 end
 
-
-
-
-
-
-
-
-#= GLobal parameters =#
+# =============================================================================
+# Global parameters
+# =============================================================================
 
 const SPECTRUM_THREADS = Ref(2)
 const SPECTRUM_RESOLUTION = Ref(0.05)
 const SPECTRUM_DOWNSAMPLING = Ref(40)
-

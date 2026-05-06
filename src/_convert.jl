@@ -198,7 +198,7 @@ function snapshotBox_jl(
 
         # interpolate to optical depth scale
         b_τ = if optical_depth_scale
-            b_τ = @optionalTiming heightScaleTime height_scale_fast(b_s, :τ_ross)
+            b_τ = @optionalTiming heightScaleTime height_scale(b_s, :τ_ross, extrapolation=:constant)
             save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=folder)
 
             b_τ 
