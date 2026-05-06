@@ -1,3 +1,7 @@
+# ============================================================================
+# Box to Multi3D
+# ============================================================================
+
 function multiBox(b::Box, eos::AbstractEOS, name::String; downsample_xy=1, downsamlpe_z=1)
     mesh_path = name*".mesh"
     atmos_path = name*".atmos"
@@ -68,8 +72,9 @@ function _write_atmos_multi(b, path, eos=nothing; downsample_xy=1, downsamlpe_z=
     close(f)
 end
 
-
-#= Reading =#
+# ============================================================================
+# Multi3D to Box
+# ============================================================================
 
 function multiBox(name::String)
     mesh_path = name*".mesh"
@@ -117,15 +122,9 @@ function _read_atmos_multi(path, n)
     ne, T, px, py, pz, d
 end
 
-
-
-
-
-
-
-
-
-#= converting Box to average 3D model for M3D =#
+# ============================================================================
+# Average Box for M3D 
+# ============================================================================
 
 """
     save_text_m3d(z, T, ρ, f_new; header=nothing, vmic=zeros(length(z)))
@@ -144,6 +143,37 @@ save_text_m3d(f_new, z, ρ, T; header=nothing, vmic=zeros(length(z)), pe=zeros(l
 		end
 	end
 end
+
+"""
+    save_average_m3d(b::Box, scale, f_new; header=nothing)
+
+Save the average geometical model in a format readable by M3D.
+"""
+save_average_m3d(b::Box, scale, f_new; recompute_ne_func=nothing, kwargs...) = begin
+    z, ρ, T, ne, pe, vmic = average!(b, scale=scale)
+
+    ne, pe = if !isnothing(recompute_ne_func)
+        @info "Recomputing electron density based on averaged ρ and T ($scale scale)."
+        ne_re = recompute_ne_func(ρ, T)
+        pe_re = ne_re .* KBoltzmann .* T
+
+        ne_re, pe_re
+    else
+        ne, pe
+    end
+
+    # convert vmic to km/s
+    vmic = vmic ./ 1e5
+    save_text_m3d(f_new, z, ρ, T; vmic=vmic, pe=pe, kwargs...) 
+end
+
+save_tau500_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :log10τ500, f_new; kwargs...)
+save_tauross_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :log10τ_ross, f_new; kwargs...)
+save_geo_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :z, f_new; kwargs...)
+
+# ============================================================================
+# Average Box for M1D
+# ============================================================================
 
 """
     save_text_m1d(τ, T, ne, f_new; logg, header=nothing, vmic=zeros(length(z)))
@@ -188,32 +218,26 @@ save_text_m1d_dscale(f_new, τ; header=nothing, kwargs...) = begin
 	end
 end
 
-
-"""
-    save_average_m3d(b::Box, scale, f_new; header=nothing)
-
-Save the average geometical model in a format readable by M3D.
-"""
-save_average_m3d(b::Box, scale, f_new; kwargs...) = begin
-    z, ρ, T, ne, pe, vmic = average!(b, scale=scale)
-
-    # convert vmic to km/s
-    vmic = vmic ./ 1e5
-    save_text_m3d(f_new, z, ρ, T; vmic=vmic, pe=pe, kwargs...) 
-end
-
-save_tau500_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :log10τ500, f_new; kwargs...)
-save_tauross_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :log10τ_ross, f_new; kwargs...)
-save_geo_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :z, f_new; kwargs...)
-
-
 """
     save_geo_average_m3d(b::Box, f_new; header=nothing)
 
 Save the average geometical model in a format readable by M3D.
 """
-save_tau_average_m1d(b::Box, f_new; kwargs...) = begin
+save_tau_average_m1d(b::Box, f_new; recompute_ne_func=nothing, information="", kwargs...) = begin
     logτ, ρ, T, ne, pe, vmic = average!(b, scale=:log10τ500)
+
+    ne, pe, infotext = if !isnothing(recompute_ne_func)
+        @info "Recomputing electron density based on averaged ρ and T (log10τ500 scale)."
+        ne_re = recompute_ne_func(ρ, T)
+        pe_re = ne_re .* KBoltzmann .* T
+
+        info = "* Electron density has been recomputed to be consistent with the average ρ-T structure."
+        info *= "\n* The average electron density of the full 3D cube may be different due to shocks in the upper layers."
+
+        ne_re, pe_re, info
+    else
+        ne, pe, ""
+    end
 
     filename = basename(f_new)
     dir = dirname(f_new)
@@ -222,7 +246,7 @@ save_tau_average_m1d(b::Box, f_new; kwargs...) = begin
 
     # convert vmic to km/s
     vmic = vmic ./ 1e5
-    save_text_m1d(f_new_atmos, logτ, T, ne; vmic=vmic, kwargs...) 
+    save_text_m1d(f_new_atmos, logτ, T, ne; vmic=vmic, information=length(information)==0 ? infotext : information*"\n"*infotext, kwargs...) 
     save_text_m1d_dscale(f_new_dscale, logτ; kwargs...) 
 end
 
