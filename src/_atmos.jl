@@ -892,10 +892,10 @@ Returns
 nothing
 
 """
-function plane_statistic(stat::F, b::Box, q::Symbol; filter_out=nothing) where {F<:Function}
+function plane_statistic(stat::F, b::Box, q::Symbol; filter_out=:extrapolated) where {F<:Function}
     av = zeros(typeof(b.z[1,1,1]), size(b.z,3))
     for i in 1:size(b.z,3)
-        av[i] = if !isnothing(filter_out)
+        av[i] = if (!isnothing(filter_out)) && (filter_out in keys(b.data))
             mask = .!view(b[filter_out], :, :, i)
             stat(view(b[q], :, :, i)[mask])
         else
@@ -1818,7 +1818,7 @@ function height_scale(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, :ux, 
     lgh_3d = reshape(lgh, 1, 1, length(lgh))
     min_lgn = minimum(lgn, dims=3)
     max_lgn = maximum(lgn, dims=3)
-    new_box.data[:extrapolated] = (lgh_3d .< min_lgn) .| (lgh_3d .> max_lgn)
+    new_box.data[:extrapolated] = Base.convert(Array{Bool, ndims(new_box.z)}, (lgh_3d .< min_lgn) .| (lgh_3d .> max_lgn))
 
     new_box
 end
@@ -1871,7 +1871,7 @@ end
 # Optical depth
 # =============================================================================
 
-optical_depth(ρ::Vector{T}, κ::Vector{T2}, z::Vector{T3}) where {T, T2, T3} = begin
+function optical_depth(ρ::Vector{T}, κ::Vector{T2}, z::Vector{T3}) where {T, T2, T3}
     τ_ross = zeros(T2, length(ρ)) 
     ρκ = ρ .* κ
     for j in eachindex(z)
@@ -1967,14 +1967,14 @@ The `f` can be any funtion that is applied plane-wise to the data.
 `log10` or `log` can be specified in the variable name to automatically
 return log quantities for convenience when plotting.
 """
-profile(f, model, x=:z, y=:T; filter_out=nothing) = begin
+profile(f, model, x=:z, y=:T; kwargs...) = begin
 	xs, logx = is_log(x)
 	ys, logy = is_log(y)
 	
 	if ndims(axis(model, xs)) > 1
-		logx.(axis(model, xs, 3)), logy.(plane_statistic(f, model, ys; filter_out=filter_out)) 
+		logx.(axis(model, xs, 3)), logy.(plane_statistic(f, model, ys; kwargs...)) 
 	else
-		logx.(axis(model, xs)), logy.(plane_statistic(f, model, ys; filter_out=filter_out))
+		logx.(axis(model, xs)), logy.(plane_statistic(f, model, ys; kwargs...))
 	end
 end
 
@@ -2025,28 +2025,28 @@ end
 """
     average!(b::Box)
 
-Compute geometical average of the model parameters most useful for spectrum synthesis.
+Compute the average of the model parameters most useful for spectrum synthesis.
 """
 function average!(b::Box; depth=true, scale=:z)
-    z, T = profile(mean, b, scale, :T)
-    _, logρ = profile(mean, b, scale, :log10d)
+    z, T = profile(mean, b, scale, :T, filter_out=:extrapolated)
+    _, logρ = profile(mean, b, scale, :log10d, filter_out=:extrapolated)
     ρ = exp10.(logρ)
 
     # Microturbulence
     b.data[:u2] = b[:ux] .^2 .+ b[:uy] .^2 .+ b[:uz] .^2 
-    _, vx = profile(mean, b, scale, :ux)
-    _, vy = profile(mean, b, scale, :uy)
-    _, vz = profile(mean, b, scale, :uz)
-    _, v2 = profile(mean, b, scale, :u2)
+    _, vx = profile(mean, b, scale, :ux, filter_out=:extrapolated)
+    _, vy = profile(mean, b, scale, :uy, filter_out=:extrapolated)
+    _, vz = profile(mean, b, scale, :uz, filter_out=:extrapolated)
+    _, v2 = profile(mean, b, scale, :u2, filter_out=:extrapolated)
 
     vmic = 1/3 .* sqrt.(v2 .- (vx .^2 .+ vy .^2 .+ vz .^2))
 
     ne, pe = if haskey(b.data, :Ne)
-        _, logne = profile(mean, b, scale, :log10Ne)
+        _, logne = profile(mean, b, scale, :log10Ne, filter_out=:extrapolated)
         ne = exp10.(logne)
 
         b.data[:Pe] = b[:Ne] .* KBoltzmann .* b[:T]
-        _, logpe = profile(mean, b, scale, :log10Pe)
+        _, logpe = profile(mean, b, scale, :log10Pe, filter_out=:extrapolated)
         delete!(b.data, :Pe)
 
         ne, exp10.(logpe)
