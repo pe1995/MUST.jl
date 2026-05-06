@@ -1,4 +1,6 @@
-#= MUST Grids =#
+# ============================================================================= 
+# MUST Grids 
+# =============================================================================
 
 """
     RegularBoxAxis(values)
@@ -21,24 +23,16 @@ struct RegularBoxGrid{B<:AbstractBoxAxis} <: AbstractBoxGrid
     axes::Vector{B}
 end
 
-
-
-
-#= Constructors =#
+# ============================================================================= 
+# Constructors 
+# =============================================================================
 
 RegularBoxGrid(axes::AbstractBoxAxis...) = RegularBoxGrid([axes...])
+
 RegularBoxGrid(axes::AbstractArray{T,1}...) where {T<:AbstractFloat} = begin
     RegularBoxGrid(RegularBoxAxis.(axes))
 end
-#=Axis(values) = if is_uniform(values)
-    #@show flipped(values)
-    RegularBoxAxis(flipped(values))
-else
-    #@warn "Non-uniform spacing detected."
-    #@show flipped(values)
-    RegularBoxAxis(flipped(values))
-end
-=#
+
 Axis(values) = RegularBoxAxis(sort(values), issorted(values), sortperm(values))
 
 """
@@ -48,12 +42,9 @@ Construct a N dimensional interpolation grid for N given arrays.
 """
 Grid(ax::AbstractVector...) = RegularBoxGrid(Axis.(ax)...)
 
-
-
-
-
-
-#= Utilities =#
+# ============================================================================= 
+# Utilities 
+# =============================================================================
 
 permutation(a::RegularBoxAxis) = a.sortmask
 

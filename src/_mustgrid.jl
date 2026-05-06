@@ -1,6 +1,8 @@
 #= Running dispatch on a Grid =#
 
-#========== Type Definitions ==========#
+# ============================================================================= 
+# Type Definitions
+# =============================================================================
 
 mutable struct RangeMUSTGrid{DF<:DataFrame,F<:AbstractFloat} <: AbstractMUSTGrid
     seeds  :: Dict{Symbol, Dict{String, F}}
@@ -24,9 +26,9 @@ mutable struct RestartMUSTGrid{DF<:DataFrame} <: AbstractMUSTGrid
     info        :: DF
 end
 
-
-
-#========== Constructors ==========#
+# ============================================================================= 
+# Constructors
+# =============================================================================
 
 RangeMUSTGrid(seeds::T, limits::T; phase="phase1") where {F<:AbstractFloat, T<:Dict{Symbol, Dict{String, F}}} = begin
     RangeMUSTGrid(seeds, limits,  0, Dict{Symbol, Dict{String, Vector{F}}}(), phase, DataFrame())
@@ -54,9 +56,9 @@ RestartMUSTGrid(from::AbstractMUSTGrid; grid::T=T(), phase="phase2") where {T<:D
     RestartMUSTGrid(grid_in, from_phase, phase, deepcopy(from.info))
 end
 
-
-
-#========== Functionality of the types ==========#
+# ============================================================================= 
+# Functionality of the types
+# =============================================================================
 
 string_from_keys(inkeys...; dlim="!") = join(String.(inkeys), dlim)
 keys_from_string(instr ; dlim="!")    = split(instr, dlim)
@@ -99,10 +101,9 @@ modify!(f::Function, grid::AbstractMUSTGrid, field::Symbol, parameter::String, a
     nothing
 end
 
-
-
-
-#========== Grid <-> Namelist creation ==========#
+# ============================================================================= 
+# Grid <-> Namelist creation
+# =============================================================================
 
 """
 Create ngrid namelists from existing namelist.

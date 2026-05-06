@@ -40,10 +40,7 @@ macro get_help_py(mod, dir)
     :($(mod_e) = _get_help_py($(QuoteNode(mod_s)), $path_esc))
 end
 
-
-
 include_helper(name) = joinpath(dirname(@__FILE__), name)
-
 
 """
     ingredients(path::String)
@@ -65,8 +62,6 @@ function ingredients(path::String)
              :(include($path))))
 	m
 end
-
-
 
 """
 Split array arr in nsplits roughly equal junks.
@@ -148,10 +143,43 @@ roundto(x, y; magnitude=nothing) = begin
     x = x * order_of_magnitude
 end
 
+"""
+    parametersFromName(name)
 
+Try to extract stellar parameters from the name. Parameters need to be given as
+tXXXXgXXXmXXXX. Please make sure to include the minus sign in m.
+"""
+parametersFromName(name) = begin
+	names = split(name, "_", keepempty=false)
+	i_name = 0
+	for (i, split) in enumerate(names)
+		if occursin("t", split) & occursin("g", split) & occursin("m", split)
+			i_name = i
+		end
+	end
 
+	t, g, m = if i_name == 0
+		@warn "could not guess atmospheric parameters from name."
+		-1, -1, 0.0
+	else
+        relevantPart = names[i_name]
+        t1 = findfirst(x->x=='t', relevantPart) + 1
+        t2 = findfirst(x->x=='g', relevantPart) - 1
+        t3 = findfirst(x->x=='m', relevantPart) - 1
 
-#= Integration functions =#
+        t = parse(Float64, relevantPart[t1:t2])
+        g = parse(Float64, relevantPart[t2+2:t3]) ./10
+        m = parse(Float64, relevantPart[t3+2:end])
+
+		t, g, m
+	end
+
+	t, g, m
+end
+
+# ============================================================================= 
+# Integration functions 
+# =============================================================================
 
 """
     integrate(x, y; [method])
@@ -169,11 +197,9 @@ function integrate(x, y; method=QuadGKJL())
 	solve(prob, method).u
 end
 
-
-
-
-
-#= stuff for timing =#
+# ============================================================================= 
+# Timing functions 
+# =============================================================================
 
 """
     activate_timing!(t)
@@ -227,40 +253,4 @@ macro optionalTiming(name, exp)
             $(ex)
         end
     end
-end
-
-
-
-"""
-    parametersFromName(name)
-
-Try to extract stellar parameters from the name. Parameters need to be given as
-tXXXXgXXXmXXXX. Please make sure to include the minus sign in m.
-"""
-parametersFromName(name) = begin
-	names = split(name, "_", keepempty=false)
-	i_name = 0
-	for (i, split) in enumerate(names)
-		if occursin("t", split) & occursin("g", split) & occursin("m", split)
-			i_name = i
-		end
-	end
-
-	t, g, m = if i_name == 0
-		@warn "could not guess atmospheric parameters from name."
-		-1, -1, 0.0
-	else
-        relevantPart = names[i_name]
-        t1 = findfirst(x->x=='t', relevantPart) + 1
-        t2 = findfirst(x->x=='g', relevantPart) - 1
-        t3 = findfirst(x->x=='m', relevantPart) - 1
-
-        t = parse(Float64, relevantPart[t1:t2])
-        g = parse(Float64, relevantPart[t2+2:t3]) ./10
-        m = parse(Float64, relevantPart[t3+2:end])
-
-		t, g, m
-	end
-
-	t, g, m
 end

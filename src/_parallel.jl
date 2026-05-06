@@ -1,4 +1,6 @@
-#### Distributed execution functions #####
+# ============================================================================= 
+# Distributed execution functions
+# =============================================================================
 
 function sendsync(p::Int; args...)
     @sync for (nm, val) in args

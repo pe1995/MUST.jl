@@ -93,8 +93,6 @@ end
 
 list_of_snapshots(folder::String) = list_of_snapshots(glob("*/", folder))
 
-
-
 function _snapshot_folder(i_snap::Int, list_of_files::Vector{String})
 	snap_int = -1
 	snap_str = ""
@@ -117,11 +115,9 @@ function _snapshot_folder(i_snap::Int, list_of_files::Vector{String})
 	snap_str
 end
 
-
-
-
-
-#= MULTI related functionality =#
+# ============================================================================= 
+# MULTI related functionality 
+# ============================================================================= 
 
 """
 Load the dispatch module. Either the global location is used or 
@@ -194,5 +190,6 @@ macro in_tumult(relative_path)
 	relative_path_l = esc(relative_path)
 	:(_in_m3dis($(relative_path_l)))
 end
+
 const var"@in_m3dis" = var"@in_tumult"
 _in_m3dis(relative_path) = abspath(joinpath(multi_location,multi_experiment_location,relative_path))

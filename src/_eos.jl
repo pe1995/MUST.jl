@@ -1,3 +1,8 @@
+# ============================================================================= 
+# Original DISPATCH EoS interface. Just used here in MUST.jl
+# It might actually better at one point to entirely switch over to TSO.jl
+# ============================================================================= 
+
 abstract type AbstractEOS end
 
 # Type for squaregas EOS tables
@@ -38,11 +43,9 @@ struct SquareGasEOS{NE<:SqGTable, RO<:SqGTable,
     theta_rho_table  ::TH
 end
 
-
-
-
-
-#=== Init routines ===#
+# ============================================================================= 
+# Init routines
+# ============================================================================= 
 
 """
 Create a SquareGasEOS from the Tabgen input file.
@@ -143,11 +146,9 @@ function read_squaregas_table(path; record, recl, dim, out_type=Float32)
     read(f,rec=record,(out_type,dim));
 end
 
-
-
-
-
-#=== Lookup routines ===#
+# ============================================================================= 
+# Lookup routines
+# ============================================================================= 
 
 """
 Lookup function. Log is done automaticall if requested in EOS
@@ -158,10 +159,6 @@ lookup(eos::PythonEOS, parameter, variables::AbstractVector...) = begin
 end
 
 lookup(eos::PythonEOS, parameter, variables::T...) where {T<:AbstractFloat} = lookup(eos, parameter, [T[v] for v in variables]...)
-
-
-
-
 
 """
 Lookup function for SquareGas EOS.
@@ -240,10 +237,6 @@ function lookup(eos::SquareGasEOS, parameter::Symbol, d::AbstractVector{T}, ee::
     return result
 end
 
-
-
-
-
 """
 Lookup function for SquareGas EOS.
     The input is assumed to be CGS. 
@@ -281,12 +274,55 @@ function lookup(eos::SquareGasEOS, parameter::Symbol, d::T, ee::T; to_log=true) 
     return result
 end
 
+lookup(eos::SquareGasEOS, parameter::String, args...; kwargs...) = lookup(eos, Symbol(parameter), args...; kwargs...)
+lookup(eos::AbstractEOS, parameter::Symbol, d::AbstractArray{T,2}, ee::AbstractArray{T,2}, args...; kwargs...) where {T<:AbstractFloat} = begin
+    dp     = dimension(eos, parameter)
+    result = rand(eltype(d), size(d)..., dp)
 
+    @inbounds for i in 1:size(d, 2)
+        di  = view(d,  :, i)
+        eei = view(ee, :, i)
 
+        dp > 1 ? 
+            result[:,i,:] .= lookup(eos, parameter, di, eei, args...; kwargs...) : 
+            result[:,i,1] .= lookup(eos, parameter, di, eei, args...; kwargs...)
+            
+    end
 
+    dp > 1 ? result : result[:,:,1]
+end
 
+lookup(eos::AbstractEOS, parameter::Symbol, d::AbstractArray{T,3}, ee::AbstractArray{T,3}, args...; kwargs...) where {T<:AbstractFloat} = begin
+    dp     = dimension(eos, parameter)
+    result = rand(eltype(d), size(d)..., dp)
 
+    @inbounds for k in 1:size(d, 3)
+        @inbounds for j in 1:size(d, 2)
+            di  = view(d, :, j, k)
+            eei = view(ee, :, j, k)
 
+            dp > 1 ? 
+                result[:,j,k,:] .= lookup(eos, parameter, di, eei, args...; kwargs...) : 
+                result[:,j,k,1] .= lookup(eos, parameter, di, eei, args...; kwargs...)
+        end   
+    end
+
+    dp > 1 ? result : result[:,:,:,1]
+end
+
+# ============================================================================= 
+# Inverse lookup routines
+# ============================================================================= 
+
+"""
+Inverse lookup parameter in the EOS tables. 
+"""
+function inverse_lookup(eos::SquareGasEOS, iterations=50, antilinear=false; kwargs...)
+end
+
+# ============================================================================= 
+# Interpolation routines
+# ============================================================================= 
 
 interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::RangeOrVector) where {T<:AbstractFloat} = begin
     result = zeros(eltype(d), length(d), length(index))
@@ -296,7 +332,6 @@ interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, e
     result = zeros(eltype(d), length(d))
     interpolate_in_table!(result, eos, table, d, ee, index)
 end
-
 
 """
 Interpolate in the given table using the axis in the EOS. 
@@ -450,11 +485,6 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
     result
 end
 
-
-
-
-
-#interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::I) where {T<:AbstractFloat, I<:Integer} = interpolate_in_table(eos, table, d, ee, [index])[:,1]
 interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::T, ee::T, index::I) where {T<:AbstractFloat, I<:Integer} = interpolate_in_table(eos, table, d, ee, [index])
 
 function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::T, ee::T, index::RangeOrVector) where {T<:AbstractFloat}
@@ -494,49 +524,9 @@ function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::T, ee::T, i
     end
 end
 
-
-
-
-
-
-
-
-#lookup(eos::SquareGasEOS, parameter::Symbol, d::T, ee::T; to_log=true) where {T<:AbstractFloat} = first(lookup(eos, parameter, [d], [ee]; to_log=to_log))
-lookup(eos::SquareGasEOS, parameter::String, args...; kwargs...) = lookup(eos, Symbol(parameter), args...; kwargs...)
-lookup(eos::AbstractEOS, parameter::Symbol, d::AbstractArray{T,2}, ee::AbstractArray{T,2}, args...; kwargs...) where {T<:AbstractFloat} = begin
-    dp     = dimension(eos, parameter)
-    result = rand(eltype(d), size(d)..., dp)
-
-    @inbounds for i in 1:size(d, 2)
-        di  = view(d,  :, i)
-        eei = view(ee, :, i)
-
-        dp > 1 ? 
-            result[:,i,:] .= lookup(eos, parameter, di, eei, args...; kwargs...) : 
-            result[:,i,1] .= lookup(eos, parameter, di, eei, args...; kwargs...)
-            
-    end
-
-    dp > 1 ? result : result[:,:,1]
-end
-
-lookup(eos::AbstractEOS, parameter::Symbol, d::AbstractArray{T,3}, ee::AbstractArray{T,3}, args...; kwargs...) where {T<:AbstractFloat} = begin
-    dp     = dimension(eos, parameter)
-    result = rand(eltype(d), size(d)..., dp)
-
-    @inbounds for k in 1:size(d, 3)
-        @inbounds for j in 1:size(d, 2)
-            di  = view(d, :, j, k)
-            eei = view(ee, :, j, k)
-
-            dp > 1 ? 
-                result[:,j,k,:] .= lookup(eos, parameter, di, eei, args...; kwargs...) : 
-                result[:,j,k,1] .= lookup(eos, parameter, di, eei, args...; kwargs...)
-        end   
-    end
-
-    dp > 1 ? result : result[:,:,:,1]
-end
+# ============================================================================= 
+# Utility
+# ============================================================================= 
 
 dimension(eos::SquareGasEOS, parameter::Symbol) = begin
     d = if parameter == :rk
@@ -552,24 +542,9 @@ end
 
 dimension(eos::PythonEOS, parameter::Symbol) = 1
 
-
-"""
-Inverse lookup parameter in the EOS tables. 
-"""
-function inverse_lookup(eos::SquareGasEOS, iterations=50, antilinear=false; kwargs...)
-end
-
-
-
-
-
-
-
-
-
-
-
-#=== Python EOS aliases ===#
+# ============================================================================= 
+# Python EOS aliases 
+# =============================================================================
 
 """
 Generate a legacy Stagger EOS (Python).

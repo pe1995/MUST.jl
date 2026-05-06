@@ -1,5 +1,6 @@
-#= Wrapper for the MULTI output =#
-
+# ============================================================================= 
+# Wrapper for the MULTI output 
+# =============================================================================
 struct TUMULTRun{P<:PythonCall.Py}
     run::P
 end
@@ -18,14 +19,9 @@ end
 # alias for old Multi package
 M3DISRun = TUMULTRun
 
-
-
-
-
-
-
-
-#= Utility functions =#
+# ============================================================================= 
+# Utility functions 
+# =============================================================================
 
 Base.getproperty(m::TUMULTRun, arg::Symbol) = begin
     if arg in fieldnames(typeof(m))
@@ -77,12 +73,11 @@ extension_results(extension, folder="data") = begin
 	joinpath.(folder, last.(split.(dirname.(paths), "/")))
 end
 
-
-
-
+# ============================================================================= 
+# Equivalent width & abundance calculations from Tumult
+# =============================================================================
 
 getabundances(run) = pyconvert(Float64, run.atom.abnd)
-
 
 equivalentwidth(line::PythonCall.Py; LTE=false, kwargs...) = pyconvert(Any, line.calc_weq(; LTE=LTE, kwargs...))
 equivalentwidth(lines::AbstractArray, abundances::AbstractArray; kwargs...) = begin
@@ -95,7 +90,6 @@ equivalentwidth(runs::AbstractArray; line=1, kwargs...) = begin
     equivalentwidth(lines, abund; kwargs...)
 end
 
-
 abundance(lines::AbstractArray, abundances::AbstractArray; kwargs...) = begin
     ew = equivalentwidth.(lines; kwargs...)
     m = sortperm(ew)
@@ -106,7 +100,6 @@ abundance(runs::AbstractArray; line=1, kwargs...) = begin
     abund = getabundances.(runs)
     abundance(lines, abund; kwargs...)
 end  
-
 
 ΔNLTE(lines::AbstractArray, abundances::AbstractArray; at, reference=:LTE) = begin
     fLTE = equivalentwidth(lines, abundances, LTE=true)
@@ -131,10 +124,9 @@ end
     ΔNLTE(lines, abund; at=at, reference=reference)
 end
 
-
-
-
-#= NLTE/LTE correction =#
+# ============================================================================= 
+# NLTE / LTE corrections 
+# =============================================================================
 
 _spread_NLTE_corrections!(correction_χ, correction_S, χ_fraction, S_fraction, lnρ, lnT, idistR, dist, σ) = begin
     for j in eachindex(lnρ)
@@ -223,14 +215,9 @@ function NLTE_grid_correction(result_NLTE, result_LTE; λ_new, lnρ_new, lnT_new
     correction_χ, correction_S
 end
 
-
-
-
-
-
-
-
-#= running M3DIS =#
+# ============================================================================= 
+# Running M3DIS
+# ============================================================================= 
 
 """
     abund_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...)
@@ -280,12 +267,6 @@ function abund_abundances(;α=0.0, default="./input_multi3d/abund/abund_magg", e
 		default
 	end
 end
-
-
-
-
-
-
 
 """
 	whole_spectrum(model_name; [namelist_kwargs, m3dis_kwargs])
@@ -397,13 +378,6 @@ function opacityTable(model; folder, linelist, λ_file, λs, λe, δλ, δlnT, �
 		slurm=slurm
 	)
 end
-
-
-
-
-
-
-
 
 """
 	spectrum(model_name; NLTE=false, slurm=true, [namelist_kwargs, m3dis_kwargs])
@@ -599,14 +573,6 @@ function spectrum(model_names::AbstractVector{String}, runnames::Dict; kwargs...
     runs
 end
 
-
-
-
-
-
-
-
-
 """
     heating(model_name, args...; kwargs...)
 
@@ -671,12 +637,6 @@ function heating(model_names::AbstractVector{String}, opacity_table=nothing; nam
     [TUMULTRun(joinpath(data_dir, "$(model_name)$(name)$(binned_ext)")) for model_name in model_names]
 end
 
-
-
-
-
-
-
 """
     multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dict(), name="", cleanup=true)
 
@@ -707,21 +667,9 @@ function multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dic
     TUMULTRun(joinpath(nml.io_params["datadir"], mn(model_name)))
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#= Effective temperature computations =#
+# ============================================================================= 
+# Effective temperature computations 
+# =============================================================================
 
 window(line::PythonCall.Py, args...; kwargs...) = begin
     pyconvert.(Array, line.crop(args...; kwargs...))
@@ -732,12 +680,9 @@ window(run::TUMULTRun, iline, args...; kwargs...) = begin
     window(line, args...; kwargs...)
 end
 
-
-
-
-
-
-
+# ============================================================================= 
+# Helper functions
+# =============================================================================
 
 flux(run; norm=true) = begin
     norm ? (run.lam, run.flux ./ run.flux_cnt) : (run.lam, run.flux)
@@ -765,8 +710,6 @@ Maximum of Planck function (cgs).
 """
 wien(T) = 2898e-4 /aa_to_cm / T
 
-
-
 Teff(λ::AbstractVector{T}, F::AbstractVector{T}) where {T<:AbstractFloat} = begin
     ν = reverse(CLight ./ (λ*aa_to_cm))
     Fl = reverse(F)
@@ -790,11 +733,9 @@ Effective temperature from the binned flux itself.
 """
 Teff
 
-
-
-
-
-#= Create a 3D cube from a run =#
+# ============================================================================= 
+# Create a 3D cube from a run
+# =============================================================================
 
 _is_1D(x) = ndims(x) == 1
 _set_size_1D_to_3D(x) = _is_1D(x) ? reshape(x, 1, 1, length(x)) : x

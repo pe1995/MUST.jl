@@ -1,4 +1,6 @@
-#========================================================== Type definitions =#
+# ============================================================================= 
+# Type definitions
+# =============================================================================
 
 """
 Information of a part of the Stagger grid. Contains location of
@@ -25,10 +27,9 @@ Base.@kwdef mutable struct ModelInformation
 	original_name = ""
 end
 
-
-
-
-#============================================================== Constructors =#
+# ============================================================================= 
+# Constructors
+# =============================================================================
 
 """
 	Atmos1DGrid(path)
@@ -59,7 +60,9 @@ end
 
 StaggerGrid(args...; kwargs...) = Atmos1DGrid(args...; kwargs...)
 
-#============================================================ checking paths =#
+# ============================================================================= 
+# Checking paths
+# =============================================================================
 
 """
 	check_av_model_path(g::Atmos1DGrid)
@@ -106,8 +109,9 @@ _extract_tar_in_dir(d; name="av_models.tar.gz") = begin
 	cd(currd)
 end
 
-
-#================================================ getting info from the grid =#
+# ============================================================================= 
+# Getting info from the grid
+# =============================================================================
 
 get_mask(g::Atmos1DGrid; paras...) = begin
 	grid = g.info
@@ -130,25 +134,24 @@ subselect(g::Atmos1DGrid; paras) = begin
 	Atmos1DGrid(g.name, g.path, info_new)
 end
 
-
-
-#==================================================================== Saving =#
+# ============================================================================= 
+# Saving
+# =============================================================================
 
 save(grid::Atmos1DGrid, path) = CSV.write(path, grid.info)
 save(grid::Atmos1DGrid) = CSV.write(grid.path, grid.info)
 
-
-
-#=============================================================== Convenience =#
+# ============================================================================= 
+# Convenience
+# =============================================================================
 
 Base.getindex(g::Atmos1DGrid, k::String, i=!) = g.info[i, k]
 Base.:+(g1::Atmos1DGrid, g2::Atmos1DGrid) = Atmos1DGrid(g1.name, g1.path, vcat(g1.info, g2.info))
 Base.dirname(g::Atmos1DGrid) = dirname(g.path)
 
-
-
-
-#===================================================================== Paths =#
+# ============================================================================= 
+# Paths
+# =============================================================================
 
 """
 	absolute_path!(grid; from=@__FILE__)
@@ -219,8 +222,9 @@ relative_path!(grid; to=@__FILE__) = begin
 	end
 end
 
-
-#============================================================== Replace Path =#
+# ============================================================================= 
+# Replace Path
+# =============================================================================
 
 """
 	replace_relative_path!(grid; kwargs...)
@@ -256,10 +260,9 @@ function replace_absolute_path!(grid; kwargs...)
 	grid
 end
 
-
-
-
-#============================================================= Interpolation =#
+# ============================================================================= 
+# Interpolation
+# =============================================================================
  
 """
 	interpolate_quantity(grid::Atmos1DGrid, what; teff, logg, feh, method="linear")
@@ -306,10 +309,9 @@ function interpolate_quantity(grid::Atmos1DGrid, what; teff, logg, feh, method="
 	end
 end
 
-
-
-
-#=================================================================== running =#
+# ============================================================================= 
+# Running
+# =============================================================================
 
 allowed_namelists(grid::Atmos1DGrid) = grid.info[!,"namelist_name"]
 
@@ -342,8 +344,9 @@ stage_namelists(grid::Atmos1DGrid, folder="run_grid"; clean_logs=true, clean_nam
 	end
 end
 
-
-#====================================== Information of grid models from Name =#
+# ============================================================================= 
+# Information of grid models from Name
+# =============================================================================
 
 """
 	_find_datastring(parts)
@@ -390,11 +393,9 @@ _parameters_from_string(para) = begin
 	d = Dict("teff"=>t, "logg"=>g, "feh"=>m)
 end
 
-
-
-
-
-#= Comparison of model information =#
+# ============================================================================= 
+# Comparison of model information
+# =============================================================================
 
 """
 	same_parameters(a, b)
@@ -421,11 +422,9 @@ Check if a and b have the same `category` and `extension` entries.
 """
 same_class(a::ModelInformation, b::ModelInformation) = same_id(a, b, :category) & same_id(a, b, :extension)
 
-
-
-
-
-#= building new name string from information =#
+# ============================================================================= 
+# Building new name string from information
+# =============================================================================
 
 """
 	name_string(minfo::ModelInformation; add_E=false)
@@ -458,7 +457,6 @@ pretty_name(minfo::ModelInformation, snapshot=nothing) = begin
 end
 
 pretty_name(name::String, args...; kwargs...) = pretty_name(ModelInformation(name), args...; kwargs...)
-
 
 """
 	ModelInformation(name)

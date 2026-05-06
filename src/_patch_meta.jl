@@ -8,7 +8,6 @@ struct AuxPatch
     data
 end
 
-
 struct PatchMeta
     id
     mv
@@ -36,12 +35,9 @@ struct PatchMeta
     zi
 end
 
-
-
-
-
-
-#= Construction =#
+# ============================================================================= 
+# Construction
+# =============================================================================
 
 """
     PatchMeta(patch, snap)
@@ -117,12 +113,9 @@ function PatchMeta(patch, snap)
     )
 end
 
-
-
-
-
-
-
+# ============================================================================= 
+# Auxiliary data
+# =============================================================================
 
 """
     readaux(fname)
@@ -190,16 +183,9 @@ function readaux(f; newformat=false, nvars=-1)
     auxs
 end
 
-
-
-
-
-
-
-
-
-
-#= Helper functions =#
+# ============================================================================= 
+# Helper functions
+# =============================================================================
 
 function parse_multiple(s::AbstractString)
     sComponents = []

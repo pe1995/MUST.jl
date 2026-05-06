@@ -1,4 +1,7 @@
-#=========== Stagger module from Mikolaj ===========#
+# ============================================================================= 
+# Stagger module from Mikolaj
+# =============================================================================
+
 const stagger_endian = Ref("big-endian")
 mutable struct StaggerMesh
     mx::Int64
@@ -127,7 +130,6 @@ mutable struct StaggerEOS
     end;
 end
 
-
 mutable struct StaggerSnap
     mesh_file ::String
     dat_file  ::String
@@ -136,7 +138,6 @@ mutable struct StaggerSnap
     data      ::Dict{String,Array{Float32,3}}
     order     ::Vector{String}
 end
-
 
 function br_squeeze( A :: AbstractArray )
     keepdims = Tuple(i for i in size(A) if i != 1);

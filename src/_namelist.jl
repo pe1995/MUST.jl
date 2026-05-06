@@ -1,4 +1,6 @@
-#= Namelist Types =#
+# ============================================================================= 
+# Namelist Types
+# =============================================================================
 
 abstract type AbstractNamelist end
 
@@ -67,11 +69,9 @@ mutable struct FreeNamelist <: MUST.AbstractNamelist
     data ::Dict{Symbol,Any}   
 end
 
-
-
-
-
-#= Interface =#
+# ============================================================================= 
+# Interface
+# =============================================================================
 
 nmlFields(nml::AbstractNamelist) = fieldnames(typeof(nml))
 nmlFields(nml::FreeNamelist) = keys(nml.data)
@@ -109,12 +109,9 @@ nmlValue(nml::AbstractNamelist, para) = begin
     end
 end
 
-
-
-
-
-
-#= Constructors =#
+# ============================================================================= 
+# Constructors
+# =============================================================================
 
 M3DNamelist() = M3DNamelist([Dict{String,Any}() for f in fieldnames(M3DNamelist)]...)
 M3DNamelist(path::String) = begin
@@ -161,16 +158,9 @@ FreeNamelist(path::String, stack) = begin
     nmls
 end
 
-
-
-
-
-
-
-
-
-
-#= Utility Functions for Namelists =#
+# ============================================================================= 
+# Utility Functions for Namelists
+# =============================================================================
 
 function read!(nml::AbstractNamelist, path::String; buzzword=nothing)
     content = Dict{Symbol, Dict{String, Any}}()
@@ -451,41 +441,15 @@ function reverse_parse(value)
     return val_str
 end
 
-#=function split_namelist_line(line)
-    # First split at =
-    line_s = split(strip(line), "=")
-    out    = String[]
-
-    for i in 1:length(line_s)
-        if (i>1) & (i<length(line_s))
-            line_s_strip = strip(line_s[i])
-            i_last = first(findlast(" ", line_s_strip))
-
-            append!(out, [strip(line_s_strip[1:i_last])])
-            append!(out, [strip(line_s_strip[i_last:end])])
-        else
-            append!(out, [strip(line_s[i])])
-        end
-    end
-
-    out
-end=#
-
-
-
-
-
-#= modified warning =#
+# ============================================================================= 
+# Modified warning
+# =============================================================================
 
 _nmlWarn(nml::AbstractNamelist) = begin
     @warn "$(key) is not a valid fieldname"
     true
 end
 _nmlWarn(nml::FreeNamelist) = false
-
-
-
-
 
 """
 Write a namelist to path.
@@ -554,13 +518,9 @@ read_eos_params(path::String) = begin
     end
 end
 
-
-
-
-
-
-
-#= Default namelists =#
+# ============================================================================= 
+# Default namelists
+# =============================================================================
 
 _whole_spectrum_namelist!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
@@ -629,8 +589,6 @@ function whole_spectrum_namelist(model_name::String;
 
 	nml
 end
-
-
 
 _spectrum_namelist_lte!(nml::M3DNamelist; 
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
@@ -714,7 +672,6 @@ function spectrum_namelist(model_name::String; NLTE=false,
 	nml
 end
 
-
 """
     heating_namelist(model_name, args...; kwargs...)
 
@@ -736,12 +693,9 @@ heating_namelist(model_name::String, opacity_table=nothing, args...; kwargs...) 
     nml
 end
 
-
-
-
-
-
-#= Namelist for simple tau500 computation =#
+# ============================================================================= 
+# Namelist for simple tau500 computation
+# =============================================================================
 
 _tau500_namelist!(nml::M3DNamelist,
     io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),

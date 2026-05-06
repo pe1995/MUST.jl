@@ -1,4 +1,6 @@
-## Initial conditons 
+# ============================================================================= 
+# Initial conditons (Legacy, should be unused!)
+# ============================================================================= 
 
 struct InitialConditions
     T
@@ -7,10 +9,9 @@ struct InitialConditions
     hp
 end
 
-
-
-
-## Initial models
+# ============================================================================= 
+# Initial models 
+# ============================================================================= 
 
 struct MarcsInitialModel{T<:AbstractFloat} <:AbstractInitialModel
     Teff ::T

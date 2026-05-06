@@ -1,6 +1,13 @@
+# ============================================================================= 
+# Meta + Physical parameter conversion functions
+# ============================================================================= 
+
 include("_patch_meta.jl")
 include("_box_quants.jl")
 
+# ============================================================================= 
+# Mesh construction
+# ============================================================================= 
 
 """
     _build_cube_direct(patches)
@@ -40,6 +47,9 @@ function _build_cube_direct(patches)
 	global_x, global_y, global_z, patch_range
 end
 
+# ============================================================================= 
+# DISPATCH file reading
+# ============================================================================= 
 
 """
     _var_from_patch_direct(var, fname, shp, off, li, ui, idxd)
@@ -89,9 +99,9 @@ function _var_from_patch_direct_arr!(res, var, fname, shp, off, li, ui, idxd, bu
 	res
 end
 
-
-
-
+# ============================================================================= 
+# Memory management
+# ============================================================================= 
 
 """
     prepare_memory(dtype, shape, vars; folder, number, mmap=true)  
@@ -163,10 +173,9 @@ function _prepare_memory_array(dtype, shape, vars; folder, number)
     fid
 end
 
-
-
-
-
+# ============================================================================= 
+# File I/O management
+# ============================================================================= 
 
 """
     _check_files(iout, data, run, rundir)
@@ -195,10 +204,6 @@ function _check_files(iout, data, run, rundir; check_existing=true)
 
 	run, rundir, datadir, params_list, files
 end
-
-
-
-
 
 """
     _snapshot_variables(files)
@@ -233,9 +238,9 @@ function _snapshot_variables(files)
 	snapshot_nml, variablesSym, idxVars, idxs
 end
 
-
-
-
+# ============================================================================= 
+# EOS (DISPATCH format, not TSO.jl here)
+# ============================================================================= 
 
 """
     _squaregaseos(run)
@@ -266,10 +271,9 @@ function _squaregaseos(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
 	end
 end
 
-
-
-
-
+# ============================================================================= 
+# Patch data
+# ============================================================================= 
 
 """
     _patchmeta(datadir, rank_nmls, snapshot_nml)
@@ -313,7 +317,9 @@ end
 
 Assemble all data from all patches and save them in the big storage arrays.
 """
-function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patchDataFiles, idxs, auxnames, patchAuxFiles, variablesAndAux, variablesDerived, quantities, eos_quantities, eos_sq, units, converters, l_conv, fid, lookup_generator=nothing, newformat=false)
+function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, 
+	patchDataFiles, idxs, auxnames, patchAuxFiles, variablesAndAux, variablesDerived, 
+	quantities, eos_quantities, eos_sq, units, converters, l_conv, fid, lookup_generator=nothing, newformat=false)
 	# Lookup function can be generated from the input generator
 	# this is a useful hook to use EoS outside of MUST (e.g. TSO)
 	# without needing to include TSO inside MUST
@@ -440,11 +446,9 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, patc
 	end
 end
 
-
-
-
-
-
+# ============================================================================= 
+# Store data 
+# =============================================================================
 
 @inline function _save_to_structure!(fid, r, arr)
     fid[r[1,1]:r[1,2], r[2,1]:r[2,2], r[3,1]:r[3,2]] = arr
@@ -452,12 +456,6 @@ end
 @inline function _save_to_structure!(fid::AbstractArray, r, arr)
     fid[r[1,1]:r[1,2], r[2,1]:r[2,2], r[3,1]:r[3,2]] .= arr
 end
-
-
-
-
-
-
 
 function _save_box(number, fid, time, logg, folder)
     HDF5.delete_object(fid, "time")
@@ -535,9 +533,9 @@ _get_teff_from_fid(fid, flux_name="flux") = begin
 	end
 end
 
-
-
-
+# ============================================================================= 
+# Interface
+# =============================================================================
 
 """
     Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing, mmap=false, save_snapshot=false)
@@ -549,7 +547,10 @@ __Note__: TSO hooks are included to use the TSO EoS interface directly by passin
 This is implemented for you and ready to be used in the ingredient `convert2must.jl`. Without using this ingredient, the dafault setup will be used,
 which is the `MUST` EoS reader.
 """
-function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing, mmap=false, save_snapshot=false)	
+function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, 
+	quantities=defaultQuantities, 
+	eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing, 
+	mmap=false, save_snapshot=false)	
 	# check the inputs
     run, rundir, datadir, params_list, files = @optionalTiming checkFilesTime _check_files(iout, data, run, rundir)
 
@@ -668,10 +669,10 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quant
 	end
 end
 
+# ============================================================================= 
+# Timers
+# ============================================================================= 
 
-
-
-#= timer =#
 checkFilesTime = Ref(false)
 snapshotVariablesTime = Ref(false)
 patchMetaTime = Ref(false)

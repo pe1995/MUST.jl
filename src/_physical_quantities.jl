@@ -20,9 +20,6 @@ Reduce box to a plane given in kwargs. Then compute the pressure scale height me
 """
 pressurescaleheight(b::Box; kwargs...) = pressurescaleheight(mean, b; kwargs...)
 
-
-
-
 """
     convectiveturnovertime(b::Box; v=:uz, kwargs...)
 
