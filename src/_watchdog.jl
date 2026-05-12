@@ -233,11 +233,19 @@ _geostatistic(f, b) = begin
     results = Dict()
     for v in variables
         try
-            x, y = profile(f, b, :z, v) 
-            results[:z] = x
-            results[v] = y
-        catch
-            @warn "Statistic $(string(f)) failed for variable $(v)."
+            if all(b[v] .> 0)
+                # use the log 
+                v_log = Symbol("log10$(v)")
+                x, y = profile(f, b, :z, v_log)
+                results[:z] = x
+                results[v] = exp10.(y)
+            else
+                x, y = profile(f, b, :z, v) 
+                results[:z] = x
+                results[v] = y
+            end
+        catch e
+            @warn "Statistic $(string(f)) failed for variable $(v). Reason: $e"
         end
     end
 
@@ -416,9 +424,21 @@ _optstatistic(f, bτ) = begin
     
     results = Dict()
     for v in variables
-        x, y = profile(f, bτ, :log10τ_ross, v) 
-        results[:log10τ_ross] = x
-        results[v] = y
+        try
+            if all(bτ[v] .> 0.0)
+                # use the log 
+                v_log = Symbol("log10$(v)")
+                x, y = profile(f, bτ, :log10τ_ross, v_log)
+                results[:log10τ_ross] = x
+                results[v] = exp10.(y)
+            else
+                x, y = profile(f, bτ, :log10τ_ross, v) 
+                results[:log10τ_ross] = x
+                results[v] = y
+            end
+        catch e
+            @warn "Statistic $(string(f)) failed for variable $(v). Reason: $e"
+        end
     end
 
     results

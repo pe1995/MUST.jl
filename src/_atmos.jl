@@ -897,7 +897,7 @@ function plane_statistic(stat::F, b::Box, q::Symbol; filter_out=:extrapolated) w
     for i in 1:size(b.z,3)
         av[i] = if (!isnothing(filter_out)) && (filter_out in keys(b.data))
             mask = .!view(b[filter_out], :, :, i)
-            stat(view(b[q], :, :, i)[mask])
+            (!any(mask)) ? NaN : stat(view(b[q], :, :, i)[mask])
         else
             stat(view(b[q], :, :, i))
         end

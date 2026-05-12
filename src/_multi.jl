@@ -356,7 +356,7 @@ function opacityTable(model; folder, linelist, λ_file, λs, λe, δλ, δlnT, �
 				:use_ne=>false,
 				:FeH=>FeH,
 				:nz=>2,
-				:amr=>false
+				:amr=>""
 			),
 			:m3d_params=>(
 				:n_nu=>nν, 
