@@ -338,7 +338,7 @@ end
 Compute opacity and EoS tables using M3D.
 """
 function opacityTable(model; folder, linelist, λ_file, λs, λe, δλ, δlnT, δlnρ, FeH, nν,
-				in_log=true, slurm=false, m3dis_kwargs=Dict(), abund_file, tmolim, kwargs...)
+				in_log=true, slurm=false, m3dis_kwargs=Dict(), absdat_file="./input_multi3d/TS_absdat.dat", abund_file, tmolim, kwargs...)
 	spec_para = (!isnothing(λ_file)) ? Dict(:lam_file=>λ_file, :in_air=>false) : Dict(:daa=>δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>in_log, :in_air=>false)
     MUST.whole_spectrum(
 		model, 
@@ -366,6 +366,7 @@ function opacityTable(model; folder, linelist, λ_file, λs, λe, δλ, δlnT, �
 				:make_eos=>true
 			),
 			:composition_params=>(
+                :absdat_file=>absdat_file,
                 :abund_file=>abund_file,
 				:ldtemp=>δlnT,
 				:ldrho=>δlnρ,
