@@ -410,13 +410,13 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
 
         # run the initial namelist first
         write(nml_nlte, @in_m3dis("$(mn(model_name))_departure.nml"))
-        @info "Running M3D (departure)."
+        #@info "Running M3D (departure)."
         if slurm
             srun_m3dis("$(mn(model_name))_departure.nml"; wait=true, m3dis_kwargs...)
         else
             run_m3dis("$(mn(model_name))_departure.nml"; wait=true, m3dis_kwargs...)
         end
-        @info "M3D completed (departure)."
+        #@info "M3D completed (departure)."
 
         nml_spectrum
     else
@@ -426,13 +426,13 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
     write(nml, @in_m3dis("$(mn(model_name)).nml"))
 
     # run multi (with waiting)
-    @info "Running M3D with NLTE=$(NLTE)."
+    #@info "Running M3D with NLTE=$(NLTE)."
     if slurm
         srun_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
     else
         run_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
     end
-    @info "M3D completed."
+    #@info "M3D completed."
 
 
     if cleanup
@@ -484,14 +484,14 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
             # run the initial namelist first
             write(nml_nlte, @in_m3dis(join(["$(model_name)", name, "departure"], "_")*".nml"))
 
-            @info "Running M3D (departure)."
+            #@info "Running M3D (departure)."
             r = if slurm
                 srun_m3dis(join(["$(model_name)", name, "departure"], "_")*".nml"; wait=false, m3dis_kwargs...)
             else
                 run_m3dis(join(["$(model_name)", name, "departure"], "_")*".nml"; wait=false, m3dis_kwargs...)
             end
             append!(results_nlte, [r])
-            @info "M3D completed (departure)."
+            #@info "M3D completed (departure)."
     
             nml_spectrum
         else
@@ -504,7 +504,7 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
     # wait for success
     for (i, r) in enumerate(results_nlte)
         s = success(r)
-        @info "$(model_names[i]) finished with success status $(s). (departure)"
+        #@info "$(model_names[i]) finished with success status $(s). (departure)"
     end
 
 
@@ -512,7 +512,7 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
         write(nml[i], @in_m3dis(join([model_name, name], "_")*".nml"))
 
         # run multi (with waiting)
-        @info "Running M3D with NLTE=$(NLTE)."
+        #@info "Running M3D with NLTE=$(NLTE)."
         r = if slurm
             srun_m3dis(join([model_name, name], "_")*".nml"; wait=false, m3dis_kwargs...)
         else
@@ -531,7 +531,7 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
     if wait
         for (i, r) in enumerate(results)
             s = success(r)
-            @info "$(model_names[i]) finished with success status $(s)."
+            #@info "$(model_names[i]) finished with success status $(s)."
         end
         # read the output
         [TUMULTRun(joinpath(data_dir, model_name)) for model_name in model_names]
@@ -631,7 +631,7 @@ function heating(model_names::AbstractVector{String}, opacity_table=nothing; nam
     # wait for success
     for (i, r) in enumerate(results)
         s = success(r)
-        @info "$(model_names[i])$(name)$(binned_ext) finished with success status $(s)."
+        #@info "$(model_names[i])$(name)$(binned_ext) finished with success status $(s)."
     end
 
     # read the output
@@ -655,9 +655,9 @@ function multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dic
     write(nml, @in_m3dis("$(mn(model_name)).nml"))
 
     # run multi (with waiting)
-    @info "Running M3D."
+    #@info "Running M3D."
     run_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
-    @info "M3D completed."
+    #@info "M3D completed."
 
     if cleanup
         nmls_created = glob("$(mn(model_name)).nml*", @in_m3dis(""))
