@@ -157,7 +157,7 @@ Create a MeanSpectrum from the data that is stored in `b` under `tag`.
 """
 MeanSpectrum(b::Box, tag::Symbol, kind="meanFluxNorm") = begin
     λ, F = try
-        b[spectra_key_from_tag("wavelength", tag)], b[spectra_key_from_tag("meanFluxNorm", tag)]
+        b[spectra_key_from_tag("wavelength", tag)], b[spectra_key_from_tag(kind, tag)]
     catch
         error("$(kind) not found in box. Compute it and add before calling this function.")
     end
@@ -184,7 +184,7 @@ Compute the mean of the intensity in direction μ.
 """
 angular_intensity(box::Box, tag, μ; norm=true, intensity="intensity") = begin
     λ = box[spectra_key_from_tag("wavelength", tag)]
-    I = box[spectra_key_from_tag("intensity", tag)]
+    I = box[spectra_key_from_tag(intensity, tag)]
 	c = box[spectra_key_from_tag("continuum", tag)]
     mu = box[spectra_key_from_tag("mu", tag)]
 	muz = mu[:, 3]
