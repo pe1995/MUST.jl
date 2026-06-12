@@ -23,6 +23,9 @@ function srun_dispatch(nml_name; threads::Int, memMB::Int, timeout::String, wait
 		#write(f, "source ~/.bashrc\n")
 		write(f, "export KMP_NUM_THREADS=$(threads)\n")
 		write(f, "export OMP_NUM_THREADS=$(threads)\n")
+        write(f, "ulimit -s unlimited\n")
+        write(f, "export KMP_STACKSIZE=256M\n")
+        write(f, "export OMP_STACKSIZE=256M\n")
 		write(f, "./dispatch.x $(nml_name)")
 	end
 	
@@ -49,6 +52,9 @@ function run_dispatch(nml_name; threads=70, wait=true, ddir=@in_dispatch(""))
     #write(f, "source ~/.bashrc\n")
     write(f, "export KMP_NUM_THREADS=$(threads)\n")
     write(f, "export OMP_NUM_THREADS=$(threads)\n")
+    write(f, "ulimit -s unlimited\n")
+    write(f, "export KMP_STACKSIZE=256M\n")
+    write(f, "export OMP_STACKSIZE=256M\n")
     write(f, "./dispatch.x $(nml_name)")
     end
 
@@ -82,6 +88,9 @@ function srun_m3dis(nml_name;
 		#write(f, "source ~/.bashrc\n")
 		write(f, "export KMP_NUM_THREADS=$(threads)\n")
 		write(f, "export OMP_NUM_THREADS=$(threads)\n")
+        write(f, "ulimit -s unlimited\n")
+        write(f, "export KMP_STACKSIZE=256M\n")
+        write(f, "export OMP_STACKSIZE=256M\n")
 		write(f, "./dispatch.x $(nml_name)")
 	end
 	
@@ -108,6 +117,9 @@ function run_m3dis(nml_name; threads=70, wait=true, ddir=@in_m3dis(""))
     #write(f, "source ~/.bashrc\n")
     write(f, "export KMP_NUM_THREADS=$(threads)\n")
     write(f, "export OMP_NUM_THREADS=$(threads)\n")
+    write(f, "ulimit -s unlimited\n")
+    write(f, "export KMP_STACKSIZE=256M\n")
+    write(f, "export OMP_STACKSIZE=256M\n")
     write(f, "./dispatch.x $(nml_name)")
     end
 
