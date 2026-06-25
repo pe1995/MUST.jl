@@ -30,14 +30,14 @@ WatchDog(name; folder=@in_dispatch("data/"), functions...) = WatchDog(name, join
 # =============================================================================
 
 """
-    monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10)
+    monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, keepevery=-1, batch=10)
 
 Monitor the progress of the linked simulation. Compute statistics and save 
 depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::DISPATCHWatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, batch=10, spectra=-1, onlyrefinement=false)
+function monitor(w::DISPATCHWatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, keepevery=-1, batch=10, spectra=-1, onlyrefinement=false)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -69,6 +69,25 @@ function monitor(w::DISPATCHWatchDog; timeout=2*60*60, check_every=5, delay=0, s
                 end
             end
             updatesnaps!(w)
+        elseif keepevery > 0
+            snaps2remove = filter(s -> s % keepevery != 0, w.snapshotsCompleted)
+            if length(snaps2remove) > 0
+                for (i, snap2remove) in enumerate(snaps2remove)
+                    if save_box
+                        if !(snap2remove in keys(convertedBoxes(w)))
+                            @info "Converting snapshot $(snap2remove)..."
+                            try
+                                convert(w, snap2remove, save_box=true)
+                                @info "...snapshot $(snap2remove) converted."
+                            catch
+                                @info "...snapshot $(snap2remove) failed."
+                            end
+                        end
+                    end
+                   deleteSnapshot(w, snap2remove)
+                end
+                updatesnaps!(w)
+            end
         end
 
         # check if there is a new snapshot
