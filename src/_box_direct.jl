@@ -408,8 +408,16 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 		@optionalTiming convertersTime for d in quantities
 			temp_storage[d.name] .*= converters[d.name]
 
-			@assert !any(isnan.(temp_storage[d.name]))
-			@assert !any(isinf.(temp_storage[d.name]))
+			if any(isnan.(temp_storage[d.name]))
+				bad = findall(isnan, temp_storage[d.name])
+				error("NaN in $(d.name): patch $i ($(length(bad))/$(length(temp_storage[d.name])) cells), " *
+					"k(z)-range $(extrema(getindex.(bad, 3))) of $(size(temp_storage[d.name], 3)), first at $(Tuple(bad[1]))")
+			end
+			if any(isinf.(temp_storage[d.name]))
+				bad = findall(isinf, temp_storage[d.name])
+				error("Inf in $(d.name): patch $i ($(length(bad))/$(length(temp_storage[d.name])) cells), " *
+					"k(z)-range $(extrema(getindex.(bad, 3))) of $(size(temp_storage[d.name], 3)), first at $(Tuple(bad[1]))")
+			end
 		end
 
 		xx .*= l_conv(units)
