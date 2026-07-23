@@ -1,7 +1,7 @@
 name = "MUST"
 uuid = "78ff202f-d08f-4a78-aa4d-c8e96fa3dcb9"
-authors = ["Philipp Eitner <phil.eitner@web.de> and contributors"]
 version = "0.4.1"
+authors = ["Philipp Eitner <phil.eitner@web.de> and contributors"]
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
@@ -18,6 +18,7 @@ Integrals = "de52edbc-65ea-441a-8357-d3a637375a31"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 Mmap = "a63ad114-7e13-5084-954f-fe012c677804"
 NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
+NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -25,6 +26,7 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [compat]
+NearestNeighbors = "0.4.28"
 julia = "1"
 
 [extras]
