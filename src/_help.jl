@@ -46,11 +46,9 @@ include_helper(name) = joinpath(dirname(@__FILE__), name)
     ingredients(path::String)
 
 Include the julia script given into the current namespace.
-The file be looked for in the src folder where ` MUST`` is located.
+The file be looked for in the src folder where `MUST` is located.
 """
 function ingredients(path::String)
-	# this is from the Julia source code (evalfile in base/loading.jl)
-	# but with the modification that it returns the module instead of the last object
 	path = include_helper(path)
 	name = Symbol(basename(path))
 	m = Module(name)
@@ -62,6 +60,73 @@ function ingredients(path::String)
              :(include($path))))
 	m
 end
+
+macro ingredient(path)
+    quote
+        $Base.eval($__module__, Expr(:call, :include, include_helper($(esc(path)))))
+    end
+end
+
+# ============================================================================
+# Loading the Julia HOP package (tumult/HOP.jl)
+# ============================================================================
+
+function _hop_pkgid()
+	id = Base.identify_package("HOP")
+	isnothing(id) && error("HOP is not a dependency of the active project — run @import_hop first")
+	id
+end
+
+function _hop_pkg_path(location=nothing)
+	base = !isnothing(location)       ? abspath(String(location)) :
+	       !isnothing(multi_location) ? multi_location :
+	       error("give a location to @import_hop, or call @import_tumult first")
+	p = joinpath(base, "tumult", "HOP.jl")
+	isdir(p) || error("HOP package not found at $p (expected the tumult/HOP.jl package dir)")
+	p
+end
+
+_redevelop_hop(Pkg, p) = begin
+	try; Pkg.rm("HOP"); catch; end               
+	Pkg.develop(Pkg.PackageSpec(path=p))
+	Base.require(_hop_pkgid())
+end
+
+function _develop_hop(Pkg, location=nothing; reinstall=false)
+	p = _hop_pkg_path(location)
+	reinstall && return _redevelop_hop(Pkg, p)
+	try
+		return Base.require(_hop_pkgid())           # already dev'd and loadable
+	catch
+		try
+			Pkg.develop(Pkg.PackageSpec(path=p))
+			return Base.require(_hop_pkgid())
+		catch
+			return _redevelop_hop(Pkg, p)        # broken -> rm + re-develop
+		end
+	end
+end
+
+function _hop_module()
+	try
+		Base.require(_hop_pkgid())
+	catch err
+		error("HOP package not available — run @import_hop first (or pass " *
+		      "hop=HOP to compute_eos_HOP). Underlying error: $err")
+	end
+end
+
+macro import_hop(location=nothing, reinstall=false)
+	esc(quote
+		import Pkg
+		MUST._develop_hop(Pkg, $location; reinstall=$reinstall)
+		using HOP
+	end)
+end
+
+# ============================================================================
+# Array helper
+# ============================================================================
 
 """
 Split array arr in nsplits roughly equal junks.

@@ -167,21 +167,7 @@ absolute_path!(grid; from=@__FILE__) = begin
 	end
 end
 
-relative_path(relative_to, abs_path) = begin
-	filename = basename(abs_path)
-
-	relative_to_components = split(dirname(relative_to), "/", keepempty=false)
-	abs_path_components = split(dirname(abs_path), "/", keepempty=false)
-
-	n_components = length(abs_path_components)
-	n_new_components = length(relative_to_components)
-	i = findfirst(x->!(x in relative_to_components), abs_path_components)
-	i = isnothing(i) ? n_components + 1 : i
-	different_components = i>n_components ? [] : abs_path_components[i:end]
-	from_node_to_new_path_components = i>n_new_components ? [] : relative_to_components[i:end]
-
-	joinpath([".." for i in from_node_to_new_path_components]..., different_components..., filename)
-end
+relative_path(relative_to, abs_path) = relpath(abs_path, dirname(relative_to))
 
 """
 	relative_path!(grid; from=@__FILE__)

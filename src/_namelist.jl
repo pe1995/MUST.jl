@@ -408,7 +408,7 @@ function reverse_parse(value)
             val_str = val_str * "$(reverse_parse(val)),"
         end
         val_str = val_str[1:end-1]
-    elseif typeof(value) <: String
+    elseif typeof(value) <: AbstractString
         if (value in ["t", "f", ".true.", ".false."]) || (occursin('*', value))
             v = strip(value)
             v = (v[1] == '\'') ? v[2:end] : v
@@ -418,7 +418,9 @@ function reverse_parse(value)
             v = strip(value)
             v = (v[1] == '\'') ? v[2:end] : v
             v = (v[end] == '\'') ? v[1:end-1] : v
-            val_str = "$(strip(v))"
+            v = (v[1] == '"') ? v[2:end] : v
+            v = (v[end] == '"') ? v[1:end-1] : v
+            val_str = "'$(strip(v))'"
         else
             can_be_float = try 
                 parse(Float64, value)
@@ -435,6 +437,8 @@ function reverse_parse(value)
         end
     elseif typeof(value) <: Bool
         val_str = ".$(value)."
+    elseif typeof(value) <: Symbol
+        val_str = "'$(value)'"
     else
         val_str = "$(value)"
     end
@@ -453,32 +457,171 @@ _nmlWarn(nml::FreeNamelist) = false
 
 """
 Write a namelist to path.
+
+# Arguments
+- `title::String`: A general string to be printed at the top of the namelist as a title section.
+- `help::Dict`: A dictionary mapping namelist tags to help comments, which will be printed above the tag.
+- `order::AbstractVector`: A vector of namelist tags specifying the order in which they should be printed.
+- `param_help::Dict`: A dictionary mapping namelist tags to a dictionary of parameter names and their comments, which will be printed behind the parameter.
 """
-function write(nml::AbstractNamelist, path::String; soft_line_limit=85)
-    para_names   = String.(nmlFields(nml))
-    longest_name = maximum(length.(para_names))
+function write(nml::AbstractNamelist, path::String; 
+               soft_line_limit=85, 
+               title::String="", 
+               help::Dict=Dict(), 
+               order::AbstractVector=[],
+               param_help=Dict())
+    
+    para_names = String.(nmlFields(nml))
+    
+    # Helper to convert to Vector{String}
+    _to_vec(v::AbstractVector) = String.(v)
+    _to_vec(v::AbstractString) = String.(split(String(v), '\n'))
+    _to_vec(v) = [String(v)]
+
+    # Process help dictionaries to ensure keys are strings and values are Vector{String}
+    str_help = Dict{String, Vector{String}}(String(k) => _to_vec(v) for (k, v) in help)
+    
+    # Process param_help and extract ordering
+    str_param_help = Dict{String, Dict{String, Vector{String}}}()
+    param_order = Dict{String, Vector{String}}()
+    extracted_tag_order = String[]
+
+    for kv in param_help
+        tag = String(kv[1])
+        params = kv[2]
+        
+        push!(extracted_tag_order, tag)
+        
+        tag_p_help = Dict{String, Vector{String}}()
+        tag_p_order = String[]
+        
+        for p_kv in params
+            p_name = String(p_kv[1])
+            p_val = _to_vec(p_kv[2])
+            tag_p_help[p_name] = p_val
+            push!(tag_p_order, p_name)
+        end
+        
+        str_param_help[tag] = tag_p_help
+        param_order[tag] = tag_p_order
+    end
+
+    # Determine tag order
+    is_ordered_param = (typeof(param_help) <: AbstractVector) || (typeof(param_help) <: Tuple)
+    str_order = if !isempty(order)
+        String.(order)
+    elseif is_ordered_param
+        extracted_tag_order
+    else
+        String[]
+    end
+
+    actual_order = [p for p in str_order if p in para_names]
+    remaining_paras = setdiff(para_names, actual_order)
+    final_order = vcat(actual_order, remaining_paras)
+
+    longest_name = isempty(final_order) ? 0 : maximum(length.(final_order))
 
     f = open(path, "w")
 
-    for (i,p) in enumerate(para_names)
-        spaces = longest_name - length(p) +1
+    # Write title section
+    if !isempty(title)
+        for line in _to_vec(title)
+            clean_line = strip(line)
+            if isempty(clean_line)
+                continue
+            end
+            if !startswith(clean_line, "!")
+                Base.write(f, "! $(clean_line)\n")
+            else
+                Base.write(f, "$(clean_line)\n")
+            end
+        end
+        Base.write(f, "\n")
+    end
+
+    for (i, p) in enumerate(final_order)
+        # Write help comment for the tag if it exists
+        if haskey(str_help, p)
+            if i > 1
+                Base.write(f, "\n") # Empty line before comment for readability (avoid double newlines after title)
+            end
+            for line in str_help[p]
+                clean_line = strip(line)
+                if isempty(clean_line)
+                    continue
+                end
+                if !startswith(clean_line, "!")
+                    Base.write(f, "! $(clean_line)\n")
+                else
+                    Base.write(f, "$(clean_line)\n")
+                end
+            end
+        end
+
+        spaces = longest_name - length(p) + 1
         line   = "&$(p)" * repeat(" ", spaces) 
         d = nmlField(nml, Symbol(p))
         
-        lline = longest_name+2
-        for word in keys(d)
-            add_to_line = "$(word)=" * reverse_parse(d[word]) * " "
+        current_param_help = get(str_param_help, p, Dict{String, Vector{String}}())
+        current_param_order = get(param_order, p, String[])
+        
+        d_keys = collect(String.(keys(d)))
+        actual_p_order = [w for w in current_param_order if w in d_keys]
+        remaining_p_keys = setdiff(d_keys, actual_p_order)
+        final_p_order = vcat(actual_p_order, remaining_p_keys)
+        
+        lline = longest_name + 2
+        for str_word in final_p_order
+            add_to_line = "$(str_word)=" * reverse_parse(d[str_word]) * " "
             
-            lline += length(add_to_line)
-            if (lline >= soft_line_limit) 
-                line  = line*"\n" * repeat(" ", longest_name+2) 
-                lline = longest_name+2
+            if haskey(current_param_help, str_word)
+                # Format comment
+                phelp_lines = current_param_help[str_word]
+                formatted_lines = String[]
+                for l in phelp_lines
+                    clean_l = strip(l)
+                    if isempty(clean_l)
+                        continue
+                    end
+                    push!(formatted_lines, startswith(clean_l, "!") ? clean_l : "! " * clean_l)
+                end
+                
+                if isempty(formatted_lines)
+                    lline += length(add_to_line)
+                    if (lline >= soft_line_limit) 
+                        line  = rstrip(line) * "\n" * repeat(" ", longest_name + 2) 
+                        lline = longest_name + 2 + length(add_to_line)
+                    end
+                    line = line * add_to_line
+                else
+                    clean_add_to_line = rstrip(add_to_line, ' ')
+                    
+                    if (lline > longest_name + 2) && (lline + length(clean_add_to_line) >= soft_line_limit)
+                        line  = rstrip(line) * "\n" * repeat(" ", longest_name + 2)
+                        lline = longest_name + 2
+                    end
+                    
+                    comment_start_col = longest_name + 2
+                    phelp_text = join(formatted_lines, "\n" * repeat(" ", comment_start_col))
+                    
+                    line = line * clean_add_to_line * "  " * phelp_text * "\n" * repeat(" ", longest_name + 2)
+                    
+                    lline = longest_name + 2
+                end
+            else
+                lline += length(add_to_line)
+                if (lline >= soft_line_limit) 
+                    line  = rstrip(line) * "\n" * repeat(" ", longest_name + 2) 
+                    lline = longest_name + 2 + length(add_to_line)
+                end
+                
+                line = line * add_to_line
             end
-            
-            line = line * add_to_line
         end 
 
-        line = line * "/\n"
+        # Remove trailing whitespaces (including newlines) to correctly place the `/`
+        line = rstrip(line) * "\n/\n"
 
         Base.write(f, line)
     end
