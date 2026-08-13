@@ -614,6 +614,7 @@ Base.getindex(s::T,key) where {T<:MUST.Space} = s.data[key]
 Base.getindex(s::T,key) where {T<:MUST.Box}   = begin
     actual_name, correction_function = is_log(key)
     val = actual_name in keys(s.data) ? s.data[actual_name] : getfield(s,actual_name)
+    correction_function === identity && return val
     try
         correction_function.(val)
     catch
