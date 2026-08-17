@@ -1,6 +1,6 @@
 name = "MUST"
 uuid = "78ff202f-d08f-4a78-aa4d-c8e96fa3dcb9"
-version = "0.4.1"
+version = "1.0.0"
 authors = ["Philipp Eitner <phil.eitner@web.de> and contributors"]
 
 [deps]

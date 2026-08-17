@@ -334,6 +334,17 @@ interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, e
 end
 
 """
+    _axis_bracket(axis, x)
+
+Index of the cell containing `x` and the fractional position within it.
+"""
+@inline function _axis_bracket(axis, x)
+    n = length(axis)
+    j = clamp(searchsortedlast(axis, x), 1, n - 1)
+    j, (x - axis[j]) / (axis[j+1] - axis[j])
+end
+
+"""
 Interpolate in the given table using the axis in the EOS. 
 """
 function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::AbstractArray{T,3}, ee::AbstractArray{T,3}, index::Int) where {T<:AbstractFloat}
@@ -348,17 +359,13 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
     for k in axes(d, 3)
         for j in axes(d, 2)
             for i in axes(d, 1)
-                ifr = (ee[i, j, k] - ei_min) / dlnEi + 1.0
-                il  = floor(Int, ifr)
-                tt  = Base.mod(ifr, 1.0) 
+                il, tt = _axis_bracket(eos.lnEi_axis,  ee[i, j, k])
                 m1t = 1.0 - tt
-            
-                jfr = (d[i, j, k] - rho_min) / dlnRho + 1.0
-                jl  = floor(Int, jfr)
-                u   = Base.mod(jfr, 1.0) 
+
+                jl, u = _axis_bracket(eos.lnRho_axis, d[i, j, k])
                 m1u = 1.0 - u
 
-                if ((ifr<0) || (jfr<0))
+                if ((ee[i, j, k] < ei_min) || (d[i, j, k] < rho_min))
                     result[i, j, k] = Base.convert(eltype(d), NaN) 
                 else
                     result[i, j, k] = m1t * m1u * table[il,  jl  ,index] +
@@ -388,17 +395,13 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
     for k in axes(d, 3)
         for j in axes(d, 2)
             for i in axes(d, 1)
-                ifr = (ee[i, j, k] - ei_min) / dlnEi + 1.0
-                il  = floor(Int, ifr)
-                tt  = Base.mod(ifr, 1.0) 
+                il, tt = _axis_bracket(eos.lnEi_axis,  ee[i, j, k])
                 m1t = 1.0 - tt
-            
-                jfr = (d[i, j, k] - rho_min) / dlnRho + 1.0
-                jl  = floor(Int, jfr)
-                u   = Base.mod(jfr, 1.0) 
+
+                jl, u = _axis_bracket(eos.lnRho_axis, d[i, j, k])
                 m1u = 1.0 - u
 
-                if ((ifr<0) || (jfr<0))
+                if ((ee[i, j, k] < ei_min) || (d[i, j, k] < rho_min))
                     result[i, j, k, index] .= Base.convert(eltype(d),NaN) 
                 else
                     result[i, j, k, index] .= m1t .* m1u .* table[il,  jl  ,index] +
@@ -426,17 +429,13 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
     il=0; jl=0; ifr=0.0; jfr=0.0; tt=0.0; u=0.0
 
     @inbounds for i in 1:length(d)
-        ifr = (ee[i] - ei_min) / dlnEi + 1.0
-        il  = floor(Int, ifr)
-        tt  = Base.mod(ifr, 1.0) 
+        il, tt = _axis_bracket(eos.lnEi_axis,  ee[i])
         m1t = 1.0 - tt
-    
-        jfr = (d[i] - rho_min) / dlnRho + 1.0
-        jl  = floor(Int, jfr)
-        u   = Base.mod(jfr, 1.0) 
+
+        jl, u = _axis_bracket(eos.lnRho_axis, d[i])
         m1u = 1.0 - u
 
-        if ((ifr<0) || (jfr<0))
+        if ((ee[i] < ei_min) || (d[i] < rho_min))
             result[i,:] .= Base.convert(eltype(d),NaN) 
         else
             result[i,:] .= m1t .* m1u .* table[il,  jl  ,index] +
@@ -462,17 +461,13 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
     il=0; jl=0; ifr=0.0; jfr=0.0; tt=0.0; u=0.0
 
     @inbounds for i in 1:length(d)
-        ifr = (ee[i] - ei_min) / dlnEi + 1.0
-        il  = floor(Int, ifr)
-        tt  = Base.mod(ifr, 1.0) 
+        il, tt = _axis_bracket(eos.lnEi_axis,  ee[i])
         m1t = 1.0 - tt
-    
-        jfr = (d[i] - rho_min) / dlnRho + 1.0
-        jl  = floor(Int, jfr)
-        u   = Base.mod(jfr, 1.0) 
+
+        jl, u = _axis_bracket(eos.lnRho_axis, d[i])
         m1u = 1.0 - u
 
-        if ((ifr<0) || (jfr<0))
+        if ((ee[i] < ei_min) || (d[i] < rho_min))
             result[i] = Base.convert(eltype(d),NaN) 
         else
             result[i] = m1t * m1u * table[il,  jl  ,index] +
@@ -498,17 +493,13 @@ function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::T, ee::T, i
 
     il=0; jl=0; ifr=0.0; jfr=0.0; tt=0.0; u=0.0
 
-    ifr = (ee - ei_min) / dlnEi + 1.0
-    il  = floor(Int, ifr)
-    tt  = Base.mod(ifr, 1.0) 
+    il, tt = _axis_bracket(eos.lnEi_axis,  ee)
     m1t = 1.0 - tt
 
-    jfr = (d - rho_min) / dlnRho + 1.0
-    jl  = floor(Int, jfr)
-    u   = Base.mod(jfr, 1.0) 
+    jl, u = _axis_bracket(eos.lnRho_axis, d)
     m1u = 1.0 - u
 
-    result .= if ((ifr<0) || (jfr<0))
+    result .= if ((ee < ei_min) || (d < rho_min))
         Base.convert(T, NaN) 
     else
         m1t .* m1u .* table[il,  jl  ,index] +

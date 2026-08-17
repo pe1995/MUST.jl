@@ -21,9 +21,18 @@ mutable struct WatchDog <: DISPATCHWatchDog
     refinement
     currentSnapshot
     functions
+    converter
 end
 
-WatchDog(name; folder=@in_dispatch("data/"), functions...) = WatchDog(name, joinpath(folder, name), [], [], 0, 0, functions)
+"""
+    WatchDog(name; folder, converter=(;), functions...)
+
+`converter` is splatted into `snapshotBox` when converting a snapshot, so a
+caller that has TSO can hand over `eos_reader` + `lookup_generator` to convert
+with the TSO EoS instead of the DISPATCH table.
+"""
+WatchDog(name; folder=@in_dispatch("data/"), converter=(;), functions...) =
+    WatchDog(name, joinpath(folder, name), [], [], 0, 0, functions, converter)
 
 # =============================================================================
 # Monitoring of DISPATCH runs
@@ -230,7 +239,8 @@ convert(w::DISPATCHWatchDog, snapshot; save_box=false) = begin
         to_multi=save_box,
         is_box=true, 
         use_mmap=false,
-        legacy=false
+        legacy=false,
+        w.converter...
     )
 end
 
@@ -648,9 +658,10 @@ resolvedSpectraGBand(w::AbstractWatchDog, b, bτ) = resolvedSpectra(4297.0, 4303
 Create a WatchDog with all default monitoring functions. Additional functions
 can be passed if wanted.
 """
-defaultWatchDog(name; folder=@in_dispatch("data/"), additional_functions...) = WatchDog(
+defaultWatchDog(name; folder=@in_dispatch("data/"), converter=(;), additional_functions...) = WatchDog(
     name;
     folder=folder,
+    converter=converter,
     atmosphericParameters = atmosphericParameters,
     geometricalAverages = geometricalAverages,
     geometricalRMS = geometricalRMS,

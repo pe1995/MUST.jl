@@ -79,8 +79,11 @@ export Space, spacebox, Box, add!, profile, time_average_profile, flip!
 export multiBox, snapshotBox
 export pick_snapshot, list_of_snapshots, converted_snapshots, list_snapshots, find_snapshots
 export ginterpolate, gevaluate, gevaluate!, gresample, Grid
-export plane_statistic 
+export plane_statistic
 export height_scale
+
+# MUST 1D model format
+export save_must1d, save_must1d_all, read_must1d, must1d_columns
 
 # Multi
 export whole_spectrum, spectrum, Teff, flux, M3DISRun, window, TUMULTRun
@@ -127,6 +130,7 @@ include("_running.jl")
 include("_multi.jl")
 include("_atmos2legacy.jl")
 include("_atmos2multi.jl")
+include("_must1d.jl")
 include("_read_marcs.jl")
 include("_mafags.jl")
 include("_convert.jl")
