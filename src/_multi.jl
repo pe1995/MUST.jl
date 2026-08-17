@@ -358,20 +358,21 @@ function opacityTable(model; folder, linelist, λ_file, λs, λe, δλ, δlnT, �
 				:nz=>2,
 				:amr=>""
 			),
-			:m3d_params=>(
-				:n_nu=>nν, 
-				:ilambd=>0,
-				:short_scheme=>"disk_center",
-				:long_scheme=>"none",
+			:run_params=>(
+				:n_nu=>nν,
 				:make_eos=>true
 			),
+			:rt_iteration_params=>(:angle_quad=>"disk_center", :maxiter=>0),
+			:rt_output_params=>(:solver=>"none", :maxiter=>0),
 			:composition_params=>(
                 :absdat_file=>absdat_file,
                 :abund_file=>abund_file,
-				:ldtemp=>δlnT,
-				:ldrho=>δlnρ,
 				:tmolim=>tmolim,
 				:mhd_eos=>false,
+			),
+			:opac_table_params=>(
+				:ldtemp=>δlnT,
+				:ldrho=>δlnρ,
 			),
             kwargs...
 		),
@@ -398,14 +399,18 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
         nml_spectrum = spectrum_namelist(model_name; NLTE=false, namelist_kwargs...)
         path_nlte = joinpath(nml_nlte.io_params["datadir"], "$(mn(model_name))_departure")
 
+        # NOTE: the departure hand-off is not ported to OpenMULTI3D v1.0. There
+        # `atom_params/precomputed_depart` is gone; departures are re-read via
+        # `atmos_params/read_departures=T` together with `atmos_format='save'`.
+        @warn "twostep=true is not ported to OpenMULTI3D v1.0 (precomputed_depart -> read_departures)."
         set!(
-            nml_spectrum; 
+            nml_spectrum;
             atom_params=(:precomputed_depart=>path_nlte,),
-            m3d_params=(:long_scheme=>"lobatto",)
+            rt_output_params=(:angle_quad=>"lobatto",)
         )
         set!(
-            nml_nlte; 
-            m3d_params=(:long_scheme=>"disk_center",)
+            nml_nlte;
+            rt_output_params=(:angle_quad=>"disk_center",)
         )
 
         # run the initial namelist first
@@ -471,14 +476,15 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
             nml_nlte = spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
             nml_spectrum = spectrum_namelist(model_name; NLTE=false, namelist_kwargs...)
 
+            @warn "twostep=true is not ported to OpenMULTI3D v1.0 (precomputed_depart -> read_departures)."
             set!(
-                nml_spectrum; 
+                nml_spectrum;
                 atom_params=(:precomputed_depart=>path_nlte,),
-                m3d_params=(:long_scheme=>"lobatto",)
+                rt_output_params=(:angle_quad=>"lobatto",)
             )
             set!(
-                nml_nlte; 
-                m3d_params=(:long_scheme=>"disk_center",)
+                nml_nlte;
+                rt_output_params=(:angle_quad=>"disk_center",)
             )
     
             # run the initial namelist first

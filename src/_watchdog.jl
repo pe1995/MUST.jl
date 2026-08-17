@@ -586,7 +586,7 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
                 :model_folder=>joinpath("input_multi3d","MUST", name),
                 :linelist=>nothing,
                 :absmet=>nothing,
-                :linelist_params=>(:line_lists=>linelists,),
+                :linelist_params=>(:linelist_file=>linelists,),
                 :atom_params=>(:atom_file=>"",),
                 :spectrum_params=>(:daa=>Δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>false),
                 :atmos_params=>(
@@ -596,10 +596,8 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
                     :use_ne=>false,
                     :FeH=>feh
                 ),
-                :m3d_params=>(
-                    :save_resolved=>true,
-                    :long_scheme=>"disk_center"
-                ),
+                :output_params=>(:save_resolved=>true,),
+                :rt_output_params=>(:angle_quad=>"disk_center",),
             )
             m3dis_kwargs = Dict(:threads=>SPECTRUM_THREADS[])
 

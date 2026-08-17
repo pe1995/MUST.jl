@@ -46,18 +46,24 @@ end
 Default namelist for M3D computations.
 """
 mutable struct M3DNamelist <: MUST.AbstractNamelist
-    io_params          ::Dict{String,Any}  
-    timer_params       ::Dict{String,Any}  
-    atmos_params       ::Dict{String,Any}  
-    stagger_params     ::Dict{String,Any}  
-    atom_params        ::Dict{String,Any}  
-    m3d_params         ::Dict{String,Any}  
-    linelist_params    ::Dict{String,Any}  
-    spectrum_params    ::Dict{String,Any}  
-    dispatcher0_params ::Dict{String,Any}  
-    task_list_params   ::Dict{String,Any}   
-    composition_params ::Dict{String,Any}   
-    line_mask          ::Dict{String,Any}   
+    io_params            ::Dict{String,Any}
+    timer_params         ::Dict{String,Any}
+    atmos_params         ::Dict{String,Any}
+    stagger_params       ::Dict{String,Any}
+    atom_params          ::Dict{String,Any}
+    run_params           ::Dict{String,Any}
+    nlte_params          ::Dict{String,Any}
+    rt_iteration_params  ::Dict{String,Any}
+    rt_output_params     ::Dict{String,Any}
+    output_params        ::Dict{String,Any}
+    m3d_debug_params     ::Dict{String,Any}
+    linelist_params      ::Dict{String,Any}
+    opac_table_params    ::Dict{String,Any}
+    spectrum_params      ::Dict{String,Any}
+    dispatcher0_params   ::Dict{String,Any}
+    task_list_params     ::Dict{String,Any}
+    composition_params   ::Dict{String,Any}
+    line_mask            ::Dict{String,Any}
 end
 
 """
@@ -671,20 +677,25 @@ _whole_spectrum_namelist!(nml::M3DNamelist;
 	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
     atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20", 
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
-	m3d_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1, 
-				:lvlcheck=>1,
-                :n_nu=>32, :maxiter=>0, :decouple_continuum=>true),
+	run_params=(:n_nu=>32,),
+	nlte_params=(:decouple_continuum=>true,),
+	m3d_debug_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1,
+				:lvlcheck=>1),
+	rt_iteration_params=(:maxiter=>0,),
 	#linelist_params=(:dlam=>1.0,),
     composition_params=(:abund_file=>"./input_multi3d/abund_magg",),#:absdat_file=>"./input_multi3d/TS_absdat.dat"),
 	#spectrum_params=(:daa=>2., :aa_blue=>2000, :aa_red=>40000)
     ) = begin
 
 	set!(
-		nml; 
-		io_params=io_params, 
+		nml;
+		io_params=io_params,
 		timer_params=timer_params,
 		atmos_params=atmos_params,
-		m3d_params=m3d_params,
+		run_params=run_params,
+		nlte_params=nlte_params,
+		m3d_debug_params=m3d_debug_params,
+		rt_iteration_params=rt_iteration_params,
 		#linelist_params=linelist_params,
 		#spectrum_params=spectrum_params,
         atom_params=atom_params,
@@ -719,8 +730,8 @@ function whole_spectrum_namelist(model_name::String;
     if (isnothing(absmet)) & (!isnothing(linelist))
         set!(nml; linelist_params=(:linelist_file=>linelist,))
     elseif (!isnothing(absmet)) & (isnothing(linelist))
-        set!(nml, composition_params=(:absmet_file=>absmet,))
-        set!(nml, m3d_params=(:absmet_in_output=>true, ))
+        set!(nml, opac_table_params=(:absmet_file=>absmet,))
+        set!(nml, rt_output_params=(:include_absmet=>true, ))
     elseif (isnothing(absmet)) & (isnothing(linelist))
         nothing
     else
@@ -733,43 +744,52 @@ function whole_spectrum_namelist(model_name::String;
 	nml
 end
 
-_spectrum_namelist_lte!(nml::M3DNamelist; 
+_spectrum_namelist_lte!(nml::M3DNamelist;
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
 	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
-    atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20", 
+    atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20",
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
-	m3d_params=(:verbose=>1, :fcheck=>1, :linecheck=>1, 
-				:lvlcheck=>1, :short_scheme=>"set_a2", :long_scheme=>"lobatto",
-                :n_nu=>32, :maxiter=>0, :ilambd=>0)) = begin
-    # :decouple_continuum=>true
+	run_params=(:n_nu=>32,),
+	m3d_debug_params=(:verbose=>1, :fcheck=>1, :linecheck=>1, :lvlcheck=>1),
+	rt_iteration_params=(:angle_quad=>"set_a2", :maxiter=>0),
+	rt_output_params=(:angle_quad=>"lobatto", :ntheta=>4, :nphi=>4, :maxiter=>0)) = begin
+    # :decouple_continuum=>true (nlte_params)
 	set!(
-		nml; 
-		io_params=io_params, 
+		nml;
+		io_params=io_params,
 		timer_params=timer_params,
 		atmos_params=atmos_params,
-        m3d_params=m3d_params,
+        run_params=run_params,
+        m3d_debug_params=m3d_debug_params,
+        rt_iteration_params=rt_iteration_params,
+        rt_output_params=rt_output_params,
         atom_params=atom_params
 	)
 end
 
-_spectrum_namelist_nlte!(nml::M3DNamelist; 
+_spectrum_namelist_nlte!(nml::M3DNamelist;
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
 	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
-    atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20", 
-                :exclude_trace_cont=>true, :exclude_from_line_list=>true,
-                :convlim=>1e-2),
-	m3d_params=(:verbose=>1, :fcheck=>1, :linecheck=>1, 
-				:lvlcheck=>1, :short_scheme=>"set_a2", :long_scheme=>"lobatto",
-                :n_nu=>32, :maxiter=>100)) = begin
-    # :decouple_continuum=>true
+    atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20",
+                :exclude_trace_cont=>true, :exclude_from_line_list=>true),
+	nlte_params=(:convlim=>1e-2,),
+	run_params=(:n_nu=>32,),
+	m3d_debug_params=(:verbose=>1, :fcheck=>1, :linecheck=>1, :lvlcheck=>1),
+	rt_iteration_params=(:angle_quad=>"set_a2", :maxiter=>100),
+	rt_output_params=(:angle_quad=>"lobatto", :ntheta=>4, :nphi=>4, :maxiter=>0)) = begin
+    # :decouple_continuum=>true (nlte_params)
 	set!(
-		nml; 
-		io_params=io_params, 
+		nml;
+		io_params=io_params,
 		timer_params=timer_params,
 		atmos_params=atmos_params,
-        m3d_params=m3d_params,
+        nlte_params=nlte_params,
+        run_params=run_params,
+        m3d_debug_params=m3d_debug_params,
+        rt_iteration_params=rt_iteration_params,
+        rt_output_params=rt_output_params,
         atom_params=atom_params
 	)
 end
@@ -801,8 +821,8 @@ function spectrum_namelist(model_name::String; NLTE=false,
     if (isnothing(absmet)) & (!isnothing(linelist))
         set!(nml; linelist_params=(:linelist_file=>linelist,))
     elseif (!isnothing(absmet)) & (isnothing(linelist))
-        set!(nml, composition_params=(:absmet_file=>absmet,))
-        set!(nml, m3d_params=(:absmet_in_output=>true, ))
+        set!(nml, opac_table_params=(:absmet_file=>absmet,))
+        set!(nml, rt_output_params=(:include_absmet=>true, ))
     elseif (isnothing(absmet)) & (isnothing(linelist))
         nothing
     else
@@ -824,13 +844,16 @@ heating_namelist(model_name::String, opacity_table=nothing, args...; kwargs...) 
     nml = spectrum_namelist(model_name, args...; kwargs...)
 
     if !isnothing(opacity_table)
-        set!(nml, composition_params=(:opac_table=>opacity_table,))
+        set!(nml, opac_table_params=(:opac_table=>opacity_table,))
     end
 
-    #set!(nml, spectrum_params=(:daa=>1., :aa_blue=>1500, :aa_red=>9000))    
+    #set!(nml, spectrum_params=(:daa=>1., :aa_blue=>1500, :aa_red=>9000))
     #set!(nml; kwargs...)
 
-    set!(nml, m3d_params=(:save_patch_kind=>"mean_rad", :save_Qrad=>true, :n_nu=>1))
+    # NOTE: OpenMULTI3D v1.0 no longer has the mean_rad patch kind nor save_Qrad,
+    # so the radiative-heating output this namelist was written for is gone.
+    set!(nml, output_params=(:save_patch_kind=>"mean_rad",))
+    set!(nml, run_params=(:n_nu=>1,))
     set!(nml, atmos_params=(:dims=>1,))
 
     nml
@@ -844,13 +867,15 @@ _tau500_namelist!(nml::M3DNamelist,
     io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
     timer_params=(:sec_per_report=>1e8, :verbose=>2),
     atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
-    m3d_params=(:verbose=>2, :long_scheme=>"none")) = begin
+    m3d_debug_params=(:verbose=>2,),
+    rt_output_params=(:solver=>"none",)) = begin
     set!(
-        nml; 
-        io_params=io_params, 
+        nml;
+        io_params=io_params,
         timer_params=timer_params,
         atmos_params=atmos_params,
-        m3d_params=m3d_params,
+        m3d_debug_params=m3d_debug_params,
+        rt_output_params=rt_output_params,
     )
 end
 
