@@ -2056,7 +2056,7 @@ function average!(b::Box; depth=true, scale=:z)
     end
 
     # get the actual height coodinate
-    z = axis(b, scale, 3)
+    z = collect(axis(b, scale, 3))
 
     flip_average!(z, ρ, T, ne, pe, vmic; depth=depth, scale=scale)
 end
