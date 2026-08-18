@@ -60,7 +60,32 @@ const must1d_name_map = Dict{Symbol,MUST1DColumn}(
 )
 
 const must1d_ignored_keys = Symbol[:x, :y, :i_patch, :u2, :newscale, :extrapolated]
+const averagebox_suffixes = ("z", "tauross", "tau500")
+const averagebox_scales   = (:z, :τ_ross, :τ500)
 const must1d_suffixes = ("must1d_z", "must1d_tauross", "must1d_tau500")
+
+const averagebox_name_lookup = begin
+    d = Dict{String,MUST1DColumn}()
+    for c in must1d_fixed_columns
+        isnothing(c.key) && continue
+        haskey(d, c.name) || (d[c.name] = c)
+    end
+    for k in sort(collect(keys(must1d_name_map)))
+        c = must1d_name_map[k]
+        haskey(d, c.name) || (d[c.name] = c)
+    end
+    d
+end
+const averagebox_logaverage = begin
+    d = Dict{Symbol,Bool}()
+    for c in must1d_fixed_columns
+        isnothing(c.key) || (d[c.key] = c.log || c.logaverage)
+    end
+    for (k, c) in must1d_name_map
+        haskey(d, k) || (d[k] = c.log || c.logaverage)
+    end
+    d
+end
 
 # =============================================================================
 # Composition and sanitization
@@ -175,18 +200,29 @@ _must1d_sorting(data) = begin
     (first(ref) < last(ref)) ? collect(1:length(ref)) : collect(length(ref):-1:1)
 end
 
+_must1d_snapshot_list(snapshot) = (snapshot isa Union{AbstractArray,AbstractRange,Tuple}) ?
+    sort(collect(snapshot)) : nothing
+
 function _write_must1d_header(f, b::Box, columns, header, information, snapshot, feh, alpha, composition, abund)
     p = b.parameter
     version = try string(pkgversion(@__MODULE__)) catch; "unknown" end
 
+    snaplist = _must1d_snapshot_list(snapshot)
+    m = isnothing(snaplist) ? "" : "mean "
+
     info = ["cube = $(size(b, 1)) x $(size(b, 2)) x $(size(b, 3))"]
-    p.teff > 0    && push!(info, "Teff [K] = $(round(p.teff, digits=2))")
+    p.teff > 0    && push!(info, "$(m)Teff [K] = $(round(p.teff, digits=2))")
     p.logg > -90  && push!(info, "log(g) = $(round(p.logg, digits=3))")
-    p.time > -90  && push!(info, "time [s] = $(p.time)")
-    isnothing(snapshot) || push!(info, "snapshot = $(snapshot)")
+    p.time > -90  && push!(info, "$(m)time [s] = $(p.time)")
+    if !isnothing(snaplist)
+        push!(info, "snapshots = sn$(first(snaplist)) - sn$(last(snaplist)) ($(length(snaplist)) averaged)")
+    elseif !isnothing(snapshot)
+        push!(info, "snapshot = $(snapshot)")
+    end
 
     write(f, "# MUST 1D model: $(isnothing(header) ? "unnamed" : header)\n")
     write(f, "# $(join(info, ", "))\n")
+    isnothing(snaplist) || write(f, "# averaged snapshots: $(join(snaplist, ", "))\n")
 
     comp = String[]
     isnothing(feh)   || push!(comp, "[Fe/H] = $(feh)")
@@ -285,16 +321,15 @@ function save_must1d(b::Box, f_new;
 end
 
 """
-    save_must1d_all(b::Box, path; boxes=(b, b, b), kwargs...)
+    save_must1d_all(b::Box, path; boxes=(b, b, b), suffixes=averagebox_suffixes, kwargs...)
 
-Write `\$(path)_must1d_z.txt`, `\$(path)_must1d_tauross.txt` and
-`\$(path)_must1d_tau500.txt`. `boxes` are the geometrical, Rosseland and 500 nm
-versions of the model, i.e. normally `box_sn*`, `box_tau_sn*`, `box_tau500_sn*`.
-For a genuine 1D model the default of using `b` for all three is what you want.
+Write `\$(path)_z.txt`, `\$(path)_tauross.txt` and `\$(path)_tau500.txt`.
+`boxes` are the geometrical, Rosseland and 500 nm versions of the model, i.e.
+normally `box_sn*`, `box_tau_sn*`, `box_tau500_sn*`.
 """
-save_must1d_all(b::Box, path; boxes=(b, b, b), kwargs...) = [
+save_must1d_all(b::Box, path; boxes=(b, b, b), suffixes=averagebox_suffixes, kwargs...) = [
     save_must1d(bi, "$(path)_$(suffix).txt"; kwargs...)
-    for (bi, suffix) in zip(boxes, must1d_suffixes)
+    for (bi, suffix) in zip(boxes, suffixes)
 ]
 
 """
@@ -326,4 +361,153 @@ function read_must1d(path)
 
     Dict{String,Vector{Float64}}(n => [r[i] for r in rows] for (i, n) in enumerate(names)),
     join(header, "\n")
+end
+
+# =============================================================================
+# averageBox — the written 1D averages, back as a Box
+# =============================================================================
+
+_averagebox_header_value(header::AbstractString, pattern::Regex) = begin
+    m = Base.match(pattern, header)
+    isnothing(m) ? nothing : tryparse(Float64, m[1])
+end
+
+function _averagebox_parameters(header)
+    p = AtmosphericParameters()
+    teff = _averagebox_header_value(header, r"Teff \[K\] = ([-+0-9.eE]+)")
+    logg = _averagebox_header_value(header, r"log\(g\) = ([-+0-9.eE]+)")
+    time = _averagebox_header_value(header, r"time \[s\] = ([-+0-9.eE]+)")
+
+    isnothing(teff) || (p.teff = teff)
+    isnothing(logg) || (p.logg = logg)
+    isnothing(time) || (p.time = time)
+
+    p
+end
+
+"""
+    averageBox(path)
+
+Read a 1D average written by [`save_must1d`](@ref) (`*_z.txt`, `*_tauross.txt`,
+`*_tau500.txt`) back into a `Box` of size `(1, 1, nz)`. Columns are mapped back
+onto the `Box` keys they were written from, i.e. `log10_density` becomes `:d`,
+`tau_ross` becomes `:τ_ross` and so on, undoing the `log10` of the file. All-NaN
+columns (quantities that were not available in the original cube) are dropped.
+Teff, log(g) and the time are taken from the header if present.
+"""
+function averageBox(path::AbstractString)
+    data, header = read_must1d(path)
+    nz = length(first(values(data)))
+
+    z = get(data, "z", fill(NaN, nz))
+    all(isnan, z) && (z = Base.convert(Vector{Float64}, collect(1:nz)))
+
+    d = Dict{Symbol,Any}()
+    for (name, col) in data
+        (name == "z") && continue
+        all(isnan, col) && continue
+
+        c = get(averagebox_name_lookup, name, nothing)
+        key = isnothing(c) ? Symbol(name) : c.key
+        val = (!isnothing(c) && c.log) ? exp10.(col) : col
+
+        d[key] = reshape(Base.convert(Vector{Float64}, val), 1, 1, :)
+    end
+
+    Box(
+        zeros(Float64, 1, 1, nz),
+        zeros(Float64, 1, 1, nz),
+        reshape(Base.convert(Vector{Float64}, z), 1, 1, :),
+        d,
+        _averagebox_parameters(header)
+    )
+end
+
+"""
+    averageBox(paths; scale=:z)
+    averageBox(boxes; scale=:z)
+
+Average a set of 1D averages (as written by [`save_must1d`](@ref), or the `Box`
+objects of `averageBox(path)`) into a single `Box` of size `(1, 1, nz)`.
+"""
+averageBox(paths::AbstractVector{<:AbstractString}; kwargs...) = averageBox(averageBox.(paths); kwargs...)
+
+function averageBox(boxes::AbstractVector{<:Box}; scale=:z, npoints=nothing)
+    isempty(boxes) && error("averageBox: no models to average.")
+    (length(boxes) == 1) && return deepcopy(first(boxes))
+
+    (scale === :z) || all(b -> haskey(b.data, scale), boxes) ||
+        error("averageBox: not all models contain $(scale), so they can not be averaged on that scale.")
+
+    axes_all = [Base.convert(Vector{Float64}, b[scale][1, 1, :]) for b in boxes]
+    islog = (scale !== :z) && all(x -> all(>(0), x), axes_all)
+    islog && (axes_all = [log10.(x) for x in axes_all])
+
+    xc = if isnothing(npoints) && all(x -> x ≈ first(axes_all), axes_all)
+        copy(first(axes_all))
+    else
+        n = isnothing(npoints) ? maximum(length, axes_all) : npoints
+        lo, hi = maximum(minimum.(axes_all)), minimum(maximum.(axes_all))
+        (lo < hi) || error("averageBox: the models do not overlap in $(scale).")
+        collect(range(lo, hi, length=n))
+    end
+    n = length(xc)
+
+    common = intersect([Set{Symbol}(keys(b.data)) for b in boxes]...)
+    delete!(common, scale)
+
+    data = Dict{Symbol,Any}()
+    for key in sort(collect(common), by=String)
+        cols = [Base.convert(Vector{Float64}, b[key][1, 1, :]) for b in boxes]
+        data[key] = reshape(
+            _averagebox_mean(axes_all, cols, xc, get(averagebox_logaverage, key, false)),
+            1, 1, :
+        )
+    end
+
+    zc = if scale === :z
+        copy(xc)
+    else
+        data[scale] = reshape(islog ? exp10.(xc) : copy(xc), 1, 1, :)
+        _averagebox_mean(axes_all, [Base.convert(Vector{Float64}, b.z[1, 1, :]) for b in boxes], xc, false)
+    end
+
+    Box(
+        zeros(Float64, 1, 1, n),
+        zeros(Float64, 1, 1, n),
+        reshape(zc, 1, 1, :),
+        data,
+        _averagebox_mean_parameters(boxes)
+    )
+end
+
+function _averagebox_mean(xs, ys, xc, logaverage)
+    acc = zeros(Float64, length(xc))
+    for (x, y) in zip(xs, ys)
+        yl = logaverage ? [yi > 0 ? log10(yi) : NaN for yi in y] : y
+        acc .+= _averagebox_interpolate(x, yl, xc)
+    end
+    acc ./= length(xs)
+
+    logaverage ? exp10.(acc) : acc
+end
+
+function _averagebox_interpolate(x, y, xc)
+    m = sortperm(x)
+    xm, ym = x[m], y[m]
+
+    keep = [i == 1 || xm[i] > xm[i-1] for i in eachindex(xm)]
+    xm, ym = xm[keep], ym[keep]
+
+    linear_interpolation(xm, ym, extrapolation_bc=Line()).(xc)
+end
+
+function _averagebox_mean_parameters(boxes)
+    p = AtmosphericParameters()
+    for (field, invalid) in ((:teff, 0.0), (:logg, -90.0), (:time, -90.0))
+        vals = [getfield(b.parameter, field) for b in boxes]
+        vals = [Float64(v) for v in vals if v > invalid]
+        isempty(vals) || setfield!(p, field, mean(vals))
+    end
+    p
 end

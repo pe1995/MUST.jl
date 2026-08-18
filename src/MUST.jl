@@ -83,7 +83,7 @@ export plane_statistic
 export height_scale
 
 # MUST 1D model format
-export save_must1d, save_must1d_all, read_must1d, must1d_columns
+export save_must1d, save_must1d_all, read_must1d, must1d_columns, averageBox
 
 # Multi
 export whole_spectrum, spectrum, Teff, flux, M3DISRun, window, TUMULTRun
