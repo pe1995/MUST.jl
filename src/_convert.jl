@@ -169,9 +169,10 @@ function snapshotBox_jl(
     to_multi=false,
     use_mmap=false,
     save_snapshot=true,
+    save_folder=nothing,
     quantites=defaultQuantities,
     eos_path=nothing,
-    eos_reader=(x)->_squaregaseos(x, eos_path=eos_path, inputNamelist=joinpath(folder, "params")), 
+    eos_reader=(x)->_squaregaseos(x, eos_path=eos_path, inputNamelist=joinpath(folder, "params")),
     lookup_generator=nothing,
     kwargs...)
     folder = if !isdir(folder)
@@ -179,6 +180,7 @@ function snapshotBox_jl(
     else
         folder
     end
+    out_folder = isnothing(save_folder) ? folder : save_folder
     b_s, b_τ = begin
         # read patch data, collect to data cube
         b_s = @optionalTiming boxingTime MUST.Box(
@@ -194,12 +196,12 @@ function snapshotBox_jl(
         # Add the optical depth
         τ = @optionalTiming opticalDepthTime optical_depth(b_s, opacity=:kr, density=:d)
         add!(b_s, τ, :τ_ross)
-        save_snapshot && save(b_s; name="box_sn$(number)", folder=folder)
+        save_snapshot && save(b_s; name="box_sn$(number)", folder=out_folder)
 
         # interpolate to optical depth scale
         b_τ = if optical_depth_scale
             b_τ = @optionalTiming heightScaleTime height_scale(b_s, :τ_ross, extrapolation=:constant)
-            save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=folder)
+            save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=out_folder)
 
             b_τ 
         else
@@ -223,7 +225,7 @@ function snapshotBox_jl(
                     ny=size(b_s, 2),
                 )
                 snapshotsresample.data[:ne] = snapshotsresample.data[:Ne]
-                multiBox(snapshotsresample, joinpath(folder, "m3dis_$(number)"))
+                multiBox(snapshotsresample, joinpath(out_folder, "m3dis_$(number)"))
             catch
                 @warn "snapshot $(number) could not be converted to M3D format."
                 nothing

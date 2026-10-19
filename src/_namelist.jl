@@ -547,6 +547,11 @@ function write(nml::AbstractNamelist, path::String;
     end
 
     for (i, p) in enumerate(final_order)
+        d = nmlField(nml, Symbol(p))
+        if isempty(d)
+            continue
+        end
+
         # Write help comment for the tag if it exists
         if haskey(str_help, p)
             if i > 1
@@ -567,7 +572,7 @@ function write(nml::AbstractNamelist, path::String;
 
         spaces = longest_name - length(p) + 1
         line   = "&$(p)" * repeat(" ", spaces) 
-        d = nmlField(nml, Symbol(p))
+
         
         current_param_help = get(str_param_help, p, Dict{String, Vector{String}}())
         current_param_order = get(param_order, p, String[])
