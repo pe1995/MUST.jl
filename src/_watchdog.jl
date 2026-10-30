@@ -46,7 +46,7 @@ depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
 """
-function monitor(w::DISPATCHWatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, keepevery=-1, batch=10, spectra=-1, onlyrefinement=false)
+function monitor(w::DISPATCHWatchDog; timeout=8*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, keepevery=-1, batch=10, spectra=-1, onlyrefinement=false)
     time_start = time()
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
@@ -349,6 +349,9 @@ upperBoundarySurface(w::AbstractWatchDog, b, bτ) = begin
         d["sourcefunctionplane"] = sourcefunctionplane[:, :]
     end
 
+    for v in (:bx, :by, :bz)
+        haskey(b.data, v) && (d[string(v)*"plane"] = b[v][:, :, end])
+    end
     d
 end
 
@@ -382,6 +385,9 @@ lowerBoundarySurface(w::AbstractWatchDog, b, bτ) = begin
         d["qrplane"] = qrplane[:, :]
     end
 
+    for v in (:bx, :by, :bz)
+        haskey(b.data, v) && (d[string(v)*"plane"] = b[v][:, :, 1])
+    end
     d
 end
 
@@ -502,6 +508,7 @@ opticalSurfaces(w::AbstractWatchDog, b, bτ) = begin
     qrplane = haskey(b.data, :qr) ? interpolate_to(b, :qr; logspace=true, τ_ross=0.0)[:qr] : nothing
     kapparhoplane = haskey(b.data, :kapparho) ? interpolate_to(b, :kapparho; logspace=true, τ_ross=0.0)[:kapparho] : nothing
     sourcefunctionplane = haskey(b.data, :sourcefunction) ? interpolate_to(b, :sourcefunction; logspace=true, τ_ross=0.0)[:sourcefunction] : nothing
+    bplanes = Dict(v => interpolate_to(b, v; logspace=true, τ_ross=0.0)[v] for v in (:bx, :by, :bz) if haskey(b.data, v))
 
 
     d = Dict(
@@ -514,6 +521,9 @@ opticalSurfaces(w::AbstractWatchDog, b, bτ) = begin
         "y" => b.y[:, :, 1]
     )
 
+    for (v, plane) in bplanes
+        d[string(v)*"plane"] = plane[:, :, 1]
+    end
     if !isnothing(dtplane)
         d["dtplane"] = dtplane[:, :, 1]
     end

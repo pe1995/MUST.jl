@@ -93,8 +93,16 @@ function _var_from_patch_direct_arr!(res, var, fname, shp, off, li, ui, idxd, bu
     # Read the full array data
     read!(fname, buffer)
 
-    # Slice the array and store the result in `res`
-    res .= buffer[li[1]:ui[1], li[2]:ui[2], li[3]:ui[3]]
+    # Slice the array and store the result in `res`; face-centred B is
+    # averaged to cell centres along its own direction
+    sh = var == :bx ? 1 : var == :by ? 2 : var == :bz ? 3 : 0
+    if sh > 0 && ui[sh] < size(buffer, sh)
+        o = ntuple(d -> d == sh ? 1 : 0, 3)
+        res .= 0.5f0 .* (buffer[li[1]:ui[1], li[2]:ui[2], li[3]:ui[3]] .+
+                         buffer[li[1]+o[1]:ui[1]+o[1], li[2]+o[2]:ui[2]+o[2], li[3]+o[3]:ui[3]+o[3]])
+    else
+        res .= buffer[li[1]:ui[1], li[2]:ui[2], li[3]:ui[3]]
+    end
 
 	res
 end

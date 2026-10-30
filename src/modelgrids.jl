@@ -11,16 +11,16 @@ interpolationMethod="triangle"
 # read the grid of interpolation coefficients
 ip_coeffs_stagger = MUST.CSV.read(abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "interpolation_coeffs.csv")), MUST.DataFrame)
 linear_regression_machines = Dict(
-	"bottom_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_bottom_rho.jlso")),
-	"bottom_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_bottom_T.jlso")),
-	"top_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_top_rho.jlso")),
-	"top_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_top_T.jlso")),
+	"bottom_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "bottom_boundary", "stagger_bottom_rho.jlso")),
+	"bottom_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "bottom_boundary", "stagger_bottom_T.jlso")),
+	"top_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "bottom_boundary", "stagger_top_rho.jlso")),
+	"top_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "bottom_boundary", "stagger_top_T.jlso")),
 )
 cubic_regression_machines = Dict(
-	"bottom_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_bottom_rho_cubic.jlso")),
-	"bottom_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_bottom_T_cubic.jlso")),
-	"top_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_top_rho_cubic.jlso")),
-	"top_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "Stagger", "stagger_top_T_cubic.jlso")),
+	"bottom_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "bottom_boundary", "stagger_bottom_rho_cubic.jlso")),
+	"bottom_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "bottom_boundary", "stagger_bottom_T_cubic.jlso")),
+	"top_rho" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "bottom_boundary", "stagger_top_rho_cubic.jlso")),
+	"top_T" => abspath(joinpath(dirname(@__FILE__), "..", "initial_grids", "bottom_boundary", "stagger_top_T_cubic.jlso")),
 )
 
 
