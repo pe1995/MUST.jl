@@ -17,7 +17,7 @@ axis (nρ), log temperature axis (nT), log internal energy / gas pressure / elec
 density / reference opacity (each nT×nρ), the wavelength axis (nλ), and the
 absorption and scattering cubes `κ`/`σ` (nT×nρ×nλ, per-gram cm²/g).
 
-Driven through the Julia port `<OpenMULTI3D>/tumult/HOP.jl` (loaded from the tumult
+Driven through the Julia port `<OpenMULTI3D>/HOP/HOP.jl` (loaded from the tumult
 install set by `@import_tumult`). One HOP instance is created and the line list loaded
 once. The (T, ρ) grid is walked in `t_block × rho_block` tiles **sequentially**; within
 each tile the EOS is solved once and the **line opacity is threaded over the tile's T-ρ

@@ -68,7 +68,7 @@ macro ingredient(path)
 end
 
 # ============================================================================
-# Loading the Julia HOP package (tumult/HOP.jl)
+# Loading the Julia HOP package (HOP/HOP.jl)
 # ============================================================================
 
 function _hop_pkgid()
@@ -81,8 +81,8 @@ function _hop_pkg_path(location=nothing)
 	base = !isnothing(location)       ? abspath(String(location)) :
 	       !isnothing(multi_location) ? multi_location :
 	       error("give a location to @import_hop, or call @import_tumult first")
-	p = joinpath(base, "tumult", "HOP.jl")
-	isdir(p) || error("HOP package not found at $p (expected the tumult/HOP.jl package dir)")
+	p = joinpath(base, "HOP", "HOP.jl")
+	isdir(p) || error("HOP package not found at $p (expected the HOP/HOP.jl package dir)")
 	p
 end
 

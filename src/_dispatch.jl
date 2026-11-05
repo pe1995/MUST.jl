@@ -174,6 +174,11 @@ function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
 		sys."path".append(multi_python_path)
 		#append!(sys."path",[joinpath(multi_python_path, "m3dis")])
 	end
+	# tumult imports the hopacity package, which lives in <OpenMULTI3D>/HOP
+	hop_python_path = os."path".join(multi_python_path, "HOP")
+	if !(hop_python_path in sys."path")
+		sys."path".append(hop_python_path)
+	end
 
 	if length(submodules) == 0
 		PythonCall.pycopy!(tumult, pyimport("tumult"))
