@@ -12,12 +12,6 @@ MUST.Box(simulation, snapshot; data=MUST.@in_dispatch("data"), legacy=false, eos
 	end
 end
 
-"""
-	_Box_py(simulation, snapshot; eos, opacity, add_selected=false, save=true)
-
-Python + Julia version:
-Convert a snapshot with number `snapshot` from the simulation output `simulation` to a ```MUST.jl``` ```Box```. EoS and opacity tables in the ```TSO.jl``` format are used to add T and κ-ross.
-"""
 function _Box_py(simulation, snapshot; eos, opacity, data, add_selected=false, save=true)
 	data = joinpath(data, simulation)
 	snap = dispatch.snapshot(snapshot, data=data)
@@ -26,8 +20,8 @@ function _Box_py(simulation, snapshot; eos, opacity, data, add_selected=false, s
 	s = if add_selected
 		si = MUST.Space(snap, :d, :ee, :ux, :uy, :uz, :e, :qr, :tt, :pg)
 		MUST.convert!(
-			si, units; 
-			d=:d, ee=:ee, e=:e, 
+			si, units;
+			d=:d, ee=:ee, e=:e,
 			qr=:qr, pg=:p,
 			ux=:u, uy=:u, uz=:u,
 			x=:l, y=:l, z=:l, time=:t
@@ -37,16 +31,15 @@ function _Box_py(simulation, snapshot; eos, opacity, data, add_selected=false, s
 	else
 		si = MUST.Space(snap, :d, :ee, :ux, :uy, :uz, :e)
 		MUST.convert!(
-			si, units; 
-			d=:d, ee=:ee, e=:e, 
+			si, units;
+			d=:d, ee=:ee, e=:e,
 			ux=:u, uy=:u, uz=:u,
 			x=:l, y=:l, z=:l, time=:t
 		)
-		
+
 		si
 	end
 
-	
     bs = MUST.Box(s)
 	s = nothing
 
@@ -73,40 +66,24 @@ function _Box_py(simulation, snapshot; eos, opacity, data, add_selected=false, s
 	bs, bs_τ
 end
 
-
-"""
-	_Box_jl(simulation, snapshot; eos, opacity, add_selected=false, save=true)
-
-Julia version:
-Convert a snapshot with number `snapshot` from the simulation output `simulation` to a ```MUST.jl``` ```Box```. EoS and opacity tables in the ```TSO.jl``` format are used to add T and κ-ross.
-"""
 function _Box_jl(simulation, snapshot; data, mmap=false, eos_path=nothing)
 	MUST.snapshotBox(
-		snapshot, 
+		snapshot,
 		eos_path=eos_path,
-		folder=joinpath(data, simulation), 
+		folder=joinpath(data, simulation),
 		eos_reader=(x)->sqeos_reader(x, eos_path=eos_path, inputNamelist=joinpath(folder, "params")),
-		lookup_generator=lookup_function_generator, 
+		lookup_generator=lookup_function_generator,
 		use_mmap=mmap,
 		legacy=false
 	)
 end
 
-
-"""
-	sqeos_reader(run)
-
-Read the EoS for a given run from the name of the run.
-Return the names that should be saved to the cube. 
-Either give e.g. :T or :lnT, in agreement with the 
-`lookup_function_generator`.
-"""
 function sqeos_reader(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
 	eos_path = if isnothing(eos_path)
 		if isfile(inputNamelist*".nml")
-			inputNamelist = MUST.StellarNamelist(inputNamelist*".nml")    
+			inputNamelist = MUST.StellarNamelist(inputNamelist*".nml")
 			p = replace(
-				MUST.nmlField(inputNamelist, :eos_params)["table_loc"], 
+				MUST.nmlField(inputNamelist, :eos_params)["table_loc"],
 				"'"=>""
 			)
 			MUST.@in_dispatch(joinpath(p, "eos.hdf5"))
@@ -124,13 +101,6 @@ function sqeos_reader(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
 	end
 end
 
-"""
-	lookup_function_generator(eos, q)
-
-Create a generator for the TSO lookup functions.
-Given the EoS and quantity, return the interpolated function
-and the respective function to call for the final lookup.
-"""
 function lookup_function_generator(eos, q)
 	q = if q == :T
 		:lnT
@@ -143,7 +113,7 @@ function lookup_function_generator(eos, q)
 	else
 		q
 	end
-		
+
 	lf = TSO.lookup_function(TSO.@axed(eos), q)
 	lkp!(res, args...) = begin
 		res .= exp.(TSO.lookup(args...))
@@ -151,4 +121,3 @@ function lookup_function_generator(eos, q)
 
 	lf, lkp!
 end
-

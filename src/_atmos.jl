@@ -1,8 +1,8 @@
-# ============================================================================= 
+# ============================================================================
 # MUST.jl Atmosphere Data Structures
-# ============================================================================= 
+# ============================================================================
 
-mutable struct AtmosphericParameters{T<:AbstractFloat} 
+mutable struct AtmosphericParameters{T<:AbstractFloat}
     time             ::T
     teff             ::T
     logg             ::T
@@ -23,23 +23,19 @@ mutable struct Box <:AbstractSpace
     parameter        ::AtmosphericParameters
 end
 
-# ============================================================================= 
+# ============================================================================
 # Functionality for AtmosphericParameters
-# ============================================================================= 
+# ============================================================================
 
 AtmosphericParameters() = AtmosphericParameters(-99.0, -99.0, -99.0, Dict{Symbol,Float64}())
 
-"""
-Atmospheric parameters of a dispatch snapshot.
-Creates a link between the patch time, teff as well as physical parameters.
-"""
 function set!(atmp::AtmosphericParameters, teff_function, ini_namelist)
     teff    = teff_function(atmp.time)
     logg    = log10(ini_namelist.stellar_params["g_cgs"])
 
     epn = MUST.@in_dispatch(String(strip(ini_namelist.eos_params["table_loc"])[2:end-1]))
     eos_params_path = joinpath(epn, "tabparam.in")
-    
+
     composition = try
         composition_from_eos(eos_params_path)
     catch
@@ -59,11 +55,11 @@ read_teff(path) = begin
         return nothing
     end
     readdlm(path)
-end 
+end
 
 teff_interpolated(path) = begin
     teff = read_teff(path)
-    return isnothing(teff) ? 
+    return isnothing(teff) ?
         (args...)->0.0 :
         LinearInterpolation(teff[:,1], teff[:,2], extrapolation_bc=Flat())
 end
@@ -75,7 +71,7 @@ function composition_from_eos(path)
     cel     = k[cel]
     el      = split(content[cel][2:end-1], " ")
     el      = [String(s) for s in el if length(s)>0]
-    
+
     cel     = findfirst(occursin.("abund",k))
     cel     = k[cel]
     vl      = String.(split(content[cel][2:end-1], " "))
@@ -84,9 +80,9 @@ function composition_from_eos(path)
     Dict(Symbol(c)=>v for (c,v) in zip(el,vl))
 end
 
-# ============================================================================= 
+# ============================================================================
 # Constructors (Space)
-# ============================================================================= 
+# ============================================================================
 
 """
 Create a Space object from a Dispatch simulation snapshot.
@@ -103,17 +99,16 @@ Returns
 MUST.Space type object
 
 """
-function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false) 
+function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false)
     qs = Dict{Symbol,Any}(q=>Float32[] for q in quantities)
     qs[:x] = Float32[]; qs[:y] = Float32[]; qs[:z] = Float32[]
     qs[:i_patch] = Int[]
     patch_dimensions = zeros(Int,(length(snapshot.patches),3))
-    
+
     for (i,patch) in enumerate(snapshot.patches)
         # grid of this patch relative to the global grid
-        #patch_size = (length(patch.xi),length(patch.yi),length(patch.zi))
         x = pyconvert.(Float32, patch.xi)
-        y = pyconvert.(Float32, patch.yi) 
+        y = pyconvert.(Float32, patch.yi)
         z = pyconvert.(Float32, patch.zi)
         patch_size = (length(x), length(y), length(z))
         patch_dimensions[i,1] = length(patch.xi)
@@ -127,13 +122,13 @@ function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false)
 		li = pyconvert(Vector{Int}, patch.li)+1
 		ui = pyconvert(Vector{Int}, patch.ui)+1
         idxd = patch.idx.__dict__
-        
+
         # extract the quantites for this patch
-        for (iq, q) in enumerate(quantities)            
-            q_matrix = use_numpy ? 
+        for (iq, q) in enumerate(quantities)
+            q_matrix = use_numpy ?
                 pyconvert(Array{Float32, 3}, numpy.array(patch.var(String(q)))) :
-                _var_from_patch(q, fname, shp, off, li, ui, idxd, density=density) 
-            
+                _var_from_patch(q, fname, shp, off, li, ui, idxd, density=density)
+
             q_array = zeros(Float32, prod(patch_size))
             coords = zeros(Float32, (prod(patch_size),3))
             j = 1
@@ -159,9 +154,9 @@ function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false)
     end
 
     time = pyconvert(Any, snapshot.nml_list["snapshot_nml"]["time"])
-    Space(qs, patch_dimensions, AtmosphericParameters(time, 
-                                                        Base.convert(typeof(time), -99.0), 
-                                                        Base.convert(typeof(time), -99.0), 
+    Space(qs, patch_dimensions, AtmosphericParameters(time,
+                                                        Base.convert(typeof(time), -99.0),
+                                                        Base.convert(typeof(time), -99.0),
                                                         Dict{Symbol, typeof(time)}())
         )
 end
@@ -224,9 +219,9 @@ function Space(snapshot::MUST.StaggerLegacySnap, quantities::Symbol...)
     Space(qs, patch_dimensions, AtmosphericParameters(-99.0, -99.0, -99.0, Dict{Symbol, Float64}()))
 end
 
-# ============================================================================= 
+# ============================================================================
 # Constructing Box
-# ============================================================================= 
+# ============================================================================
 
 """
 Interpolate a Space object on an regular grid and save as Arrays in the Box type.
@@ -257,11 +252,7 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
 
     # 3D Mesh of the new coordinate Box
     #x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
-    #x_grid = pyconvert(Array{eltype(x)}, x_grid)
-    #y_grid = pyconvert(Array{eltype(x)}, y_grid)
-    #z_grid = pyconvert(Array{eltype(x)}, z_grid)
     x_grid, y_grid, z_grid = meshgrid(x, y, z)
-
 
     # result dict
     results::Dict{Symbol,Array{T,3}} = Dict(q=>similar(x_grid) for q in keys(s.data) if !(q in [:x,:y,:z,:i_patch]))
@@ -281,12 +272,11 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
         append!(grid_data, [z_grid])
     end
 
-
     # Interpolate the Space onto the given grid
     for quantity in Symbol.(keys(s.data))
         quantity in [:x,:y,:z,:i_patch] ? continue : nothing
-        results[quantity][1:length(x),1:length(y),1:length(z)] = pyconvert(Array{eltype(x_grid)}, scipy_interpolate.griddata(Tuple(mask_data), 
-                                                                                            s_masked.data[quantity], 
+        results[quantity][1:length(x),1:length(y),1:length(z)] = pyconvert(Array{eltype(x_grid)}, scipy_interpolate.griddata(Tuple(mask_data),
+                                                                                            s_masked.data[quantity],
                                                                                             Tuple(grid_data)))
     end
 
@@ -310,15 +300,14 @@ uniform_grid(s::Space, N::Int,axis=:x) = begin
 end
 
 Box(s::Space, N::Int, args...; kwargs...) = begin Box(s,
-                            uniform_grid(s, N, :x), 
-                            uniform_grid(s, N, :y), 
+                            uniform_grid(s, N, :x),
+                            uniform_grid(s, N, :y),
                             uniform_grid(s, N, :z), args...; kwargs...)
 end
 
-
-# ============================================================================= 
+# ============================================================================
 # Constructing Box from Space and vice versa
-# ============================================================================= 
+# ============================================================================
 
 """
 Interpolate a Space object on an regular grid and save as new Space object.
@@ -344,56 +333,53 @@ function spacebox(s::MUST.Space,x::Vector{T}, y::Vector{T}, z::Vector{T}, args..
 end
 
 spacebox(s::Space, N::Int, args...; kwargs...) = begin spacebox(s,
-                                                    uniform_grid(s, N, :x), 
-                                                    uniform_grid(s, N, :y), 
+                                                    uniform_grid(s, N, :x),
+                                                    uniform_grid(s, N, :y),
                                                     uniform_grid(s, N, :z), args...; kwargs...)
 end
 
 """
 Convert Space to Box, assuming that the space has already uniform grid (No interpolation)
 """
-function Box(s::Space)   
+function Box(s::Space)
     # create x,y,z from unique s.data -> meshgrid x,y,z -> pick data from dataframe where coordinates match
     x = sort(unique(s.data[:x]))
     y = sort(unique(s.data[:y]))
     z = sort(unique(s.data[:z]))
 
     #x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
-    #x_grid = pyconvert(Array{eltype(x)}, x_grid)
-    #y_grid = pyconvert(Array{eltype(x)}, y_grid)
-    #z_grid = pyconvert(Array{eltype(x)}, z_grid)
     x_grid, y_grid, z_grid = meshgrid(x, y, z)
 
-    results::Dict{Symbol, Any} = Dict(q=>zeros(typeof(s.data[q][1]),size(x_grid)) 
+    results::Dict{Symbol, Any} = Dict(q=>zeros(typeof(s.data[q][1]),size(x_grid))
                                                                                         for q in keys(s.data) if !(q in [:x,:y,:z]))
     for q in keys(results)
         q == :i_patch ? continue : nothing
         results[q] .= Base.convert(typeof(results[q][1,1,1]), NaN)
     end
 
-    p = zeros(3) 
+    p = zeros(3)
     skip_q = [:x, :y, :z]
     @inbounds for irow in eachindex(s.data[:x])
         p[1] = s.data[:x][irow]
-        p[2] = s.data[:y][irow] 
-        p[3] = s.data[:z][irow] 
+        p[2] = s.data[:y][irow]
+        p[3] = s.data[:z][irow]
         ix,iy,iz = _find_in_meshgrid(p, x, y, z)
         for quantity in keys(s.data)
             quantity in skip_q ? continue : nothing
-            
+
             # go though the data points and save the quantity
             results[quantity][ix,iy,iz] = s.data[quantity][irow]
         end
     end
 
     Box(x_grid, y_grid, z_grid, results, s.parameter)
-end 
+end
 
 function Space(box::MUST.Box)
     q_dict = Dict(q => reshape(box.data[q], :) for q in keys(box.data))
     q_dict[:x] = reshape(box.x, :); q_dict[:y] = reshape(box.x, :); q_dict[:z] = reshape(box.x, :)
     q_dict[:i_patch] = ones(length(q_dict[:x]))
-    
+
     p_dim = ones(1,3)
     p_dim[1,1] = length(x); p_dim[1,2] = length(y); p_dim[1,3] = length(z)
     Space(q_dict, p_dim, box.parameter)
@@ -404,11 +390,11 @@ end
     iy = findfirst(i->isapprox(p[2], i), y)
     iz = findfirst(i->isapprox(p[3], i), z)
     (ix,iy,iz)
-end   
+end
 
-# ============================================================================= 
+# ============================================================================
 # Constructing Box from python snapshots (legacy)
-# ============================================================================= 
+# ============================================================================
 
 _add_if_not_exists!(arr, data) = begin
 	@inbounds for entry in data
@@ -447,7 +433,7 @@ function _build_cube(patch_data)
 		p[3] = last(patch_data[i][:z])
 		patch_range[:, 2, i] .= _find_in_meshgrid(p, global_x, global_y, global_z)
 	end
-	
+
 	global_x, global_y, global_z, patch_range
 end
 
@@ -492,7 +478,7 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 	patch_data = []
 	@inbounds for (i, patch) in enumerate(snap.patches)
 		x = pyconvert(Array{Float32}, patch.xi)
-        y = pyconvert(Array{Float32}, patch.yi) 
+        y = pyconvert(Array{Float32}, patch.yi)
         z = pyconvert(Array{Float32}, patch.zi)
 
         fname = pyconvert(Any, patch.filename)
@@ -502,7 +488,7 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 		ui = pyconvert(Vector{Int}, patch.ui) .+1
         idxd = patch.idx.__dict__
         aux_vars = patch.aux.vars
-       
+
 		meta = Dict(
 			:x=>x,
 			:y=>y,
@@ -524,7 +510,7 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 	# now we create the data arrays
 	data = if !use_mmap
 		Dict{Symbol,Any}(
-			q=>Array{Float32, 3}(undef, length(x), length(y), length(z)) 
+			q=>Array{Float32, 3}(undef, length(x), length(y), length(z))
 			for q in q_and_aux
 		)
 	else
@@ -532,10 +518,10 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 		io = open(pname, "w+")
 		d = mmap(io, Array{Float32, 4}, (length(x), length(y), length(z), length(quantities)))
 		Dict{Symbol,Any}(
-			q=>@view d[:, :, :, i] 
+			q=>@view d[:, :, :, i]
 			for (i, q) in enumerate(quantq_and_auxities)
 		)
-	end    
+	end
 
 	# and we loop through the patches, read the mmaps, and fill them in the data arrays
 	r = zeros(Int, 3, 2)
@@ -543,13 +529,13 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 		r .= patch_range[:, :, i]
 		@inbounds for (j, q) in enumerate(quantities)
 			data[q][r[1,1]:r[1,2], r[2,1]:r[2,2], r[3,1]:r[3,2]] .= _var_from_patch(
-				q, 
-				pd[:fname], 
-				pd[:shp], 
-				pd[:off], 
-				pd[:li], 
-				pd[:ui], 
-				pd[:idxd], 
+				q,
+				pd[:fname],
+				pd[:shp],
+				pd[:off],
+				pd[:li],
+				pd[:ui],
+				pd[:idxd],
 				density=density
 			)
 		end
@@ -570,33 +556,18 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 	Box(
 		xx, yy, zz, data,
 		AtmosphericParameters(
-			time, 
-			Base.convert(typeof(time), -99.0), 
-			Base.convert(typeof(time), -99.0), 
+			time,
+			Base.convert(typeof(time), -99.0),
+			Base.convert(typeof(time), -99.0),
 			Dict{Symbol, typeof(time)}()
 		)
 	)
 end
 
-# ============================================================================= 
+# ============================================================================
 # Utility Functions
-# ============================================================================= 
+# ============================================================================
 
-"""
-Filter the Space object.
-
-Parameters
-----------
-f: Function that accepts any Key of the space dictionary 
-    (NOTE: Takes the DataFrame Row for now)
-s: Space
-    The space object to filter
-
-Returns
--------
-MUST.Space type object
-
-"""
 function Base.filter(f, s::MUST.Space)
     mask = f(;s.data...)
 	new_frame = Dict(q=>s.data[q][mask] for q in keys(s.data))
@@ -670,8 +641,8 @@ axis(b::Box, which, dimension::Int=0) = begin
 end
 
 mesh(m::Box) = meshgrid(
-	axis(m, :x) ./1e8, 		
-	axis(m, :y) ./1e8, 								
+	axis(m, :x) ./1e8,
+	axis(m, :y) ./1e8,
 	axis(m, :z) ./1e8
 )
 
@@ -682,7 +653,7 @@ closest(a, v) = argmin(abs.(a .- v))
 
 is_log(x) = begin
 	sx = String(x)
-	
+
 	xnew, f = if occursin("log10", sx) && (sx[1:5] == "log10")
 		Symbol(sx[findfirst("log10", sx)[end]+1:end]), log10
 	elseif occursin("log", sx) && (sx[1:3] == "log")
@@ -694,27 +665,10 @@ is_log(x) = begin
 	xnew, f
 end
 
-# ============================================================================= 
+# ============================================================================
 # Convert (legacy)
-# ============================================================================= 
+# ============================================================================
 
-"""
-Convert to given units using a AtmosUnits type.
-
-Parameters
-----------
-s: Space
-    The space object
-u: AstroUnits
-    Object containting the conversion factor
-params: Symbols
-    Map between Space entry and unit that should be applied
-    
-Returns
--------
-nothing
-
-"""
 function convert!(s::AbstractSpace, u::AtmosUnits; params...)
     for (s_para, u_para) in params
         if s_para == :time
@@ -736,49 +690,34 @@ function convert(s::AbstractSpace, u::AtmosUnits; params...)
     s_new
 end
 
-# ============================================================================= 
+# ============================================================================
 # Add from EOS (legacy)
-# ============================================================================= 
+# ============================================================================
 
-"""
-Add the given field from the EOS.
-
-Parameters
-----------
-s: Space
-    The space object
-eos: Dispatch EOS
-    EOS to convert the quantites
-    
-Returns
--------
-nothing
-
-"""
 function add_from_EOS!(s::SB, eos::AbstractEOS, quantity::Symbol;
-                        EOS_paras=(:d,:ee), 
+                        EOS_paras=(:d,:ee),
                         convert_to=Base.identity, switch_name_to=nothing) where {SB<:Union{Space, Box}}
-    qframe = MUST.add_from_EOS(s, eos, quantity; 
-                                EOS_paras =EOS_paras, 
+    qframe = MUST.add_from_EOS(s, eos, quantity;
+                                EOS_paras =EOS_paras,
                                 convert_to=convert_to)
     isnothing(switch_name_to) ? s.data[quantity] = qframe : s.data[switch_name_to] = qframe
     nothing
 end
 
 function add_from_EOS(s::MUST.Space, eos::AbstractEOS, quantity::Symbol;
-                        EOS_paras=(:d,:ee), 
+                        EOS_paras=(:d,:ee),
                         convert_to=Base.identity)
     convert_to.(lookup(eos, String(quantity), s[EOS_paras[1]], s[EOS_paras[2]]))
 end
 
 function add_from_EOS(b::MUST.Box, eos::AbstractEOS, quantity::Symbol;
-                EOS_paras=(:d,:ee), 
+                EOS_paras=(:d,:ee),
                 convert_to=Base.identity)
-    r = similar(b[EOS_paras[1]]) 
+    r = similar(b[EOS_paras[1]])
     r .= convert_to.(
         lookup(
-            eos, 
-            String(quantity), 
+            eos,
+            String(quantity),
             b[EOS_paras[1]],
             b[EOS_paras[2]]
             )
@@ -786,8 +725,8 @@ function add_from_EOS(b::MUST.Box, eos::AbstractEOS, quantity::Symbol;
 
     #=@inbounds for j in axes(b.z, 2)
         @inbounds for i in axes(b.z ,1)
-            r[i, j, :] = convert_to.(lookup(eos, String(quantity), 
-                            view(b[EOS_paras[1]], i, j, :), 
+            r[i, j, :] = convert_to.(lookup(eos, String(quantity),
+                            view(b[EOS_paras[1]], i, j, :),
                             view(b[EOS_paras[2]], i, j, :)))
         end
     end=#
@@ -795,9 +734,9 @@ function add_from_EOS(b::MUST.Box, eos::AbstractEOS, quantity::Symbol;
     r
 end
 
-# ============================================================================= 
-# Add data to Space or Box 
-# ============================================================================= 
+# ============================================================================
+# Add data to Space or Box
+# ============================================================================
 
 """
 Add the given field from the given array.
@@ -810,7 +749,7 @@ field_name: Symbol
     field that should be added
 arr:
     array that should be added. Has to match in size
-    
+
 Returns
 -------
 nothing
@@ -820,13 +759,13 @@ function add!(s::S, arr::Vector{T}, name::Symbol) where {T<:AbstractFloat, S<:MU
     @assert length(arr) == length(s)
     s.data[name] = Base.convert(Vector{typeof(s.data[:x][1])},arr)
     nothing
-end 
+end
 
 function add!(s::S, arr::Array{T,3}, name::Symbol) where {T<:AbstractFloat, S<:MUST.Box}
     @assert length(arr) == length(s)
     s.data[name] = Base.convert(Array{typeof(s.x[1,1,1]),3},arr)
     nothing
-end 
+end
 
 function add!(s::MUST.Space, b::MUST.Box, name::Symbol)
     p = zeros(3)
@@ -842,7 +781,7 @@ function add!(s::MUST.Space, b::MUST.Box, name::Symbol)
     end
     add!(s, res, name)
     nothing
-end 
+end
 
 """
     add!(s; kwargs...)
@@ -857,25 +796,10 @@ add!(s; kwargs...) = begin
     nothing
 end
 
-# ============================================================================= 
+# ============================================================================
 # Compute plane statistics of a Box object
-# ============================================================================= 
+# ============================================================================
 
-"""
-Compute the horizonal average of a Box object.
-
-Parameters
-----------
-s: Box
-    The space object
-q: Symbol
-    Quantity to compute average
-    
-Returns
--------
-nothing
-
-"""
 plane_average(b::MUST.Box, q::Symbol) = plane_statistic(Statistics.mean, b, q)
 
 """
@@ -887,7 +811,7 @@ s: Box
     The space object
 q: Symbol
     Quantity to compute average
-    
+
 Returns
 -------
 nothing
@@ -906,9 +830,9 @@ function plane_statistic(stat::F, b::Box, q::Symbol; filter_out=:extrapolated) w
     av
 end
 
-# ============================================================================= 
+# ============================================================================
 # Store/Manipulate models in HDF5
-# ============================================================================= 
+# ============================================================================
 
 function _check_path(folder, filename)
     if !isnothing(filename)
@@ -917,7 +841,7 @@ function _check_path(folder, filename)
     else
         is_free = false
         while !is_free
-            file    = "space_"*randstring(6)*".hdf5" 
+            file    = "space_"*randstring(6)*".hdf5"
             path    = isnothing(folder) ? @in_dispatch(file) : joinpath(folder, file)
             is_free = !isfile(path)
             !is_free ? println("$(path) is not free.") : nothing
@@ -933,7 +857,7 @@ Parameters
 ----------
 s: Space object
     The space object to be saved
-    
+
 Returns
 -------
 nothing
@@ -959,13 +883,13 @@ function save(s::MUST.Box; folder=nothing, name=nothing, mode="w")
     fid  = HDF5.h5open(path, mode)
     for q in keys(s.data)
         sq = String(q)
-        if haskey(fid, sq) 
+        if haskey(fid, sq)
             delete_object(fid, sq)
         end
         fid[sq] = s.data[q]
     end
 
-    if !haskey(fid, "x") 
+    if !haskey(fid, "x")
         fid["x"] = s.x
         fid["y"] = s.y
         fid["z"] = s.z
@@ -1005,7 +929,7 @@ end
 function save(p::AtmosphericParameters, fid)
     eles = [keys(p.composition)...]
     vals = eltype(values(p.composition))[p.composition[e] for e in eles]
-    
+
     haskey(fid, "time") && delete_object(fid, "time")
     fid["time"] = p.time
 
@@ -1022,9 +946,9 @@ function save(p::AtmosphericParameters, fid)
     fid["composition_v"] = vals
 end
 
-# ============================================================================= 
+# ============================================================================
 # Load models from HDF5
-# ============================================================================= 
+# ============================================================================
 
 """
 Load the content of a Space object from HDF5 file. The data will be loaded as a memmap.
@@ -1033,9 +957,9 @@ Parameters
 ----------
 filename: String
     Name of the saved memmap
-folder: 
+folder:
     Folder where it has been saved.
-    
+
 Returns
 -------
 Space object
@@ -1044,7 +968,7 @@ Space object
 function Space(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
     if !isfile(name)
         path = isnothing(folder) ? @in_dispatch(name*".hdf5") : joinpath(folder, name*".hdf5")
-        @assert isfile(path) 
+        @assert isfile(path)
     else
         path = name
     end
@@ -1061,7 +985,7 @@ function Space(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
     end
     patch_dimensions = HDF5.readmmap(fid["patch_dimensions"])
     params           = _read_params(AtmosphericParameters, fid)
-    
+
     close(fid)
 
     Space(res, patch_dimensions, params)
@@ -1070,7 +994,7 @@ end
 function Box(name::String; folder::F=nothing, mmap=true) where {F<:Union{String,Nothing}}
     if !isfile(name)
         path = isnothing(folder) ? @in_dispatch(name*".hdf5") : joinpath(folder, name*".hdf5")
-        if !isfile(path) 
+        if !isfile(path)
             error("$(path) does not exist.")
         end
 
@@ -1116,21 +1040,21 @@ end
 
 _get_para_fieldnames(t::Type{AtmosphericParameters}) = ["time", "teff", "logg", "composition_e", "composition_v", "parameter_type"]
 
-_read_params(T::Type{AtmosphericParameters}, res) = begin 
-    T(HDF5.read(res["time"]), HDF5.read(res["teff"]), HDF5.read(res["logg"]), 
+_read_params(T::Type{AtmosphericParameters}, res) = begin
+    T(HDF5.read(res["time"]), HDF5.read(res["teff"]), HDF5.read(res["logg"]),
                                                 Dict(Symbol(e) => v for (e,v) in zip(HDF5.read(res["composition_e"]), HDF5.read(res["composition_v"]))) )
 
 end
 
-# =============================================================================
+# ============================================================================
 # Box loading functionality based on naming conventions
-# =============================================================================
+# ============================================================================
 
 function Boxes(folder::String; snaps=nothing)
     snaps = isnothing(snaps) ? Base.Colon() : snaps
     content_of_folder = glob("*/", folder)
     snapshots = sort(MUST.list_of_snapshots(content_of_folder))[snaps]
-    
+
     boxes     = []
     boxesT    = []
 
@@ -1174,7 +1098,7 @@ function converted_snapshots(folder; box_name="box", tau_name="tau")
         end
 
         # continue if this is a numbered snapshot, that has a tau extension.
-        # we only want to collect the true snapshots here		
+        # we only want to collect the true snapshots here
         # check if it is Integer snapshot number
 		snid = try
             parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
@@ -1192,10 +1116,10 @@ function converted_snapshots(folder; box_name="box", tau_name="tau")
 		snname  = String(split(snname, ".hdf5") |> first)
 		sntname = "$(box_name)_$(tau_name)_sn$(snid)"
 
-		if is_τ 
-			snaps[snid] = (snname, sntname) 
+		if is_τ
+			snaps[snid] = (snname, sntname)
 		else
-			snaps[snid] = (snname, nothing) 
+			snaps[snid] = (snname, nothing)
 		end
 	end
 
@@ -1212,37 +1136,37 @@ Sort converted snapshots and return them in an array. Optionally only include nu
 """
 list_snapshots(snapshots; numbered_only=false) = begin
     numberlist = sort(Any[k for k in keys(snapshots) if ((k != "folder") & (typeof(k) <: Number))])
-    
+
     if !numbered_only
         rest = Any[k for k in keys(snapshots) if ((k != "folder") & !(typeof(k) <: Number))]
         append!(numberlist, rest)
     end
-    
+
     numberlist
 end
 
-snapshotid(snapshots, i; skip_last_if_missing=true) = if i == :recent 
-    if ((isnothing(last(snapshots[last(list_snapshots(snapshots, numbered_only=true))]))) & 
+snapshotid(snapshots, i; skip_last_if_missing=true) = if i == :recent
+    if ((isnothing(last(snapshots[last(list_snapshots(snapshots, numbered_only=true))]))) &
                     skip_last_if_missing)
         list_snapshots(snapshots, numbered_only=true)[end-1]
-    else 
+    else
         last(list_snapshots(snapshots, numbered_only=true))
     end
 elseif (typeof(i) <:Int) && (i <0)
     list_snapshots(snapshots, numbered_only=true)[end+i+1]
-else 
+else
     i
 end
 
 """
     pick_snapshot(snapshots, i)
 
-Pick the ith snapshot from the list of available snapshots. 
-If ``i == :recent``, pick the most recent available snapshot. 
+Pick the ith snapshot from the list of available snapshots.
+If ``i == :recent``, pick the most recent available snapshot.
 If ``i == :time_average``, pick the time average, if available.
 """
 function pick_snapshot(snapshots, i; skip_last_if_missing=true, verbose=0, kwargs...)
-	i = snapshotid(snapshots, i; skip_last_if_missing=skip_last_if_missing) 
+	i = snapshotid(snapshots, i; skip_last_if_missing=skip_last_if_missing)
 	snap = snapshots[i]
 
 	if isnothing(last(snap))
@@ -1264,34 +1188,10 @@ pick_snapshot(folder::String, i; box_name="box", tau_name="tau", kwargs...) = be
     pick_snapshot(cs, i; kwargs...)
 end
 
-# ============================================================================= 
+# ============================================================================
 # Reduction to planes
-# ============================================================================= 
+# ============================================================================
 
-"""
-Reduce a Box object to one single plane by applying the function f to each column in x,y
-
-Parameters
-----------
-b: Box
-    Box that should be reduced
-f: Function
-    taking 1-D array of a column and return a single value, which is the desired height index. 
-    If index is false, then not the index of the desired height coordinate is returned, but the z value itself.
-    The oter quantites are then interpolated to this z value.
-    The function has to accept all columns as kwargs!
-index: Bool
-    
-Returns
--------
-Box object
-
-Example
--------
-f(; tau, columns...) = argmin(tau)
-b_new = reduce_by_column(b, f)
-
-"""
 function reduce_by_column(f::F, b::MUST.Box; index=false) where {F<:Function}
     shape    = (size(b.x,1),size(b.x,2),1)
     data_new = Dict(q=>rand(typeof(b.data[q][1,1,1]), shape) for q in keys(b.data))
@@ -1302,22 +1202,22 @@ function reduce_by_column(f::F, b::MUST.Box; index=false) where {F<:Function}
     for j in 1:shape[2]
         for i in 1:shape[1]
             zv = @view b.z[i,j,:]
-            xv = @view b.x[i,j,:] 
-            yv = @view b.y[i,j,:] 
+            xv = @view b.x[i,j,:]
+            yv = @view b.y[i,j,:]
             qv = Dict(q => @view(b.data[q][i,j,:]) for q in keys(b.data))
 
-            mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv))) 
+            mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv)))
             for q in keys(qv)
                 mm = mm .& .!(isnan.(qv[q]))
             end
 
             qv = Dict(q => @view(b.data[q][i,j,mm]) for q in keys(b.data))
             zv = @view b.z[i,j,mm]
-            xv = @view b.x[i,j,mm] 
+            xv = @view b.x[i,j,mm]
             yv = @view b.y[i,j,mm]
 
             if index
-                idx = length(zv) == 0 ? 1 : f(; qv..., x=xv, y=yv, z=zv) 
+                idx = length(zv) == 0 ? 1 : f(; qv..., x=xv, y=yv, z=zv)
                 mm  = length(zv) == 0 ? [true for _ in 1:length(b.z[i,j,:])] : mm
 
                 for q in keys(b.data)
@@ -1327,8 +1227,8 @@ function reduce_by_column(f::F, b::MUST.Box; index=false) where {F<:Function}
                 y_new[i,j,1] = b.y[i,j,mm][idx]
                 z_new[i,j,1] = b.z[i,j,mm][idx]
             else
-                if length(zv) > 1 
-                    z_int = f(; qv..., x=xv, y=yv, z=zv) 
+                if length(zv) > 1
+                    z_int = f(; qv..., x=xv, y=yv, z=zv)
 
                     szv = sortperm(zv)
                     for q in keys(b.data)
@@ -1352,31 +1252,28 @@ function reduce_by_column(f::F, b::MUST.Box; index=false) where {F<:Function}
     Box(x_new, y_new, z_new, data_new, b.parameter)
 end
 
-"""
-Linear Interpolate the columns of the Box as a function of height. For every column a Function is returned.
-"""
 function interpolate_by_column(b::MUST.Box)
     shape    = (size(b.x,1),size(b.x,2),1)
     data_new = Dict{Symbol, Matrix{Interpolations.Extrapolation}}(q => Matrix{Any}(undef,shape[1:2]...) for q in keys(b.data))
-    
+
     data_new[:x] = Matrix{Interpolations.Extrapolation}(undef,shape[1:2]...)
     data_new[:y] = Matrix{Interpolations.Extrapolation}(undef,shape[1:2]...)
 
     @inbounds for j in 1:shape[2]
         @inbounds for i in 1:shape[1]
             zv = @view b.z[i,j,:]
-            xv = @view b.x[i,j,:] 
-            yv = @view b.y[i,j,:] 
+            xv = @view b.x[i,j,:]
+            yv = @view b.y[i,j,:]
             qv = Dict(q => @view(b.data[q][i,j,:]) for q in keys(b.data))
 
-            mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv))) 
+            mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv)))
             for q in keys(qv)
                 mm = mm .& .!(isnan.(qv[q]))
             end
 
             qv = Dict(q => @view(b.data[q][i,j,mm]) for q in keys(b.data))
             zv = @view b.z[i,j,mm]
-            xv = @view b.x[i,j,mm] 
+            xv = @view b.x[i,j,mm]
             yv = @view b.y[i,j,mm]
 
             szv = sortperm(zv)
@@ -1391,9 +1288,6 @@ function interpolate_by_column(b::MUST.Box)
     data_new
 end
 
-"""
-Linear Interpolate the columns of the Box as a function of height. For every column a Function is returned.
-"""
 function interpolate_by_column(b::MUST.Box, val; logspace=true)
     shape    = (size(b.x,1),size(b.x,2),1)
     data_new = Dict{Symbol, Matrix{Interpolations.Extrapolation}}(q => Matrix{Any}(undef,shape[1:2]...) for q in keys(b.data))
@@ -1405,18 +1299,18 @@ function interpolate_by_column(b::MUST.Box, val; logspace=true)
     @inbounds for j in 1:shape[2]
         @inbounds for i in 1:shape[1]
             zv = @view b.z[i,j,:]
-            xv = @view b.x[i,j,:] 
-            yv = @view b.y[i,j,:] 
+            xv = @view b.x[i,j,:]
+            yv = @view b.y[i,j,:]
             qv = Dict(q => @view(b.data[q][i,j,:]) for q in keys(b.data))
 
-            mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv))) 
+            mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv)))
             for q in keys(qv)
                 mm = mm .& .!(isnan.(qv[q]))
             end
 
             qv = Dict(q => @view(b.data[q][i,j,mm]) for q in keys(b.data))
             zv = @view b.z[i,j,mm]
-            xv = @view b.x[i,j,mm] 
+            xv = @view b.x[i,j,mm]
             yv = @view b.y[i,j,mm]
 
             szv = sortperm(qv[val])
@@ -1424,38 +1318,35 @@ function interpolate_by_column(b::MUST.Box, val; logspace=true)
                 if q == val
                     continue
                 end
-                data_new[q][i,j] = logspace ? 
+                data_new[q][i,j] = logspace ?
                     LinearInterpolation(
-                        Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true), 
-                        qv[q][szv], 
+                        Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true),
+                        qv[q][szv],
                         extrapolation_bc=Flat()
-                    ) : 
+                    ) :
                     LinearInterpolation(
-                        Interpolations.deduplicate_knots!(qv[val][szv], move_knots=true), 
-                        qv[q][szv], 
+                        Interpolations.deduplicate_knots!(qv[val][szv], move_knots=true),
+                        qv[q][szv],
                         extrapolation_bc=Flat()
-                    ) 
+                    )
             end
 
-            data_new[:z][i,j] = logspace ? 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true), zv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], zv[szv], move_knots=true), extrapolation_bc=Flat()) 
+            data_new[:z][i,j] = logspace ?
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true), zv[szv], extrapolation_bc=Flat()) :
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], zv[szv], move_knots=true), extrapolation_bc=Flat())
 
-            data_new[:x][i,j] = logspace ? 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true), xv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], xv[szv], move_knots=true), extrapolation_bc=Flat()) 
-            data_new[:y][i,j] = logspace ? 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true), yv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], yv[szv], move_knots=true), extrapolation_bc=Flat()) 
+            data_new[:x][i,j] = logspace ?
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true), xv[szv], extrapolation_bc=Flat()) :
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], xv[szv], move_knots=true), extrapolation_bc=Flat())
+            data_new[:y][i,j] = logspace ?
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true), yv[szv], extrapolation_bc=Flat()) :
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], yv[szv], move_knots=true), extrapolation_bc=Flat())
         end
     end
 
     data_new
 end
 
-"""
-Linear Interpolate the columns of the Box as a function of height. For every column a Function is returned.
-"""
 function interpolate_by_column(b::MUST.Box, val, qin; logspace=true)
     shape    = (size(b.x,1),size(b.x,2),1)
     data_new = Matrix{Any}(undef,shape[1:2]...)
@@ -1463,23 +1354,22 @@ function interpolate_by_column(b::MUST.Box, val, qin; logspace=true)
     data_x   = Matrix{Interpolations.Extrapolation}(undef,shape[1:2]...)
     data_y   = Matrix{Interpolations.Extrapolation}(undef,shape[1:2]...)
 
-
     names = [val, qin]
 
     @inbounds for j in 1:shape[2]
         @inbounds for i in 1:shape[1]
             zv = @view b.z[i,j,:]
-            xv = @view b.x[i,j,:] 
-            yv = @view b.y[i,j,:] 
+            xv = @view b.x[i,j,:]
+            yv = @view b.y[i,j,:]
             qv = Dict(q => @view(b.data[q][i,j,:]) for q in names)
 
-            mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv))) 
+            mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv)))
             for q in keys(qv)
                 mm = mm .& .!(isnan.(qv[q]))
             end
 
             zv = @view b.z[i,j,mm]
-            xv = @view b.x[i,j,mm] 
+            xv = @view b.x[i,j,mm]
             yv = @view b.y[i,j,mm]
             qv  = Dict(q => @view(b.data[q][i,j,mm]) for q in names)
             szv = sortperm(qv[val])
@@ -1487,44 +1377,36 @@ function interpolate_by_column(b::MUST.Box, val, qin; logspace=true)
                 if q == val
                     continue
                 end
-                data_new[i,j] = logspace ? 
+                data_new[i,j] = logspace ?
                     LinearInterpolation(
-                        Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true), 
-                        qv[q][szv], 
+                        Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true),
+                        qv[q][szv],
                         extrapolation_bc=Flat()
-                    ) : 
+                    ) :
                     LinearInterpolation(
-                        Interpolations.deduplicate_knots!(qv[val][szv], move_knots=true), 
-                        qv[q][szv], 
+                        Interpolations.deduplicate_knots!(qv[val][szv], move_knots=true),
+                        qv[q][szv],
                         extrapolation_bc=Flat()
-                    ) 
+                    )
             end
 
-            data_z[i,j] = logspace ? 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true), zv[szv], extrapolation_bc=Flat()) : 
+            data_z[i,j] = logspace ?
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv]), move_knots=true), zv[szv], extrapolation_bc=Flat()) :
                             LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], move_knots=true), zv[szv], extrapolation_bc=Flat())
-                            
-            data_x[i,j] = logspace ? 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), xv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], move_knots=true), xv[szv], extrapolation_bc=Flat()) 
-            data_y[i,j] = logspace ? 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), yv[szv], extrapolation_bc=Flat()) : 
-                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], move_knots=true), yv[szv], extrapolation_bc=Flat()) 
+
+            data_x[i,j] = logspace ?
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), xv[szv], extrapolation_bc=Flat()) :
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], move_knots=true), xv[szv], extrapolation_bc=Flat())
+            data_y[i,j] = logspace ?
+                            LinearInterpolation(Interpolations.deduplicate_knots!(log.(10, qv[val][szv])), yv[szv], extrapolation_bc=Flat()) :
+                            LinearInterpolation(Interpolations.deduplicate_knots!(qv[val][szv], move_knots=true), yv[szv], extrapolation_bc=Flat())
         end
     end
 
     Dict(qin=>data_new, :x=>data_x, :y=>data_y, :z=>data_z)
 end
 
-"""
-Apply the function f to every column of the Box and save the result in res.
-"""
 function apply_by_column!(f::Function, res::T, b::MUST.Box; check_nan=false) where {T<:AbstractArray}
-    
-    #zv = zeros(size(b.z,3))
-    #xv = zeros(size(b.z,3))
-    #yv = zeros(size(b.z,3))
-    #qv = Dict(q => zeros(size(b.data[q],3)) for q in keys(b.data))
 
     qv = Dict{Symbol, AbstractVector{eltype(b.x)}}()
     zv = AbstractVector{eltype(b.x)}
@@ -1535,33 +1417,33 @@ function apply_by_column!(f::Function, res::T, b::MUST.Box; check_nan=false) whe
         @inbounds for j in 1:size(b.x,2)
             @inbounds for i in 1:size(b.x,1)
                 zv = @view b.z[i,j,:]
-                xv = @view b.x[i,j,:] 
-                yv = @view b.y[i,j,:] 
+                xv = @view b.x[i,j,:]
+                yv = @view b.y[i,j,:]
                 qv = Dict(q => @view(b.data[q][i,j,:]) for q in keys(b.data))
 
-                mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv))) 
+                mm = (.!(isnan.(zv))) .& (.!(isnan.(xv))) .& (.!(isnan.(yv)))
                 for q in keys(qv)
                     mm = mm .& .!(isnan.(qv[q]))
                 end
 
                 qv = Dict(q => @view(b.data[q][i,j,mm]) for q in keys(b.data))
                 zv = @view b.z[i,j,mm]
-                xv = @view b.x[i,j,mm] 
+                xv = @view b.x[i,j,mm]
                 yv = @view b.y[i,j,mm]
 
-                res[i,j] = f(; qv..., x=xv, y=yv, z=zv) 
+                res[i,j] = f(; qv..., x=xv, y=yv, z=zv)
             end
         end
     else
         @inbounds for j in 1:size(b.x,2)
             @inbounds for i in 1:size(b.x,1)
                 zv = @view b.z[i,j,:]
-                xv = @view b.x[i,j,:] 
-                yv = @view b.y[i,j,:] 
+                xv = @view b.x[i,j,:]
+                yv = @view b.y[i,j,:]
                 for q in keys(b.data)
                     qv[q] = @view b.data[q][i,j,:]
                 end
-                res[i,j] = f(; qv..., x=xv, y=yv, z=zv) 
+                res[i,j] = f(; qv..., x=xv, y=yv, z=zv)
             end
         end
     end
@@ -1582,30 +1464,6 @@ height_where(; kwargs...) = begin
     return f_mod
 end
 
-"""
-Reduce a Box object to one single plane by applying the function f to each plane x,y in z
-
-Parameters
-----------
-b: Box
-    Box that should be reduced
-f: Function
-    taking 3-D array of a plane and return a single value, which is the desired height index. 
-    If index is false, then not the index of the desired height coordinate is returned, but the z value itself.
-    The oter quantites are then interpolated to this z value.
-    The function has to accept all columns as kwargs!
-index: Bool
-    
-Returns
--------
-Box object
-
-Example
--------
-f(; tau, columns...) = argmin(tau)
-b_new = reduce_by_plane(f, b)
-
-"""
 function reduce_by_plane(f::F, b::MUST.Box; index=false) where {F<:Function}
     shape    = (size(b.x,1),size(b.x,2),1)
     data_new = Dict(q=>rand(typeof(b.data[q][1,1,1]), shape) for q in keys(b.data))
@@ -1614,8 +1472,8 @@ function reduce_by_plane(f::F, b::MUST.Box; index=false) where {F<:Function}
     z_new = rand(typeof(b.x[1,1,1]), shape)
 
     if index
-        idx = size(b.z,3) == 0 ? 1 : f(; b.data..., x=b.x, y=b.y, z=b.z) 
-        
+        idx = size(b.z,3) == 0 ? 1 : f(; b.data..., x=b.x, y=b.y, z=b.z)
+
         for q in keys(b.data)
             data_new[q][:,:,1] .= b.data[q][:,:,idx]
         end
@@ -1623,8 +1481,8 @@ function reduce_by_plane(f::F, b::MUST.Box; index=false) where {F<:Function}
         y_new[:,:,1] .= b.y[:,:,idx]
         z_new[:,:,1] .= b.z[:,:,idx]
     else
-        if size(b.z,3) > 1 
-            z_int = f(; b.data..., x=b.x, y=b.y, z=b.z) 
+        if size(b.z,3) > 1
+            z_int = f(; b.data..., x=b.x, y=b.y, z=b.z)
 
             for j in 1:shape[2]
             for i in 1:shape[1]
@@ -1656,21 +1514,14 @@ function reduce_by_plane(f::F, b::MUST.Box; index=false) where {F<:Function}
     Box(x_new, y_new, z_new, data_new, b.parameter)
 end
 
-"""
-Proxy for reduce_by_plane which returns the plane closest to value.
-The function f has to be a map 2D-Plane -> AbstractFloat, which is compated to value. If
-remove_nan is true, NaN will be removed beforehand. Be aware that in that case the array
-passed to f will be 1D instead.
-"""
 function reduce_by_value(f::F, b::MUST.Box; remove_nan=true, kwargs...) where {F<:Function}
     @assert length(kwargs) == 1
     f_mod(; kw...) = begin
         res = zeros(size(kw[:z],3))
         for plane in 1:size(kw[:z],3)
-            res[plane] = !remove_nan ? f( kw[keys(kwargs)[1]][:,:,plane] ) : 
+            res[plane] = !remove_nan ? f( kw[keys(kwargs)[1]][:,:,plane] ) :
                                        f( filter(!isnan,kw[keys(kwargs)[1]][:,:,plane]) )
         end
-        #argmin(abs.(res .- kwargs[1]))
         mask = .!isnan.(res) .&  .!isnan.(kw[:z][1,1,:])
         smask = sortperm(res[mask])
         LinearInterpolation(res[mask][smask], kw[:z][1,1,mask][smask], extrapolation_bc=Flat())(kwargs[1])
@@ -1679,12 +1530,6 @@ function reduce_by_value(f::F, b::MUST.Box; remove_nan=true, kwargs...) where {F
     reduce_by_plane(f_mod, b; index=false)
 end
 
-"""
-    interpolate_to(box, v; logspace=true, kwargs...)
-
-Interpolate the `Box` of values v to the plane given in kwargs. Specify `logspace=true`
-if the given quantity is in log.
-"""
 function interpolate_to(box, v::Symbol; logspace=true, kwargs...)
     z     = first(keys(kwargs))
     z_val = first(values(kwargs))
@@ -1709,12 +1554,6 @@ function interpolate_to(box, v::Symbol; logspace=true, kwargs...)
     Box(col_x, col_y, col_z, Dict{Symbol,Any}(v=>col_new), deepcopy(box.parameter))
 end
 
-"""
-    interpolate_to(box; logspace=true, kwargs...)
-
-Interpolate the `Box` to the plane given in kwargs. Specify `logspace=true`
-if the given quantity is in log.
-"""
 function interpolate_to(box; logspace=true, kwargs...)
     z     = first(keys(kwargs))
     z_val = first(values(kwargs))
@@ -1746,9 +1585,9 @@ function interpolate_to(box; logspace=true, kwargs...)
     Box(col_x, col_y, col_z, Dict{Symbol,Any}(v=>cols_new[v] for v in keys(box.data)), deepcopy(box.parameter))
 end
 
-# ============================================================================= 
-# Convert from geometrical scale to optical depth 
-# ============================================================================= 
+# ============================================================================
+# Convert from geometrical scale to optical depth
+# ============================================================================
 
 """
     height_scale(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, :ux, :uy, :uz, :ee, :e], kwargs...)
@@ -1793,21 +1632,21 @@ function height_scale(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, :ux, 
                 @inbounds new_box.data[q][k, j, :] .= if all(x -> x > 0.0, view(b.data[q], k, j, :)) && !(q in dont_log)
                     exp.(
                         gevaluate!(
-                            interps[k, j], 
+                            interps[k, j],
                             log.(view(b.data[q], k, j, sortingz)),
                             return_copy=false
                         )
                     )
                 else
                     gevaluate!(
-                        interps[k, j], 
+                        interps[k, j],
                         view(b.data[q], k, j, sortingz),
                         return_copy=false
                     )
                 end
             end
             @inbounds new_box.z[k, j, :] .= gevaluate!(
-                interps[k, j], 
+                interps[k, j],
                 @views(b.z[k, j, sortingz]),
                 return_copy=false
             )
@@ -1839,7 +1678,7 @@ function interpolators(old_cube, new_scale; kwargs...)
             @inbounds interps[i, j] = ginterpolate(Grid(g_old[sorting[i, j, :]]), g_new; kwargs...)
         end
     end
-        
+
     sorting, interps
 end
 
@@ -1860,7 +1699,7 @@ end
     elseif x[i_min] < x0
         # If i_min is smaller than the desired value, pick the larger neighbor
         i_min2 = argmax([x[i_min-1], x[i_min+1]])
-    else 
+    else
         return y[i_min]
     end
 
@@ -1868,15 +1707,15 @@ end
     return m * x0 + (y[i_min] - m* x[i_min])
 end
 
-# =============================================================================
+# ============================================================================
 # Optical depth
-# =============================================================================
+# ============================================================================
 
 function optical_depth(ρ::Vector{T}, κ::Vector{T2}, z::Vector{T3}) where {T, T2, T3}
-    τ_ross = zeros(T2, length(ρ)) 
+    τ_ross = zeros(T2, length(ρ))
     ρκ = ρ .* κ
     for j in eachindex(z)
-        if j==1 
+        if j==1
             τ_ross[1] = 0 + (z[2] - z[1]) * 0.5 * (ρκ[j])
         else
             τ_ross[j] = τ_ross[j-1] + (z[j] - z[j-1]) * 0.5 * (ρκ[j] + ρκ[j-1])
@@ -1921,13 +1760,10 @@ function optical_depth(b::MUST.Box, rk)
     optical_depth
 end
 
-# =============================================================================
+# ============================================================================
 # Functions for snapshot statistics
-# =============================================================================
+# ============================================================================
 
-"""
-Compute the statistic between every box in boxes array. Need to be on the same grid for this!
-""" 
 function time_statistic(f::Function, boxes)
     ### Loop through the box and average point by point
     ### storage arrays
@@ -1947,7 +1783,7 @@ function time_statistic(f::Function, boxes)
             @inbounds for j in axes(y, 2)
                 @inbounds for i in axes(x, 1) ### Loop through the box
                     for b in eachindex(boxes)
-                        var[b] = boxes[b].data[variable][i,j,k] 
+                        var[b] = boxes[b].data[variable][i,j,k]
                     end
                     #### Save the statistic of those variables
                     mat_var[i,j,k] = f(var)
@@ -1971,9 +1807,9 @@ return log quantities for convenience when plotting.
 profile(f, model, x=:z, y=:T; kwargs...) = begin
 	xs, logx = is_log(x)
 	ys, logy = is_log(y)
-	
+
 	if ndims(axis(model, xs)) > 1
-		logx.(axis(model, xs, 3)), logy.(plane_statistic(f, model, ys; kwargs...)) 
+		logx.(axis(model, xs, 3)), logy.(plane_statistic(f, model, ys; kwargs...))
 	else
 		logx.(axis(model, xs)), logy.(plane_statistic(f, model, ys; kwargs...))
 	end
@@ -1986,7 +1822,7 @@ Time average the ```plane_statistics``` of all snapshots located in that folder.
 """
 function time_average_profile(f, model_folder, args...; hscale=:τ, kwargs...)
 	x, y = [], []
-    which = (hscale==:z) ? first : last 
+    which = (hscale==:z) ? first : last
 	for i in list_snapshots(converted_snapshots(model_folder))
 		snap = which(pick_snapshot(model_folder, i))
 		xi, yi = profile(f, snap, args...; kwargs...)
@@ -1997,8 +1833,8 @@ function time_average_profile(f, model_folder, args...; hscale=:τ, kwargs...)
 
 	# interpolate to common x axis
 	x_common = range(
-		maximum(minimum.(x)), 
-		minimum(maximum.(x)), 
+		maximum(minimum.(x)),
+		minimum(maximum.(x)),
 		length=length(x |> first)
 	)
 	y_common = []
@@ -2006,7 +1842,7 @@ function time_average_profile(f, model_folder, args...; hscale=:τ, kwargs...)
 		m = sortperm(x[i])
 		append!(y_common, [linear_interpolation(x[i][m], y[i][m]).(x_common)])
 	end
-	
+
 	# compute the mean and the std
 	y_mean = zeros(length(x_common))
 	y_std  = zeros(length(x_common))
@@ -2023,18 +1859,13 @@ function time_average_profile(f, model_folder, args...; hscale=:τ, kwargs...)
 	x_common, y_mean, y_std
 end
 
-"""
-    average!(b::Box)
-
-Compute the average of the model parameters most useful for spectrum synthesis.
-"""
 function average!(b::Box; depth=true, scale=:z)
     z, T = profile(mean, b, scale, :T, filter_out=:extrapolated)
     _, logρ = profile(mean, b, scale, :log10d, filter_out=:extrapolated)
     ρ = exp10.(logρ)
 
     # Microturbulence
-    b.data[:u2] = b[:ux] .^2 .+ b[:uy] .^2 .+ b[:uz] .^2 
+    b.data[:u2] = b[:ux] .^2 .+ b[:uy] .^2 .+ b[:uz] .^2
     _, vx = profile(mean, b, scale, :ux, filter_out=:extrapolated)
     _, vy = profile(mean, b, scale, :uy, filter_out=:extrapolated)
     _, vz = profile(mean, b, scale, :uz, filter_out=:extrapolated)
@@ -2062,7 +1893,7 @@ function average!(b::Box; depth=true, scale=:z)
 end
 
 function flip_average!(z, ρ, args...; depth=false, scale=:z)
-    d = ρ   
+    d = ρ
     is_upside_down = first(d) < last(d)
 
     if is_upside_down
@@ -2080,7 +1911,6 @@ function flip_average!(z, ρ, args...; depth=false, scale=:z)
         end
     end
 
-    # if depth, make the opposite now
     if depth
         # it is bottom to top
         reverse!(d)
@@ -2100,9 +1930,9 @@ function flip_average!(z, ρ, args...; depth=false, scale=:z)
     (z, ρ, args...)
 end
 
-# =============================================================================
+# ============================================================================
 # Inverting snapshots height scales
-# =============================================================================
+# ============================================================================
 
 """
     flip!(box::Box)
@@ -2114,7 +1944,7 @@ function flip!(box::Box; density=:d, uz=:uz, depth=false)
     # Determine if it is oriented from bottom to top
     d = box[density][1, 1, :]
     is_upside_down = first(d) < last(d)
-    
+
     if is_upside_down
         for (k, v) in box.data
             reverse!(box.data[k]; dims=3)
@@ -2151,22 +1981,22 @@ function flip!(box::Box; density=:d, uz=:uz, depth=false)
     end
 
     box
-end 
+end
 
 function flip(box::Box; kwargs...)
     b = deepcopy(box)
     flip!(b; kwargs...)
     b
-end 
+end
 
-# =============================================================================
+# ============================================================================
 # Spectra capability
-# =============================================================================
+# ============================================================================
 
 include("_box_spectra.jl")
 
-# =============================================================================
-# Convert from Dispatch entirely in Julia 
-# =============================================================================
+# ============================================================================
+# Convert from Dispatch entirely in Julia
+# ============================================================================
 
 include("_box_direct.jl")

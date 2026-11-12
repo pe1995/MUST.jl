@@ -1,12 +1,7 @@
-# =============================================================================
+# ============================================================================
 # Detecting spectra stored in cubes
-# =============================================================================
+# ============================================================================
 
-"""
-    spectra_key_from_tag(key, tag)
-
-Name tag of the corresponding key in the data dict of Box.
-"""
 spectra_key_from_tag(key, tag) = Symbol(join([String(tag), String(key)], '_'))
 
 """
@@ -61,14 +56,14 @@ function spectra_tags(cs::Dict; check_for=["wavelength","composition"])
     st
 end
 
-spectra_keys(b::Box, tag::Symbol; kwargs...) = begin 
+spectra_keys(b::Box, tag::Symbol; kwargs...) = begin
     ks = [String(k) for k in keys(b.data) if is_idential_tag(tag, k)]
     [Symbol(split(k, "_", keepempty=false) |> last) for k in ks]
 end
 
-# =============================================================================
+# ============================================================================
 # Check tags
-# =============================================================================
+# ============================================================================
 
 is_idential_tag(tag, to_check) = begin
     # the key needs to be idential
@@ -93,18 +88,7 @@ is_idential_tag(tag, to_check) = begin
     end
 end
 
-"""
-    is_main_tag(tag, to_check)
-    
-Check if `tag` is the main tag of `to_check`. Example: Different abundance 
-runs may be called `CHGBand+0` and `CHGBand+0.2`, etc. In this case, 
-`is_main_tag("CHGBand", "CHGBand+0")` would return true. The result is always true,
-if `tag` is exactly what is writtin at the beginning of `to_check`! Be careful,
-something like `CHGBandLTE` and `CHGBandNLTE` both have the same main tag `CHGBand`!
-So looking for this main tag will group them together! Be specific about the main tags.
-"""
 is_main_tag(tag, to_check) = begin
-    #to_check_maintag = split(String(to_check), '_')[1:end-1]
     to_check_maintag = String(to_check)
     # the main tag has to be identical.
     # there are possibly extensions added behind the main tag, but not before,
@@ -113,9 +97,9 @@ is_main_tag(tag, to_check) = begin
     to_check_maintag[1:min(nl, length(to_check_maintag))] == String(tag)
 end
 
-# =============================================================================
+# ============================================================================
 # Add spectra from one box to another
-# =============================================================================
+# ============================================================================
 
 add_spectra!(to::Box, from::Box) = begin
     tags = spectra_tags(from)
@@ -130,19 +114,19 @@ add_spectra!(to::Box, from::Box) = begin
     end
 end
 
-# =============================================================================
+# ============================================================================
 # Interface
-# =============================================================================
+# ============================================================================
 
 """
-    spectra(b::Box, tag::Symbol, key::Symbol) 
+    spectra(b::Box, tag::Symbol, key::Symbol)
 
 Read the spectrum entry with tag and key from the box.
 """
 spectra(b::Box, tag::Symbol, key::Symbol) = b[spectra_key_from_tag(key, tag)]
 
 """
-    spectra(b::Box, tag::Symbol) 
+    spectra(b::Box, tag::Symbol)
 
 Read the spectrum (all keys) at the entry with tag from the box.
 """
@@ -150,11 +134,6 @@ spectra(b::Box, tag::Symbol) = Dict(
    k => b[spectra_key_from_tag(k, tag)] for k in spectra_keys(b, tag)
 )
 
-"""
-    MeanSpectrum(b::Box, tag::Symbol, kind="meanFluxNorm")
-
-Create a MeanSpectrum from the data that is stored in `b` under `tag`.
-"""
 MeanSpectrum(b::Box, tag::Symbol, kind="meanFluxNorm") = begin
     λ, F = try
         b[spectra_key_from_tag("wavelength", tag)], b[spectra_key_from_tag(kind, tag)]
@@ -163,25 +142,20 @@ MeanSpectrum(b::Box, tag::Symbol, kind="meanFluxNorm") = begin
     end
 
     MeanSpectrum(
-        λ, 
-        F, 
-        abundance_from_composition_string(b[spectra_key_from_tag("composition", tag)]), 
-        kind, 
+        λ,
+        F,
+        abundance_from_composition_string(b[spectra_key_from_tag("composition", tag)]),
+        kind,
         Dict(p=>getfield(b.parameter, p) for p in fieldnames(AtmosphericParameters))
     )
 end
 
-# =============================================================================
+# ============================================================================
 # Spectra related quantities
-# =============================================================================
+# ============================================================================
 
 get_μs(box, tag) = unique(box[MUST.spectra_key_from_tag("mu", tag)][:, 3])
 
-"""
-    angular_intensity(box::Box, tag, μ; norm=true)
-
-Compute the mean of the intensity in direction μ.
-"""
 angular_intensity(box::Box, tag, μ; norm=true, intensity="intensity") = begin
     λ = box[spectra_key_from_tag("wavelength", tag)]
     I = box[spectra_key_from_tag(intensity, tag)]
@@ -194,11 +168,6 @@ angular_intensity(box::Box, tag, μ; norm=true, intensity="intensity") = begin
 	(λ, reshape(mean(z, dims=4), size(I)[1:3]...))
 end
 
-"""
-    mean_angular_intensity(box::Box, tag, μ; norm=true)
-
-Compute the horizontal mean of the intensity in direction μ.
-"""
 mean_angular_intensity(box::Box, tag, μ; norm=true, intensity="intensity") = begin
     λ = box[spectra_key_from_tag("wavelength", tag)]
     I = box[spectra_key_from_tag(intensity, tag)]
@@ -211,11 +180,6 @@ mean_angular_intensity(box::Box, tag, μ; norm=true, intensity="intensity") = be
 	(λ, reshape(mean(mean(z, dims=4), dims=(2, 3)), :))
 end
 
-"""
-    mean_angular_intensity(box::Box, tag, μ; norm=true)
-
-Compute the horizontal mean of the intensity in direction μ.
-"""
 mean_intensity(box::Box, tag; norm=true, intensity="intensity") = begin
     λ = box[spectra_key_from_tag("wavelength", tag)]
     I = box[spectra_key_from_tag(intensity, tag)]
@@ -224,12 +188,7 @@ mean_intensity(box::Box, tag; norm=true, intensity="intensity") = begin
     z = norm ? I ./ c : I
 	(λ, reshape(mean(z, dims=(2, 3)), length(λ), size(I, 4)))
 end
- 
-"""
-    mean_integrated_flux(box::Box, tag::Symbol; norm=true)
 
-Integrate angular intensity using the weights stored in box. Then average horizontally.
-"""
 mean_integrated_flux(box::Box, tag; norm=true, intensity="intensity") = begin
     λ = box[spectra_key_from_tag("wavelength", tag)]
 	I = box[spectra_key_from_tag(intensity, tag)]
@@ -238,20 +197,15 @@ mean_integrated_flux(box::Box, tag; norm=true, intensity="intensity") = begin
 
 	F = zeros(eltype(I), size(I)[1])
 	C = zeros(eltype(I), size(I)[1])
-	
+
     @inbounds for i in axes(I, 1)
         F[i] = sum(reshape(mean(@view(I[i, :, :, :]), dims=(1, 2)), :) .* w)
         C[i] = sum(reshape(mean(@view(c[i, :, :, :]), dims=(1, 2)), :) .* w)
     end
-		
+
     (λ, norm ? F ./ C : F)
 end
 
-"""
-    integrate_flux(box::Box, tag::Symbol; norm=true)
-
-Integrate angular intensity using the weights stored in box.
-"""
 function integrated_flux(box::Box, tag; norm=true, intensity="intensity")
     λ = box[spectra_key_from_tag("wavelength", tag)]
 	I = box[spectra_key_from_tag(intensity, tag)]
@@ -272,24 +226,15 @@ function integrated_flux(box::Box, tag; norm=true, intensity="intensity")
     (λ, norm ? F ./ C : F)
 end
 
-# =============================================================================
+# ============================================================================
 # Compute average spectra and store them to file
-# =============================================================================
+# ============================================================================
 
-"""
-    average_spectra(available_run, nsnaps, nbatches; modelname1D="", datafolder="data")
-
-Computes and saves average spectra.
-
-- For 3D runs (modelname1D is empty), it processes the run in `nbatches` batches,
-  each containing `nsnaps` snapshots, starting from the end and moving backward.
-- For 1D runs, it processes the single specified model.
-"""
 function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; datafolder="data", modelname1D="", selectedSnaps=[], elements=nothing, skip_from_end=0)
-    #================================================================================#
-    # Helper Function: Contains the core logic to process a given set of snapshots. #
-    # This avoids code duplication and ensures 1D and 3D cases are treated identically. #
-    #================================================================================#
+    # ============================================================================
+    # Helper Function: Contains the core logic to process a given set of snapshots.
+    # This avoids code duplication and ensures 1D and 3D cases are treated identically.
+    # ============================================================================
     function _process_and_write_batch(selectedSnaps_raw, header_info, filename_prefix, convspec, specTags, o; elements=nothing)
         if isempty(selectedSnaps_raw)
             @warn "No snapshots to process for prefix $(filename_prefix). Skipping."
@@ -299,24 +244,24 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         selectedSpecTagGridSym = Symbol(selectedSpecTagGrid)
 
         matchingTags = unique(vcat([
-            [t for t in specTags[s] if is_main_tag(selectedSpecTagGridSym, t)] 
+            [t for t in specTags[s] if is_main_tag(selectedSpecTagGridSym, t)]
             for s in selectedSnaps_raw if haskey(specTags, s)
         ]...))
 
         matchingTagsPerSnap = Dict(
-            s=>[t for t in matchingTags if (t in specTags[s])] for s in selectedSnaps_raw 
+            s=>[t for t in matchingTags if (t in specTags[s])] for s in selectedSnaps_raw
         )
 
-        @info "Including spectra with tags $(String.(matchingTags)) in averaging." 
+        @info "Including spectra with tags $(String.(matchingTags)) in averaging."
         selectedSnapsGrid = [s for s in selectedSnaps_raw if length(matchingTagsPerSnap[s]) > 0]
-        
+
         if isempty(selectedSnapsGrid)
             @warn "There are no snapshots that contain the tag $(selectedSpecTagGrid) for this batch."
             return false
         else
             @info "$(header_info.batch_text) Averaging spectra from $(length(selectedSnapsGrid)) cubes with the tag $(selectedSpecTagGrid)."
         end
-        
+
         specboxesGrid = Dict(s => pick_snapshot(convspec, s) |> first for s in selectedSnapsGrid)
         spectraGrid = Dict(s => Dict(t=>spectra(b, t) for t in matchingTagsPerSnap[s]) for (s, b) in specboxesGrid)
 
@@ -351,7 +296,7 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             end
         end
         params_from_string(cs) = (abundance_from_composition_string(cs, "[Fe/H]"), abundance_from_composition_string(cs, "[alpha/Fe]"))
-        contains_elements(cs) = isnothing(elements) ? true : all([occursin(e, cs) for e in elements])  
+        contains_elements(cs) = isnothing(elements) ? true : all([occursin(e, cs) for e in elements])
 
         abundanceGrid = sort(unique(vcat([[clean_comp_string(replace(sp[t][:composition], "α"=>"alpha")) for t in matchingTagsPerSnap[s]] for (s, sp) in spectraGrid]...)), rev=true)
         abundanceGrid = abundanceGrid[contains_elements.(abundanceGrid)]
@@ -373,7 +318,7 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         time2 = last(timesGrid)
         alpha_ref = chemParamGrid[2]
         feh_ref = chemParamGrid[1]
-        
+
         header_line1 = "# Average spectra for $(available_run)\n"
         header_line11(k, n, a) = "# $(k),$(selectedSpecTagGrid),$(n),$(a)\n"
         header_line2 = "# Teff_min[K],Teff_max[K],logg,feh,alpha,n_snapshots,dt[h],firstSnap,lastSnap,firstSnapTime,lastSnapTime\n# "
@@ -382,7 +327,7 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         else
             @sprintf "%.2f,%.2f,%.3f,%.3f,%.3f,%i,%.7E,%i,%i,%.7E,%.7E" minimum(teffsGrid) maximum(teffsGrid) ModelInformation(available_run).logg feh_ref alpha_ref length(selectedSnapsGrid) dt first(selectedSnapsGrid) last(selectedSnapsGrid) time1 time2
         end
-        
+
         write_spectra(fname, specDict; header) = begin
             open(fname, "w") do f
                 write(f, header)
@@ -397,9 +342,9 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             end
             @info "File $(basename(fname)) written."
         end
-        
+
         getfilename(p) = joinpath(datafolder, available_run, "$(filename_prefix)_$(p).csv")
-        
+
         nanmean(x) = begin
             nanx = [all(.!isnan.(x[i])) for i in eachindex(x)]
             count(nanx) > 0 ? mean(x[nanx]) : [NaN for _ in eachindex(first(x))]
@@ -452,7 +397,6 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             ab_header = full_header * "# wavelength," * join(replace.(abundanceGrid, ','=>'_'), ',') * "\n"
             write_spectra(getfilename("mean_flux_LTE"), fluxDictGrid, header=ab_header)
 
-
             fluxDictGridNorm = Dict(a=>nanmean([s[:meanFluxNormLTE] for s in sp]) for (a, sp) in spectraGridAbundance)
             fluxDictGridNorm["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
             full_header = header_line1 * header_line11("flux_LTE", "normalized", "integrated") *header_line2 * header_line3 * "\n"
@@ -465,7 +409,7 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         for muz in muzs
             mu_mask = mus[:, 3] .≈ muz
             mustring = @sprintf "%.3f" muz
-            
+
             fg = Dict(a=>nanmean([reshape(mean(s[:meanIntensity][:, mu_mask], dims=2), :) for s in sp]) for (a, sp) in spectraGridAbundance)
             fg["wavelength"] = first(spectraGridAbundance[first(abundanceGrid)])[:wavelength]
             full_header = header_line1 * header_line11("intensity", "absolute", "$(mustring)") *header_line2 * header_line3 * "\n"
@@ -502,14 +446,14 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         return true # Indicate success
     end
 
-    #=====================================================#
-    # Main Function Body: Setup and execution control.    #
-    #=====================================================#
+    # ============================================================================
+    # Main Function Body: Setup and execution control.
+    # ============================================================================
     o = joinpath(datafolder, available_run)
     is1D = length(modelname1D) > 0
 
     convspec = converted_snapshots(o, box_name="box_m3dis")
-    all_available_snaps = if length(selectedSnaps)==0 
+    all_available_snaps = if length(selectedSnaps)==0
         list_snapshots(convspec, numbered_only=!is1D)
     else
         selectedSnaps
@@ -523,12 +467,12 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
         selectedSnaps_raw = [modelname1D]
         filename_prefix = "$(String(selectedSpecTagGrid))_$(modelname1D)"
         header_info = (is1D=true, batch_text="")
-        
+
         _process_and_write_batch(selectedSnaps_raw, header_info, filename_prefix, convspec, specTags, o; elements=elements)
     else
         # --- 3D Case: Loop over batches ---
         snaps = sort([s for s in all_available_snaps if (s > 0 && haskey(specTags, s) && !isempty(specTags[s]))])
-        
+
         end_idx = length(snaps) - skip_from_end
         batch_num = 1
 
@@ -536,7 +480,7 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
 
         while batch_num <= nbatches && end_idx > 0
             @info "--- Computing Batch $(batch_num) of $(nbatches) ---"
-            
+
             start_idx = max(1, end_idx - nsnaps + 1)
             batch_snaps = snaps[start_idx:end_idx]
 
@@ -548,7 +492,7 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
             # Update loop variables for the next iteration
             end_idx -= nsnaps
             batch_num += 1
-            
+
             if end_idx < 1 && batch_num <= nbatches
                 @info "Reached the beginning of the snapshot list before completing all requested batches. Stopping."
             end
@@ -557,9 +501,9 @@ function average_spectra(available_run, selectedSpecTagGrid, nsnaps, nbatches; d
     end
 end
 
-# =============================================================================
+# ============================================================================
 # Extract composition
-# =============================================================================
+# ============================================================================
 
 abundance_from_composition_string(cs, element) = begin
     if occursin(element, cs)
@@ -598,9 +542,9 @@ composition_string_from_abundance(;skip_eles=[], ab...) = begin
     join(s, ',')
 end
 
-# =============================================================================
+# ============================================================================
 # Equivalent width
-# =============================================================================
+# ============================================================================
 
 equivalentwidth(model::Box, tag; λs=nothing, λe=nothing) = begin
     # get reference wavelength
@@ -619,9 +563,9 @@ equivalentwidth(model::Box, tag; λs=nothing, λe=nothing) = begin
     λmask = λs .<= λ_ref .<= λe
     λ_ref = λ_ref[λmask]
     F_ref = F_ref[λmask]
-    
+
     # get reference abundance and equivalent width
-    integrate(λ_ref, 1 .- F_ref) 
+    integrate(λ_ref, 1 .- F_ref)
 end
 
 equivalentwidth(spectrum::MeanSpectrum; λs=nothing, λe=nothing) = begin
@@ -634,23 +578,15 @@ equivalentwidth(spectrum::MeanSpectrum; λs=nothing, λe=nothing) = begin
     λmask = λs .<= λ_ref .<= λe
     λ_ref = λ_ref[λmask]
     F_ref = F_ref[λmask]
-    
+
     # get reference abundance and equivalent width
-    integrate(λ_ref, 1 .- F_ref) 
+    integrate(λ_ref, 1 .- F_ref)
 end
 
-# =============================================================================
+# ============================================================================
 # Curve of growth
-# =============================================================================
+# ============================================================================
 
-"""
-    curve_of_growth(element, reference_model, reference_tag, model, model_tags; λs=nothing, λe=nothing)
-
-Compute the CoG (+ abundance corrections) for a given element (e.g. `[C/Fe]`) from a reference model to the target model.
-The spectra obtained via `reference_tag` is used to compute the difference in equivalent width to all spectra in `model_tags`.
-Abundances are obtained from the `composition` entry of those spectra. The correction is `abund_model(ew_ref) - abund_ref`.
-Returns: ab_ref, ew_ref, ab, ew, Δab
-"""
 function curve_of_growth(element, reference_model::Box, reference_tag, model::Box, model_tags; λs=nothing, λe=nothing, interpolate_reference_to=nothing, use_log=true)
 	ew_ref, ab_ref = if isnothing(interpolate_reference_to)
         ew_ref = equivalentwidth(reference_model, reference_tag; λs=λs, λe=λe)
@@ -707,21 +643,11 @@ function curve_of_growth(element, reference_model::Box, reference_tag, model::Bo
 	f_ab = linear_interpolation(
 		fl.(equivalent_widths[ewmask]), abundances[ewmask], extrapolation_bc=Line()
 	)
-	#f_ew = linear_interpolation(abundances[abmask], equivalent_widths[abmask], extrapolation_bc=Line())
 	Δab = f_ab(fl(ew_ref)) - ab_ref
 
 	ab_ref, ew_ref, abundances[abmask], equivalent_widths[abmask], Δab
 end
 
-"""
-    curve_of_growth(element, reference_model::MeanSpectrum, models::Vector{MeanSpectrum}; λs=nothing, λe=nothing)
-
-
-Compute the CoG (+ abundance corrections) for a given element (e.g. `[C/Fe]`) from a reference model to the target model.
-The spectra is used to compute the difference in equivalent width to all spectra in `models`.
-Abundances are obtained from the `composition` entry of those spectra. The correction is `abund_model(ew_ref) - abund_ref`.
-Returns: ab_ref, ew_ref, ab, ew, Δab
-"""
 function curve_of_growth(element, reference_model::S, models::Vector{S}; λs=nothing, λe=nothing, use_log=true) where {S<:MeanSpectrum}
     element = Symbol(element)
 
@@ -758,7 +684,6 @@ function curve_of_growth(element, reference_model::S, models::Vector{S}; λs=not
 	f_ab = linear_interpolation(
 		fl.(equivalent_widths[ewmask]), abundances[ewmask], extrapolation_bc=Line()
 	)
-	#f_ew = linear_interpolation(abundances[abmask], equivalent_widths[abmask], extrapolation_bc=Line())
 	Δab = f_ab(fl(ew_ref)) - ab_ref
 
 	ab_ref, ew_ref, abundances[abmask], equivalent_widths[abmask], Δab

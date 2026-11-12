@@ -1,9 +1,4 @@
 
-"""
-    MURaMBox(path)
-
-Read a Muram 3D data cube from path in the NetCDF format and convert it to a Box.
-"""
 function MURaMBox(model_path)
     ds = NCDataset(model_path, "r")
     U  = ds["U"][:,:,:]
@@ -25,7 +20,7 @@ function MURaMBox(model_path)
     dz = ds.attrib["dz"]
 
     time  = ds.attrib["time"]
-    paras = AtmosphericParameters() 
+    paras = AtmosphericParameters()
     paras.time = time;
 
     x = range(-(s[1]-1) * dx/2,   step=dx, length=s[1])
@@ -57,16 +52,6 @@ function MURaMBox(model_path)
     Box(xx, yy, zz, data, paras)
 end
 
-
-"""
-    MURaMBox_optical_depth(path, opacity)
-
-Read a Muram 3D data cube from path in the NetCDF format and convert it to a Box.
-Compute the rosseland optical depth scale and interpolate the cube to it. Return both.
-Can either be computed with the MUST eos interface or with the more convenient TSO.
-
-(exp.(lookup(eos, :lnRoss, log.(b[:d]), log.(b[:T]))) for TSO.jl)
-"""
 function MURaMBox_optical_depth(b, opacity)
     ## lookup the rosseland opacity
     b.data[:kr] = opacity

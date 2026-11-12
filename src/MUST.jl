@@ -1,6 +1,8 @@
 module MUST
 
-#= Julia modules =#
+# ============================================================================
+# Julia modules
+# ============================================================================
 using CondaPkg
 using PythonCall
 using DataFrames
@@ -16,7 +18,6 @@ using Distributed
 using ArgParse
 using DelimitedFiles
 using TimerOutputs
-#using NetCDF
 using NCDatasets
 using Integrals
 using Mmap
@@ -32,48 +33,37 @@ import Base.Broadcast.broadcastable
 import Base.:+
 import Base.dirname
 
-
-#= Python modules =#
+# ============================================================================
+# Python modules
+# ============================================================================
 const numpy = PythonCall.pynew()
 const f90nml = PythonCall.pynew()
 const scipy_interpolate = PythonCall.pynew()
 
-__init__() = begin 
+__init__() = begin
     PythonCall.pycopy!(scipy_interpolate, pyimport("scipy.interpolate"))
     PythonCall.pycopy!(numpy, pyimport("numpy"))
     PythonCall.pycopy!(f90nml, pyimport("f90nml"))
 end
 
-
-#= Abstract types =#
+# ============================================================================
+# Abstract types
+# ============================================================================
 abstract type AbstractSpace end
 abstract type AbstractInitialModel end
 
-"""
-Abstract MUSTGrid. Depending on the type of grid different methods are available.
-    All concrete types are required to have an info field:
-    name :: String
-    info :: DataFrame
-    So that a namelist can be constructed from the grid.
-"""
 abstract type AbstractMUSTGrid end
 
 # Gridding
-"""
-Abstract Grid of a MUST.Box object.
-"""
 abstract type AbstractBoxGrid
 end
 
-"""
-Abstract Axis of a MUST.Box object.
-"""
 abstract type AbstractBoxAxis
 end
 
-
-
-#= MUST interface =#
+# ============================================================================
+# MUST interface
+# ============================================================================
 export @import_dispatch, @in_dispatch, @import_m3dis, @in_m3dis, @import_tumult, @in_tumult, @ingredient
 export Space, spacebox, Box, add!, profile, time_average_profile, flip!
 export multiBox, snapshotBox
@@ -100,13 +90,12 @@ export ingredients
 # monitoring
 export defaultWatchDog, monitor
 
-# spectra 
+# spectra
 export MeanSpectra, spectra_tags, spectra_keys, spectra
 
-
-
-
-#= Julia code files =#
+# ============================================================================
+# Julia code files
+# ============================================================================
 include("_constants.jl")
 include("_heightscales.jl")
 include("_argparse.jl")
@@ -136,7 +125,6 @@ include("_mafags.jl")
 include("_convert.jl")
 
 # co5bold reader
-#include("_co5bold.jl")
 
 # muram reader
 include("_muram.jl")

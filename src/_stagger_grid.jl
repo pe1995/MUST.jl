@@ -1,42 +1,17 @@
-# ============================================================================= 
+# ============================================================================
 # Type definitions
-# =============================================================================
+# ============================================================================
 
-"""
-Information of a part of the Stagger grid. Contains location of
-snapshots and averages.
-"""
 struct Atmos1DGrid{DF<:DataFrame} <:AbstractMUSTGrid
     name ::String
 	path ::String
     info ::DF
 end
 
-
-
-# ============================================================================= 
+# ============================================================================
 # Constructors
-# =============================================================================
+# ============================================================================
 
-"""
-	Atmos1DGrid(path)
-
-Load a already computed average grid. 
-The save location and layout of the Stagger grid may
-vary from case to case, so only the reading function is 
-provided here. For an example case please go to the 
-examples folder and look at the `initial_models/from_stagger.ipynb` notebook.
-
-Methods for the interaction with the `TSO.jl` module are located in the same 
-folder for now to keep the depencies separate. At a later stage, `TSO.jl` might
-be added as a dependecy here.
-
-__NOTE__: The path of the grid is essential, because paths to the average models 
-within are assumed to be relative to that path. This is needed, because the 
-same grid file should be usable whereever the code is used, however it should still
-be flexible enough to put your own favorite grid whereever you want and execute the code
-from somewhere else. 
-"""
 Atmos1DGrid(path) = begin
     info = CSV.read(path, DataFrame)
     name = basename(path)[1:findlast('.', basename(path))-1]
@@ -47,16 +22,10 @@ end
 
 StaggerGrid(args...; kwargs...) = Atmos1DGrid(args...; kwargs...)
 
-# ============================================================================= 
+# ============================================================================
 # Checking paths
-# =============================================================================
+# ============================================================================
 
-"""
-	check_av_model_path(g::Atmos1DGrid)
-
-Check if av models in the grid can be found. Also check if there is a .tar.gz 
-directory that needs to be unpacked
-"""
 check_av_model_path(g::Atmos1DGrid) = begin
 	ga = deepcopy(g)
 	absolute_path!(ga)
@@ -70,18 +39,16 @@ check_av_model_path(g::Atmos1DGrid) = begin
 	elseif !isdir(d) && (gridname=="MARCS_2.0")
 		destination = d*".tar.gz"
 		Downloads.download("https://keeper.mpdl.mpg.de/f/de46886c5929462ea1bd/?dl=1", destination)
-		
+
 		_extract_tar_in_dir(dirname(d), name="av_models.tar.gz")
 
-		#rm(destination)
 		@info "av_models unpacked."
 	elseif !isdir(d) && (gridname=="MARCS_2.1")
 		destination = d*".tar.gz"
 		Downloads.download("https://keeper.mpdl.mpg.de/f/46be98bda0974df1bb89/?dl=1", destination)
-		
+
 		_extract_tar_in_dir(dirname(d), name="av_models.tar.gz")
 
-		#rm(destination)
 		@info "av_models unpacked."
 	elseif !isdir(d)
 		@warn "$(d) does not exist, and there is no $(d*".tar.gz") to extract."
@@ -96,9 +63,9 @@ _extract_tar_in_dir(d; name="av_models.tar.gz") = begin
 	cd(currd)
 end
 
-# ============================================================================= 
+# ============================================================================
 # Getting info from the grid
-# =============================================================================
+# ============================================================================
 
 get_mask(g::Atmos1DGrid; paras...) = begin
 	grid = g.info
@@ -110,101 +77,79 @@ get_mask(g::Atmos1DGrid; paras...) = begin
 	mask
 end
 
-"""
-	subselect(g::Atmos1DGrid; paras) = begin
-
-Get a subselection of the grid by specifying parameters `paras` as key, value pairs.
-"""
 subselect(g::Atmos1DGrid; paras) = begin
 	mask = get_mask(g; paras...)
 	info_new = deepcopy(g.info[mask, :])
 	Atmos1DGrid(g.name, g.path, info_new)
 end
 
-# ============================================================================= 
+# ============================================================================
 # Saving
-# =============================================================================
+# ============================================================================
 
 save(grid::Atmos1DGrid, path) = CSV.write(path, grid.info)
 save(grid::Atmos1DGrid) = CSV.write(grid.path, grid.info)
 
-# ============================================================================= 
+# ============================================================================
 # Convenience
-# =============================================================================
+# ============================================================================
 
 Base.getindex(g::Atmos1DGrid, k::String, i=!) = g.info[i, k]
 Base.:+(g1::Atmos1DGrid, g2::Atmos1DGrid) = Atmos1DGrid(g1.name, g1.path, vcat(g1.info, g2.info))
 Base.dirname(g::Atmos1DGrid) = dirname(g.path)
 
-# ============================================================================= 
+# ============================================================================
 # Paths
-# =============================================================================
+# ============================================================================
 
-"""
-	absolute_path!(grid; from=@__FILE__)
-
-Convert grid paths from relative to absolute. Assume they are relative to `from`.
-First check if the path is not already absolute.
-"""
 absolute_path!(grid; from=@__FILE__) = begin
-    if "av_path" in names(grid.info) 
+    if "av_path" in names(grid.info)
 		grid.info[!, "av_path"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "av_path"]]
 	end
-	if "avo_path" in names(grid.info) 
+	if "avo_path" in names(grid.info)
     	grid.info[!, "avo_path"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "avo_path"]]
     end
-	if "eos_root" in names(grid.info) 
+	if "eos_root" in names(grid.info)
 		grid.info[!, "eos_root"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "eos_root"]]
 	end
-	if "matching_eos" in names(grid.info) 
+	if "matching_eos" in names(grid.info)
 		grid.info[!, "matching_eos"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "matching_eos"]]
 	end
-	if "matching_opa" in names(grid.info) 
+	if "matching_opa" in names(grid.info)
 		grid.info[!, "matching_opa"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "matching_opa"]]
 	end
-	if "matching_sopa" in names(grid.info) 
+	if "matching_sopa" in names(grid.info)
 		grid.info[!, "matching_sopa"] .= [isabspath(p) ? p : abspath.(joinpath.(dirname(from), p)) for p in grid.info[!, "matching_sopa"]]
 	end
 end
 
 relative_path(relative_to, abs_path) = relpath(abs_path, dirname(relative_to))
 
-"""
-	relative_path!(grid; from=@__FILE__)
-
-Convert grid paths from absolute to relative to `from`.
-"""
 relative_path!(grid; to=@__FILE__) = begin
-    if "av_path" in names(grid.info) 
+    if "av_path" in names(grid.info)
 		grid.info[!, "av_path"] .= relative_path.(to, grid.info[!, "av_path"])
 	end
-	if "avo_path" in names(grid.info) 
+	if "avo_path" in names(grid.info)
     	grid.info[!, "avo_path"] .= relative_path.(to, grid.info[!, "avo_path"])
     end
-	if "eos_root" in names(grid.info) 
+	if "eos_root" in names(grid.info)
 		grid.info[!, "eos_root"] .= relative_path.(to, grid.info[!, "eos_root"])
 	end
-	if "matching_eos" in names(grid.info) 
+	if "matching_eos" in names(grid.info)
 		grid.info[!, "matching_eos"] .= relative_path.(to, grid.info[!, "matching_eos"])
 	end
-	if "matching_opa" in names(grid.info) 
+	if "matching_opa" in names(grid.info)
 		grid.info[!, "matching_opa"] .= relative_path.(to, grid.info[!, "matching_opa"])
 	end
-	if "matching_sopa" in names(grid.info) 
+	if "matching_sopa" in names(grid.info)
 		grid.info[!, "matching_sopa"] .= relative_path.(to, grid.info[!, "matching_sopa"])
 	end
 end
 
-# ============================================================================= 
+# ============================================================================
 # Replace Path
-# =============================================================================
+# ============================================================================
 
-"""
-	replace_relative_path!(grid; kwargs...)
-
-Replace e.g. the EoS of a grid that contains relative paths with a new array 
-of paths (that are absolute!).
-"""
 function replace_relative_path!(grid; kwargs...)
 	# make paths absolute
 	absolute_path!(grid)
@@ -218,37 +163,19 @@ function replace_relative_path!(grid; kwargs...)
 	grid
 end
 
-"""
-	replace_absolute_path!(grid; kwargs...)
-
-Replace e.g. the EoS of a grid that contains absolute paths with a new array 
-of paths (that are absolute!).
-"""
 function replace_absolute_path!(grid; kwargs...)
 	# paths are already absolute
 	for (k, v) in kwargs
 		grid.info[k] = v
 	end
-	
+
 	grid
 end
 
-# ============================================================================= 
+# ============================================================================
 # Interpolation
-# =============================================================================
- 
-"""
-	interpolate_quantity(grid::Atmos1DGrid, what; teff, logg, feh, method="linear")
+# ============================================================================
 
-Interpolate quantity `what` from within the grid to the new teff, logg and feh values.
-Uses scipy griddata for scattered interpolation. Convert output to julia.
-
-# Examples
-
-```julia
-vmin = interpolate_quantity(grid, "vmin"; teff=teff, logg=logg, feh=feh)
-```
-"""
 function interpolate_quantity(grid::Atmos1DGrid, what; teff, logg, feh, method="linear")
 	feh_gr  = grid.info[!, "feh"]
 	femask = feh_gr .≈ feh_gr[argmin(abs.(feh .- feh_gr))]
@@ -261,10 +188,10 @@ function interpolate_quantity(grid::Atmos1DGrid, what; teff, logg, feh, method="
 		Any,
 		first(
 			scipy_interpolate.griddata(
-				(logg_gr, teff_gr), what_gr, ([logg], [teff]), 
+				(logg_gr, teff_gr), what_gr, ([logg], [teff]),
 				method=method
 			)
-		), 
+		),
 	)
 
 	if isnan(a)
@@ -272,19 +199,19 @@ function interpolate_quantity(grid::Atmos1DGrid, what; teff, logg, feh, method="
 			Any,
 			first(
 				scipy_interpolate.griddata(
-					(logg_gr, teff_gr), what_gr, ([logg], [teff]), 
+					(logg_gr, teff_gr), what_gr, ([logg], [teff]),
 					method="nearest"
 				)
-			), 
+			),
 		)
 	else
 		a
 	end
 end
 
-# ============================================================================= 
+# ============================================================================
 # Running
-# =============================================================================
+# ============================================================================
 
 allowed_namelists(grid::Atmos1DGrid) = grid.info[!,"namelist_name"]
 
@@ -317,8 +244,6 @@ stage_namelists(grid::Atmos1DGrid, folder="run_grid"; clean_logs=true, clean_nam
 	end
 end
 
-# ============================================================================= 
+# ============================================================================
 # Information of grid models from Name
-# =============================================================================
-
-#=============================================================================#
+# ============================================================================

@@ -1,6 +1,6 @@
-# ============================================================================= 
-# Wrapper for the MULTI output 
-# =============================================================================
+# ============================================================================
+# Wrapper for the MULTI output
+# ============================================================================
 struct TUMULTRun{P<:PythonCall.Py}
     run::P
 end
@@ -19,9 +19,9 @@ end
 # alias for old Multi package
 M3DISRun = TUMULTRun
 
-# ============================================================================= 
-# Utility functions 
-# =============================================================================
+# ============================================================================
+# Utility functions
+# ============================================================================
 
 Base.getproperty(m::TUMULTRun, arg::Symbol) = begin
     if arg in fieldnames(typeof(m))
@@ -40,8 +40,8 @@ find_model(runs, kind, abundance) = begin
 	models = [split(dirname(join(r.sfolder)), "/")[end-1] for r in runs]
 	found = []
 	for (i, model) in enumerate(models)
-		
-		if occursin(kind, model) 
+
+		if occursin(kind, model)
 			abund = pyconvert(Any, runs[i].atom.abnd)
 			if abund ≈ abundance
 				append!(found, [runs[i]])
@@ -52,7 +52,7 @@ find_model(runs, kind, abundance) = begin
 	if length(found) == 0
 		@show kind, abundance
 	end
-	
+
 	if length(found) == 1
 		first(found)
 	else
@@ -63,7 +63,7 @@ end
 extension_results(extension, folder="data") = begin
 	all_results = glob("*/", @in_m3dis(folder))
 	paths = []
-	
+
 	for (i, r) in enumerate(all_results)
 		if occursin(extension, r)
 			append!(paths, [r])
@@ -73,9 +73,9 @@ extension_results(extension, folder="data") = begin
 	joinpath.(folder, last.(split.(dirname.(paths), "/")))
 end
 
-# ============================================================================= 
+# ============================================================================
 # Equivalent width & abundance calculations from Tumult
-# =============================================================================
+# ============================================================================
 
 getabundances(run) = pyconvert(Float64, run.atom.abnd)
 
@@ -99,7 +99,7 @@ abundance(runs::AbstractArray; line=1, kwargs...) = begin
     lines = [run.line[line] for run in runs]
     abund = getabundances.(runs)
     abundance(lines, abund; kwargs...)
-end  
+end
 
 ΔNLTE(lines::AbstractArray, abundances::AbstractArray; at, reference=:LTE) = begin
     fLTE = equivalentwidth(lines, abundances, LTE=true)
@@ -124,9 +124,9 @@ end
     ΔNLTE(lines, abund; at=at, reference=reference)
 end
 
-# ============================================================================= 
-# NLTE / LTE corrections 
-# =============================================================================
+# ============================================================================
+# NLTE / LTE corrections
+# ============================================================================
 
 _spread_NLTE_corrections!(correction_χ, correction_S, χ_fraction, S_fraction, lnρ, lnT, idistR, dist, σ) = begin
     for j in eachindex(lnρ)
@@ -137,25 +137,18 @@ _spread_NLTE_corrections!(correction_χ, correction_S, χ_fraction, S_fraction, 
     end
 end
 
-"""
-    NLTE_grid_correction(result1, result2; λ_new, lnρ_new, lnT_new)
-
-Compute NLTE/LTE corrections for opacity and source function and interpolate the
-result to the given λ, lnρ and lnT grids. This can be used to create a 1D NLTE
-opacity table before binning.
-"""
 function NLTE_grid_correction(result_NLTE, result_LTE; λ_new, lnρ_new, lnT_new)
     λ = pyconvert(Array, result_NLTE.lam)
-    χ_NLTE = pyconvert(Array, 
+    χ_NLTE = pyconvert(Array,
         result_NLTE.run.read_patch_save("chi_01", concat=true, fdim=0, lazy=false)[0]
     )
-    S_NLTE = pyconvert(Array, 
+    S_NLTE = pyconvert(Array,
         result_NLTE.run.read_patch_save("Snu_01", concat=true, fdim=0, lazy=false)[0]
     )
-    χ_LTE = pyconvert(Array, 
+    χ_LTE = pyconvert(Array,
 		result_LTE.run.read_patch_save("chi_01", concat=true, fdim=0, lazy=false)[0]
 	)
-	S_LTE = pyconvert(Array, 
+	S_LTE = pyconvert(Array,
 		result_LTE.run.read_patch_save("Snu_01", concat=true, fdim=0, lazy=false)[0]
 	)
 
@@ -163,8 +156,8 @@ function NLTE_grid_correction(result_NLTE, result_LTE; λ_new, lnρ_new, lnT_new
 	lnT = log.(pyconvert(Array, result_NLTE.run.temp))
 
     # Interpolate in wavelength first
-    χ_fraction = zeros(eltype(lnT_new), length(lnT), length(λ_new)) 
-    S_fraction = zeros(eltype(lnT_new), length(lnT), length(λ_new)) 
+    χ_fraction = zeros(eltype(lnT_new), length(lnT), length(λ_new))
+    S_fraction = zeros(eltype(lnT_new), length(lnT), length(λ_new))
     frac = similar(λ)
 
     for i in eachindex(lnρ)
@@ -180,7 +173,7 @@ function NLTE_grid_correction(result_NLTE, result_LTE; λ_new, lnρ_new, lnT_new
         S_fraction[i, isnan.(@view(S_fraction[i, :]))] .= 1.0
     end
 
-    # Interpolate in rho-T second. 
+    # Interpolate in rho-T second.
     # For now we just pick the closest point in rho, and apply a gaussian filter
     # based on the 2D distance from that point.
     correction_χ = zeros(eltype(lnT_new), length(lnT_new), length(lnρ_new), length(λ_new))
@@ -188,42 +181,37 @@ function NLTE_grid_correction(result_NLTE, result_LTE; λ_new, lnρ_new, lnT_new
     dist = zeros(eltype(lnT_new), length(lnT_new), length(lnρ_new))
     idist = zeros(Int, size(dist)...)
     idistR = zeros(Int, size(dist)...)
-    
+
     for j in eachindex(lnρ_new)
         for i in eachindex(lnT_new)
             idist[i, j] = argmin(
-                (lnρ_new[j]/4 .- lnρ/4).^2 .+ (lnT_new[i] .- lnT).^2 
+                (lnρ_new[j]/4 .- lnρ/4).^2 .+ (lnT_new[i] .- lnT).^2
             )
             idistR[i, j] = argmin(
-                (lnρ_new[j] .- lnρ).^2 
+                (lnρ_new[j] .- lnρ).^2
             )
-            dist[i, j] = (lnρ_new[j]/4 .- lnρ[idist[i, j]]/4).^2 .+ (lnT_new[i] .- lnT[idist[i, j] ]).^2 
+            dist[i, j] = (lnρ_new[j]/4 .- lnρ[idist[i, j]]/4).^2 .+ (lnT_new[i] .- lnT[idist[i, j] ]).^2
         end
     end
-    
+
     σ_rho = (abs(maximum(lnρ_new)/4 - minimum(lnρ_new)/4) / 16) ^2
     σ_T = (abs(maximum(lnT_new) - minimum(lnT_new)) / 16) ^2
     σ = σ_rho + σ_T
-    
+
     _spread_NLTE_corrections!(
-        correction_χ, correction_S, 
-        χ_fraction, S_fraction, 
-        lnρ_new, lnT_new, 
+        correction_χ, correction_S,
+        χ_fraction, S_fraction,
+        lnρ_new, lnT_new,
         idistR, dist, σ
     )
 
     correction_χ, correction_S
 end
 
-# ============================================================================= 
+# ============================================================================
 # Running M3DIS
-# ============================================================================= 
+# ============================================================================
 
-"""
-    abund_abundances(;α=0.0, default="./input_multi3d/abund_magg", eles...)
-
-Create an abund file with the given abundance ratios.
-"""
 function abund_abundances(;α=0.0, default="./input_multi3d/abund/abund_magg", eles...)
 	# read the default abundances
 	abund_default = readdlm(@in_m3dis(default))
@@ -331,17 +319,11 @@ function whole_spectrum(model_names::AbstractVector{String}; namelist_kwargs=Dic
     [TUMULTRun(joinpath(data_dir, model_name), read_atmos=false) for model_name in model_names]
 end
 
-"""
-    computeEosTable(model; folder, linelist, λ_file, λs, λe, δλ, δlnT, δlnρ, FeH, nν,
-				in_log=true, slurm=false, m3dis_kwargs=Dict(), abund_file, tmolim, kwargs...)
-
-Compute opacity and EoS tables using M3D.
-"""
 function opacityTable(model; folder, linelist, λ_file, λs, λe, δλ, δlnT, δlnρ, FeH, nν,
 				in_log=true, slurm=false, m3dis_kwargs=Dict(), absdat_file="./input_multi3d/TS_absdat.dat", abund_file, tmolim, kwargs...)
 	spec_para = (!isnothing(λ_file)) ? Dict(:lam_file=>λ_file, :in_air=>false) : Dict(:daa=>δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>in_log, :in_air=>false)
     MUST.whole_spectrum(
-		model, 
+		model,
 		namelist_kwargs=(
 			:model_folder=>folder,
 			:linelist=>nothing,
@@ -350,9 +332,9 @@ function opacityTable(model; folder, linelist, λ_file, λs, λe, δλ, δlnT, �
 			:atom_params=>(:atom_file=>"", ),
 			:spectrum_params=>(spec_para...,),
 			:atmos_params=>(
-				:dims=>1, 
+				:dims=>1,
 				:atmos_format=>"Text",
-				:use_rho=>true, 
+				:use_rho=>true,
 				:use_ne=>false,
 				:FeH=>FeH,
 				:nz=>2,
@@ -415,36 +397,30 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
 
         # run the initial namelist first
         write(nml_nlte, @in_m3dis("$(mn(model_name))_departure.nml"))
-        #@info "Running M3D (departure)."
         if slurm
             srun_m3dis("$(mn(model_name))_departure.nml"; wait=true, m3dis_kwargs...)
         else
             run_m3dis("$(mn(model_name))_departure.nml"; wait=true, m3dis_kwargs...)
         end
-        #@info "M3D completed (departure)."
 
         nml_spectrum
     else
-        spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)  
+        spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
     end
 
     write(nml, @in_m3dis("$(mn(model_name)).nml"))
 
     # run multi (with waiting)
-    #@info "Running M3D with NLTE=$(NLTE)."
     if slurm
         srun_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
     else
         run_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
     end
-    #@info "M3D completed."
-
 
     if cleanup
         nmls_created = glob("$(mn(model_name)).nml*", @in_m3dis(""))
         rm.(nmls_created)
     end
-
 
     # read the output
     TUMULTRun(joinpath(nml.io_params["datadir"], mn(model_name)))
@@ -464,7 +440,7 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
     if (!slurm) & (length(model_names) > 1)
         @warn "You are submitting $(length(model_names)) jobs without resource management (slurm=false)!"
     end
-    
+
     # Create the default namelist (with adjustments)
     results = []
     results_nlte = []
@@ -486,22 +462,20 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
                 nml_nlte;
                 rt_output_params=(:angle_quad=>"disk_center",)
             )
-    
+
             # run the initial namelist first
             write(nml_nlte, @in_m3dis(join(["$(model_name)", name, "departure"], "_")*".nml"))
 
-            #@info "Running M3D (departure)."
             r = if slurm
                 srun_m3dis(join(["$(model_name)", name, "departure"], "_")*".nml"; wait=false, m3dis_kwargs...)
             else
                 run_m3dis(join(["$(model_name)", name, "departure"], "_")*".nml"; wait=false, m3dis_kwargs...)
             end
             append!(results_nlte, [r])
-            #@info "M3D completed (departure)."
-    
+
             nml_spectrum
         else
-            spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)  
+            spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
         end
 
         append!(nml, [nml_l])
@@ -510,15 +484,12 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
     # wait for success
     for (i, r) in enumerate(results_nlte)
         s = success(r)
-        #@info "$(model_names[i]) finished with success status $(s). (departure)"
     end
-
 
     for (i, model_name) in enumerate(model_names)
         write(nml[i], @in_m3dis(join([model_name, name], "_")*".nml"))
 
         # run multi (with waiting)
-        #@info "Running M3D with NLTE=$(NLTE)."
         r = if slurm
             srun_m3dis(join([model_name, name], "_")*".nml"; wait=false, m3dis_kwargs...)
         else
@@ -537,7 +508,6 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
     if wait
         for (i, r) in enumerate(results)
             s = success(r)
-            #@info "$(model_names[i]) finished with success status $(s)."
         end
         # read the output
         [TUMULTRun(joinpath(data_dir, model_name)) for model_name in model_names]
@@ -558,7 +528,6 @@ function spectrum(model_names::AbstractVector{String}, runnames::Dict; kwargs...
 
     results = []
     for (i, input_params) in enumerate(namelist_kwargs)
-        #@show input_params names[i]
         r = spectrum(model_names; namelist_kwargs=input_params, name=names[i], wait=false, kwargs...)
         append!(results, r)
     end
@@ -580,11 +549,6 @@ function spectrum(model_names::AbstractVector{String}, runnames::Dict; kwargs...
     runs
 end
 
-"""
-    heating(model_name, args...; kwargs...)
-
-Compute the radiative heating within the given model.
-"""
 function heating(model_name::String, opacity_table=nothing; slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict())
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
@@ -605,11 +569,6 @@ function heating(model_name::String, opacity_table=nothing; slurm=true, namelist
     TUMULTRun(joinpath(nml.io_params["datadir"], "$(model_name)$(binned_ext)"))
 end
 
-"""
-    heating(model_name, args...; kwargs...)
-
-Compute the radiative heating within the given models in parallel.
-"""
 function heating(model_names::AbstractVector{String}, opacity_table=nothing; namelist_kwargs=Dict(), m3dis_kwargs=Dict(), slurm=true, name="")
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
@@ -637,19 +596,12 @@ function heating(model_names::AbstractVector{String}, opacity_table=nothing; nam
     # wait for success
     for (i, r) in enumerate(results)
         s = success(r)
-        #@info "$(model_names[i])$(name)$(binned_ext) finished with success status $(s)."
     end
 
     # read the output
     [TUMULTRun(joinpath(data_dir, "$(model_name)$(name)$(binned_ext)")) for model_name in model_names]
 end
 
-"""
-    multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dict(), name="", cleanup=true)
-
-Submit a job to the M3D code, which will compute the chi500 and store the atmosphere.
-IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis macro.
-"""
 function multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dict(), name="", cleanup=true)
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
@@ -657,13 +609,11 @@ function multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dic
     mn(n) = join([n, name], "_")
 
     # Check if NLTE and twostep, in that case we follow up with an LTE run
-    nml = tau500_namelist(model_name; namelist_kwargs...)  
+    nml = tau500_namelist(model_name; namelist_kwargs...)
     write(nml, @in_m3dis("$(mn(model_name)).nml"))
 
     # run multi (with waiting)
-    #@info "Running M3D."
     run_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
-    #@info "M3D completed."
 
     if cleanup
         nmls_created = glob("$(mn(model_name)).nml*", @in_m3dis(""))
@@ -674,9 +624,9 @@ function multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dic
     TUMULTRun(joinpath(nml.io_params["datadir"], mn(model_name)))
 end
 
-# ============================================================================= 
-# Effective temperature computations 
-# =============================================================================
+# ============================================================================
+# Effective temperature computations
+# ============================================================================
 
 window(line::PythonCall.Py, args...; kwargs...) = begin
     pyconvert.(Array, line.crop(args...; kwargs...))
@@ -687,9 +637,9 @@ window(run::TUMULTRun, iline, args...; kwargs...) = begin
     window(line, args...; kwargs...)
 end
 
-# ============================================================================= 
+# ============================================================================
 # Helper functions
-# =============================================================================
+# ============================================================================
 
 flux(run; norm=true) = begin
     norm ? (run.lam, run.flux ./ run.flux_cnt) : (run.lam, run.flux)
@@ -701,20 +651,11 @@ Return and optionally normalize the flux coming from a m3dis run.
 """
 flux
 
-
-"""
-    B(λ, T)
-Planck function (cgs, λ).
-"""
 B(λ, T) = begin
-    @. 2*HPlanck*CLight^2/(aa_to_cm*λ)^5 * 1 / 
+    @. 2*HPlanck*CLight^2/(aa_to_cm*λ)^5 * 1 /
                 (exp(HPlanck*CLight /(aa_to_cm*λ*KBoltzmann*T)) -1 )
 end
 
-"""
-    wien(T)
-Maximum of Planck function (cgs).
-"""
 wien(T) = 2898e-4 /aa_to_cm / T
 
 Teff(λ::AbstractVector{T}, F::AbstractVector{T}) where {T<:AbstractFloat} = begin
@@ -740,9 +681,9 @@ Effective temperature from the binned flux itself.
 """
 Teff
 
-# ============================================================================= 
+# ============================================================================
 # Create a 3D cube from a run
-# =============================================================================
+# ============================================================================
 
 _is_1D(x) = ndims(x) == 1
 _set_size_1D_to_3D(x) = _is_1D(x) ? reshape(x, 1, 1, length(x)) : x

@@ -12,12 +12,12 @@ function read_mafags(file)
     rewind(f)
 
     _..., nscale, tau, t, kappa_ref, pe, pg, pk, rho = read(
-        f, Int32, Int32, Int32, Int32, 
-        (Int32, nel), (Int32, nel),   
-        (Int32, nbreak),              
-        (Float32, ndepth), (Float32, ndepth), (Float32, ndepth), 
+        f, Int32, Int32, Int32, Int32,
+        (Int32, nel), (Int32, nel),
+        (Int32, nbreak),
+        (Float32, ndepth), (Float32, ndepth), (Float32, ndepth),
         (Float32, ndepth), (Float32, ndepth), (Float32, ndepth), (Float32, ndepth)
-    )       
+    )
 
     close(f)
 
@@ -41,11 +41,11 @@ function mafagsBox(path::String)
     yy = zeros(1, 1, length(z))
     zz = reshape(-z, 1, 1, :)
 
-    d = reshape(rho, 1, 1, :) 
-    T = reshape(t, 1, 1, :)    
-    k5 = reshape(kappa_ref ./ rho, 1, 1, :)   
-    t5 = reshape(tau, 1, 1, :)   
-    pg = reshape(pg, 1, 1, :)    
+    d = reshape(rho, 1, 1, :)
+    T = reshape(t, 1, 1, :)
+    k5 = reshape(kappa_ref ./ rho, 1, 1, :)
+    t5 = reshape(tau, 1, 1, :)
+    pg = reshape(pg, 1, 1, :)
     ne = reshape(pe, 1, 1, :) ./ (KBoltzmann .* T)
 
     data = Dict{Symbol, Any}(

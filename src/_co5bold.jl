@@ -1,8 +1,3 @@
-"""
-    CO5BOLDBox(model_path)
-
-Read CO5BOLD model from path. Store as `MUST.Box` type.
-"""
 function CO5BOLDBox(model_path)
     f = open(model_path, "r")
 
@@ -11,7 +6,7 @@ function CO5BOLDBox(model_path)
 
     x = zeros(Float32, nx)
     y = zeros(Float32, ny)
-    z = zeros(Float32, nz) 
+    z = zeros(Float32, nz)
 
     read!(f, x)
     read!(f, y)
@@ -19,10 +14,10 @@ function CO5BOLDBox(model_path)
 
     ltemp = zeros(Float32, nx, ny, nz)
     lrho = zeros(Float32, nx, ny, nz)
-    lpe = zeros(Float32, nx, ny, nz) 
+    lpe = zeros(Float32, nx, ny, nz)
     px = zeros(Float32, nx, ny, nz)
     py = zeros(Float32, nx, ny, nz)
-    pz = zeros(Float32, nx, ny, nz) 
+    pz = zeros(Float32, nx, ny, nz)
 
     read!(f, ltemp)
     read!(f, lrho)
@@ -34,7 +29,7 @@ function CO5BOLDBox(model_path)
     close(f)
 
     xx, yy, zz = meshgrid(x, y, z)
-    paras = AtmosphericParameters() 
+    paras = AtmosphericParameters()
     paras.time = time
 
     temp = exp.(ltemp)

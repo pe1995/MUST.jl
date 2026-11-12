@@ -1,6 +1,6 @@
-# ============================================================================= 
-# Constructing grids from existing Boxes 
-# ============================================================================= 
+# ============================================================================
+# Constructing grids from existing Boxes
+# ============================================================================
 
 """
     Grid(box::Box)
@@ -16,9 +16,6 @@ Grid(b::Box; order=[1, 2, 3]) = begin
     x, y, z = axis(b, :x)[:], axis(b, :y)[:], axis(b, :z)[:]
 
     # Convert the axis to a higher precision
-    #x = Base.convert.(Float64, x)
-    #y = Base.convert.(Float64, y)
-    #z = Base.convert.(Float64, z)
 
     axes = [Axis(x), Axis(y), Axis(z)][order]
 
@@ -26,30 +23,26 @@ Grid(b::Box; order=[1, 2, 3]) = begin
 end
 
 Grid(b::Box, zscale::Symbol; order=[1, 2, 3], scale=log) = begin
-    #@assert check_uniform(b)
 
     x, y, z = axis(b, :x)[:], axis(b, :y)[:], scale.(axis(b, zscale, 3)[:])
 
     # Convert the axis to a higher precision
-    #x = Base.convert.(Float64, x)
-    #y = Base.convert.(Float64, y)
-    #z = Base.convert.(Float64, z)
 
     axes = [Axis(x), Axis(y), Axis(z)][order]
 
     RegularBoxGrid(axes)
 end
 
-# ============================================================================= 
+# ============================================================================
 # Utilities
-# ============================================================================= 
+# ============================================================================
 
 check_uniform(b::Box) = begin
     x, y, z = axis(b, :x), axis(b, :y), axis(b, :z)
     x = Base.convert.(Float64, x)
     y = Base.convert.(Float64, y)
     z = Base.convert.(Float64, z)
-  
+
     for k in axes(b.z, 3)
         for j in axes(b.y, 2)
             if !all(x .≈ @view(b.x[:, j, k]))
@@ -77,11 +70,6 @@ check_uniform(b::Box) = begin
     true
 end
 
-"""
-    scale_axis(axis, factor)
-
-Scale the number of points on an axis by the given factor or to a specific number.
-"""
 function scale_axis(axis; factor=nothing, N=nothing)
     if isnothing(factor) && isnothing(N)
         error("N or factor required.")
@@ -97,9 +85,9 @@ function scale_axis(axis; factor=nothing, N=nothing)
 	Base.convert.(eltype(axis), axis_new)
 end
 
-# ============================================================================= 
-# Scaling a box in resolution 
-# ============================================================================= 
+# ============================================================================
+# Scaling a box in resolution
+# ============================================================================
 
 """
     gresample(b::Box; nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), method=:linear, order=[1, 2, 3], dont_log=[:T, :ux, :uy, :uz, :ee, :e])
@@ -107,9 +95,9 @@ end
 Resample the given cube to the given resolution. Specify the variables that you don't want to interpolate
 in the log (maybe due to negative/positive values) in `dont_log`.
 """
-function gresample(b::Box; 
-        nx=size(b, 1), ny=size(b, 2), nz=size(b, 3), 
-        method=:linear, order=[1, 2, 3], 
+function gresample(b::Box;
+        nx=size(b, 1), ny=size(b, 2), nz=size(b, 3),
+        method=:linear, order=[1, 2, 3],
         dont_log=[:T, :ux, :uy, :uz, :ee, :e])
 	if (nx==size(b, 1)) & (ny==size(b, 2)) & (nz==size(b, 3))
 		@warn "Size of new box = size of old box."
@@ -127,7 +115,7 @@ function gresample(b::Box;
 	z_new = isnothing(nz) ? deepcopy(nodes(grid.axes[3])) : scale_axis(axis(b, :z), N=nz)
 	target_grid = Grid([x_new, y_new, z_new][order]...)
 
-	# interpolate 
+	# interpolate
 	ip = ginterpolate(grid, target_grid, method=method)
 
 	# compute the interpolate quantities
@@ -144,7 +132,7 @@ function gresample(b::Box;
 		else
 			d_tmp .= PermutedDimsArray(b.data[f], order)
 		end
-		
+
         # interpolate without copying buffer
 		interpolated = gevaluate!(ip, d_tmp; return_copy=false)
         p_interpolated = PermutedDimsArray(interpolated, natural_order)

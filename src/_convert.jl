@@ -1,24 +1,11 @@
-"""
-    snapshotBox_py(number; folder, optical_depth_scale=true, save_snapshot=true, add_selection=false, to_multi=true)
-
-Convert the snapshot with number `number` from dispatch to a Space object.
-In the current version, this relies on the dispatch python package.
-This may change in the future.
-
-# Examples
-```julia
-MUST.@import_dispatch "/path/to/dispatch2"
-box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"), legacy=true)
-```
-"""
 function snapshotBox_py(
-    number; 
-    folder, 
-    optical_depth_scale=true, 
-    save_snapshot=true, 
-    add_selection=false, 
+    number;
+    folder,
+    optical_depth_scale=true,
+    save_snapshot=true,
+    add_selection=false,
     to_multi=false,
-    is_box=true, 
+    is_box=true,
     use_mmap=false,
     convert_units=Dict(
         :dt_rt=>:t,
@@ -28,7 +15,6 @@ function snapshotBox_py(
     )
     )
     folder = if !isdir(folder)
-        #@warn "Given folder does not exist. Trying to add dispatch location"
         @in_dispatch folder
     else
         folder
@@ -43,11 +29,11 @@ function snapshotBox_py(
     # read logg from the namelist
     logg = log10.(abs.(nml.stellar_params["g_cgs"]))
 
-    # Use the Squaregas EOS 
+    # Use the Squaregas EOS
     eos_path = replace(nml.eos_params["table_loc"], "'"=>"")
     eos_sq = SquareGasEOS(@in_dispatch(eos_path))
 
-    save_info = ispath(joinpath(folder, "teff.dat")) 
+    save_info = ispath(joinpath(folder, "teff.dat"))
     teff_func = if save_info
         # Read and interpolate teff data
         teff_interpolated(joinpath(folder, "teff.dat"))
@@ -82,10 +68,9 @@ function snapshotBox_py(
         end
 
         # Apply the conversion
-        convert!(s, units; d=:d, ee=:ee, e=:e, 
+        convert!(s, units; d=:d, ee=:ee, e=:e,
                             ux=:u, uy=:u, uz=:u,
                             x=:l, y=:l, z=:l, time=:t, convert_units...)
-        
 
         # Add additional columns already in CGS after converting
         add_from_EOS!(s, eos_sq, :T)
@@ -100,13 +85,13 @@ function snapshotBox_py(
         end
 
         # Also save the snapshot as Box (a regular gridded 3D-cube) to save time later
-        b_s = if !is_box 
+        b_s = if !is_box
             b = Box(
-                s, 
-                MUST.uniform_grid(s, Int(ceil(length(s.data[:x].^(1/3)))), :x), 
-                MUST.uniform_grid(s, Int(ceil(length(s.data[:x].^(1/3)))), :y), 
+                s,
+                MUST.uniform_grid(s, Int(ceil(length(s.data[:x].^(1/3)))), :x),
+                MUST.uniform_grid(s, Int(ceil(length(s.data[:x].^(1/3)))), :y),
                 MUST.uniform_grid(s, Int(ceil(length(s.data[:x].^(1/3)))), :z)
-            ) 
+            )
             s = nothing
             b
         else
@@ -128,7 +113,7 @@ function snapshotBox_py(
             b_τ = height_scale_fast(b_s, :τ_ross)
             save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=folder)
 
-            b_τ 
+            b_τ
         else
             nothing
         end
@@ -149,23 +134,10 @@ function snapshotBox_py(
     end
 end
 
-"""
-    snapshotBox_jl(number; folder, optical_depth_scale=true, to_multi=false, use_mmap=false, quantites=MUST.defaultQuantities)
-
-Convert the snapshot with number `number` from dispatch to a Space object.
-In the current version, this relies on the dispatch python package.
-This may change in the future.
-
-# Examples
-```julia
-MUST.@import_dispatch "/path/to/dispatch2"
-box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"), legacy=false)
-```
-"""
 function snapshotBox_jl(
-    number; 
-    folder, 
-    optical_depth_scale=true, 
+    number;
+    folder,
+    optical_depth_scale=true,
     to_multi=false,
     use_mmap=false,
     save_snapshot=true,
@@ -184,15 +156,15 @@ function snapshotBox_jl(
     b_s, b_τ = begin
         # read patch data, collect to data cube
         b_s = @optionalTiming boxingTime MUST.Box(
-            number, 
-            rundir=folder, 
+            number,
+            rundir=folder,
             quantities=quantites,
             mmap=use_mmap,
             eos_reader=eos_reader,
             lookup_generator=lookup_generator,
             save_snapshot=false
         )
-        
+
         # Add the optical depth
         τ = @optionalTiming opticalDepthTime optical_depth(b_s, opacity=:kr, density=:d)
         add!(b_s, τ, :τ_ross)
@@ -203,14 +175,12 @@ function snapshotBox_jl(
             b_τ = @optionalTiming heightScaleTime height_scale(b_s, :τ_ross, extrapolation=:constant)
             save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=out_folder)
 
-            b_τ 
+            b_τ
         else
             nothing
         end
 
         b_s, b_τ
-    #else
-    #    @warn "snapshot $(number) could not be converted."
     #    nothing, nothing
     end
 
@@ -219,9 +189,9 @@ function snapshotBox_jl(
         @optionalTiming multiTime if to_multi
             try
                 snapshotsresample = MUST.gresample(
-                    b_s, 
-                    nz=size(b_s, 3) * 2 - 1, 
-                    nx=size(b_s, 1), 
+                    b_s,
+                    nz=size(b_s, 3) * 2 - 1,
+                    nx=size(b_s, 1),
                     ny=size(b_s, 2),
                 )
                 snapshotsresample.data[:ne] = snapshotsresample.data[:Ne]
@@ -250,7 +220,6 @@ box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"))
 ```
 """
 snapshotBox(args...; legacy=false, kwargs...) = legacy ? snapshotBox_py(args...; kwargs...) : snapshotBox_jl(args...; kwargs...)
-
 
 # timers
 

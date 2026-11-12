@@ -1,16 +1,15 @@
-# ============================================================================= 
-# Methods for Grid interpolation 
-# ============================================================================= 
-# provide capabilities of interpolating 
-# each axis of a grid from the current axis to a new axis. 
-# For each axis, it creates a AxisInterpolation object, that stores 
-# buffers and interpolation weights, so that the integration 
+# ============================================================================
+# Methods for Grid interpolation
+# ============================================================================
+# provide capabilities of interpolating
+# each axis of a grid from the current axis to a new axis.
+# For each axis, it creates a AxisInterpolation object, that stores
+# buffers and interpolation weights, so that the integration
 # of muliple variables can be done in no time after the first call.
 # For grids, the axis interpolation is called one step at a time,
 # and the returned values are further interpolated in the other directions.
-# ============================================================================= 
 
-struct AxisInterpolation{T<:AbstractFloat, I<:Integer, 
+struct AxisInterpolation{T<:AbstractFloat, I<:Integer,
                         A1<:AbstractBoxAxis, A2<:AbstractBoxAxis}
     old_axis::A1
     new_axis::A2
@@ -24,28 +23,16 @@ struct GridInterpolation{A<:AxisInterpolation}
     buffers
 end
 
-# ============================================================================= 
-# Constructors 
-# ============================================================================= 
+# ============================================================================
+# Constructors
+# ============================================================================
 
-"""
-    AxisInterpolation(old_axis, new_axis)
-
-Compute weights and indices corresponding to the 
-interpolation from the old_axis to the new_axis and
-store the values in an AxisInterpolation object.
-"""
 AxisInterpolation(old_axis::AbstractBoxAxis, new_axis::AbstractBoxAxis; method=:linear, extrapolation=:linear) = begin
     w, i = interpolation_weights(nodes(old_axis), nodes(new_axis); extrapolation=extrapolation)
 
     AxisInterpolation(old_axis, new_axis, w, i, method)
 end
 
-"""
-    GridInterpolation(old_axis, new_axis)
-
-Construct a grid interpolator from a list of axis interpolation objects.
-"""
 GridInterpolation(from::Vector{<:AbstractBoxAxis}, to::Vector{<:AbstractBoxAxis}; method=:linear, extrapolation=:linear) = begin
     interpolators = AxisInterpolation.(from, to; method=method, extrapolation=extrapolation)
 
@@ -68,9 +55,9 @@ GridInterpolation(from::AbstractBoxGrid, to::AbstractBoxGrid; method=:linear, ex
     GridInterpolation(axis(from), axis(to); method=method, extrapolation=extrapolation)
 end
 
-# ============================================================================= 
-# General convenience 
-# ============================================================================= 
+# ============================================================================
+# General convenience
+# ============================================================================
 
 method(ip::AxisInterpolation) = ip.method
 method(ip::GridInterpolation) = [i.method for i in ip.axes_interpolation]
@@ -78,17 +65,11 @@ method(ip::GridInterpolation) = [i.method for i in ip.axes_interpolation]
 fromaxis(ip::AxisInterpolation) = ip.old_axis
 toaxis(ip::AxisInterpolation) = ip.new_axis
 
-# ============================================================================= 
-# Interpolation Utilities 
-# ============================================================================= 
+# ============================================================================
+# Interpolation Utilities
+# ============================================================================
 
-"""
-    interpolation_weights(in, out)
-
-Compute the linear interpolation weights corresponding
-to the 2 arrays.
-"""
-function interpolation_weights(ingrid, outgrid; extrapolation=:linear) 
+function interpolation_weights(ingrid, outgrid; extrapolation=:linear)
 	weights = similar(outgrid, length(outgrid), 2)
 	indices = zeros(Int, length(outgrid))
     outtype = eltype(outgrid)
@@ -129,12 +110,6 @@ function interpolation_weights(ingrid, outgrid; extrapolation=:linear)
 	weights, indices
 end
 
-"""
-    interpolate_axis(values, weights, indices)
-
-Apply weights to values at indices in order to interpolate
-from an old to a new grid.
-"""
 interpolate_axis(values, weights, indices) = begin
 	values_new = similar(values, size(weights, 1))
     interpolate_axis!(values_new, values, weights, indices)
@@ -142,35 +117,21 @@ interpolate_axis(values, weights, indices) = begin
     values_new
 end
 
-"""
-    interpolate_axis!(values_new, values, weights, indices)
-
-Apply weights to values at indices in order to interpolate
-from an old to a new grid.
-"""
-function interpolate_axis!(values_new, values, weights, indices)	
+function interpolate_axis!(values_new, values, weights, indices)
 	@inbounds @simd for i in eachindex(values_new)
-		values_new[i] = weights[i, 1] * values[indices[i]] + 
+		values_new[i] = weights[i, 1] * values[indices[i]] +
 					weights[i, 2] * values[indices[i]+1]
 	end
 
 	values_new
 end
 
-"""
-    pchip_mono8!(newy, yy, newx, xx)
-
-Monotonic piecewise cubic hermite interpolation
-Coded by Richard Hoppe, July 2023
-"""
 function pchip_mono8!(newy, yy, newx, xx)
     # real(8), intent(in) :: xx(:)            # X values of the data points
     # real,    intent(in) :: yy(:)            # Y values of the data points
     # real(8), intent(in) :: newx(:)          # X values to interpolate at
     # real,    intent(out) :: newy(:)         # Interpolated Y values
     # real(8), allocatable :: dydx(:)         # derivative
-    # real(8), allocatable :: dx(:)
-    # real(8), allocatable :: dy(:)
     # integer :: n                 ! Number of data points
     # integer :: n_interp          ! Number of interpolation points
     # integer :: j                 ! Loop index for interpolation points
@@ -215,7 +176,7 @@ function pchip_mono8!(newy, yy, newx, xx)
             end
         end
         i = min(i, n-1)
-        
+
         # Calculate the interpolation parameter
         t1 = (newx[j] - xx[i]) / _dx(i)
 
@@ -223,20 +184,10 @@ function pchip_mono8!(newy, yy, newx, xx)
         t3 = t2*t1
         p = 3.0*t2 - 2.0*t3
 
-        newy[j] = (1.0 - p)*yy[i] + p*yy[i+1] + _dx(i)*((t3 - 2.0*t2 + t1)*dydx[i] + (t3-t2)*dydx[i+1]) 
+        newy[j] = (1.0 - p)*yy[i] + p*yy[i+1] + _dx(i)*((t3 - 2.0*t2 + t1)*dydx[i] + (t3-t2)*dydx[i+1])
     end
 end
 
-"""
-    interpolate_grid!(grid, values)
-
-Interpolate the values between two grids consisting of any number
-of axis as given by the grid object. The interpolation
-is done piece-wise linear in the order given when the grid was constructed.
-Intermediate results are saved and in the buffers, which will be re-used
-upon a second visit of this function. A copy of the result is returned, unless
-requested otherwise.
-"""
 function _interpolate_grid_dim!(buf_out, buf_in, axis_ip, i::Int, n_dims::Int)
     dim_selection = if n_dims == 1
         (i == 1 ? 1 : Colon(),)
@@ -248,7 +199,7 @@ function _interpolate_grid_dim!(buf_out, buf_in, axis_ip, i::Int, n_dims::Int)
         Tuple(j == i ? 1 : Colon() for j in 1:n_dims)
     end
     c = CartesianIndices(view(buf_in, dim_selection...))
-    
+
     from_perm = permutation(fromaxis(axis_ip))
     to_perm = permutation(toaxis(axis_ip))
     m = method(axis_ip)
@@ -259,7 +210,7 @@ function _interpolate_grid_dim!(buf_out, buf_in, axis_ip, i::Int, n_dims::Int)
         for ci in c
             idx_from = _fill_index(from_perm, ci, i)
             idx_to = _fill_index(to_perm, ci, i)
-            interpolate_axis!(  
+            interpolate_axis!(
                 view(buf_out, idx_to...),
                 view(buf_in, idx_from...),
                 w,
@@ -272,7 +223,7 @@ function _interpolate_grid_dim!(buf_out, buf_in, axis_ip, i::Int, n_dims::Int)
         for ci in c
             idx_from = _fill_index(from_perm, ci, i)
             idx_to = _fill_index(to_perm, ci, i)
-            pchip_mono8!(  
+            pchip_mono8!(
                 view(buf_out, idx_to...),
                 view(buf_in, idx_from...),
                 nodes_new,
@@ -294,7 +245,7 @@ function interpolate_grid!(ip::GridInterpolation, values; return_copy=true)
     end
 
     return_copy ? deepcopy(buffers[end]) : buffers[end]
-end    
+end
 
 @inline function _fill_index(to_fill, cartesian::CartesianIndex{N}, at) where N
     ntuple(Val(N+1)) do j
@@ -308,14 +259,14 @@ end
     end
 end
 
-# ============================================================================= 
-# Interface 
-# ============================================================================= 
+# ============================================================================
+# Interface
+# ============================================================================
 
 """
     ginterpolate(grid, target_grid)
 
-Create an interpolation object and compute interpolation weights, 
+Create an interpolation object and compute interpolation weights,
 that interpolate from the grid to the target grid.
 """
 ginterpolate(args...; kwargs...) = GridInterpolation(args...; kwargs...)

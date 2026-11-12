@@ -1,19 +1,14 @@
-# ============================================================================= 
+# ============================================================================
 # Meta + Physical parameter conversion functions
-# ============================================================================= 
+# ============================================================================
 
 include("_patch_meta.jl")
 include("_box_quants.jl")
 
-# ============================================================================= 
+# ============================================================================
 # Mesh construction
-# ============================================================================= 
+# ============================================================================
 
-"""
-    _build_cube_direct(patches)
-
-Build 3D cube from a list of patches. Prepare axis ranges
-"""
 function _build_cube_direct(patches)
 	# (x, y, z), (li, ui), (patches...)
 	patch_range = zeros(Int, 3, 2, length(patches))
@@ -43,42 +38,30 @@ function _build_cube_direct(patches)
 		p[3] = last(patches[i].zi)
 		patch_range[:, 2, i] .= _find_in_meshgrid(p, global_x, global_y, global_z)
 	end
-	
+
 	global_x, global_y, global_z, patch_range
 end
 
-# ============================================================================= 
+# ============================================================================
 # DISPATCH file reading
-# ============================================================================= 
+# ============================================================================
 
-"""
-    _var_from_patch_direct(var, fname, shp, off, li, ui, idxd)
-
-Read data from the binary file as a mmap. Directly call it into RAM.
-This is always okay because it is done patchwise.
-"""
 function _var_from_patch_direct(var, fname, shp, off, li, ui, idxd)
     varidx = idxd[String(var)] + 1
     Mmap.mmap(
-		fname, 
-		Array{Float32, length(shp)}, 
-		shp, 
+		fname,
+		Array{Float32, length(shp)},
+		shp,
 		off[varidx]
 	)[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
 end
 
-"""
-    _var_from_patch_direct(var, fname, shp, off, li, ui, idxd)
-
-Read data from the binary file as a mmap. Directly call it into RAM.
-This is always okay because it is done patchwise.
-"""
 function _var_from_patch_direct!(res, var, fname, shp, off, li, ui, idxd)
     varidx = idxd[String(var)] + 1
     res .= Mmap.mmap(
-		fname, 
-		Array{Float32, length(shp)}, 
-		shp, 
+		fname,
+		Array{Float32, length(shp)},
+		shp,
 		off[varidx]
 	)[li[1]:ui[1],li[2]:ui[2],li[3]:ui[3]]
 end
@@ -107,17 +90,10 @@ function _var_from_patch_direct_arr!(res, var, fname, shp, off, li, ui, idxd, bu
 	res
 end
 
-# ============================================================================= 
+# ============================================================================
 # Memory management
-# ============================================================================= 
+# ============================================================================
 
-"""
-    prepare_memory(dtype, shape, vars; folder, number, mmap=true)  
-    
-Prepare big arrays for the entire cube. If you don't have enough RAM use 
-`mmap=true`. In this case there will be HDF5 backed file and the data
-will be written piece-wise. Note that this is much slower!
-"""
 function prepare_memory(dtype, shape, vars; folder, number, mmap=false)
     if mmap
         _prepare_memory_mmap(dtype, shape, vars; folder, number)
@@ -132,64 +108,59 @@ function _prepare_memory_mmap(dtype, shape, vars; folder, number)
 
     for v in vars
         dset = HDF5.create_dataset(
-            fid, 
-            v, 
-            datatype(dtype), 
+            fid,
+            v,
+            datatype(dtype),
             dataspace(shape...), alloc_time = HDF5.H5D_ALLOC_TIME_EARLY
         )
     end
     HDF5.create_dataset(
-        fid, 
-        "x", 
-        datatype(dtype), 
+        fid,
+        "x",
+        datatype(dtype),
         dataspace(shape...), alloc_time = HDF5.H5D_ALLOC_TIME_EARLY
     )
     HDF5.create_dataset(
-        fid, 
-        "y", 
-        datatype(dtype), 
+        fid,
+        "y",
+        datatype(dtype),
         dataspace(shape...), alloc_time = HDF5.H5D_ALLOC_TIME_EARLY
     )
     HDF5.create_dataset(
-        fid, 
-        "z", 
-        datatype(dtype), 
+        fid,
+        "z",
+        datatype(dtype),
         dataspace(shape...), alloc_time = HDF5.H5D_ALLOC_TIME_EARLY
     )
 
     p = AtmosphericParameters(
-        Base.convert(dtype, -99.0), 
-        Base.convert(dtype, -99.0), 
-        Base.convert(dtype, -99.0), 
+        Base.convert(dtype, -99.0),
+        Base.convert(dtype, -99.0),
+        Base.convert(dtype, -99.0),
         Dict{Symbol, dtype}()
     )
     save(p, fid)
-    
+
     fid
 end
 
 function _prepare_memory_array(dtype, shape, vars; folder, number)
     fid = Dict()
-    
+
     for v in vars
         fid[String(v)] = zeros(dtype, shape...)
     end
     fid["x"] = zeros(dtype, shape...)
     fid["y"] = zeros(dtype, shape...)
     fid["z"] = zeros(dtype, shape...)
-    
+
     fid
 end
 
-# ============================================================================= 
+# ============================================================================
 # File I/O management
-# ============================================================================= 
+# ============================================================================
 
-"""
-    _check_files(iout, data, run, rundir)
-
-Check basic folders/ files exist for the given run.
-"""
 function _check_files(iout, data, run, rundir; check_existing=true)
     run = run=="" ? splitpath(rundir)[end] : run
 	rundir = isnothing(rundir) ? joinpath(data, run) : rundir
@@ -205,7 +176,7 @@ function _check_files(iout, data, run, rundir; check_existing=true)
 	file = joinpath(rundir, "params.nml")
     params_list = FreeNamelist(file)
 	files = [f for f in glob("*", datadir) if occursin("snapshot.nml", f)]
-	
+
 	if check_existing && length(files)==0
 		error("directory '$(datadir)' has no snapshot.nml file")
 	end
@@ -213,24 +184,19 @@ function _check_files(iout, data, run, rundir; check_existing=true)
 	run, rundir, datadir, params_list, files
 end
 
-"""
-    _snapshot_variables(files)
-
-Extract available variables and their index from the namelists.
-"""
 function _snapshot_variables(files)
 	snapshot_nmls = []
 	idxs = Dict()
 	for f in files
 		nml_list = FreeNamelist(f)
 		append!(snapshot_nmls, [nml_list])
-		
+
 		if :idx_nml in nmlFields(nml_list)
 			idx_dict = nmlField(nml_list, :idx_nml)
 
-			for key in keys(idx_dict)	
+			for key in keys(idx_dict)
 				if idx_dict[key] >= 0
-					idxs[key] = idx_dict[key] 
+					idxs[key] = idx_dict[key]
 				end
 			end
 		end
@@ -246,22 +212,16 @@ function _snapshot_variables(files)
 	snapshot_nml, variablesSym, idxVars, idxs
 end
 
-# ============================================================================= 
+# ============================================================================
 # EOS (DISPATCH format, not TSO.jl here)
-# ============================================================================= 
+# ============================================================================
 
-"""
-    _squaregaseos(run)
-
-Load the MUST EoS from the given run. If applicabale, please
-consider using the TSO EoS instead, which is faster and more convenient.
-"""
 function _squaregaseos(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
 	eos_path = if isnothing(eos_path)
 		if isfile(inputNamelist*".nml")
-			nml = FreeNamelist(inputNamelist*".nml") #StellarNamelist(inputNamelist*".nml")    
+			nml = FreeNamelist(inputNamelist*".nml") #StellarNamelist(inputNamelist*".nml")
 			@in_dispatch(replace(
-				nmlField(nml, :eos_params)["table_loc"], 
+				nmlField(nml, :eos_params)["table_loc"],
 				"'"=>""
 			))
 			#@in_dispatch(nmlField(inputNamelist, :eos_params))
@@ -279,15 +239,10 @@ function _squaregaseos(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
 	end
 end
 
-# ============================================================================= 
+# ============================================================================
 # Patch data
-# ============================================================================= 
+# ============================================================================
 
-"""
-    _patchmeta(datadir, rank_nmls, snapshot_nml)
-
-Collect meta data from all ranks.
-"""
 function _patchmeta(datadir, rank_nmls, snapshot_nml, newformat=false)
 	patchMeta = []
 	patchDataFiles = []
@@ -297,15 +252,13 @@ function _patchmeta(datadir, rank_nmls, snapshot_nml, newformat=false)
 	for rank in eachindex(rank_nmls)
 		rank_nml = rank_nmls[rank]
 		filename = joinpath(datadir, "snapshot_"*@sprintf("%05d", rank-1)*".dat")
-		
+
 		for p in eachindex(rank_nml)
 			pnml = rank_nml[p]
 			id = nmlValue(pnml, "id")
-			
+
 			auxname = newformat ? joinpath(datadir, "snapshot_"*@sprintf("%05d", rank-1)*".aux") : joinpath(datadir, @sprintf("%05d", id)*".aux")
-			#auxname = joinpath(datadir, @sprintf("%05d", id)*".aux")
 			if save_aux && isfile(auxname) &&(!newformat)
-				#@show auxname
 				aux = readaux(auxname)
 				append!(auxnames, [a.name for a in aux])
 				save_aux = false
@@ -320,13 +273,8 @@ function _patchmeta(datadir, rank_nmls, snapshot_nml, newformat=false)
 	patchMeta, patchDataFiles, patchAuxFiles, auxnames
 end
 
-"""
-    _patchdata!(args...)
-
-Assemble all data from all patches and save them in the big storage arrays.
-"""
-function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym, 
-	patchDataFiles, idxs, auxnames, patchAuxFiles, variablesAndAux, variablesDerived, 
+function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
+	patchDataFiles, idxs, auxnames, patchAuxFiles, variablesAndAux, variablesDerived,
 	quantities, eos_quantities, eos_sq, units, converters, l_conv, fid, lookup_generator=nothing, newformat=false)
 	# Lookup function can be generated from the input generator
 	# this is a useful hook to use EoS outside of MUST (e.g. TSO)
@@ -350,7 +298,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 
 		lookup_function, lkp!
 	end
-	
+
 	buffer = Array{Float32, length(Tuple(patchMeta[1].ncell))}(undef, Tuple(patchMeta[1].ncell))
 	active_auxfile = Ref("")
 	files_read = []
@@ -387,18 +335,18 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 					ui,
 					idxs,
 					buffer
-				) 
+				)
 			end
 		end
 
 		xx, yy, zz = @optionalTiming meshgridTime meshgrid(patch.xi, patch.yi, patch.zi)
-		
+
 		@optionalTiming auxTime if length(auxnames) > 0
 			aux = readaux(faux, newformat=newformat, nvars=length(auxnames))
 			for a in aux
 				asym = Symbol(a.name)
 				if asym in variablesAndAux
-					temp_storage[asym] .= a.data[liwg[1]:uiwg[1],liwg[2]:uiwg[2],liwg[3]:uiwg[3]] 
+					temp_storage[asym] .= a.data[liwg[1]:uiwg[1],liwg[2]:uiwg[2],liwg[3]:uiwg[3]]
 				end
 			end
 		end
@@ -406,7 +354,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 		# Check if there are derived variables that we need to add
 		@optionalTiming derivedVariablesTime for d in variablesDerived
 			if !(String(d.name) in auxnames)
-				temp_storage[d.name] .= d.recipe(; 
+				temp_storage[d.name] .= d.recipe(;
 					temp_storage...
 				)
 			end
@@ -444,7 +392,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 		end
 
 		@optionalTiming saveToStructureTime for d in quantities
-			var = String(d.name)			
+			var = String(d.name)
 			_save_to_structure!(fid[var], r, temp_storage[d.name])
 		end
 
@@ -462,9 +410,9 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 	end
 end
 
-# ============================================================================= 
-# Store data 
-# =============================================================================
+# ============================================================================
+# Store data
+# ============================================================================
 
 @inline function _save_to_structure!(fid, r, arr)
     fid[r[1,1]:r[1,2], r[2,1]:r[2,2], r[3,1]:r[3,2]] = arr
@@ -484,7 +432,7 @@ function _save_box(number, fid, time, logg, folder)
 
 	HDF5.delete_object(fid, "teff")
     fid["teff"] = teff
-    
+
     close(fid)
 end
 
@@ -495,9 +443,9 @@ function _save_box(number, fid::Dict, time, logg, folder)
 	teff = _get_teff_from_fid(fid)
 
     p = AtmosphericParameters(
-        Base.convert(dtype, time), 
-        Base.convert(dtype, teff), 
-        Base.convert(dtype, logg), 
+        Base.convert(dtype, time),
+        Base.convert(dtype, teff),
+        Base.convert(dtype, logg),
         Dict{Symbol, dtype}()
     )
 
@@ -520,9 +468,9 @@ function _to_box(number, fid::Dict, time, logg, folder)
 	teff = _get_teff_from_fid(fid)
 
     p = AtmosphericParameters(
-        Base.convert(dtype, time), 
-        Base.convert(dtype, teff), 
-        Base.convert(dtype, logg), 
+        Base.convert(dtype, time),
+        Base.convert(dtype, teff),
+        Base.convert(dtype, logg),
         Dict{Symbol, dtype}()
     )
 
@@ -549,28 +497,28 @@ _get_teff_from_fid(fid, flux_name="flux") = begin
 	end
 end
 
-# ============================================================================= 
+# ============================================================================
 # Interface
-# =============================================================================
+# ============================================================================
 
 """
     Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing, mmap=false, save_snapshot=false)
 
-Read and convert data from the given run, saved in the given data folder. This function entirely relies 
-on julia functions and does not use the dispatch python interface. 
+Read and convert data from the given run, saved in the given data folder. This function entirely relies
+on julia functions and does not use the dispatch python interface.
 Quantities by default are d, e, ux, uy, uz, ee, dt, flux, and whatever is available in the EoS. To add more quantites see the `MUST.Quantity` type.
 __Note__: TSO hooks are included to use the TSO EoS interface directly by passing the suitable `eos_reader` and `lookup_generator`.
 This is implemented for you and ready to be used in the ingredient `convert2must.jl`. Without using this ingredient, the dafault setup will be used,
 which is the `MUST` EoS reader.
 """
-function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, 
-	quantities=defaultQuantities, 
-	eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing, 
-	mmap=false, save_snapshot=false)	
+function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
+	quantities=defaultQuantities,
+	eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing,
+	mmap=false, save_snapshot=false)
 	# check the inputs
     run, rundir, datadir, params_list, files = @optionalTiming checkFilesTime _check_files(iout, data, run, rundir)
 
-	mmap = if !save_snapshot 
+	mmap = if !save_snapshot
 		false
 	else
 		mmap
@@ -601,9 +549,9 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
     logg = Base.convert(Float32, log10.(abs.(nmlValue(params_list, "g_cgs"))))
 	time = Base.convert(Float32, nmlValue(snapshot_nml, "time")) * units.t
 
-    # Use the Squaregas EOS 
+    # Use the Squaregas EOS
     eos_sq, eos_quantities = eos_reader(run)
-	
+
 	# First we read the meta data so that we can build the data cube
 	patchMeta, patchDataFiles, patchAuxFiles, auxnames = @optionalTiming patchMetaTime _patchmeta(
 		datadir, rank_nmls, snapshot_nml, newformat
@@ -616,19 +564,16 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 	else
 		auxnames
 	end
-	
+
 	# decide if there are quantities to skip because there is no aux data for them
 	# and they can not be derived otherwise
 	variableMaskOk = [ (!q.derived)|(q.name in Symbol.(auxnames))|(!isnothing(q.recipe)) for q in quantities]
-	#if count(.!variableMaskOk) > 0
-	#	@warn "Exluding $(varnames(quantities)[.!variableMaskOk]) because they are derived, not available as aux parameters and no recipe to derive them was given."
-	#end
 	quantities = quantities[variableMaskOk]
 
 	# build the 3D cube from patch meta data
 	global_x, global_y, global_z, patch_range = @optionalTiming buildCubeTime _build_cube_direct(patchMeta)
 	shape = length.([global_x, global_y, global_z])
-		
+
 	# prepare the HDF5 file for the final box
 	variablesAndAux = [varnames(quantities)..., eos_quantities...]
 	variablesDerived = derived(quantities)
@@ -636,7 +581,7 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 		Float32, shape, String.(variablesAndAux); folder=rundir, number=iout,
 		mmap=mmap
 	)
-	
+
 	# After building the cube we read the data
 	# the data can directly be added to the hdf5 box
 	r = zeros(Int, 3, 2)
@@ -644,26 +589,26 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 	ui = patchMeta[1].ui
 	n = ui .- (li .- 1)
 	temp_storage = Dict{Symbol, Any}(
-		k=>zeros(Float32, n...) 
+		k=>zeros(Float32, n...)
 		for k in unique([variablesSym..., variablesAndAux...])
 	)
 	temp_storage[:logd] = deepcopy(temp_storage[:d])
 	temp_storage[:logee] = deepcopy(temp_storage[:ee])
 
 	@optionalTiming patchDataTime _patchdata!(
-		temp_storage, 
+		temp_storage,
 		r,
-		patchMeta, 
-		patch_range, 
-		variablesSym, 
-		patchDataFiles, 
-		idxs, 
-		auxnames, 
-		patchAuxFiles, 
-		variablesAndAux, 
-		variablesDerived, 
-		quantities, 
-		eos_quantities, 
+		patchMeta,
+		patch_range,
+		variablesSym,
+		patchDataFiles,
+		idxs,
+		auxnames,
+		patchAuxFiles,
+		variablesAndAux,
+		variablesDerived,
+		quantities,
+		eos_quantities,
 		eos_sq,
 		units,
 		converters,
@@ -675,7 +620,6 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 
 	@optionalTiming saveSnapshotTime if save_snapshot
 		_save_box(iout, fid, time, logg, rundir)
-		# return the mmaped box
 		Box(
 			"box_sn$(iout)",
 			folder=rundir
@@ -685,9 +629,9 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 	end
 end
 
-# ============================================================================= 
+# ============================================================================
 # Timers
-# ============================================================================= 
+# ============================================================================
 
 checkFilesTime = Ref(false)
 snapshotVariablesTime = Ref(false)

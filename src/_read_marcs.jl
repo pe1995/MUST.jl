@@ -31,8 +31,8 @@ MARCSModel(path::String) = begin
         abundances = [a for a in abundances if a!=""]
 
         structure = read_marcs_sub_table(
-            f, 
-            start_at = "Model structure", 
+            f,
+            start_at = "Model structure",
             end_at = "Assorted logarithmic partial pressures"
         )
 
@@ -116,12 +116,12 @@ function marcsBox(path::String)
     yy = zeros(1, 1, model.k)
     zz = reshape(model.structure["Depth"], 1, 1, :)
 
-    d = reshape(model.structure["Density"], 1, 1, :) 
-    T = reshape(model.structure["T"], 1, 1, :)    
-    t = exp10.(reshape(model.structure["lgTauR"], 1, 1, :))    
-    t5 = exp10.(reshape(model.structure["lgTau5"], 1, 1, :))    
+    d = reshape(model.structure["Density"], 1, 1, :)
+    T = reshape(model.structure["T"], 1, 1, :)
+    t = exp10.(reshape(model.structure["lgTauR"], 1, 1, :))
+    t5 = exp10.(reshape(model.structure["lgTau5"], 1, 1, :))
     pr = reshape(model.structure["Prad"], 1, 1, :)
-    pg = reshape(model.structure["Pg"], 1, 1, :)    
+    pg = reshape(model.structure["Pg"], 1, 1, :)
 
     ne = reshape(model.structure["Pe"], 1, 1, :) ./ (KBoltzmann .* T)
 
@@ -136,11 +136,6 @@ function marcsBox(path::String)
     Box(xx, yy, zz, data, AtmosphericParameters())
 end
 
-"""
-	marcs_parameters_from_name(marcs_path)
-
-Extract stellar parameters from the name of the model.
-"""
 marcs_parameters_from_name(marcs_path) = begin
 	name = first(split(marcs_path, ".mod"))
 	name = split(name, "_", keepempty=false)
@@ -150,7 +145,7 @@ marcs_parameters_from_name(marcs_path) = begin
 	turb = parse(Float64, name[4][2:end])
 	alpha = parse(Float64, name[7][2:end])
 	sorp = name[1][1]
-	
+
     ModelInformation(
         teff=T,
         logg=g,

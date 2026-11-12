@@ -40,7 +40,6 @@ function _write_atmos_multi(b, path, eos=nothing; downsample_xy=1, downsamlpe_z=
 
     if !haskey(b.data, :ne)
         if !isnothing(eos)
-            #@info "recomputing Ne"
             for k in axes(res, 3)
                 for j in axes(res,2 )
                     for i in axes(res, 1)
@@ -101,7 +100,7 @@ function _read_mesh_multi(path)
     end
 end
 
-function _read_atmos_multi(path, n)    
+function _read_atmos_multi(path, n)
     r  = zeros(Float32, n..., 6)
     ne = zeros(Float32, n...)
     T  = zeros(Float32, n...)
@@ -123,20 +122,15 @@ function _read_atmos_multi(path, n)
 end
 
 # ============================================================================
-# Average Box for M3D 
+# Average Box for M3D
 # ============================================================================
 
-"""
-    save_text_m3d(z, T, ρ, f_new; header=nothing, vmic=zeros(length(z)))
-
-Save the model in a format readable by M3D.
-"""
 save_text_m3d(f_new, z, ρ, T; header=nothing, vmic=zeros(length(z)), pe=zeros(length(z))) = begin
     open(f_new, "w") do f
         h = isnothing(header) ?  "Average 3D" : header
 		write(f, h*"\n")
 		write(f, "$(length(z))\n")
-		
+
 		for i in eachindex(z)
 			line = @sprintf "%15.6E  %10.1f  %14.4E  %14.4E  %5.2f\n" z[i] T[i] pe[i] ρ[i] vmic[i]
 			write(f, line)
@@ -144,16 +138,10 @@ save_text_m3d(f_new, z, ρ, T; header=nothing, vmic=zeros(length(z)), pe=zeros(l
 	end
 end
 
-"""
-    save_average_m3d(b::Box, scale, f_new; header=nothing)
-
-Save the average geometical model in a format readable by M3D.
-"""
 save_average_m3d(b::Box, scale, f_new; recompute_ne_func=nothing, kwargs...) = begin
     z, ρ, T, ne, pe, vmic = average!(b, scale=scale)
 
     ne, pe = if !isnothing(recompute_ne_func)
-        #@info "Recomputing electron density based on averaged ρ and T ($scale scale)."
         ne_re = recompute_ne_func(ρ, T)
         pe_re = ne_re .* KBoltzmann .* T
 
@@ -164,7 +152,7 @@ save_average_m3d(b::Box, scale, f_new; recompute_ne_func=nothing, kwargs...) = b
 
     # convert vmic to km/s
     vmic = vmic ./ 1e5
-    save_text_m3d(f_new, z, ρ, T; vmic=vmic, pe=pe, kwargs...) 
+    save_text_m3d(f_new, z, ρ, T; vmic=vmic, pe=pe, kwargs...)
 end
 
 save_tau500_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :log10τ500, f_new; kwargs...)
@@ -175,11 +163,6 @@ save_geo_average_m3d(b::Box, f_new; kwargs...) = save_average_m3d(b, :z, f_new; 
 # Average Box for M1D
 # ============================================================================
 
-"""
-    save_text_m1d(τ, T, ne, f_new; logg, header=nothing, vmic=zeros(length(z)))
-
-Save the model in a format readable by M3D.
-"""
 save_text_m1d(f_new, τ, T, ne; logg, header=nothing, information=nothing, vmic=zeros(length(τ)), v=zeros(length(τ))) = begin
     open(f_new, "w") do f
         h = isnothing(header) ? "Average 3D" : header
@@ -192,7 +175,7 @@ save_text_m1d(f_new, τ, T, ne; logg, header=nothing, information=nothing, vmic=
 		write(f, "* Number of depth points\n")
 		write(f, "  $(length(τ))\n")
 		write(f, "* log10 tau (500nm), temperature [K], electron density [particles cm-3], v [km s-1], microturbulence [km s-1]\n")
-		
+
 		for i in eachindex(τ)
 			line = @sprintf "  %15.6E  %15.6E  %15.6E  %.1f  %15.6E\n" τ[i] T[i] ne[i] v[i] vmic[i]
 			write(f, line)
@@ -200,17 +183,12 @@ save_text_m1d(f_new, τ, T, ne; logg, header=nothing, information=nothing, vmic=
 	end
 end
 
-"""
-    save_text_m1d(τ, T, ne, f_new; logg, header=nothing, vmic=zeros(length(z)))
-
-Save the model in a format readable by M3D.
-"""
 save_text_m1d_dscale(f_new, τ; header=nothing, kwargs...) = begin
     open(f_new, "w") do f
         h = isnothing(header) ? "Average 3D" : header
 		write(f, "  "*h*"\n")
 		write(f, "  TAU\n")
-		write(f, "  $(length(τ))     $(first(τ))\n")		
+		write(f, "  $(length(τ))     $(first(τ))\n")
 		for i in eachindex(τ)
 			line = @sprintf "  %15.6E\n" τ[i]
 			write(f, line)
@@ -218,16 +196,10 @@ save_text_m1d_dscale(f_new, τ; header=nothing, kwargs...) = begin
 	end
 end
 
-"""
-    save_geo_average_m3d(b::Box, f_new; header=nothing)
-
-Save the average geometical model in a format readable by M3D.
-"""
 save_tau_average_m1d(b::Box, f_new; recompute_ne_func=nothing, information="", kwargs...) = begin
     logτ, ρ, T, ne, pe, vmic = average!(b, scale=:log10τ500)
 
     ne, pe, infotext = if !isnothing(recompute_ne_func)
-        #@info "Recomputing electron density based on averaged ρ and T (log10τ500 scale)."
         ne_re = recompute_ne_func(ρ, T)
         pe_re = ne_re .* KBoltzmann .* T
 
@@ -246,10 +218,6 @@ save_tau_average_m1d(b::Box, f_new; recompute_ne_func=nothing, information="", k
 
     # convert vmic to km/s
     vmic = vmic ./ 1e5
-    save_text_m1d(f_new_atmos, logτ, T, ne; vmic=vmic, information=length(information)==0 ? infotext : information*"\n"*infotext, kwargs...) 
-    save_text_m1d_dscale(f_new_dscale, logτ; kwargs...) 
+    save_text_m1d(f_new_atmos, logτ, T, ne; vmic=vmic, information=length(information)==0 ? infotext : information*"\n"*infotext, kwargs...)
+    save_text_m1d_dscale(f_new_dscale, logτ; kwargs...)
 end
-
-
-
-

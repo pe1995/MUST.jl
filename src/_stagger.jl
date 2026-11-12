@@ -1,6 +1,6 @@
-# ============================================================================= 
+# ============================================================================
 # Stagger module from Mikolaj
-# =============================================================================
+# ============================================================================
 
 const stagger_endian = Ref("big-endian")
 mutable struct StaggerMesh
@@ -106,10 +106,6 @@ mutable struct StaggerEOS
         # read (12) mtable
         # allocate (tab(mtable))
         # read (12) (tab(i), i=1,mtable)
-        # if (master) print *, 'init_eos: read   ', mtable, ' table values'
-        # if (master) print *, 'init_eos: rho limits   =',rhm(1),rhm(mrho)
-        # if (master) print *, 'init_eos: ee  limits   =',eemin(1),eemax(1)
-        # if (master) print *, 'init_eos: T0_ideal, ee =',T0_ideal,ee0
         # close (12)
 
         f = FortranFile(eos_file);
@@ -266,7 +262,7 @@ function StaggerAux2BifrostAux(snap::StaggerSnap; cutlb::Int64 = 0, cutub::Int64
     f = FortranFile(bifrost_name(snap.aux_file), "w", access="direct", recl=fmesh.n*4);
 
     tmp = exp.(snap.data["lpp"])
-    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=1)   
+    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=1)
 
     tmp = exp.(snap.data["ltemp"])
     write(f, tmp[:,:,1+cutlb:end-cutub]; rec=2);
@@ -286,7 +282,6 @@ function BifrostSnap(filename, folder="../input_data/")
     for (i,para) in enumerate(order)
         try
             result[para] = br_arr_ffile(dat_file,mesh, rpos=i)
-            #reverse!(result[para]; dims=3)
         catch e
             if isa(e, EOFError)
                 @warn "$(para) not present."
@@ -295,13 +290,12 @@ function BifrostSnap(filename, folder="../input_data/")
             end
         end
     end
-    result["ee"] = result["e"] ./ result["r"] 
+    result["ee"] = result["e"] ./ result["r"]
 
     aux_order = ["lpp", "ltemp"]
     for (i,para) in enumerate(aux_order)
         try
             result[para] = br_arr_ffile(aux_file, mesh, rpos=i)
-            #reverse!(result[para]; dims=3)
         catch e
             if isa(e, EOFError)
                 @warn "$(para) not present."
@@ -314,9 +308,6 @@ function BifrostSnap(filename, folder="../input_data/")
     StaggerSnap(mesh_file, dat_file, aux_file, mesh, result, order)
 end
 
-"""
-Read a Stagger Snapshot from .msh and .dat files.
-"""
 function StaggerSnap(filename, folder="../input_data/")
     mesh_file = joinpath(folder,filename*".msh")
     dat_file  = joinpath(folder,filename*".dat")
@@ -335,26 +326,22 @@ function StaggerSnap(filename, folder="../input_data/")
     for (i,para) in enumerate(order)
         try
             result[para] = permutedims(br_arr_ffile(dat_file,mesh, rpos=i),[3,1,2])[:,:,2:end-1]
-            #reverse!(result[para]; dims=3)
         catch e
             if isa(e, EOFError)
-                #@warn "$(para) not present."
                 nothing
             else
                 error("Reading Failed.")
             end
         end
     end
-    result["ee"] = result["e"] ./ result["r"] 
+    result["ee"] = result["e"] ./ result["r"]
 
     aux_order = ["lpp", "lross", "ltemp", "lne", "lplanck", "ltau"]
     for (i,para) in enumerate(aux_order)
         try
             result[para] = permutedims(br_arr_ffile(aux_file, mesh, rpos=i),[3,1,2])[:,:,2:end-1]
-            #reverse!(result[para]; dims=3)
         catch e
             if isa(e, EOFError)
-                #@warn "$(para) not present."
                 nothing
             else
                 throw(e)
@@ -365,24 +352,18 @@ function StaggerSnap(filename, folder="../input_data/")
     StaggerSnap(mesh_file, dat_file, aux_file, StaggerMesh(mesh, 1, 1), result, order)
 end
 
-"""
-Apply the scaling in converters to snap (This is not ideal yet, should make it more flexible)
-"""
 function normalize!(snap, converter::AtmosUnits, paras...; reverse=false)
 	operation(a,b) = reverse ? a ./ b : a .* b
-	for p in paras 
-		p == "r" ? 
+	for p in paras
+		p == "r" ?
 		snap.data["r"] = operation(snap.data["r"],converter.d) : nothing
-		p == "ee" ? 
+		p == "ee" ?
 		snap.data["ee"] = operation(snap.data["ee"],converter.ee) : nothing
-		p == "e" ? 
+		p == "e" ?
 		snap.data["e"] = operation(snap.data["e"],converter.e) : nothing
 	end
 end
 
-"""
-Lookup para in the given EOS using use_paras as variables.
-"""
 function get_from_eos(snap::StaggerSnap,eos,para="T",use_paras=["r","e"]; use_log=[true,true])
     snap_size = size(snap.data[snap.order[1]])
     result    = similar(snap.data[snap.order[1]])
@@ -395,7 +376,7 @@ function get_from_eos(snap::StaggerSnap,eos,para="T",use_paras=["r","e"]; use_lo
                     result[i,j,k] = eos.lookup(para,
                                             do_log[1](snap.data[use_paras[1]][i,j,k]),
                                             do_log[2](snap.data[use_paras[2]][i,j,k]))
-                catch 
+                catch
                     result[i,j,k] = NaN32
                 end
             end
@@ -404,9 +385,6 @@ function get_from_eos(snap::StaggerSnap,eos,para="T",use_paras=["r","e"]; use_lo
     result
 end
 
-"""
-Container for Python stagger snap (usefull for dispatching)
-"""
 struct StaggerLegacySnap
     snap::Py
 end
@@ -424,7 +402,7 @@ function getindex(s::StaggerSnap, key::Symbol)
     elseif key == :py
         s.data["px"]
     elseif key == :pz
-        s.data["py"] 
+        s.data["py"]
     elseif key == :x
         s.mesh.z
     elseif key == :y

@@ -4,5 +4,7 @@ const HPlanck    = 6.6260755E-27               # Planck's constant [erg s]
 const aa_to_cm   = 1.0e-8
 const σ_S        = 5.6704e-5
 
-#= timer related stuff =#
+# ============================================================================
+# timer related stuff
+# ============================================================================
 const generalTimer = TimerOutput()

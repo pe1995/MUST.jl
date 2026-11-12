@@ -8,9 +8,8 @@ dispatch = PythonCall.pynew()
 tumult = PythonCall.pynew()
 m3dis = tumult
 
-
 """
-Load the dispatch module. Either the global location is used or 
+Load the dispatch module. Either the global location is used or
 a specific path is given to the function. If submodules are listed, those are
 imported only.
 """
@@ -35,13 +34,9 @@ macro import_dispatch(location=nothing,submodules...)
 	end
 end
 
-"""
-Load the dispatch module. Either the global location is used or 
-a specific path is given to the function
-"""
 function _import_dispatch(location::Union{Nothing,String}=nothing, submodules=[])
     location = isnothing(location) ? joinpath(abspath(pwd()),"../../../dispatch2") : location
-    
+
     # Import sys and os, add to path and import dispatch
     os  = pyimport("os")
 	sys = pyimport("sys")
@@ -53,13 +48,12 @@ function _import_dispatch(location::Union{Nothing,String}=nothing, submodules=[]
 	else
 		throw(error("$(dispatch_location) is not a dispatch installation."))
 	end
-		
+
 	if !(dispatch_python_path in sys."path")
 		sys."path".append(dispatch_python_path)
 		sys."path".append(os."path".join(dispatch_python_path, Py("dispatch")))
 	end
-	
-	
+
 	if length(submodules) == 0
 		PythonCall.pycopy!(dispatch, pyimport("dispatch"))
 		return dispatch
@@ -103,31 +97,30 @@ function _snapshot_folder(i_snap::Int, list_of_files::Vector{String})
 			catch
 				continue
 			end
-			
-			if (snap_int == i_snap) 
-				snap_str=list_of_files[i] 
-				break 
+
+			if (snap_int == i_snap)
+				snap_str=list_of_files[i]
+				break
 			end
 		end
 	end
-	
+
 	(snap_str == "") ? error("Snapshot $(i_snap) not found.") : nothing
 	snap_str
 end
 
-# ============================================================================= 
-# MULTI related functionality 
-# ============================================================================= 
+# ============================================================================
+# MULTI related functionality
+# ============================================================================
 
 """
-Load the dispatch module. Either the global location is used or 
+Load the dispatch module. Either the global location is used or
 a specific path is given to the function. If submodules are listed, those are
 imported only.
 """
 macro import_tumult(location=nothing,submodules...)
 	location_l    = esc(location)
 	submodules_l  = esc(submodules)
-	#dispatch_name = esc(:m3dis)
 	dispatch_name = esc(:tumult)
 	submodules_e  =[esc(m) for m in submodules]
 	expressions   = []
@@ -148,10 +141,6 @@ end
 
 const var"@import_m3dis" = var"@import_tumult"
 
-"""
-Load the dispatch module. Either the global location is used or 
-a specific path is given to the function
-"""
 function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
 	location = isnothing(location) ? joinpath(abspath(pwd()),"../../../m3dis/experiments/Multi3D") : location
 
@@ -160,7 +149,6 @@ function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
 	sys = pyimport("sys")
 	global multi_location = abspath(pyconvert(String, os.getenv("D", location)))
 
-	#multi_python_path = if isdir(joinpath(multi_location, "experiments/Multi3D/m3dis"))
 	multi_python_path = if isdir(joinpath(multi_location, "experiments/Multi3D/tumult"))
 		global multi_experiment_location = joinpath(multi_location, "experiments/Multi3D")
 		os."path".abspath(os."path".join(os.getenv("D", location), "experiments/Multi3D"))
@@ -169,10 +157,9 @@ function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
 	else
 		throw(error("$(multi_location) is not a tumult installation."))
 	end
-		
+
 	if !(multi_python_path in sys."path")
 		sys."path".append(multi_python_path)
-		#append!(sys."path",[joinpath(multi_python_path, "m3dis")])
 	end
 	# tumult imports the hopacity package, which lives in <OpenMULTI3D>/HOP
 	hop_python_path = os."path".join(multi_python_path, "HOP")

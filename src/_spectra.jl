@@ -1,8 +1,3 @@
-"""
-    MeanSpectrum(λ,spectrum,composition,kind,model_info)
-
-Mean spectrum type for any kind of average spectrum.
-"""
 struct MeanSpectrum
     λ
     spectrum
@@ -35,7 +30,7 @@ MeanSpectra(path) = begin
     model_info = Dict{String}{Any}()
     for (p, v) in zip(params, params_vals)
         model_info[p] = try
-            parse(Float64, v) 
+            parse(Float64, v)
         catch
             v
         end
@@ -49,13 +44,6 @@ MeanSpectra(path) = begin
     sort_on_composition([MeanSpectrum(data[!,"# wavelength"][:], data[!, c][:], abundance_from_composition_string(c, split_on='_'), kind, model_info) for c in comps])
 end
 
-
-"""
-    sort_on_composition(spectra, element=nothing)
-
-Sort a list of spectra based on the composition of the given element ([X/Fe]).
-Uses the elements in order of number of appearances in all spectra entries of the list, if no element is given.
-"""
 sort_on_composition(spectra, element=nothing) = begin
     c = [s.composition for s in spectra]
     all_elements = unique(vcat([keys(comp)|>collect for comp in c]...))
@@ -102,11 +90,6 @@ sortperm_on_composition_strings(spectra, element=nothing; kwargs...) = begin
     end
 end
 
-"""
-    interpolate(spectra, abundance)
-
-Interpolate in `MeanSpectra` to the given abundance. Please specify e.g. ("[C/Fe]"=>val)
-"""
 function interpolate(spectra::Vector{S}, abundance) where {S<:MeanSpectrum}
     el = Symbol(first(abundance))
     target = last(abundance)
@@ -131,7 +114,6 @@ function interpolate(spectra::Vector{S}, abundance) where {S<:MeanSpectrum}
     end
 
     # interpolate in abundance wavelength by wavelength
-    #ip = [linear_interpolation(ab, vals[:, i]).(target) for i in eachindex(λ_common)]
     ip = zeros(eltype(vals), length(λ_common))
     @inbounds for i in eachindex(λ_common)
         ip[i] = linear_interpolation(ab, vals[:, i], extrapolation_bc=Line())(target)
@@ -140,19 +122,8 @@ function interpolate(spectra::Vector{S}, abundance) where {S<:MeanSpectrum}
     MeanSpectrum(λ_common, ip, Dict(el=>target), first(spectra).kind, first(spectra).model_info)
 end
 
-
-"""
-    is_mean_spectrum(path, tag; kind="flux", norm=false) = begin
-
-Check if the given path is a MeanSpectrum compatible file.
-"""
 is_mean_spectrum(path, tag; kwargs...) = is_mean_spectrum(path; tag=tag, kwargs...)
 
-"""
-    is_mean_spectrum(path; tag=nothing, kind="flux", norm=false) = begin
-
-Check if the given path is a MeanSpectrum compatible file.
-"""
 is_mean_spectrum(path; tag="", kind="flux", norm=false, angle=nothing) = begin
     s, is_readable = try
         MeanSpectra(path)[1], true
@@ -167,7 +138,7 @@ is_mean_spectrum(path; tag="", kind="flux", norm=false, angle=nothing) = begin
 	t = s.model_info["tag"]
     n = s.model_info["normalized"]
     a = s.model_info["angle"]
-    angle = isnothing(angle) ? a : angle 
-    
+    angle = isnothing(angle) ? a : angle
+
 	(is_main_tag(tag, t) && (kind==p) && (norm==n) && (angle≈a))
 end

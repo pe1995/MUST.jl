@@ -1,50 +1,45 @@
-# ============================================================================= 
+# ============================================================================
 # Namelist Types
-# =============================================================================
+# ============================================================================
 
 abstract type AbstractNamelist end
 
 mutable struct StellarNamelist <: AbstractNamelist
-    snapshot_params      ::Dict{String,Any}      
-    cartesian_params     ::Dict{String,Any}             
-    patch_params         ::Dict{String,Any}  
-    experiment_params    ::Dict{String,Any}  
-    scaling_params       ::Dict{String,Any}  
-    stellar_params       ::Dict{String,Any}               
-    newton_params        ::Dict{String,Any}  
-    friction_params      ::Dict{String,Any}  
-    boundary_params      ::Dict{String,Any}                   
-    gravity_params       ::Dict{String,Any}  
-    pressure_node_params ::Dict{String,Any}  
-    rt_integral_params   ::Dict{String,Any}  
-    sc_rt_params         ::Dict{String,Any}           
-    restart_params       ::Dict{String,Any}  
-    io_params            ::Dict{String,Any}                  
-    aux_params           ::Dict{String,Any}  
-    eos_params           ::Dict{String,Any}  
-    bifrost_params       ::Dict{String,Any}                
-    ramses_params        ::Dict{String,Any}  
-    stagger_params       ::Dict{String,Any}           
-    divb_clean_params    ::Dict{String,Any}  
-    halo_params          ::Dict{String,Any}  
-    timer_params         ::Dict{String,Any}  
-    lock_params          ::Dict{String,Any} 
-    task_list_params     ::Dict{String,Any} 
-    an_params            ::Dict{String,Any} 
-    dispatcher0_params   ::Dict{String,Any} 
+    snapshot_params      ::Dict{String,Any}
+    cartesian_params     ::Dict{String,Any}
+    patch_params         ::Dict{String,Any}
+    experiment_params    ::Dict{String,Any}
+    scaling_params       ::Dict{String,Any}
+    stellar_params       ::Dict{String,Any}
+    newton_params        ::Dict{String,Any}
+    friction_params      ::Dict{String,Any}
+    boundary_params      ::Dict{String,Any}
+    gravity_params       ::Dict{String,Any}
+    pressure_node_params ::Dict{String,Any}
+    rt_integral_params   ::Dict{String,Any}
+    sc_rt_params         ::Dict{String,Any}
+    restart_params       ::Dict{String,Any}
+    io_params            ::Dict{String,Any}
+    aux_params           ::Dict{String,Any}
+    eos_params           ::Dict{String,Any}
+    bifrost_params       ::Dict{String,Any}
+    ramses_params        ::Dict{String,Any}
+    stagger_params       ::Dict{String,Any}
+    divb_clean_params    ::Dict{String,Any}
+    halo_params          ::Dict{String,Any}
+    timer_params         ::Dict{String,Any}
+    lock_params          ::Dict{String,Any}
+    task_list_params     ::Dict{String,Any}
+    an_params            ::Dict{String,Any}
+    dispatcher0_params   ::Dict{String,Any}
 end
 
 mutable struct SnapshotNamelist <: AbstractNamelist
-    io_nml       ::Dict{String,Any}  
-    snapshot_nml ::Dict{String,Any}  
-    idx_nml      ::Dict{String,Any}  
+    io_nml       ::Dict{String,Any}
+    snapshot_nml ::Dict{String,Any}
+    idx_nml      ::Dict{String,Any}
 end
 
-"""
-    M3DNamelist()
-
-Default namelist for M3D computations.
-"""
 mutable struct M3DNamelist <: MUST.AbstractNamelist
     io_params            ::Dict{String,Any}
     timer_params         ::Dict{String,Any}
@@ -66,18 +61,13 @@ mutable struct M3DNamelist <: MUST.AbstractNamelist
     line_mask            ::Dict{String,Any}
 end
 
-"""
-    FreeNamelist()
-
-Namelist with no limitations on the fields it contains.
-"""
 mutable struct FreeNamelist <: MUST.AbstractNamelist
-    data ::Dict{Symbol,Any}   
+    data ::Dict{Symbol,Any}
 end
 
-# ============================================================================= 
+# ============================================================================
 # Interface
-# =============================================================================
+# ============================================================================
 
 nmlFields(nml::AbstractNamelist) = fieldnames(typeof(nml))
 nmlFields(nml::FreeNamelist) = keys(nml.data)
@@ -100,7 +90,6 @@ nmlParameter(nml::AbstractNamelist, para) = begin
     if length(keys(matches)) == 0
         @warn "No paramter $(para) found."
     elseif length(matches) > 1
-        #@warn "More than one paramter $(para) found. Consider using `nmlField` with the correct field."
     end
 
     matches
@@ -115,9 +104,9 @@ nmlValue(nml::AbstractNamelist, para) = begin
     end
 end
 
-# ============================================================================= 
+# ============================================================================
 # Constructors
-# =============================================================================
+# ============================================================================
 
 M3DNamelist() = M3DNamelist([Dict{String,Any}() for f in fieldnames(M3DNamelist)]...)
 M3DNamelist(path::String) = begin
@@ -127,26 +116,26 @@ M3DNamelist(path::String) = begin
 end
 
 StellarNamelist() = StellarNamelist([Dict{String,Any}() for f in fieldnames(StellarNamelist)]...)
-StellarNamelist(path::String) = begin 
+StellarNamelist(path::String) = begin
     s = StellarNamelist()
     read!(s, path)
     s
 end
 
 SnapshotNamelist() = SnapshotNamelist([Dict{String,Any}() for f in fieldnames(SnapshotNamelist)]...)
-SnapshotNamelist(path::String) = begin 
+SnapshotNamelist(path::String) = begin
     s = SnapshotNamelist()
     read!(s, path)
     s
 end
 
 FreeNamelist() = FreeNamelist(Dict{Symbol, Any}())
-FreeNamelist(path::String; buzzword=nothing) = begin 
+FreeNamelist(path::String; buzzword=nothing) = begin
     s = FreeNamelist()
     read!(s, path, buzzword=buzzword)
     s
 end
-FreeNamelist(path::String, stack) = begin 
+FreeNamelist(path::String, stack) = begin
     i = 1
     nmls = []
     while true
@@ -164,20 +153,20 @@ FreeNamelist(path::String, stack) = begin
     nmls
 end
 
-# ============================================================================= 
+# ============================================================================
 # Utility Functions for Namelists
-# =============================================================================
+# ============================================================================
 
 function read!(nml::AbstractNamelist, path::String; buzzword=nothing)
     content = Dict{Symbol, Dict{String, Any}}()
     raw_text = read(path, String)
-    
+
     text_no_comments = Char[]
     masked_text = Char[]
-    
+
     in_sq, in_dq = false, false
     in_comment = false
-    
+
     for c in raw_text
         if in_comment
             if c == '\n'
@@ -187,35 +176,35 @@ function read!(nml::AbstractNamelist, path::String; buzzword=nothing)
             end
             continue
         end
-        
+
         # Toggle string states
         if c == '\'' && !in_dq; in_sq = !in_sq; end
         if c == '"'  && !in_sq; in_dq = !in_dq; end
-        
+
         # Skip comments (unless the '!' is inside a string)
         if c == '!' && !in_sq && !in_dq
             in_comment = true
             continue
         end
-        
+
         push!(text_no_comments, c)
-        
+
         if (in_sq || in_dq) && (c == '/' || c == '=' || c == '&')
             push!(masked_text, ' ')
         else
             push!(masked_text, c)
         end
     end
-    
+
     clean_text = String(text_no_comments)
     safe_text = String(masked_text)
-    
+
     buzzcount = 0
     block_matches = collect(eachmatch(r"&([a-zA-Z_][a-zA-Z0-9_]*)", safe_text))
-    
+
     for b_match in block_matches
         para = Symbol(lowercase(b_match.captures[1]))
-        
+
         if !isnothing(buzzword)
             if para == buzzword[1]
                 buzzcount += 1
@@ -224,31 +213,31 @@ function read!(nml::AbstractNamelist, path::String; buzzword=nothing)
                 continue
             end
         end
-        
+
         start_search_idx = b_match.offset + length(b_match.match)
         end_idx = findnext('/', safe_text, start_search_idx)
         end_idx = isnothing(end_idx) ? length(safe_text) : end_idx
-        
+
         block_safe = safe_text[start_search_idx:end_idx-1]
         block_clean = clean_text[start_search_idx:end_idx-1]
-        
+
         content[para] = Dict{String, Any}()
-        
+
         key_regex = r"([a-zA-Z_][a-zA-Z0-9_]*)\s*="
         k_matches = collect(eachmatch(key_regex, block_safe))
-        
+
         for (k_idx, k_match) in enumerate(k_matches)
             key = lowercase(k_match.captures[1])
-            
+
             val_start = k_match.offset + length(k_match.match)
             val_end = (k_idx < length(k_matches)) ? k_matches[k_idx+1].offset - 1 : length(block_clean)
-            
+
             raw_val = block_clean[val_start:val_end]
             clean_val = strip(raw_val, [' ', '\t', '\n', '\r', ','])
-            
+
             content[para][key] = parse_from_namelist(clean_val)
         end
-        
+
         if !isnothing(buzzword)
             break
         end
@@ -268,11 +257,11 @@ function parse_from_namelist(value_string)
     if length(strip(value_string)) == 0
         return ""
     end
-    
+
     v_str = ("$(strip(value_string)[end])" == "/") ? strip(strip(value_string)[1:end-1]) : strip(value_string)
-    
+
     val = if occursin(",", v_str) || occursin("*", v_str)
-        v = parse_multiple(v_str) 
+        v = parse_multiple(v_str)
         length(v) == 1 ? first(v) : v
     elseif occursin(".", v_str) || occursin("E", uppercase(v_str)) || occursin("D", uppercase(v_str))
         try
@@ -327,15 +316,15 @@ end
 
 function parse_multiple(s)
     sComponents = []
-    
+
     sComma = String[]
     in_sq, in_dq = false, false
     current_chunk = Char[]
-    
+
     for c in s
         if c == '\'' && !in_dq; in_sq = !in_sq; end
         if c == '"'  && !in_sq; in_dq = !in_dq; end
-        
+
         if c == ',' && !in_sq && !in_dq
             push!(sComma, strip(String(current_chunk)))
             empty!(current_chunk)
@@ -352,23 +341,23 @@ function parse_multiple(s)
         found_star = false
         left_chunk = Char[]
         right_chunk = Char[]
-        
+
         for c in si
             if c == '\'' && !in_dq; in_sq = !in_sq; end
             if c == '"'  && !in_sq; in_dq = !in_dq; end
-            
+
             if c == '*' && !in_sq && !in_dq && !found_star
                 found_star = true
                 continue
             end
-            
+
             if found_star
                 push!(right_chunk, c)
             else
                 push!(left_chunk, c)
             end
         end
-        
+
         if found_star
             push!(sMulti, [strip(String(left_chunk)), strip(String(right_chunk))])
         else
@@ -388,14 +377,14 @@ function parse_multiple(s)
     sComponentsParsed = []
     for component in sComponents
         c_new = if occursin(".", component) || occursin("E", uppercase(component)) || occursin("D", uppercase(component))
-            try 
+            try
                 safe_float_str = replace(uppercase(component), "D" => "E")
                 parse(Float64, safe_float_str)
             catch
                 component
             end
         else
-            try 
+            try
                 parse(Int, component)
             catch
                 component
@@ -403,7 +392,7 @@ function parse_multiple(s)
         end
         push!(sComponentsParsed, c_new)
     end
-        
+
     return sComponentsParsed
 end
 
@@ -428,7 +417,7 @@ function reverse_parse(value)
             v = (v[end] == '"') ? v[1:end-1] : v
             val_str = "'$(strip(v))'"
         else
-            can_be_float = try 
+            can_be_float = try
                 parse(Float64, value)
                 true
             catch
@@ -451,9 +440,9 @@ function reverse_parse(value)
     return val_str
 end
 
-# ============================================================================= 
+# ============================================================================
 # Modified warning
-# =============================================================================
+# ============================================================================
 
 _nmlWarn(nml::AbstractNamelist) = begin
     @warn "$(key) is not a valid fieldname"
@@ -461,24 +450,15 @@ _nmlWarn(nml::AbstractNamelist) = begin
 end
 _nmlWarn(nml::FreeNamelist) = false
 
-"""
-Write a namelist to path.
-
-# Arguments
-- `title::String`: A general string to be printed at the top of the namelist as a title section.
-- `help::Dict`: A dictionary mapping namelist tags to help comments, which will be printed above the tag.
-- `order::AbstractVector`: A vector of namelist tags specifying the order in which they should be printed.
-- `param_help::Dict`: A dictionary mapping namelist tags to a dictionary of parameter names and their comments, which will be printed behind the parameter.
-"""
-function write(nml::AbstractNamelist, path::String; 
-               soft_line_limit=85, 
-               title::String="", 
-               help::Dict=Dict(), 
+function write(nml::AbstractNamelist, path::String;
+               soft_line_limit=85,
+               title::String="",
+               help::Dict=Dict(),
                order::AbstractVector=[],
                param_help=Dict())
-    
+
     para_names = String.(nmlFields(nml))
-    
+
     # Helper to convert to Vector{String}
     _to_vec(v::AbstractVector) = String.(v)
     _to_vec(v::AbstractString) = String.(split(String(v), '\n'))
@@ -486,7 +466,7 @@ function write(nml::AbstractNamelist, path::String;
 
     # Process help dictionaries to ensure keys are strings and values are Vector{String}
     str_help = Dict{String, Vector{String}}(String(k) => _to_vec(v) for (k, v) in help)
-    
+
     # Process param_help and extract ordering
     str_param_help = Dict{String, Dict{String, Vector{String}}}()
     param_order = Dict{String, Vector{String}}()
@@ -495,19 +475,19 @@ function write(nml::AbstractNamelist, path::String;
     for kv in param_help
         tag = String(kv[1])
         params = kv[2]
-        
+
         push!(extracted_tag_order, tag)
-        
+
         tag_p_help = Dict{String, Vector{String}}()
         tag_p_order = String[]
-        
+
         for p_kv in params
             p_name = String(p_kv[1])
             p_val = _to_vec(p_kv[2])
             tag_p_help[p_name] = p_val
             push!(tag_p_order, p_name)
         end
-        
+
         str_param_help[tag] = tag_p_help
         param_order[tag] = tag_p_order
     end
@@ -571,21 +551,20 @@ function write(nml::AbstractNamelist, path::String;
         end
 
         spaces = longest_name - length(p) + 1
-        line   = "&$(p)" * repeat(" ", spaces) 
+        line   = "&$(p)" * repeat(" ", spaces)
 
-        
         current_param_help = get(str_param_help, p, Dict{String, Vector{String}}())
         current_param_order = get(param_order, p, String[])
-        
+
         d_keys = collect(String.(keys(d)))
         actual_p_order = [w for w in current_param_order if w in d_keys]
         remaining_p_keys = setdiff(d_keys, actual_p_order)
         final_p_order = vcat(actual_p_order, remaining_p_keys)
-        
+
         lline = longest_name + 2
         for str_word in final_p_order
             add_to_line = "$(str_word)=" * reverse_parse(d[str_word]) * " "
-            
+
             if haskey(current_param_help, str_word)
                 # Format comment
                 phelp_lines = current_param_help[str_word]
@@ -597,39 +576,39 @@ function write(nml::AbstractNamelist, path::String;
                     end
                     push!(formatted_lines, startswith(clean_l, "!") ? clean_l : "! " * clean_l)
                 end
-                
+
                 if isempty(formatted_lines)
                     lline += length(add_to_line)
-                    if (lline >= soft_line_limit) 
-                        line  = rstrip(line) * "\n" * repeat(" ", longest_name + 2) 
+                    if (lline >= soft_line_limit)
+                        line  = rstrip(line) * "\n" * repeat(" ", longest_name + 2)
                         lline = longest_name + 2 + length(add_to_line)
                     end
                     line = line * add_to_line
                 else
                     clean_add_to_line = rstrip(add_to_line, ' ')
-                    
+
                     if (lline > longest_name + 2) && (lline + length(clean_add_to_line) >= soft_line_limit)
                         line  = rstrip(line) * "\n" * repeat(" ", longest_name + 2)
                         lline = longest_name + 2
                     end
-                    
+
                     comment_start_col = longest_name + 2
                     phelp_text = join(formatted_lines, "\n" * repeat(" ", comment_start_col))
-                    
+
                     line = line * clean_add_to_line * "  " * phelp_text * "\n" * repeat(" ", longest_name + 2)
-                    
+
                     lline = longest_name + 2
                 end
             else
                 lline += length(add_to_line)
-                if (lline >= soft_line_limit) 
-                    line  = rstrip(line) * "\n" * repeat(" ", longest_name + 2) 
+                if (lline >= soft_line_limit)
+                    line  = rstrip(line) * "\n" * repeat(" ", longest_name + 2)
                     lline = longest_name + 2 + length(add_to_line)
                 end
-                
+
                 line = line * add_to_line
             end
-        end 
+        end
 
         # Remove trailing whitespaces (including newlines) to correctly place the `/`
         line = rstrip(line) * "\n/\n"
@@ -648,12 +627,9 @@ function get_restart_snap_nml(nml::StellarNamelist)
     s
 end
 
-"""
-Set fields of the Namelist. Enter field=(parameter=>value,...)
-"""
 function set!(nml::AbstractNamelist; kwargs...)
     for (field,paras) in kwargs
-        if !(typeof(paras) <: Tuple) 
+        if !(typeof(paras) <: Tuple)
             @warn "Argument to $(field) is not a Tuple. Add trailing comma if there is only one entry."
             continue
         end
@@ -664,7 +640,7 @@ function set!(nml::AbstractNamelist; kwargs...)
     end
 end
 
-read_eos_params(path::String) = begin 
+read_eos_params(path::String) = begin
     open(path, "r") do f
         lines = readlines(f)
         lines = [strip.(split(strip(l), "=")) for l in lines]
@@ -672,24 +648,22 @@ read_eos_params(path::String) = begin
     end
 end
 
-# ============================================================================= 
+# ============================================================================
 # Default namelists
-# =============================================================================
+# ============================================================================
 
-_whole_spectrum_namelist!(nml::M3DNamelist; 
+_whole_spectrum_namelist!(nml::M3DNamelist;
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
 	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
-    atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20", 
+    atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20",
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	run_params=(:n_nu=>32,),
 	nlte_params=(:decouple_continuum=>true,),
 	m3d_debug_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1,
 				:lvlcheck=>1),
 	rt_iteration_params=(:maxiter=>0,),
-	#linelist_params=(:dlam=>1.0,),
     composition_params=(:abund_file=>"./input_multi3d/abund_magg",),#:absdat_file=>"./input_multi3d/TS_absdat.dat"),
-	#spectrum_params=(:daa=>2., :aa_blue=>2000, :aa_red=>40000)
     ) = begin
 
 	set!(
@@ -701,25 +675,16 @@ _whole_spectrum_namelist!(nml::M3DNamelist;
 		nlte_params=nlte_params,
 		m3d_debug_params=m3d_debug_params,
 		rt_iteration_params=rt_iteration_params,
-		#linelist_params=linelist_params,
-		#spectrum_params=spectrum_params,
         atom_params=atom_params,
         composition_params=composition_params
 	)
 end
 
-"""
-    whole_spectrum_namelist(model_name; kwargs...)
-
-Create a default namelist for the given model, that
-can be used to compute the whole spectrum emerging this model.
-This is handy when you want to compute the effective temperature.
-"""
-function whole_spectrum_namelist(model_name::String; 
+function whole_spectrum_namelist(model_name::String;
 					model_folder="./input_multi3d/MUST",
 					linelist="./input_multi3d/vald_2490-25540.list",
 					absmet=nothing,
-					kwargs...)	
+					kwargs...)
 	# Create an empty Namelist
 	nml = M3DNamelist()
 
@@ -799,18 +764,11 @@ _spectrum_namelist_nlte!(nml::M3DNamelist;
 	)
 end
 
-"""
-    spectrum_namelist(model_name; kwargs...)
-
-Create a default namelist for the given model, that
-can be used to compute the spectrum emerging this model.
-You can specify NLTE=true in order to load the default NLTE namelist.
-"""
 function spectrum_namelist(model_name::String; NLTE=false,
 					model_folder="./input_multi3d/MUST",
 					linelist=nothing,#"./input_multi3d/vald_2490-25540.list",
                     absmet=nothing,
-					kwargs...)	
+					kwargs...)
 	# Create an empty Namelist
 	nml = M3DNamelist()
 
@@ -840,20 +798,12 @@ function spectrum_namelist(model_name::String; NLTE=false,
 	nml
 end
 
-"""
-    heating_namelist(model_name, args...; kwargs...)
-
-Compute the radiative heating namelist within the given model.
-"""
 heating_namelist(model_name::String, opacity_table=nothing, args...; kwargs...) = begin
     nml = spectrum_namelist(model_name, args...; kwargs...)
 
     if !isnothing(opacity_table)
         set!(nml, opac_table_params=(:opac_table=>opacity_table,))
     end
-
-    #set!(nml, spectrum_params=(:daa=>1., :aa_blue=>1500, :aa_red=>9000))
-    #set!(nml; kwargs...)
 
     # NOTE: OpenMULTI3D v1.0 no longer has the mean_rad patch kind nor save_Qrad,
     # so the radiative-heating output this namelist was written for is gone.
@@ -864,9 +814,9 @@ heating_namelist(model_name::String, opacity_table=nothing, args...; kwargs...) 
     nml
 end
 
-# ============================================================================= 
+# ============================================================================
 # Namelist for simple tau500 computation
-# =============================================================================
+# ============================================================================
 
 _tau500_namelist!(nml::M3DNamelist,
     io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
@@ -884,7 +834,7 @@ _tau500_namelist!(nml::M3DNamelist,
     )
 end
 
-function tau500_namelist(model_name::String; model_folder="./input_multi3d/MUST", kwargs...)	
+function tau500_namelist(model_name::String; model_folder="./input_multi3d/MUST", kwargs...)
     # Create an empty Namelist
     nml = M3DNamelist()
 

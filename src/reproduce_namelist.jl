@@ -18,7 +18,7 @@ function reverse_parse(value)
             v = (v[end] == '\'') ? v[1:end-1] : v
             val_str = "$(strip(v))"
         else
-            can_be_float = try 
+            can_be_float = try
                 parse(Float64, value)
                 true
             catch

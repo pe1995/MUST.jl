@@ -6,10 +6,8 @@ macro in_MUST(source_of_help)
 end
 
 macro get_help(source_of_help)
-    #source_of_help_l = esc(source_of_help)
     source_of_help_s = :($source_of_help)
     folder_of_file   = dirname(@__FILE__)
-    #joinpath_l       = esc(Base.joinpath)
     include_l        = esc(Base.include)
     main             = esc(Main)
     quote
@@ -87,7 +85,7 @@ function _hop_pkg_path(location=nothing)
 end
 
 _redevelop_hop(Pkg, p) = begin
-	try; Pkg.rm("HOP"); catch; end               
+	try; Pkg.rm("HOP"); catch; end
 	Pkg.develop(Pkg.PackageSpec(path=p))
 	Base.require(_hop_pkgid())
 end
@@ -128,16 +126,12 @@ end
 # Array helper
 # ============================================================================
 
-"""
-Split array arr in nsplits roughly equal junks.
-If mask=true the indices will be returned.
-"""
 function split_similar(arr, nsplits; mask=false)
     nsplits = length(arr) < nsplits ? length(arr) : nsplits
     splits  = div(length(arr), nsplits)
     nrest   = length(arr) % nsplits
     split_sizes = Int[splits for _ in 1:nsplits]
-    
+
     for i in 1:nrest
         split_sizes[i] = split_sizes[i] + 1
     end
@@ -156,9 +150,6 @@ function split_similar(arr, nsplits; mask=false)
     end
 end
 
-"""
-create random number between a and b
-"""
 randrange(a,b,args...) = begin
     xmin,xmax = min(a,b),max(a,b)
     rand(args...) .* (xmax-xmin) .+ xmin
@@ -176,23 +167,8 @@ end
 
 uniqueidx(v) = unique(i -> v[i], eachindex(v))
 
-"""
-    roundto(x, y)
-
-Round the given value `x` to multiples of `y`.
-
-# Examples
-```jldoctest
-julia> roundto(π, 0.01)
-3.14
-julia> roundto(π, 0.25)
-3.25
-julia> roundto(2.6086956525e8, 0.25)
-2.5e8
-```
-"""
 roundto(x, y; magnitude=nothing) = begin
-    order_of_magnitude = if isnothing(magnitude) 
+    order_of_magnitude = if isnothing(magnitude)
         exp10(round(log10(x)))
     else
         exp10(round(log10(x))) / magnitude
@@ -208,12 +184,6 @@ roundto(x, y; magnitude=nothing) = begin
     x = x * order_of_magnitude
 end
 
-"""
-    parametersFromName(name)
-
-Try to extract stellar parameters from the name. Parameters need to be given as
-tXXXXgXXXmXXXX. Please make sure to include the minus sign in m.
-"""
 parametersFromName(name) = begin
 	names = split(name, "_", keepempty=false)
 	i_name = 0
@@ -242,15 +212,10 @@ parametersFromName(name) = begin
 	t, g, m
 end
 
-# ============================================================================= 
-# Integration functions 
-# =============================================================================
+# ============================================================================
+# Integration functions
+# ============================================================================
 
-"""
-    integrate(x, y; [method])
-
-Integrate the values in the y array defined on the grid of the x array.
-"""
 function integrate(x, y; method=QuadGKJL())
 	mask = sortperm(x)
 	xs, ys = x[mask], y[mask]
@@ -262,9 +227,9 @@ function integrate(x, y; method=QuadGKJL())
 	solve(prob, method).u
 end
 
-# ============================================================================= 
-# Timing functions 
-# =============================================================================
+# ============================================================================
+# Timing functions
+# ============================================================================
 
 """
     activate_timing!(t)
@@ -291,7 +256,7 @@ end
 
 Reset the timer.
 """
-start_timing!(t=generalTimer) = reset_timer!(t) 
+start_timing!(t=generalTimer) = reset_timer!(t)
 
 """
     end_timing!(t=generalTimer)
@@ -302,7 +267,7 @@ end_timing!(t=generalTimer) = begin
     println("")
     show(t)
     println("")
-    reset_timer!(t) 
+    reset_timer!(t)
 end
 
 macro optionalTiming(name, exp)

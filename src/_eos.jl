@@ -1,7 +1,7 @@
-# ============================================================================= 
+# ============================================================================
 # Original DISPATCH EoS interface. Just used here in MUST.jl
 # It might actually better at one point to entirely switch over to TSO.jl
-# ============================================================================= 
+# ============================================================================
 
 abstract type AbstractEOS end
 
@@ -9,20 +9,16 @@ abstract type AbstractEOS end
 SqGTable = Union{Nothing, Array{F,N} where {N,F<:AbstractFloat}}
 RangeOrVector = Union{R where {R<:AbstractRange}, Vector{F} where {F<:Integer}}
 
-"""
-Wrapper for python EOS.
-"""
 struct PythonEOS <: AbstractEOS
     eos          :: Py
     variables    :: Vector{Symbol}
     log_variable :: Vector{Bool}
 end
 
-"""Squaregas EOS in the Bifrost format."""
-struct SquareGasEOS{NE<:SqGTable, RO<:SqGTable, 
-                    EO<:SqGTable, EX<:SqGTable, 
+struct SquareGasEOS{NE<:SqGTable, RO<:SqGTable,
+                    EO<:SqGTable, EX<:SqGTable,
                     LN<:SqGTable, TH<:SqGTable,
-                    AX<:SqGTable, BX<:SqGTable, 
+                    AX<:SqGTable, BX<:SqGTable,
                     T<:AbstractFloat} <: AbstractEOS
 
     params           ::Dict{String, Any}
@@ -38,18 +34,15 @@ struct SquareGasEOS{NE<:SqGTable, RO<:SqGTable,
     temtable         ::RO
     opatable         ::RO
     eostable         ::EO
-    expieos_err      ::EX  
-    lndlnT_table     ::LN  
+    expieos_err      ::EX
+    lndlnT_table     ::LN
     theta_rho_table  ::TH
 end
 
-# ============================================================================= 
+# ============================================================================
 # Init routines
-# ============================================================================= 
+# ============================================================================
 
-"""
-Create a SquareGasEOS from the Tabgen input file.
-"""
 function SquareGasEOS(para_path)
     d         = para_path
     para_path = joinpath(d, "tabparam.in")
@@ -70,9 +63,9 @@ function SquareGasEOS(para_path)
     if p["NeTgRadTable_recl"] != -1
         path = joinpath(d, p["NeTgRadTableFile"])
         try
-            ne_epstable = read_squaregas_table(path, record = 1, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2))  
-            ne_temtable = read_squaregas_table(path, record = 2, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2))  
-            ne_opatable = read_squaregas_table(path, record = 3, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2)) 
+            ne_epstable = read_squaregas_table(path, record = 1, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2))
+            ne_temtable = read_squaregas_table(path, record = 2, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2))
+            ne_opatable = read_squaregas_table(path, record = 3, recl = p["NeTgRadTable_recl"], dim = (p["nTBin"],p["nNeBin"],p["nRadBins"],2))
         catch
             ne_epstable = nothing
             ne_temtable = nothing
@@ -83,16 +76,16 @@ function SquareGasEOS(para_path)
         ne_temtable = nothing
         ne_opatable = nothing
     end
-    
+
     # Rho - Ei - rad tables
     path = joinpath(d, p["RhoEiRadTableFile"])
-    epstable = read_squaregas_table(path, record = 1, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))  
-    temtable = read_squaregas_table(path, record = 2, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))  
-    opatable = read_squaregas_table(path, record = 3, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))  
+    epstable = read_squaregas_table(path, record = 1, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))
+    temtable = read_squaregas_table(path, record = 2, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))
+    opatable = read_squaregas_table(path, record = 3, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))
 
     # EOS tables
     path = joinpath(d, p["EOSTableFile"])
-    eostable = read_squaregas_table(path, record = 1, recl = p["RhoEi_recl"], dim = (p["nEiBin"],p["nRhoBin"],4))  
+    eostable = read_squaregas_table(path, record = 1, recl = p["RhoEi_recl"], dim = (p["nEiBin"],p["nRhoBin"],4))
 
     # Type of tables
     TT = eltype(eostable)
@@ -146,9 +139,9 @@ function read_squaregas_table(path; record, recl, dim, out_type=Float32)
     read(f,rec=record,(out_type,dim));
 end
 
-# ============================================================================= 
+# ============================================================================
 # Lookup routines
-# ============================================================================= 
+# ============================================================================
 
 """
 Lookup function. Log is done automaticall if requested in EOS
@@ -160,22 +153,12 @@ end
 
 lookup(eos::PythonEOS, parameter, variables::T...) where {T<:AbstractFloat} = lookup(eos, parameter, [T[v] for v in variables]...)
 
-"""
-Lookup function for SquareGas EOS.
-    The input is assumed to be CGS. 
-
-    Example:
-        lookup(sqg_eos, :T, [1e-7, 2e-7, 3e-7], [4e-12, 5e-12, 6e-12])
-
-    The EOS tabe is listed in log units, so you can also pass
-        lookup(sqg_eos, :T, log.([1e-7, 2e-7, 3e-7]), log.([4e-12, 5e-12, 6e-12]), to_log=false)
-"""
 function lookup!(result::AbstractArray, eos::SquareGasEOS, parameter::Symbol, d::AbstractArray, ee::AbstractArray; to_log=true)
     if to_log
         d  = log.(d)
         ee = log.(ee)
     end
-    
+
     # The EOS table is searched based on the regular grid imposed by the corresponding axis
     if ((parameter == :P) || (parameter == :Pg))
         interpolate_in_table!(result, eos, eos.eostable, d, ee, 1)
@@ -203,7 +186,7 @@ end
 
 """
 Lookup function for SquareGas EOS.
-    The input is assumed to be CGS. 
+    The input is assumed to be CGS.
 
     Example:
         lookup(sqg_eos, :T, [1e-7, 2e-7, 3e-7], [4e-12, 5e-12, 6e-12])
@@ -216,7 +199,7 @@ function lookup(eos::SquareGasEOS, parameter::Symbol, d::AbstractVector{T}, ee::
         d  = log.(d)
         ee = log.(ee)
     end
-    
+
     # The EOS table is searched based on the regular grid imposed by the corresponding axis
     result = if ((parameter == :P) || (parameter == :Pg))
         exp.(interpolate_in_table(eos, eos.eostable, d, ee, 1))
@@ -239,7 +222,7 @@ end
 
 """
 Lookup function for SquareGas EOS.
-    The input is assumed to be CGS. 
+    The input is assumed to be CGS.
 
     Example:
         lookup(sqg_eos, :T, [1e-7, 2e-7, 3e-7], [4e-12, 5e-12, 6e-12])
@@ -253,7 +236,7 @@ function lookup(eos::SquareGasEOS, parameter::Symbol, d::T, ee::T; to_log=true) 
     else
         d, ee
     end
-    
+
     # The EOS table is searched based on the regular grid imposed by the corresponding axis
     result = if ((parameter == :P) || (parameter == :Pg))
         exp(interpolate_in_table(eos, eos.eostable, d, ee, 1))
@@ -283,10 +266,10 @@ lookup(eos::AbstractEOS, parameter::Symbol, d::AbstractArray{T,2}, ee::AbstractA
         di  = view(d,  :, i)
         eei = view(ee, :, i)
 
-        dp > 1 ? 
-            result[:,i,:] .= lookup(eos, parameter, di, eei, args...; kwargs...) : 
+        dp > 1 ?
+            result[:,i,:] .= lookup(eos, parameter, di, eei, args...; kwargs...) :
             result[:,i,1] .= lookup(eos, parameter, di, eei, args...; kwargs...)
-            
+
     end
 
     dp > 1 ? result : result[:,:,1]
@@ -301,28 +284,25 @@ lookup(eos::AbstractEOS, parameter::Symbol, d::AbstractArray{T,3}, ee::AbstractA
             di  = view(d, :, j, k)
             eei = view(ee, :, j, k)
 
-            dp > 1 ? 
-                result[:,j,k,:] .= lookup(eos, parameter, di, eei, args...; kwargs...) : 
+            dp > 1 ?
+                result[:,j,k,:] .= lookup(eos, parameter, di, eei, args...; kwargs...) :
                 result[:,j,k,1] .= lookup(eos, parameter, di, eei, args...; kwargs...)
-        end   
+        end
     end
 
     dp > 1 ? result : result[:,:,:,1]
 end
 
-# ============================================================================= 
+# ============================================================================
 # Inverse lookup routines
-# ============================================================================= 
+# ============================================================================
 
-"""
-Inverse lookup parameter in the EOS tables. 
-"""
 function inverse_lookup(eos::SquareGasEOS, iterations=50, antilinear=false; kwargs...)
 end
 
-# ============================================================================= 
+# ============================================================================
 # Interpolation routines
-# ============================================================================= 
+# ============================================================================
 
 interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::RangeOrVector) where {T<:AbstractFloat} = begin
     result = zeros(eltype(d), length(d), length(index))
@@ -333,20 +313,12 @@ interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, e
     interpolate_in_table!(result, eos, table, d, ee, index)
 end
 
-"""
-    _axis_bracket(axis, x)
-
-Index of the cell containing `x` and the fractional position within it.
-"""
 @inline function _axis_bracket(axis, x)
     n = length(axis)
     j = clamp(searchsortedlast(axis, x), 1, n - 1)
     j, (x - axis[j]) / (axis[j+1] - axis[j])
 end
 
-"""
-Interpolate in the given table using the axis in the EOS. 
-"""
 function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::AbstractArray{T,3}, ee::AbstractArray{T,3}, index::Int) where {T<:AbstractFloat}
     ei_min  = eos.lnEi_axis[1]
     rho_min = eos.lnRho_axis[1]
@@ -366,12 +338,12 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
                 m1u = 1.0 - u
 
                 if ((ee[i, j, k] < ei_min) || (d[i, j, k] < rho_min))
-                    result[i, j, k] = Base.convert(eltype(d), NaN) 
+                    result[i, j, k] = Base.convert(eltype(d), NaN)
                 else
                     result[i, j, k] = m1t * m1u * table[il,  jl  ,index] +
                                 tt  * m1u * table[il+1,jl  ,index] +
                                 tt  *   u * table[il+1,jl+1,index] +
-                                m1t *   u * table[il  ,jl+1,index] 
+                                m1t *   u * table[il  ,jl+1,index]
                 end
             end
         end
@@ -380,9 +352,6 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
     result
 end
 
-"""
-Interpolate in the given table using the axis in the EOS. 
-"""
 function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::AbstractArray{T,3}, ee::AbstractArray{T,3}, index::RangeOrVector) where {T<:AbstractFloat}
     ei_min  = eos.lnEi_axis[1]
     rho_min = eos.lnRho_axis[1]
@@ -402,12 +371,12 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
                 m1u = 1.0 - u
 
                 if ((ee[i, j, k] < ei_min) || (d[i, j, k] < rho_min))
-                    result[i, j, k, index] .= Base.convert(eltype(d),NaN) 
+                    result[i, j, k, index] .= Base.convert(eltype(d),NaN)
                 else
                     result[i, j, k, index] .= m1t .* m1u .* table[il,  jl  ,index] +
                                               tt  .* m1u .* table[il+1,jl  ,index] +
                                               tt  .*   u .* table[il+1,jl+1,index] +
-                                              m1t .*   u .* table[il  ,jl+1,index] 
+                                              m1t .*   u .* table[il  ,jl+1,index]
                 end
             end
         end
@@ -416,9 +385,6 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
     result
 end
 
-"""
-Interpolate in the given table using the axis in the EOS. 
-"""
 function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::RangeOrVector) where {T<:AbstractFloat}
     ei_min  = eos.lnEi_axis[1]
     rho_min = eos.lnRho_axis[1]
@@ -436,21 +402,18 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
         m1u = 1.0 - u
 
         if ((ee[i] < ei_min) || (d[i] < rho_min))
-            result[i,:] .= Base.convert(eltype(d),NaN) 
+            result[i,:] .= Base.convert(eltype(d),NaN)
         else
             result[i,:] .= m1t .* m1u .* table[il,  jl  ,index] +
                           tt  .* m1u .* table[il+1,jl  ,index] +
                           tt  .*   u .* table[il+1,jl+1,index] +
-                          m1t .*   u .* table[il  ,jl+1,index] 
+                          m1t .*   u .* table[il  ,jl+1,index]
         end
     end
 
     result
 end
 
-"""
-Interpolate in the given table using the axis in the EOS. 
-"""
 function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::AbstractVector{T}, ee::AbstractVector{T}, index::Int) where {T<:AbstractFloat}
     ei_min  = eos.lnEi_axis[1]
     rho_min = eos.lnRho_axis[1]
@@ -468,12 +431,12 @@ function interpolate_in_table!(result, eos::SquareGasEOS, table::SqGTable, d::Ab
         m1u = 1.0 - u
 
         if ((ee[i] < ei_min) || (d[i] < rho_min))
-            result[i] = Base.convert(eltype(d),NaN) 
+            result[i] = Base.convert(eltype(d),NaN)
         else
             result[i] = m1t * m1u * table[il,  jl  ,index] +
                           tt  * m1u * table[il+1,jl  ,index] +
                           tt  *   u * table[il+1,jl+1,index] +
-                          m1t *   u * table[il  ,jl+1,index] 
+                          m1t *   u * table[il  ,jl+1,index]
         end
     end
 
@@ -500,13 +463,13 @@ function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::T, ee::T, i
     m1u = 1.0 - u
 
     result .= if ((ee < ei_min) || (d < rho_min))
-        Base.convert(T, NaN) 
+        Base.convert(T, NaN)
     else
         m1t .* m1u .* table[il,  jl  ,index] +
             tt  .* m1u .* table[il+1,jl  ,index] +
             tt  .*   u .* table[il+1,jl+1,index] +
-            m1t .*   u .* table[il  ,jl+1,index] 
-    end    
+            m1t .*   u .* table[il  ,jl+1,index]
+    end
 
     if length(index) == 1
         first(result)
@@ -515,9 +478,9 @@ function interpolate_in_table(eos::SquareGasEOS, table::SqGTable, d::T, ee::T, i
     end
 end
 
-# ============================================================================= 
+# ============================================================================
 # Utility
-# ============================================================================= 
+# ============================================================================
 
 dimension(eos::SquareGasEOS, parameter::Symbol) = begin
     d = if parameter == :rk
@@ -533,18 +496,15 @@ end
 
 dimension(eos::PythonEOS, parameter::Symbol) = 1
 
-# ============================================================================= 
-# Python EOS aliases 
-# =============================================================================
+# ============================================================================
+# Python EOS aliases
+# ============================================================================
 
-"""
-Generate a legacy Stagger EOS (Python).
-"""
-macro legacyPythonEOS(path="", table_name="table.dat") 
+macro legacyPythonEOS(path="", table_name="table.dat")
     p = esc(path)
     t = esc(table_name)
     d = esc(:EOS)
-    
+
     quote
         if $(p) == ""
             PythonEOS($(d).stagger(top=dispatch_location, file=$(t)), [:d,:ee], [:true,:false])
@@ -554,15 +514,12 @@ macro legacyPythonEOS(path="", table_name="table.dat")
     end
 end
 
-"""
-Generate a Squaregas EOS (Python).
-"""
-macro squaregasPythonEOS(path="", table_name="eostable.dat", dir="/experiments/stellar_atmospheres/input_data/square_gas/") 
+macro squaregasPythonEOS(path="", table_name="eostable.dat", dir="/experiments/stellar_atmospheres/input_data/square_gas/")
     p = esc(path)
     t = esc(table_name)
     f = esc(dir)
     d = esc(:EOS)
-    
+
     quote
         if $(p) == ""
             PythonEOS($(d).bifrost(top=dispatch_location, file=$(t), dir=$(f)), [:d,:ee], [:true,:true])
@@ -573,7 +530,7 @@ macro squaregasPythonEOS(path="", table_name="eostable.dat", dir="/experiments/s
 end
 
 """
-Bisect the EOS to get a value of either of the variables 
+Bisect the EOS to get a value of either of the variables
 on the basis of the other one an one parameter. Enter the names and values as kwargs.
 The one that shall be found needs to be given a (start, end).
 """
@@ -594,10 +551,10 @@ function bisect(eos::AbstractEOS, iterations=50, antilinear=false; kwargs...)
     # now loop and find the requested values
     bisect_res = 0
     b0, b1     = kwargs[bisect_var]
-    
+
     bisect_var_pos = first(findfirst(bisect_var .== eos.variables))
     normal_var_pos = first(findfirst(normal_var .== eos.variables))
-   
+
     args = Float64[0.0,0.0]
     args[normal_var_pos] = kwargs[normal_var]
 
@@ -607,7 +564,7 @@ function bisect(eos::AbstractEOS, iterations=50, antilinear=false; kwargs...)
 
         para_res = lookup(eos, String(para), args...)
         para_res = size(para_res) == 0 ? para_res : para_res[1]
-     
+
         if !(antilinear)
             if para_res > kwargs[para]
                 b1 = bisect_res
@@ -625,7 +582,6 @@ function bisect(eos::AbstractEOS, iterations=50, antilinear=false; kwargs...)
 
     return bisect_res
 end
-
 
 function bisect_cube(eos::AbstractEOS; iterations=50, kwargs...)
     key_values = [[],[],[]]

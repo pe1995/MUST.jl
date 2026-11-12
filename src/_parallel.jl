@@ -1,6 +1,6 @@
-# ============================================================================= 
+# ============================================================================
 # Distributed execution functions
-# =============================================================================
+# ============================================================================
 
 function sendsync(p::Int; args...)
     @sync for (nm, val) in args
@@ -15,7 +15,7 @@ function sendsync(p::Vector{Int}; args...)
 end
 
 function wait(f::Vector{Distributed.Future})
-    for fut in f 
+    for fut in f
         fetch(fut)
     end
 

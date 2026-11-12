@@ -1,6 +1,3 @@
-"""
-Convert Box objects to legacy bifrost/stagger format.
-"""
 function legacyBox(b::Box, name::String)
     # For legacy code, we need .snap, .aux and .mesh files
     # We will only save quantities that are needed for e.g. Tabgen, the rest will be filled
@@ -74,7 +71,6 @@ function Space(snap::MUST.StaggerSnap, quantities::Symbol...)
     Space(qs, patch_dimensions, AtmosphericParameters(-99.0, -99.0, -99.0, Dict{Symbol, Float64}()))
 end
 
-
 """
 Convert legacy snapshot to Box object.
 """
@@ -85,7 +81,7 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
             ## First create a space object, because the snapshot is not spaced equally
             stagger_space = Space(s, :r, :px, :py, :pz, :temp, :pp, :ross, :tau, :ee, :e)
 
-            ## Now we interpolate this space to a box object with equal size 
+            ## Now we interpolate this space to a box object with equal size
             new_x = uniform_grid(stagger_space, length(s[:x]), :x)
             new_y = uniform_grid(stagger_space, length(s[:y]), :y)
             new_z = uniform_grid(stagger_space, length(s[:z]), :z)
@@ -104,16 +100,12 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
         s
     end
 
-    #@assert all(new_x[2:end] .- new_x[1:end-1] .≈ new_x[2] - new_x[1])
-    #@assert all(new_y[2:end] .- new_y[1:end-1] .≈ new_y[2] - new_y[1])
-    #@assert all(new_z[2:end] .- new_z[1:end-1] .≈ new_z[2] - new_z[1])
-
     ## The snapshot is already ordered in the normal way
     d  = stagger_box[:r]
     ux = stagger_box[:px] ./ d
     uy = stagger_box[:py] ./ d
     uz = -1 .* stagger_box[:pz] ./ d
-    
+
     data = Dict{Symbol, Any}( :d=>d, :pp=>stagger_box[:pp],   :T=>stagger_box[:temp], :ne=>stagger_box[:ne],
                                      :lne=>stagger_box[:lne],
                                      :ross=>stagger_box[:ross] ./ d, :τ=>stagger_box[:tau],
@@ -133,7 +125,7 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
     # Apply the conversion
     convert!(b, units;  d=:d, pp=:p, ross=:k,
                         px=:pm, py=:pm, pz=:pm,
-                        ux=:u, uy=:u, uz=:u, 
+                        ux=:u, uy=:u, uz=:u,
                         ee=:ee, e=:e, ne=:n,
                         x=:l, y=:l, z=:l)
 
@@ -144,10 +136,9 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
         e_cube_stagger = MUST.bisect_energy(eos, size(b[:d]); d=b[:d], T=b[:T])
         b.data[:ee] = e_cube_stagger
         b.data[:e]  = e_cube_stagger .* b[:d]
-        
+
         pg = MUST.lookup(eos, :Pg, b[:d], e_cube_stagger)
         MUST.add!(b, pg, :Pg);
-
 
         MUST.add_from_EOS!(b, eos, :kr)
         τ  = MUST.optical_depth(b, opacity=:kr, density=:d)
@@ -160,17 +151,10 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
     b
 end
 
-"""
-    uniform!(snap)
-
-Interpolate a Stagger snapshot column wise to new equidistant grid. It assumes
-that the data is gridded and already unifrom in x and y.
-It will interpolate the cube column by column in z and keep the dimensions.
-"""
 function uniform!(s::StaggerSnap; max_resolution=true)
     T     = eltype(valtype(s.data))
     old_z = s[:z]
-    
+
     N = if max_resolution
         # point of highest resolution
         dz_min = minimum(old_z[2:end] .- old_z[1:end-1])
@@ -184,7 +168,6 @@ function uniform!(s::StaggerSnap; max_resolution=true)
     new_z = range(T(minimum(s[:z])), T(maximum(s[:z])), length=N) |> collect
     v     = similar(old_z)
 
-    #@show size(v) size(old_z)
     data_new = deepcopy(s.data)
     for q in keys(s.data)
         if !(size(s.data[q], 3) == N)
@@ -202,7 +185,7 @@ function uniform!(s::StaggerSnap; max_resolution=true)
     end
 
     s.data = data_new
-    s.mesh.y = new_z 
+    s.mesh.y = new_z
 end
 
 function _write_aux(b, name)
@@ -212,7 +195,7 @@ function _write_aux(b, name)
     units = StaggerCGS()
 
     tmp = reverse(Base.convert.(Float32, b[:pg] ./ units.p))
-    FortranFiles.write(f, tmp, rec=1)   
+    FortranFiles.write(f, tmp, rec=1)
 
     tmp = reverse(Base.convert.(Float32, b[:T]))
     FortranFiles.write(f, tmp, rec=2);
@@ -252,24 +235,24 @@ end
 function _write_snap(b, name)
     n = prod(size(b.x))
     f = FortranFile(name, "w", access="direct", recl=n*4);
-    
+
     units = StaggerCGS()
 
     tmp = reverse(Base.convert.(Float32, b[:d] ./ units.d))  # r
-    FortranFiles.write(f, Base.convert.(Float32, tmp), rec=1)  
+    FortranFiles.write(f, Base.convert.(Float32, tmp), rec=1)
 
     tmp = reverse(Base.convert.(Float32, b[:ux] ./ units.u .* b[:d] ./ units.d)) # px
     FortranFiles.write(f, Base.convert.(Float32, tmp), rec=2)
-    
+
     tmp = reverse(Base.convert.(Float32, b[:uy] ./ units.u .* b[:d] ./ units.d)) # py
     FortranFiles.write(f, Base.convert.(Float32, tmp), rec=3)
-    
+
     tmp = reverse(Base.convert.(Float32, b[:uz] ./ units.u .* b[:d] ./ units.d)) # pz
     FortranFiles.write(f, Base.convert.(Float32, tmp), rec=4)
-    
+
     tmp = reverse(Base.convert.(Float32, b[:e] ./ units.e)) # e
     FortranFiles.write(f, Base.convert.(Float32, tmp), rec=5)
-    
+
     close(f)
 
     nothing

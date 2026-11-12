@@ -28,26 +28,21 @@ struct PatchMeta
     urc
     ds
     x
-    y 
+    y
     z
     xi
-    yi 
+    yi
     zi
 end
 
-# ============================================================================= 
+# ============================================================================
 # Construction
-# =============================================================================
+# ============================================================================
 
-"""
-    PatchMeta(patch, snap)
-
-Read the meta data from the given patch and snap namelists.
-"""
 function PatchMeta(patch, snap)
     guards = nmlValue(snap, "guard_zones")
     n = parse_multiple(nmlValue(snap, "n"))
-    
+
     li, ui = if !guards
         [1, 1, 1], n
     else
@@ -113,15 +108,10 @@ function PatchMeta(patch, snap)
     )
 end
 
-# ============================================================================= 
+# ============================================================================
 # Auxiliary data
-# =============================================================================
+# ============================================================================
 
-"""
-    readaux(fname)
-
-Read auxiliar data from the given filename.
-"""
 function readaux(fname::String; newformat=false, nvars=-1)
     if isfile(fname)
         f = FortranFiles.FortranFile(fname)
@@ -165,7 +155,7 @@ function readaux(f; newformat=false, nvars=-1)
     if nvars < 0
         # read the entire file
         while true
-            try		
+            try
                 name, rnk, shp, tp, data = readaux_entry(f)
                 append!(auxs, [AuxPatch(version, id, name, rnk, shp, tp, data)])
             catch
@@ -179,17 +169,17 @@ function readaux(f; newformat=false, nvars=-1)
             append!(auxs, [AuxPatch(version, id, name, rnk, shp, tp, data)])
         end
     end
-    
+
     auxs
 end
 
-# ============================================================================= 
+# ============================================================================
 # Helper functions
-# =============================================================================
+# ============================================================================
 
 function parse_multiple(s::AbstractString)
     sComponents = []
-    
+
     # split at commas
     sComma = strip.(split(s, ",", keepempty=false))
 
@@ -211,13 +201,13 @@ function parse_multiple(s::AbstractString)
     sComponentsParsed = []
     for component in sComponents
         c_new = if occursin(".", component)
-            try 
+            try
                 parse(Float64, component)
             catch
                 component
             end
         else
-            try 
+            try
                 parse(Int, component)
             catch
                 component
@@ -226,12 +216,11 @@ function parse_multiple(s::AbstractString)
 
         append!(sComponentsParsed, [c_new])
     end
-        
+
     sComponentsParsed
 end
 
 parse_multiple(s::AbstractArray) = s
-
 
 function read_stepwise(f, dtype)
     rec = FortranFiles.Record(f)
@@ -267,14 +256,10 @@ end
 function _add_axes(llc, ng, gn, ds)
 	first = llc .- ng .* ds
 	n = gn
-   
+
 	x=first[1] .+ ds[1] .* range(0, n[1]-1)
 	y=first[2] .+ ds[2] .* range(0, n[2]-1)
 	z=first[3] .+ ds[3] .* range(0, n[3]-1)
 
 	x, y, z
 end
-
-
-
-

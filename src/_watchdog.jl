@@ -1,18 +1,11 @@
-# =============================================================================
+# ============================================================================
 # Watchdog data structures
-# =============================================================================
+# ============================================================================
 
 abstract type AbstractWatchDog end
 abstract type DISPATCHWatchDog <:AbstractWatchDog end
 abstract type PostProcessingWatchDog <:AbstractWatchDog end
 
-"""
-    WatchDog
-
-Monitor progress of completed or running DISPATCH simulations.
-Save statistics of snapshots available during computation. Administer
-time dependent output during runtime.
-"""
 mutable struct WatchDog <: DISPATCHWatchDog
     name
     folder
@@ -24,24 +17,17 @@ mutable struct WatchDog <: DISPATCHWatchDog
     converter
 end
 
-"""
-    WatchDog(name; folder, converter=(;), functions...)
-
-`converter` is splatted into `snapshotBox` when converting a snapshot, so a
-caller that has TSO can hand over `eos_reader` + `lookup_generator` to convert
-with the TSO EoS instead of the DISPATCH table.
-"""
 WatchDog(name; folder=@in_dispatch("data/"), converter=(;), functions...) =
     WatchDog(name, joinpath(folder, name), [], [], 0, 0, functions, converter)
 
-# =============================================================================
+# ============================================================================
 # Monitoring of DISPATCH runs
-# =============================================================================
+# ============================================================================
 
 """
     monitor(w::WatchDog; timeout=2*60*60, check_every=5, delay=0, snapshotbuffer=1, save_box=false, reverse=false, keeplast=-1, keepevery=-1, batch=10)
 
-Monitor the progress of the linked simulation. Compute statistics and save 
+Monitor the progress of the linked simulation. Compute statistics and save
 depth profiles. Check for new snapshots after `check_every` seconds.
 Cancel the monitoring if `timeout` seconds have passed without
 finding a new snapshot.
@@ -152,7 +138,7 @@ function monitor(w::DISPATCHWatchDog; timeout=8*60*60, check_every=5, delay=0, s
                     time_current = time()
                 end
             else
-                # If it is already completed, we may check as well if it should 
+                # If it is already completed, we may check as well if it should
                 # be saved or has already been saved
                 if save_box
                     if !(snapf in keys(convertedBoxes(w)))
@@ -168,41 +154,30 @@ function monitor(w::DISPATCHWatchDog; timeout=8*60*60, check_every=5, delay=0, s
             end
 
             if ibatch>=batch
-                # if more than `batch` snapshots have been converted
                 # we exit the conversion loop and check for new snapshots
-                # This is useful, because this provides more recent 
+                # This is useful, because this provides more recent
                 # snapshots quicker
                 break
             end
         end
 
         # check how much time has passed
-        # if a snapshot was found the timer is reset
         if time_passed_since(time_current) > timeout
             @info "Watchdog monitoring end. Total time: $(time_passed_since(time_start)) s."
             break
         else
             @info "time passed (since last conversion): $(time_passed_since(time_current))"
             @info "time passed (total): $(time_passed_since(time_start))"
-        end 
+        end
 
         sleep(check_every)
     end
 end
 
-# =============================================================================
+# ============================================================================
 # WatchDog analysis of snapshot
-# =============================================================================
+# ============================================================================
 
-"""
-    analyse(w::WatchDog, snapshot; save_box=false)
-
-Monitor variables of given snapshot. Save relevant quantities in one single 
-HDF5 file, so that they can later be accessed fast and easy.
-You can pass any number of functions to the WatchDog, that will receive the watchdog and the boxes.
-They can compute whatever, but they need to return a Dict with whatever they computed
-and the corresponding data.
-"""
 function analyse(w::AbstractWatchDog, snapshot; save_box=false)
     # convert the snapshot to a box
     b, bτ = convert(w, snapshot; save_box=save_box)
@@ -232,21 +207,21 @@ end
 
 convert(w::DISPATCHWatchDog, snapshot; save_box=false) = begin
     snapshotBox(
-        snapshot; 
-        folder=w.folder, 
-        optical_depth_scale=true, 
-        save_snapshot=save_box, 
+        snapshot;
+        folder=w.folder,
+        optical_depth_scale=true,
+        save_snapshot=save_box,
         to_multi=save_box,
-        is_box=true, 
+        is_box=true,
         use_mmap=false,
         legacy=false,
         w.converter...
     )
 end
 
-# =============================================================================
+# ============================================================================
 # Default monitoring functions
-# =============================================================================
+# ============================================================================
 
 atmosphericParameters(w::AbstractWatchDog, b, bτ) = begin
     Dict(
@@ -258,18 +233,18 @@ end
 
 _geostatistic(f, b) = begin
     variables = keys(b.data) |> collect
-    
+
     results = Dict()
     for v in variables
         try
             if all(b[v] .> 0)
-                # use the log 
+                # use the log
                 v_log = Symbol("log10$(v)")
                 x, y = profile(f, b, :z, v_log)
                 results[:z] = x
                 results[v] = exp10.(y)
             else
-                x, y = profile(f, b, :z, v) 
+                x, y = profile(f, b, :z, v)
                 results[:z] = x
                 results[v] = y
             end
@@ -299,7 +274,6 @@ geoMassFlux(w::AbstractWatchDog, b, bτ) = begin
     massFlux = profile(mean, b, :z, :ρuz)
     _, d = profile(mean, b, :z, :d)
 
-
     Dict(
         "massFlux" => massFlux[2] ./ d,
         "z" => massFlux[1]
@@ -319,7 +293,6 @@ upperBoundarySurface(w::AbstractWatchDog, b, bτ) = begin
     qrplane = haskey(b.data, :qr) ? b[:qr][:, :, end] : nothing
     kapparhoplane = haskey(b.data, :kapparho) ? b[:kapparho][:, :, end] : nothing
     sourcefunctionplane = haskey(b.data, :sourcefunction) ? b[:sourcefunction][:, :, end] : nothing
-
 
     d = Dict(
         "uzplane" => uzplane,
@@ -434,7 +407,7 @@ centerVerticalCut(w::AbstractWatchDog, b, bτ) = begin
     Dplane = log.(b[:d][ixd, :, :])
     dtplane = haskey(b.data, :dt_rt) ? b[:dt_rt][ixd, :, :] : nothing
     fluxplane = haskey(b.data, :flux) ? b[:flux][ixd, :, :] : nothing
-    
+
     d = Dict(
         "uzplane" => uzplane,
         "uxplane" => uxplane,
@@ -456,18 +429,18 @@ end
 
 _optstatistic(f, bτ) = begin
     variables = keys(bτ.data) |> collect
-    
+
     results = Dict()
     for v in variables
         try
             if all(bτ[v] .> 0.0)
-                # use the log 
+                # use the log
                 v_log = Symbol("log10$(v)")
                 x, y = profile(f, bτ, :log10τ_ross, v_log)
                 results[:log10τ_ross] = x
                 results[v] = exp10.(y)
             else
-                x, y = profile(f, bτ, :log10τ_ross, v) 
+                x, y = profile(f, bτ, :log10τ_ross, v)
                 results[:log10τ_ross] = x
                 results[v] = y
             end
@@ -482,7 +455,7 @@ end
 opticalAverages(w::AbstractWatchDog, b, bτ) = _optstatistic(mean, bτ)
 opticalMaximum(w::AbstractWatchDog, b, bτ) = _optstatistic(maximum, bτ)
 opticalMinimum(w::AbstractWatchDog, b, bτ) = _optstatistic(minimum, bτ)
-opticalRMS(w::AbstractWatchDog, b, bτ) = _optstatistic(x->sqrt(mean(x .^2)), bτ) 
+opticalRMS(w::AbstractWatchDog, b, bτ) = _optstatistic(x->sqrt(mean(x .^2)), bτ)
 opticalStd(w::AbstractWatchDog, b, bτ) = _optstatistic(std, bτ)
 
 optMassFlux(w::AbstractWatchDog, b, bτ) = begin
@@ -509,7 +482,6 @@ opticalSurfaces(w::AbstractWatchDog, b, bτ) = begin
     kapparhoplane = haskey(b.data, :kapparho) ? interpolate_to(b, :kapparho; logspace=true, τ_ross=0.0)[:kapparho] : nothing
     sourcefunctionplane = haskey(b.data, :sourcefunction) ? interpolate_to(b, :sourcefunction; logspace=true, τ_ross=0.0)[:sourcefunction] : nothing
     bplanes = Dict(v => interpolate_to(b, v; logspace=true, τ_ross=0.0)[v] for v in (:bx, :by, :bz) if haskey(b.data, v))
-
 
     d = Dict(
         "uzplane" => uzplane[:, :, 1],
@@ -543,9 +515,9 @@ opticalSurfaces(w::AbstractWatchDog, b, bτ) = begin
     d
 end
 
-# =============================================================================
+# ============================================================================
 # Spectrum synthesis
-# =============================================================================
+# ============================================================================
 
 resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ=nothing) = begin
     dλ = if isnothing(Δλ)
@@ -554,7 +526,7 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
         Δλ
     end
     d = Dict{Any, Any}()
-    
+
     # only compute spectra if the WatchDog says its time
     if w.refinement > 0
         try
@@ -567,7 +539,7 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
             _, _, feh = parametersFromName(name)
             multi_name = joinpath(run, "m3dis_$(isnap)")
 
-            # linelists relative to M3D 
+            # linelists relative to M3D
             linelists = String[
                 "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
                 "input_multi3d/LINE-LISTS/nlte_ges_linelist_jmg04sep2023_I_II"
@@ -585,7 +557,7 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
             else
                 linelists
             end
-            
+
             # downsample to make it faster
             bDown = gresample(b; nx=SPECTRUM_DOWNSAMPLING[], ny=SPECTRUM_DOWNSAMPLING[], nz=size(b, 3) * 2 - 1)
             bDown.data[:ne] = pop!(bDown.data, :Ne)
@@ -600,9 +572,9 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
                 :atom_params=>(:atom_file=>"",),
                 :spectrum_params=>(:daa=>Δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>false),
                 :atmos_params=>(
-                    :dims=>30, 
+                    :dims=>30,
                     :atmos_format=>"must",
-                    :use_rho=>true, 
+                    :use_rho=>true,
                     :use_ne=>false,
                     :FeH=>feh
                 ),
@@ -614,11 +586,11 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
             @info "Spectrum synthesis between $(lambda_min)Å and $(lambda_max)Å (Δλ=$(dλ)) requested for snapshot $(isnap)."
             # Running M3D
             result = spectrum(
-                "m3dis_$(isnap)"; 
-                name=name, 
-                NLTE=false, 
-                slurm=false, 
-                namelist_kwargs=spectrum_namelist, 
+                "m3dis_$(isnap)";
+                name=name,
+                NLTE=false,
+                slurm=false,
+                namelist_kwargs=spectrum_namelist,
                 m3dis_kwargs=m3dis_kwargs
             )
 
@@ -627,7 +599,7 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
             c = pyconvert(Array, result.c3)
             l = pyconvert(Array, result.lam)
 
-            d["intensity"] = i 
+            d["intensity"] = i
             d["continuum"] = c
             d["wavelength"] = l
             d["x"] = bDown.x[:, :, end]
@@ -641,7 +613,6 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
             end
         catch
             @warn "Spectrum synthesis between $(lambda_min)Å and $(lambda_max)Å (Δλ=$(dλ)) failes for snapshot $(isnap)."
-            #error("Spectrum synthesis failed.")
         end
     end
 
@@ -656,12 +627,12 @@ resolvedSpectraGaiaRVSCATriplet(w::AbstractWatchDog, b, bτ) = resolvedSpectra(8
 resolvedSpectraHalpha(w::AbstractWatchDog, b, bτ) = resolvedSpectra(6562.8-20.0, 6562.8+20.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 resolvedSpectraGBand(w::AbstractWatchDog, b, bτ) = resolvedSpectra(4297.0, 4303.0, w, b, bτ; Δλ=SPECTRUM_RESOLUTION[])
 
-# =============================================================================
+# ============================================================================
 # Default construction
-# =============================================================================
+# ============================================================================
 
 """
-    defaultMonitoring(name; additional_functions...) 
+    defaultMonitoring(name; additional_functions...)
 
 Create a WatchDog with all default monitoring functions. Additional functions
 can be passed if wanted.
@@ -673,7 +644,7 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), converter=(;), additional_fu
     atmosphericParameters = atmosphericParameters,
     geometricalAverages = geometricalAverages,
     geometricalRMS = geometricalRMS,
-    geometricalStd = geometricalStd, 
+    geometricalStd = geometricalStd,
     opticalAverages = opticalAverages,
     opticalRMS = opticalRMS,
     opticalStd = opticalStd,
@@ -694,17 +665,12 @@ defaultWatchDog(name; folder=@in_dispatch("data/"), converter=(;), additional_fu
     geometrical75thQuantile = geometrical75thQuantile,
     geometrical90thQuantile = geometrical90thQuantile,
     centerVerticalCut = centerVerticalCut,
-    #resolvedSpectraAPOGEESDSSV = resolvedSpectraAPOGEESDSSV,
-    #resolvedSpectraGaiaESOHR10 = resolvedSpectraGaiaESOHR10,
-    #resolvedSpectraGaiaRVS = resolvedSpectraGaiaRVS,
-    #resolvedSpectraGaiaRVSCATriplet = resolvedSpectraGaiaRVSCATriplet,
-    #resolvedSpectraHalpha = resolvedSpectraHalpha,
     additional_functions...
 )
 
-# =============================================================================
+# ============================================================================
 # Utility functions
-# =============================================================================
+# ============================================================================
 
 updatesnaps!(w::DISPATCHWatchDog) = begin
     w.snapshots = sort(list_of_snapshots(w.folder))
@@ -725,9 +691,9 @@ end
 
 convertedBoxes(w::AbstractWatchDog) = converted_snapshots(w.folder)
 
-# =============================================================================
+# ============================================================================
 # File manipulation
-# =============================================================================
+# ============================================================================
 
 """
     add!(w::WatchDog, snapshot; stats...)
@@ -752,14 +718,6 @@ function add!(w::AbstractWatchDog, snapshot; stats...)
     save(w, data)
 end
 
-"""
-    deleteSnapshot(w, snap)
-
-Delete the snapshot with number snap from the monitored run.
-The function removes the snapshot data to save disk space, but
-does not remove it from the monitoring. This allows to check the progress
-without saving every snapshot.
-"""
 deleteSnapshot(w::DISPATCHWatchDog, snap) = begin
     # check if monitoring really exists
     if !(snap in w.snapshotsCompleted)
@@ -774,12 +732,6 @@ deleteSnapshot(w::DISPATCHWatchDog, snap) = begin
     end
 end
 
-"""
-    deleteMonitoring(w, snap)
-
-Delete the snapshot with number snap from the monitoring.
-This is usefull if you want to re-do the analysis of the given snapshot.
-"""
 deleteMonitoring(w::DISPATCHWatchDog, snap) = begin
     # check if monitoring really exists
     if !(snap in w.snapshotsCompleted)
@@ -818,9 +770,9 @@ save(w::AbstractWatchDog, monitoring) = begin
     close(fid)
 end
 
-# =============================================================================
+# ============================================================================
 # Loading monitoring
-# =============================================================================
+# ============================================================================
 
 reload(s::Type{S}, name, snap; folder=@in_dispatch("data/"), mmap=false, groups=nothing) where {S<:AbstractWatchDog} = begin
     reload(s(name; folder=folder), snap, mmap=mmap, groups=groups)
@@ -846,8 +798,8 @@ reload(w::S, snap; mmap=false, groups=nothing) where {S<:AbstractWatchDog} = beg
         fvals[gname] = Dict()
         group = fid[gname]
         for dname in keys(group)
-            fvals[gname][dname] = if (mmap && 
-                                    HDF5.ismmappable(group[dname]) && 
+            fvals[gname][dname] = if (mmap &&
+                                    HDF5.ismmappable(group[dname]) &&
                                     (HDF5.get_jl_type(group[dname])<:AbstractArray))
                 HDF5.readmmap(group[dname])
             else
@@ -861,13 +813,6 @@ reload(w::S, snap; mmap=false, groups=nothing) where {S<:AbstractWatchDog} = beg
     fvals
 end
 
-"""
-    reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all)
-
-Load the monitoring of the given WatchDog. Optionally specify a list of groups you
-want to load, or how many snapshots you want to read from the end. This is 
-usefull when you only need a specific field of the last couple of snapshots.
-"""
 reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all, snapshots=[]) where {S<:AbstractWatchDog} = begin
     listOfSnaps = availableSnaps(w)
     w.snapshotsCompleted = []
@@ -905,27 +850,15 @@ reload!(w::S; mmap=false, asDict=false, groups=nothing, lastN=:all, snapshots=[]
     end
 end
 
-# =============================================================================
+# ============================================================================
 # Time evolution
-# =============================================================================
+# ============================================================================
 
-"""
-    timeevolution(m, group, field) 
-
-Return an array containing the time evolution from all available snapshots in `m` 
-for the given topic `group` and variable `field` in that topic.
-"""
 timeevolution(m, group, field) = [
-    moni[group][field] 
+    moni[group][field]
     for moni in m
 ]
 
-"""
-    timeevolution(m, group) 
-
-Return an Dictionary containing arrays of the time evolution from all available 
-snapshots in `m` for the given topic `group` with all variables in that topic as dictionary entried.
-"""
 timeevolution(m, group) = begin
     mg = m[1][group]
     Dict(
@@ -934,9 +867,9 @@ timeevolution(m, group) = begin
     )
 end
 
-# =============================================================================
+# ============================================================================
 # Global parameters
-# =============================================================================
+# ============================================================================
 
 const SPECTRUM_THREADS = Ref(2)
 const SPECTRUM_RESOLUTION = Ref(0.05)
