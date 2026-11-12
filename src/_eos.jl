@@ -1,11 +1,9 @@
 # ============================================================================
 # Original DISPATCH EoS interface. Just used here in MUST.jl
-# It might actually better at one point to entirely switch over to TSO.jl
 # ============================================================================
 
 abstract type AbstractEOS end
 
-# Type for squaregas EOS tables
 SqGTable = Union{Nothing, Array{F,N} where {N,F<:AbstractFloat}}
 RangeOrVector = Union{R where {R<:AbstractRange}, Vector{F} where {F<:Integer}}
 
@@ -48,7 +46,6 @@ function SquareGasEOS(para_path)
     para_path = joinpath(d, "tabparam.in")
     p = read_squaregas_params(para_path)
 
-    # Record length
     p["RhoEi_recl"]          = p["nEiBin"] *p["nRhoBin"] *4
     p["RhoEiRadTable_recl"]  = p["nEiBin"] *p["nRhoBin"] * p["nRadBins"]
 
@@ -58,8 +55,6 @@ function SquareGasEOS(para_path)
         p["NeTgRadTable_recl"] = -1
     end
 
-    # Read the EOS tables
-    # Ne - Tg Rad tables
     if p["NeTgRadTable_recl"] != -1
         path = joinpath(d, p["NeTgRadTableFile"])
         try
@@ -77,24 +72,19 @@ function SquareGasEOS(para_path)
         ne_opatable = nothing
     end
 
-    # Rho - Ei - rad tables
     path = joinpath(d, p["RhoEiRadTableFile"])
     epstable = read_squaregas_table(path, record = 1, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))
     temtable = read_squaregas_table(path, record = 2, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))
     opatable = read_squaregas_table(path, record = 3, recl = p["RhoEiRadTable_recl"], dim = (p["nEiBin"],p["nRhoBin"],p["nRadBins"]))
 
-    # EOS tables
     path = joinpath(d, p["EOSTableFile"])
     eostable = read_squaregas_table(path, record = 1, recl = p["RhoEi_recl"], dim = (p["nEiBin"],p["nRhoBin"],4))
 
-    # Type of tables
     TT = eltype(eostable)
 
-    # The axes of the tables
     lnRho_axis = Vector(range(TT(log(p["RhoMin"])), TT(log(p["RhoMax"])); length=p["nRhoBin"]))
     lnEi_axis  = Vector(range(TT(log(p["EiMin"])),  TT(log(p["EiMax"]));  length=p["nEiBin"]))
 
-    # Add Tg and Ne axes
     if haskey(p,"TMin") && haskey(p,"TMax")
         lnTg_axis  = Vector(range(TT(log(p["EiMin"])),  TT(log(p["EiMax"]));  length=p["nEiBin"]))
     else
@@ -117,13 +107,13 @@ end
 function read_squaregas_params(file_name::String)
     f = open(file_name,"r")
     l = readlines(f);
-    l = [ strip(i) for i in l if !isempty(strip(i)) ]; # remove empty str
-    l = [ i for i in l if !occursin("/", i) ]; # remove header
-    l = [ i for i in l if !(i[1]=='&') ]; # remove header
+    l = [ strip(i) for i in l if !isempty(strip(i)) ];
+    l = [ i for i in l if !occursin("/", i) ];
+    l = [ i for i in l if !(i[1]=='&') ];
     l = [ strip(i) for i in l if (i[1] != ';')]
-    l = [ i[1]=='!' ? strip(i[2:end]) : i for i in l ]; # remove empty str
+    l = [ i[1]=='!' ? strip(i[2:end]) : i for i in l ];
     l = [ replace(i,"'" => "\"") for i in l ];
-    l = [ split(i,'=') for i in l ]; # remove lines which starts with ';'
+    l = [ split(i,'=') for i in l ];
     params = Dict{String,Any}()
     for x in l
         key = strip(x[1])
@@ -159,7 +149,6 @@ function lookup!(result::AbstractArray, eos::SquareGasEOS, parameter::Symbol, d:
         ee = log.(ee)
     end
 
-    # The EOS table is searched based on the regular grid imposed by the corresponding axis
     if ((parameter == :P) || (parameter == :Pg))
         interpolate_in_table!(result, eos, eos.eostable, d, ee, 1)
         result .= exp.(result)
@@ -200,7 +189,6 @@ function lookup(eos::SquareGasEOS, parameter::Symbol, d::AbstractVector{T}, ee::
         ee = log.(ee)
     end
 
-    # The EOS table is searched based on the regular grid imposed by the corresponding axis
     result = if ((parameter == :P) || (parameter == :Pg))
         exp.(interpolate_in_table(eos, eos.eostable, d, ee, 1))
     elseif ((parameter == :T) || (parameter == :Temp))
@@ -237,7 +225,6 @@ function lookup(eos::SquareGasEOS, parameter::Symbol, d::T, ee::T; to_log=true) 
         d, ee
     end
 
-    # The EOS table is searched based on the regular grid imposed by the corresponding axis
     result = if ((parameter == :P) || (parameter == :Pg))
         exp(interpolate_in_table(eos, eos.eostable, d, ee, 1))
     elseif ((parameter == :T) || (parameter == :Temp))
@@ -548,7 +535,6 @@ function bisect(eos::AbstractEOS, iterations=50, antilinear=false; kwargs...)
         end
     end
 
-    # now loop and find the requested values
     bisect_res = 0
     b0, b1     = kwargs[bisect_var]
 
@@ -636,5 +622,4 @@ limits(eos::SquareGasEOS) = begin
     return dmin, dmax, emin, emax
 end
 
-# Avoid Broadcast over EoS
 broadcastable(eos::AbstractEOS) = Ref(eos)

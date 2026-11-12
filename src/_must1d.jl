@@ -226,9 +226,6 @@ function _write_must1d_header(f, b::Box, columns, header, information, snapshot,
     for (k, v) in sort(collect(cdict), by=first)
         push!(comp, "[$(k)/Fe] = $(v)")
     end
-    # an empty composition is not an unknown one: it means the default abundances
-    # of the abund file were used. Only a composition that was never passed at
-    # all (nothing) is unknown.
     (!isnothing(composition) && isempty(cdict)) && push!(comp, "default composition")
     (isnothing(abund) || isempty(strip(string(abund)))) || push!(comp, "abund file = $(abund)")
     write(f, "# $(isempty(comp) ? "composition unknown" : join(comp, ", "))\n")

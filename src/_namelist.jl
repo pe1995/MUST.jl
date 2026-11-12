@@ -177,11 +177,9 @@ function read!(nml::AbstractNamelist, path::String; buzzword=nothing)
             continue
         end
 
-        # Toggle string states
         if c == '\'' && !in_dq; in_sq = !in_sq; end
         if c == '"'  && !in_sq; in_dq = !in_dq; end
 
-        # Skip comments (unless the '!' is inside a string)
         if c == '!' && !in_sq && !in_dq
             in_comment = true
             continue
@@ -285,7 +283,6 @@ function parse_from_namelist(value_string)
         elseif v_lower in ["f", ".false."]
             false
         else
-            # Strip delimiters, remove line breaks, and strip the resulting Fortran space padding
             cleaned = strip(val, ['\'', '"'])
             cleaned = replace(cleaned, r"[\r\n]+" => "")
             strip(cleaned)
@@ -299,7 +296,6 @@ function parse_from_namelist(value_string)
             elseif iv_lower in ["f", ".false."]
                 false
             else
-                # Do the same for string arrays
                 cleaned = strip(iv, ['\'', '"'])
                 cleaned = replace(cleaned, r"[\r\n]+" => "")
                 strip(cleaned)
@@ -459,15 +455,12 @@ function write(nml::AbstractNamelist, path::String;
 
     para_names = String.(nmlFields(nml))
 
-    # Helper to convert to Vector{String}
     _to_vec(v::AbstractVector) = String.(v)
     _to_vec(v::AbstractString) = String.(split(String(v), '\n'))
     _to_vec(v) = [String(v)]
 
-    # Process help dictionaries to ensure keys are strings and values are Vector{String}
     str_help = Dict{String, Vector{String}}(String(k) => _to_vec(v) for (k, v) in help)
 
-    # Process param_help and extract ordering
     str_param_help = Dict{String, Dict{String, Vector{String}}}()
     param_order = Dict{String, Vector{String}}()
     extracted_tag_order = String[]
@@ -492,7 +485,6 @@ function write(nml::AbstractNamelist, path::String;
         param_order[tag] = tag_p_order
     end
 
-    # Determine tag order
     is_ordered_param = (typeof(param_help) <: AbstractVector) || (typeof(param_help) <: Tuple)
     str_order = if !isempty(order)
         String.(order)
@@ -510,7 +502,6 @@ function write(nml::AbstractNamelist, path::String;
 
     f = open(path, "w")
 
-    # Write title section
     if !isempty(title)
         for line in _to_vec(title)
             clean_line = strip(line)
@@ -532,10 +523,9 @@ function write(nml::AbstractNamelist, path::String;
             continue
         end
 
-        # Write help comment for the tag if it exists
         if haskey(str_help, p)
             if i > 1
-                Base.write(f, "\n") # Empty line before comment for readability (avoid double newlines after title)
+                Base.write(f, "\n")
             end
             for line in str_help[p]
                 clean_line = strip(line)
@@ -566,7 +556,6 @@ function write(nml::AbstractNamelist, path::String;
             add_to_line = "$(str_word)=" * reverse_parse(d[str_word]) * " "
 
             if haskey(current_param_help, str_word)
-                # Format comment
                 phelp_lines = current_param_help[str_word]
                 formatted_lines = String[]
                 for l in phelp_lines
@@ -610,7 +599,6 @@ function write(nml::AbstractNamelist, path::String;
             end
         end
 
-        # Remove trailing whitespaces (including newlines) to correctly place the `/`
         line = rstrip(line) * "\n/\n"
 
         Base.write(f, line)
@@ -620,7 +608,6 @@ function write(nml::AbstractNamelist, path::String;
 end
 
 function get_restart_snap_nml(nml::StellarNamelist)
-    # the restart snapshot
     i_snap    = nml.restart_params["snapshot"]
     folder    = @in_dispatch "data/$(strip(nml.restart_params["run"], [''', ' ']))"
     s = SnapshotNamelist(joinpath(_snapshot_folder(i_snap, glob("*/", folder)), "snapshot.nml"))
@@ -656,14 +643,14 @@ _whole_spectrum_namelist!(nml::M3DNamelist;
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
 	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
-    atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20",
+    atom_params=(
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	run_params=(:n_nu=>32,),
 	nlte_params=(:decouple_continuum=>true,),
 	m3d_debug_params=(:verbose=>1, :fcheck=>1, :pcheck=>[1,1,1], :linecheck=>1,
 				:lvlcheck=>1),
 	rt_iteration_params=(:maxiter=>0,),
-    composition_params=(:abund_file=>"./input_multi3d/abund_magg",),#:absdat_file=>"./input_multi3d/TS_absdat.dat"),
+    composition_params=(:abund_file=>"./input_multi3d/abund_magg",),
     ) = begin
 
 	set!(
@@ -685,16 +672,12 @@ function whole_spectrum_namelist(model_name::String;
 					linelist="./input_multi3d/vald_2490-25540.list",
 					absmet=nothing,
 					kwargs...)
-	# Create an empty Namelist
 	nml = M3DNamelist()
 
-	# Fill in the defaults for this, they can be modified
 	_whole_spectrum_namelist!(nml)
 
-	# path of the model
 	model_path = joinpath(model_folder, model_name)
 
-	# additionally apply the model specific fields
 	set!(nml; atmos_params=(:atmos_file=>model_path,))
 
     if (isnothing(absmet)) & (!isnothing(linelist))
@@ -708,7 +691,6 @@ function whole_spectrum_namelist(model_name::String;
         error("Need to specify either linelist or absmet (not both).")
     end
 
-    # apply custom input parameters
     set!(nml; kwargs...)
 
 	nml
@@ -718,13 +700,12 @@ _spectrum_namelist_lte!(nml::M3DNamelist;
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
 	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
-    atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20",
+    atom_params=(
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	run_params=(:n_nu=>32,),
 	m3d_debug_params=(:verbose=>1, :fcheck=>1, :linecheck=>1, :lvlcheck=>1),
 	rt_iteration_params=(:angle_quad=>"set_a2", :maxiter=>0),
 	rt_output_params=(:angle_quad=>"lobatto", :ntheta=>4, :nphi=>4, :maxiter=>0)) = begin
-    # :decouple_continuum=>true (nlte_params)
 	set!(
 		nml;
 		io_params=io_params,
@@ -742,14 +723,13 @@ _spectrum_namelist_nlte!(nml::M3DNamelist;
 	io_params=(:datadir=>"data", :gb_step=>10.0, :do_trace=>false),
 	timer_params=(:sec_per_report=>120,),
 	atmos_params=(:dims=>23, :atmos_format=>"MUST", :use_rho=>true),
-    atom_params=(#:atom_file=>"./input_multi3d/atoms/atom.h20",
+    atom_params=(
                 :exclude_trace_cont=>true, :exclude_from_line_list=>true),
 	nlte_params=(:convlim=>1e-2,),
 	run_params=(:n_nu=>32,),
 	m3d_debug_params=(:verbose=>1, :fcheck=>1, :linecheck=>1, :lvlcheck=>1),
 	rt_iteration_params=(:angle_quad=>"set_a2", :maxiter=>100),
 	rt_output_params=(:angle_quad=>"lobatto", :ntheta=>4, :nphi=>4, :maxiter=>0)) = begin
-    # :decouple_continuum=>true (nlte_params)
 	set!(
 		nml;
 		io_params=io_params,
@@ -766,19 +746,15 @@ end
 
 function spectrum_namelist(model_name::String; NLTE=false,
 					model_folder="./input_multi3d/MUST",
-					linelist=nothing,#"./input_multi3d/vald_2490-25540.list",
+					linelist=nothing,
                     absmet=nothing,
 					kwargs...)
-	# Create an empty Namelist
 	nml = M3DNamelist()
 
-	# Fill in the defaults for this, they can be modified
     NLTE ? _spectrum_namelist_nlte!(nml) : _spectrum_namelist_lte!(nml)
 
-	# path of the model
 	model_path = joinpath(model_folder, model_name)
 
-	# additionally apply the model specific fields
 	set!(nml; atmos_params=(:atmos_file=>model_path,))
 
     if (isnothing(absmet)) & (!isnothing(linelist))
@@ -792,7 +768,6 @@ function spectrum_namelist(model_name::String; NLTE=false,
         error("Need to specify either linelist or absmet (not both).")
     end
 
-    # apply custom input parameters
     set!(nml; kwargs...)
 
 	nml
@@ -805,8 +780,6 @@ heating_namelist(model_name::String, opacity_table=nothing, args...; kwargs...) 
         set!(nml, opac_table_params=(:opac_table=>opacity_table,))
     end
 
-    # NOTE: OpenMULTI3D v1.0 no longer has the mean_rad patch kind nor save_Qrad,
-    # so the radiative-heating output this namelist was written for is gone.
     set!(nml, output_params=(:save_patch_kind=>"mean_rad",))
     set!(nml, run_params=(:n_nu=>1,))
     set!(nml, atmos_params=(:dims=>1,))
@@ -835,19 +808,14 @@ _tau500_namelist!(nml::M3DNamelist,
 end
 
 function tau500_namelist(model_name::String; model_folder="./input_multi3d/MUST", kwargs...)
-    # Create an empty Namelist
     nml = M3DNamelist()
 
-    # Fill in the defaults for this, they can be modified
     _tau500_namelist!(nml)
 
-    # path of the model
     model_path = joinpath(model_folder, model_name)
 
-    # additionally apply the model specific fields
     set!(nml; atmos_params=(:atmos_file=>model_path,))
 
-    # apply custom input parameters
     set!(nml; kwargs...)
 
     nml

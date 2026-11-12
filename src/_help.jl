@@ -94,13 +94,13 @@ function _develop_hop(Pkg, location=nothing; reinstall=false)
 	p = _hop_pkg_path(location)
 	reinstall && return _redevelop_hop(Pkg, p)
 	try
-		return Base.require(_hop_pkgid())           # already dev'd and loadable
+		return Base.require(_hop_pkgid())
 	catch
 		try
 			Pkg.develop(Pkg.PackageSpec(path=p))
 			return Base.require(_hop_pkgid())
 		catch
-			return _redevelop_hop(Pkg, p)        # broken -> rm + re-develop
+			return _redevelop_hop(Pkg, p)
 		end
 	end
 end

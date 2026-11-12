@@ -37,7 +37,6 @@ end
 function _import_dispatch(location::Union{Nothing,String}=nothing, submodules=[])
     location = isnothing(location) ? joinpath(abspath(pwd()),"../../../dispatch2") : location
 
-    # Import sys and os, add to path and import dispatch
     os  = pyimport("os")
 	sys = pyimport("sys")
 	global dispatch_location = abspath(pyconvert(String, os.getenv("D", location)))
@@ -144,7 +143,6 @@ const var"@import_m3dis" = var"@import_tumult"
 function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
 	location = isnothing(location) ? joinpath(abspath(pwd()),"../../../m3dis/experiments/Multi3D") : location
 
-    # Import sys and os, add to path and import dispatch
     os  = pyimport("os")
 	sys = pyimport("sys")
 	global multi_location = abspath(pyconvert(String, os.getenv("D", location)))
@@ -161,7 +159,6 @@ function _import_m3dis(location::Union{Nothing,String}=nothing, submodules=[])
 	if !(multi_python_path in sys."path")
 		sys."path".append(multi_python_path)
 	end
-	# tumult imports the hopacity package, which lives in <OpenMULTI3D>/HOP
 	hop_python_path = os."path".join(multi_python_path, "HOP")
 	if !(hop_python_path in sys."path")
 		sys."path".append(hop_python_path)

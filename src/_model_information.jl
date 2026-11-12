@@ -84,7 +84,6 @@ name_string(minfo::ModelInformation; add_E=false) = begin
 end
 
 pretty_name(minfo::ModelInformation, snapshot=nothing; format="new") = begin
-	# Convert from internal name to pretty name
     a_str = (minfo.alpha == "" || minfo.alpha === nothing) ? "" : MUST.@sprintf("_a%+.2f", minfo.alpha)
     v_str = (minfo.vmic == "" || minfo.vmic === nothing) ? "" : MUST.@sprintf("_vmic%+.2f", minfo.vmic)
     t_val = (minfo.teff == "" || minfo.teff === nothing) ? 0 : round(Int, minfo.teff)
@@ -114,7 +113,6 @@ ModelInformation(name; format="auto") = begin
 	name_parts = [p for p in name_parts if !(p=="E")]
 
     if format == "auto" || format == "new"
-        # Check for new format: e.g. M3DIS_t04000_g-0.50_z-2.00_a+0.40_vmic+2.00
         t_idx = findfirst(x -> startswith(x, "t") && length(x) > 1 && tryparse(Float64, x[2:end]) !== nothing, name_parts)
         g_idx = findfirst(x -> startswith(x, "g") && length(x) > 1 && tryparse(Float64, x[2:end]) !== nothing, name_parts)
         z_idx = findfirst(x -> startswith(x, "z") && length(x) > 1 && tryparse(Float64, x[2:end]) !== nothing, name_parts)
@@ -159,14 +157,11 @@ ModelInformation(name; format="auto") = begin
 
     if format == "auto" || format == "legacy"
 	    try
-		    # find the data string
 		    idatastring = _find_datastring(name_parts)
 
 		    if idatastring == -1
-			    # this has the wrong format
 			    ModelInformation(wrong_format=true, original_name=name)
 		    else
-			    # everyting before the datastring is prefix, the rest is extension
 			    prefix = try
 				    join(name_parts[1:idatastring-1], '_')
 			    catch

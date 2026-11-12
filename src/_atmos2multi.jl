@@ -150,7 +150,6 @@ save_average_m3d(b::Box, scale, f_new; recompute_ne_func=nothing, kwargs...) = b
         ne, pe
     end
 
-    # convert vmic to km/s
     vmic = vmic ./ 1e5
     save_text_m3d(f_new, z, ρ, T; vmic=vmic, pe=pe, kwargs...)
 end
@@ -216,7 +215,6 @@ save_tau_average_m1d(b::Box, f_new; recompute_ne_func=nothing, information="", k
     f_new_atmos = joinpath(dir, "atmos.$(filename)")
     f_new_dscale = joinpath(dir, "dscale.$(filename)")
 
-    # convert vmic to km/s
     vmic = vmic ./ 1e5
     save_text_m1d(f_new_atmos, logτ, T, ne; vmic=vmic, information=length(information)==0 ? infotext : information*"\n"*infotext, kwargs...)
     save_text_m1d_dscale(f_new_dscale, logτ; kwargs...)

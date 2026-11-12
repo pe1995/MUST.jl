@@ -54,7 +54,6 @@ abstract type AbstractInitialModel end
 
 abstract type AbstractMUSTGrid end
 
-# Gridding
 abstract type AbstractBoxGrid
 end
 
@@ -72,25 +71,19 @@ export ginterpolate, gevaluate, gevaluate!, gresample, Grid
 export plane_statistic
 export height_scale
 
-# MUST 1D model format
 export save_must1d, save_must1d_all, read_must1d, must1d_columns, averageBox
 
-# Multi
 export whole_spectrum, spectrum, Teff, flux, M3DISRun, window, TUMULTRun
 
-# Marcs
 export marcsBox
 
-# Mafags
 export mafagsBox
 
 export axis, closest
 export ingredients
 
-# monitoring
 export defaultWatchDog, monitor
 
-# spectra
 export MeanSpectra, spectra_tags, spectra_keys, spectra
 
 # ============================================================================
@@ -124,28 +117,22 @@ include("_read_marcs.jl")
 include("_mafags.jl")
 include("_convert.jl")
 
-# co5bold reader
-
-# muram reader
 include("_muram.jl")
 
-# physical utilities
 include("_physical_quantities.jl")
 
-# watchdog
 include("_watchdog.jl")
 
-# timers
 const timers = [
-    boxingTime,              # time the collection of patches
-    opticalDepthTime,        # time the optical depth computation
-    heightScaleTime,         # time the optical depth scale interpolation
-    multiTime                # time the creation of M3D cubes
+    boxingTime,
+    opticalDepthTime,
+    heightScaleTime,
+    multiTime
 ]
 
 const detailedTimers = [
-    timers...,               # General timers
-    detailedBoxingTimers...  # more detail for converting patches to Boxes
+    timers...,
+    detailedBoxingTimers...
 ]
 
 end

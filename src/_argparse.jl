@@ -1,5 +1,5 @@
 function MUSTGridArgs()
-    s = ArgParse.ArgParseSettings()  # The parser
+    s = ArgParse.ArgParseSettings()
 
     ArgParse.@add_arg_table s begin
         "--info_path", "-p"

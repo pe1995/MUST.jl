@@ -30,7 +30,6 @@ check_av_model_path(g::Atmos1DGrid) = begin
 	ga = deepcopy(g)
 	absolute_path!(ga)
 
-	# check if av_models dir exists
 	d = dirname(ga["av_path", 1])
 	gridname = basename(dirname(d))
 	if (!isdir(d)) && (isfile(d*".tar.gz"))
@@ -151,20 +150,16 @@ end
 # ============================================================================
 
 function replace_relative_path!(grid; kwargs...)
-	# make paths absolute
 	absolute_path!(grid)
 
-	# replace paths with new ones
 	replace_absolute_path!(grid; kwargs...)
 
-	# make paths relative again
 	relative_path!(grid)
 
 	grid
 end
 
 function replace_absolute_path!(grid; kwargs...)
-	# paths are already absolute
 	for (k, v) in kwargs
 		grid.info[k] = v
 	end
@@ -224,7 +219,6 @@ stage_namelists(grid::Atmos1DGrid, folder="run_grid"; clean_logs=true, clean_nam
 		mkdir(folder_run)
 	end
 
-	# clean up dispatch from logs and namelists
 	glob("*", folder_run) .|> rm
 
 	for (i, n) in enumerate(nml_names)

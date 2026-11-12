@@ -1,7 +1,4 @@
 function legacyBox(b::Box, name::String)
-    # For legacy code, we need .snap, .aux and .mesh files
-    # We will only save quantities that are needed for e.g. Tabgen, the rest will be filled
-    # with 0 values.
     snap_file = "$(name).snap"
     aux_file  = "$(name).aux"
     mesh_file = "$(name).msh"
@@ -78,10 +75,8 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
     stagger_box = if !skip_interpolation
         if !gridded
             @warn "Data is assumed to be unstructured! Interpolation will be very slow for the whole cube."
-            ## First create a space object, because the snapshot is not spaced equally
             stagger_space = Space(s, :r, :px, :py, :pz, :temp, :pp, :ross, :tau, :ee, :e)
 
-            ## Now we interpolate this space to a box object with equal size
             new_x = uniform_grid(stagger_space, length(s[:x]), :x)
             new_y = uniform_grid(stagger_space, length(s[:y]), :y)
             new_z = uniform_grid(stagger_space, length(s[:z]), :z)
@@ -100,7 +95,6 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
         s
     end
 
-    ## The snapshot is already ordered in the normal way
     d  = stagger_box[:r]
     ux = stagger_box[:px] ./ d
     uy = stagger_box[:py] ./ d
@@ -121,8 +115,6 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
 
     b = Box(xx, yy, zz, data, AtmosphericParameters())
 
-    # A conversion to cgs has to be done
-    # Apply the conversion
     convert!(b, units;  d=:d, pp=:p, ross=:k,
                         px=:pm, py=:pm, pz=:pm,
                         ux=:u, uy=:u, uz=:u,
@@ -132,7 +124,6 @@ function Box(s::StaggerSnap; units=StaggerCGS(), eos=nothing, gridded=true, skip
     b.data[:lne] .= b.data[:lne] .+ log(units.n)
     if !isnothing(eos)
         @info "Recomputing Energy from EoS."
-        # We compute the energy cube, which is needed to get the gas pressure from the EOS
         e_cube_stagger = MUST.bisect_energy(eos, size(b[:d]); d=b[:d], T=b[:T])
         b.data[:ee] = e_cube_stagger
         b.data[:e]  = e_cube_stagger .* b[:d]
@@ -156,7 +147,6 @@ function uniform!(s::StaggerSnap; max_resolution=true)
     old_z = s[:z]
 
     N = if max_resolution
-        # point of highest resolution
         dz_min = minimum(old_z[2:end] .- old_z[1:end-1])
         Int(ceil(abs(maximum(old_z) - minimum(old_z)) / dz_min))
     else
@@ -206,8 +196,8 @@ function _write_aux(b, name)
 end
 
 function _write_mesh(b, name)
-    mx, my, mz = Base.convert.(Int32, size(b.x)) # Size of the Box
-    dummy_x = zeros(Float32, mx)              # Fill not needed arrays with 0
+    mx, my, mz = Base.convert.(Int32, size(b.x))
+    dummy_x = zeros(Float32, mx)
     dummy_y = zeros(Float32, my)
     dummy_z = zeros(Float32, mz)
 
@@ -238,19 +228,19 @@ function _write_snap(b, name)
 
     units = StaggerCGS()
 
-    tmp = reverse(Base.convert.(Float32, b[:d] ./ units.d))  # r
+    tmp = reverse(Base.convert.(Float32, b[:d] ./ units.d))
     FortranFiles.write(f, Base.convert.(Float32, tmp), rec=1)
 
-    tmp = reverse(Base.convert.(Float32, b[:ux] ./ units.u .* b[:d] ./ units.d)) # px
+    tmp = reverse(Base.convert.(Float32, b[:ux] ./ units.u .* b[:d] ./ units.d))
     FortranFiles.write(f, Base.convert.(Float32, tmp), rec=2)
 
-    tmp = reverse(Base.convert.(Float32, b[:uy] ./ units.u .* b[:d] ./ units.d)) # py
+    tmp = reverse(Base.convert.(Float32, b[:uy] ./ units.u .* b[:d] ./ units.d))
     FortranFiles.write(f, Base.convert.(Float32, tmp), rec=3)
 
-    tmp = reverse(Base.convert.(Float32, b[:uz] ./ units.u .* b[:d] ./ units.d)) # pz
+    tmp = reverse(Base.convert.(Float32, b[:uz] ./ units.u .* b[:d] ./ units.d))
     FortranFiles.write(f, Base.convert.(Float32, tmp), rec=4)
 
-    tmp = reverse(Base.convert.(Float32, b[:e] ./ units.e)) # e
+    tmp = reverse(Base.convert.(Float32, b[:e] ./ units.e))
     FortranFiles.write(f, Base.convert.(Float32, tmp), rec=5)
 
     close(f)

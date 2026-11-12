@@ -37,13 +37,9 @@ function monitor(w::DISPATCHWatchDog; timeout=8*60*60, check_every=5, delay=0, s
     time_current = time()
     time_passed_since(t_ref) = time() - t_ref
 
-    # keep looping until timeout
     while true
-        # list snapshots
         updatesnaps!(w)
 
-        # check how many snapshots we have completed
-        # delete the snapshots if they are older than keeplast
         if keeplast > 0
             n_snapsCompleted = length(w.snapshotsCompleted)
             if n_snapsCompleted > keeplast
@@ -85,37 +81,29 @@ function monitor(w::DISPATCHWatchDog; timeout=8*60*60, check_every=5, delay=0, s
             end
         end
 
-        # check if there is a new snapshot
         enum = enumerate(w.snapshots)
         enum = reverse ? Iterators.reverse(enum) : enum
         ibatch = 0
         for (i, snapf) in enum
-            # for safety reasons, we dont convert the last N snaps
-            # this avoids them being read while not written properly
             if i >= length(w.snapshots)-snapshotbuffer
                 continue
             end
 
             if !(snapf in w.snapshotsCompleted)
-                # give the snapshot some time to be written (optional)
                 sleep(delay)
 
-                # Check how detailed the output should be
                 w.currentSnapshot = snapf
                 w.refinement = 0
                 if spectra > 0
-                    # Increase refinemet if spectra are requested
                     w.refinement = (((snapf % spectra) == 0) && snapf>0) ? 1 : 0
                 end
 
-                # save the snapshot to disk if we have a refinement level
                 save_refinement = if w.refinement > 0
                     true
                 else
                     save_box
                 end
 
-                # skip if only a refinement is requested
                 if onlyrefinement
                     if w.refinement == 0
                         @info "Skipping snapshot $(snapf) because no refinement is requested."
@@ -138,8 +126,6 @@ function monitor(w::DISPATCHWatchDog; timeout=8*60*60, check_every=5, delay=0, s
                     time_current = time()
                 end
             else
-                # If it is already completed, we may check as well if it should
-                # be saved or has already been saved
                 if save_box
                     if !(snapf in keys(convertedBoxes(w)))
                         @info "Converting snapshot $(snapf)..."
@@ -154,14 +140,10 @@ function monitor(w::DISPATCHWatchDog; timeout=8*60*60, check_every=5, delay=0, s
             end
 
             if ibatch>=batch
-                # we exit the conversion loop and check for new snapshots
-                # This is useful, because this provides more recent
-                # snapshots quicker
                 break
             end
         end
 
-        # check how much time has passed
         if time_passed_since(time_current) > timeout
             @info "Watchdog monitoring end. Total time: $(time_passed_since(time_start)) s."
             break
@@ -179,7 +161,6 @@ end
 # ============================================================================
 
 function analyse(w::AbstractWatchDog, snapshot; save_box=false)
-    # convert the snapshot to a box
     b, bτ = convert(w, snapshot; save_box=save_box)
 
     monitoring = Dict()
@@ -201,7 +182,6 @@ function analyse(w::AbstractWatchDog, snapshot; save_box=false)
         "snapshot" => snapshot
     )
 
-    # save the data
     save(w, monitoring)
 end
 
@@ -238,7 +218,6 @@ _geostatistic(f, b) = begin
     for v in variables
         try
             if all(b[v] .> 0)
-                # use the log
                 v_log = Symbol("log10$(v)")
                 x, y = profile(f, b, :z, v_log)
                 results[:z] = x
@@ -365,7 +344,6 @@ lowerBoundarySurface(w::AbstractWatchDog, b, bτ) = begin
 end
 
 minimumTempSurface(w::AbstractWatchDog, b, bτ) = begin
-    # plane of minimum temperature
     iplane = argmin(b[:T])[3]
 
     uzplane = b[:uz][:, :, iplane]
@@ -434,7 +412,6 @@ _optstatistic(f, bτ) = begin
     for v in variables
         try
             if all(bτ[v] .> 0.0)
-                # use the log
                 v_log = Symbol("log10$(v)")
                 x, y = profile(f, bτ, :log10τ_ross, v_log)
                 results[:log10τ_ross] = x
@@ -527,7 +504,6 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
     end
     d = Dict{Any, Any}()
 
-    # only compute spectra if the WatchDog says its time
     if w.refinement > 0
         try
             λs = lambda_min
@@ -539,13 +515,11 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
             _, _, feh = parametersFromName(name)
             multi_name = joinpath(run, "m3dis_$(isnap)")
 
-            # linelists relative to M3D
             linelists = String[
                 "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
                 "input_multi3d/LINE-LISTS/nlte_ges_linelist_jmg04sep2023_I_II"
             ]
 
-            # make sure, that M3D is setup correctly
             if !isdir(@in_m3dis("input_multi3d/MUST"))
                 @warn "There is not yet a MUST directory in M3D. This is needed to keep the paths short!"
                 symlink(@in_dispatch("data"), @in_m3dis("input_multi3d/MUST"))
@@ -558,12 +532,10 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
                 linelists
             end
 
-            # downsample to make it faster
             bDown = gresample(b; nx=SPECTRUM_DOWNSAMPLING[], ny=SPECTRUM_DOWNSAMPLING[], nz=size(b, 3) * 2 - 1)
             bDown.data[:ne] = pop!(bDown.data, :Ne)
             multiBox(bDown, joinpath(run, "m3dis_$(isnap)"))
 
-            # setup for M3D
             spectrum_namelist = Dict(
                 :model_folder=>joinpath("input_multi3d","MUST", name),
                 :linelist=>nothing,
@@ -584,7 +556,6 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
             m3dis_kwargs = Dict(:threads=>SPECTRUM_THREADS[])
 
             @info "Spectrum synthesis between $(lambda_min)Å and $(lambda_max)Å (Δλ=$(dλ)) requested for snapshot $(isnap)."
-            # Running M3D
             result = spectrum(
                 "m3dis_$(isnap)";
                 name=name,
@@ -594,7 +565,6 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
                 m3dis_kwargs=m3dis_kwargs
             )
 
-            # get the output arrays
             i = pyconvert(Array, result.i3)
             c = pyconvert(Array, result.c3)
             l = pyconvert(Array, result.lam)
@@ -605,7 +575,6 @@ resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ
             d["x"] = bDown.x[:, :, end]
             d["y"] = bDown.y[:, :, end]
 
-            # delete the M3D output folder
             mn = join(["m3dis_$(isnap)", name], "_")
             output_folder = @in_m3dis("data/$(mn)")
             if isdir(output_folder)
@@ -706,20 +675,16 @@ Add the given statistics to the watchdog data after the creation of the monitori
 ```
 """
 function add!(w::AbstractWatchDog, snapshot; stats...)
-    # Make sure the data of this snapshot is loaded
     data = reload(w, snapshot, mmap=false, groups=nothing)
 
-    # Add every statistic that is wanted
     for (name, stat) in stats
         data[String(name)] = stat
     end
 
-    # save the updated monitoring
     save(w, data)
 end
 
 deleteSnapshot(w::DISPATCHWatchDog, snap) = begin
-    # check if monitoring really exists
     if !(snap in w.snapshotsCompleted)
         @warn "Deleting requested for snapshot $(snap), which is not monitored yet."
         return
@@ -733,13 +698,11 @@ deleteSnapshot(w::DISPATCHWatchDog, snap) = begin
 end
 
 deleteMonitoring(w::DISPATCHWatchDog, snap) = begin
-    # check if monitoring really exists
     if !(snap in w.snapshotsCompleted)
         @warn "Deleting requested for snapshot $(snap), which is not monitored yet."
         return
     end
 
-   # remove the monitoring
    rm(monitoringPath(w, snap))
 end
 
@@ -747,21 +710,17 @@ add_to_hdf5!(fid, fname, val)       = fid["$(fname)"] = val
 add_to_hdf5!(fid, fname, val::Bool) = fid["$(fname)"] = Int(val)
 
 save(w::AbstractWatchDog, monitoring) = begin
-    # check if folder exists
     if !isdir(monitoringPath(w))
         mkdir(monitoringPath(w))
     end
 
     isnap = monitoring["general"]["snapshot"]
 
-    # within the same folder we create the monitoring
     fid = HDF5.h5open(monitoringPath(w, isnap), "w")
 
-    # for each function we called, we add a group to the monitoring
     for (fname, data) in monitoring
         create_group(fid, "$(fname)")
 
-        # all variables in the group we add to the monitoring
         for (quantity, var) in data
             add_to_hdf5!(fid["$(fname)"], quantity, var)
         end
@@ -787,14 +746,12 @@ reload(w::S, snap; mmap=false, groups=nothing) where {S<:AbstractWatchDog} = beg
     fvals = Dict()
 
     for gname in keys(fid)
-        # check if this group should be loaded
         if !isnothing(groups)
             if !(gname in groups)
                 continue
             end
         end
 
-        # read from file
         fvals[gname] = Dict()
         group = fid[gname]
         for dname in keys(group)

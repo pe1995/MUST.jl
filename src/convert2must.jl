@@ -43,17 +43,14 @@ function _Box_py(simulation, snapshot; eos, opacity, data, add_selected=false, s
     bs = MUST.Box(s)
 	s = nothing
 
-	# Get rosseland opacity and T from Opacity table
 	κross = lookup(eos, opacity, :κ_ross, log.(bs[:d]), log.(bs[:ee]))
 	T = exp.(lookup(eos, :lnT, log.(bs[:d]), log.(bs[:ee])))
 	MUST.add!(bs, κross, :kr)
 	MUST.add!(bs, T, :T)
 
-	# Compute an vertical optical depth
 	τ = MUST.optical_depth(bs, opacity=:kr, density=:d)
     MUST.add!(bs, τ, :τ_ross)
 
-    # Save the box in the same folder
     if save
 	    MUST.save(bs; name="box_sn$(snapshot)", folder=simulation)
 	end

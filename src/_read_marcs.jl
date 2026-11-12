@@ -64,7 +64,6 @@ function read_marcs_sub_table(f; start_at=nothing, end_at=nothing)
     is_new_header = false
     current_header = []
     while !occursin(end_at, line)
-        # read until you find a new header
         line = try
             is_new_header = false
             l = parse.(Float64, split(line, " ", keepempty=false))
@@ -89,12 +88,10 @@ function read_marcs_sub_table(f; start_at=nothing, end_at=nothing)
 
         if is_new_header
             current_header = line
-            # this is a new header, add or remove the existing columns in data
             for (i, quantity) in enumerate(current_header)
                 data[quantity] = Float64[]
             end
         else
-            # read otherwise
             for (i, q) in enumerate(current_header)
                 append!(data[q], line[i])
             end

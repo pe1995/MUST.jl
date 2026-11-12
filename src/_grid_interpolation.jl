@@ -1,13 +1,6 @@
 # ============================================================================
 # Methods for Grid interpolation
 # ============================================================================
-# provide capabilities of interpolating
-# each axis of a grid from the current axis to a new axis.
-# For each axis, it creates a AxisInterpolation object, that stores
-# buffers and interpolation weights, so that the integration
-# of muliple variables can be done in no time after the first call.
-# For grids, the axis interpolation is called one step at a time,
-# and the returned values are further interpolated in the other directions.
 
 struct AxisInterpolation{T<:AbstractFloat, I<:Integer,
                         A1<:AbstractBoxAxis, A2<:AbstractBoxAxis}
@@ -127,16 +120,6 @@ function interpolate_axis!(values_new, values, weights, indices)
 end
 
 function pchip_mono8!(newy, yy, newx, xx)
-    # real(8), intent(in) :: xx(:)            # X values of the data points
-    # real,    intent(in) :: yy(:)            # Y values of the data points
-    # real(8), intent(in) :: newx(:)          # X values to interpolate at
-    # real,    intent(out) :: newy(:)         # Interpolated Y values
-    # real(8), allocatable :: dydx(:)         # derivative
-    # integer :: n                 ! Number of data points
-    # integer :: n_interp          ! Number of interpolation points
-    # integer :: j                 ! Loop index for interpolation points
-    # integer :: i                 ! Loop index for data points
-    # real(8) :: d1, d2, d, alpha, t1, t2, t3, p, a
     n = length(xx)
     n_interp = length(newx)
 
@@ -153,13 +136,11 @@ function pchip_mono8!(newy, yy, newx, xx)
         d2 = _dy(i)/_dx(i)
 
         if (sign(d1) == sign(d2))
-            # harmonic mean derivative
             alpha = (1. + _dx(i-1)/(_dx(i) + _dx(i-1))) / 3.0
             dydx[i] = 1. / ((1. - alpha)/d2 + alpha/d1)
         end
     end
 
-    # boundary slopes from quadratic polynomial using 2 points and 1 dydx
     a = (_dy(1) - _dx(1)*dydx[2]) / (xx[2]^2 - xx[1]^2 - 2. * xx[2]*_dx(1))
     dydx[1] = dydx[2] - 2. * a *_dx(1)
 
@@ -168,16 +149,14 @@ function pchip_mono8!(newy, yy, newx, xx)
 
     i = 1
     @inbounds for j in 1:n_interp
-        # Find the interval containing newx(j)
         @inbounds for k in i:n-1
             if (newx[j] <= xx[k + 1])
                 i = k
-                break #! Found the interval
+                break
             end
         end
         i = min(i, n-1)
 
-        # Calculate the interpolation parameter
         t1 = (newx[j] - xx[i]) / _dx(i)
 
         t2 = t1*t1

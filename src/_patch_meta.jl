@@ -69,7 +69,6 @@ function PatchMeta(patch, snap)
     offset = [iv + (rec-1) * mv for iv in 0:mv-1] .* (4*bts)
     id = nmlValue(patch, "id")
 
-    # for axes
     s = parse_multiple(nmlValue(patch, "size"))
     pos = parse_multiple(nmlValue(patch, "position"))
     llc= pos .- s./2.0
@@ -153,7 +152,6 @@ function readaux(f; newformat=false, nvars=-1)
     end
 
     if nvars < 0
-        # read the entire file
         while true
             try
                 name, rnk, shp, tp, data = readaux_entry(f)
@@ -163,7 +161,6 @@ function readaux(f; newformat=false, nvars=-1)
             end
         end
     else
-        # read the first nvars entries
         for i in 1:nvars
             name, rnk, shp, tp, data = readaux_entry(f)
             append!(auxs, [AuxPatch(version, id, name, rnk, shp, tp, data)])
@@ -180,13 +177,10 @@ end
 function parse_multiple(s::AbstractString)
     sComponents = []
 
-    # split at commas
     sComma = strip.(split(s, ",", keepempty=false))
 
-    # split for multiplication signs
     sMulti = [strip.(split(si, "*", keepempty=false)) for si in sComma]
 
-    # flatten the list
     for component in sMulti
         c = if length(component) > 1
             repeat([last(component)], parse(Int, first(component)))
@@ -197,7 +191,6 @@ function parse_multiple(s::AbstractString)
         append!(sComponents, c)
     end
 
-    # try to convert to number
     sComponentsParsed = []
     for component in sComponents
         c_new = if occursin(".", component)

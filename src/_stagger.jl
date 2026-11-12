@@ -30,7 +30,6 @@ mutable struct StaggerMesh
     function StaggerMesh(mesh_file::String)
         f = FortranFile(mesh_file, "r", convert=stagger_endian[]);
         dims = read(f,(Int32,3))
-        # -- x direction
         mx = dims[1]
         my = dims[2]
         mz = dims[3]
@@ -76,41 +75,26 @@ mutable struct StaggerEOS
     grv::Float32
     abnd::Float32
 
-    # -- real arrays
     tmean::Vector{Float32}
     tamp::Vector{Float32}
-    rhm::Vector{Float32} # rho axis
+    rhm::Vector{Float32}
     xcorr::Vector{Float32}
     thmin::Vector{Float32}
     thmax::Vector{Float32}
     dth::Vector{Float32}
-    eemin::Vector{Float32} # eemin/max
+    eemin::Vector{Float32}
     eemax::Vector{Float32}
     deetab::Vector{Float32}
 
-    # -- read int arrays
     itab::Vector{Int32}
     mtab::Vector{Int32}
 
-    # --
     mtable::Int32
     tab::Vector{Float32}
 
     function StaggerEOS(eos_file::String)
 
-        # open (12,file=tablefile,form='unformatted',status='old',readonly)
-        # read (12) mrho,iupdte,nvar,mbox,eosxmin,dbox,ul,ut,ur,eps,tff,grv,abnd
-        # allocate (tmean(mrho),tamp(mrho),rhm(mrho),xcorr(mrho),thmin(mrho),thmax(mrho))
-        # allocate (dth(mrho),eemin(mrho),eemax(mrho),deetab(mrho),itab(mrho),mtab(mrho))
-        # read (12) tmean,tamp,rhm,xcorr,thmin,thmax,dth,eemin,eemax,deetab,itab,mtab
-        # read (12) mtable
-        # allocate (tab(mtable))
-        # read (12) (tab(i), i=1,mtable)
-        # close (12)
-
         f = FortranFile(eos_file);
-        # mrho, iupdte, nvar, mbox = read(f,(Int32,4))
-        # eosxmin,dbox,ul,ut,ur,eps,tff,grv,abnd = read(f,(Float32,9))
         t0, t1 = read(f,(Int32,4),(Float32,9))
         t2, t3 = read(f,(Float32,(t0[1],10)),(Int32,(t0[1],2)))
 
@@ -175,7 +159,6 @@ function StaggerMesh2BifrostMesh(snap::StaggerSnap; cutlb::Int64 = 0, cutub::Int
         println(io,join([@sprintf "%e" x for x in M.xmdn], " "))
         println(io,join([@sprintf "%e" x for x in M.dxidxup], " "))
         println(io,join([@sprintf "%e" x for x in M.dxidxdn], " "))
-        # This dimension can be trimed
         println(io,@sprintf "%d"  my)
         println(io,join([@sprintf "%e" x for x in M.y[1+cutlb:end-cutub]], " "))
         println(io,join([@sprintf "%e" x for x in M.ymdn[1+cutlb:end-cutub]], " "))
@@ -185,64 +168,59 @@ function StaggerMesh2BifrostMesh(snap::StaggerSnap; cutlb::Int64 = 0, cutub::Int
 end
 
 function StaggerSnap2BifrostSnap(file_name::String, mesh::StaggerMesh; do_mhd::Bool = false, cutlb::Int64 = 0, cutub::Int64 = 0)
-    # create new mesh if cuts are needed
     if (cutlb > 0 || cutub > 0)
         fmesh = StaggerMesh(mesh,cutlb,cutub);
         StaggerMesh2BifrostMesh(mesh,cutlb,cutub);
     else
         fmesh = mesh;
     end
-    # order of vars in Legacy Stagger: r,px,py,pz,e,d,Bx,By,Bz
     f = FortranFile("bifrost.snap","w",access="direct",recl=fmesh.n*4);
-    tmp = br_arr_ffile(file_name, mesh, rpos=1) # r
-    write(f, 1, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])   # permute: x,y,z --> z,x,y
-    tmp = br_arr_ffile(file_name, mesh, rpos=4) # legacy pz -> px
+    tmp = br_arr_ffile(file_name, mesh, rpos=1)
+    write(f, 1, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
+    tmp = br_arr_ffile(file_name, mesh, rpos=4)
     write(f, 2, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
-    tmp = br_arr_ffile(file_name, mesh, rpos=2) # legacy px -> py
+    tmp = br_arr_ffile(file_name, mesh, rpos=2)
     write(f, 3, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
-    tmp = br_arr_ffile(file_name, mesh, rpos=3) # legacy py -> pz
+    tmp = br_arr_ffile(file_name, mesh, rpos=3)
     write(f, 4, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
-    tmp = br_arr_ffile(file_name, mesh, rpos=5) # e
+    tmp = br_arr_ffile(file_name, mesh, rpos=5)
     write(f, 5, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
     if do_mhd
-        tmp = br_arr_ffile(file_name, mesh, rpos=9) # legacy bz -> bx
+        tmp = br_arr_ffile(file_name, mesh, rpos=9)
         write(f, 6, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
-        tmp = br_arr_ffile(file_name, mesh, rpos=7) # legacy bz -> by
+        tmp = br_arr_ffile(file_name, mesh, rpos=7)
         write(f, 7, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
-        tmp = br_arr_ffile(file_name, mesh, rpos=8) # legacy by -> bz
+        tmp = br_arr_ffile(file_name, mesh, rpos=8)
         write(f, 8, permutedims(tmp,[3,1,2])[:,:,1+cutlb:end-cutub])
     end
 end
 
 function StaggerSnap2BifrostSnap(snap::StaggerSnap; do_mhd::Bool = false, cutlb::Int64 = 0, cutub::Int64 = 0)
-    # create new mesh if cuts are needed
     if (cutlb > 0 || cutub > 0)
         fmesh = StaggerMesh(snap.mesh,cutlb,cutub);
-        #StaggerMesh2BifrostMesh(snap.mesh;cutlb,cutub);
     else
         fmesh = snap.mesh;
     end
 
-    # order of vars in Legacy Stagger: r,px,py,pz,e,d,Bx,By,Bz
     f = FortranFile(bifrost_name(snap.dat_file), "w", access="direct", recl=fmesh.n*4);
 
     tmp = snap.data["r"]
-    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=1)   # permute: x,y,z --> z,x,y
-    tmp = snap.data["pz"] # legacy pz -> px
+    write(f, tmp[:,:,1+cutlb:end-cutub]; rec=1)
+    tmp = snap.data["pz"]
     write(f, tmp[:,:,1+cutlb:end-cutub]; rec=2)
-    tmp = snap.data["px"] # legacy px -> py
+    tmp = snap.data["px"]
     write(f, tmp[:,:,1+cutlb:end-cutub]; rec=3)
-    tmp = snap.data["py"] # legacy py -> pz
+    tmp = snap.data["py"]
     write(f, tmp[:,:,1+cutlb:end-cutub]; rec=4)
-    tmp = snap.data["e"] # e
+    tmp = snap.data["e"]
     write(f, tmp[:,:,1+cutlb:end-cutub]; rec=5)
 
     if do_mhd
-        tmp = snap.data["bz"] # legacy bz -> bx
+        tmp = snap.data["bz"]
         write(f, tmp[:,:,1+cutlb:end-cutub]; rec=6)
-        tmp = snap.data["bx"] # legacy bx -> by
+        tmp = snap.data["bx"]
         write(f, tmp[:,:,1+cutlb:end-cutub]; rec=7)
-        tmp = snap.data["by"] # legacy by -> bz
+        tmp = snap.data["by"]
         write(f, tmp[:,:,1+cutlb:end-cutub]; rec=8)
     end
 
@@ -250,15 +228,12 @@ function StaggerSnap2BifrostSnap(snap::StaggerSnap; do_mhd::Bool = false, cutlb:
 end
 
 function StaggerAux2BifrostAux(snap::StaggerSnap; cutlb::Int64 = 0, cutub::Int64 = 0)
-    # create new mesh if cuts are needed
     if (cutlb > 0 || cutub > 0)
         fmesh = StaggerMesh(snap.mesh,cutlb,cutub);
-        #StaggerMesh2BifrostMesh(mesh,cutlb,cutub);
     else
         fmesh = snap.mesh;
     end
 
-    # order of vars in Legacy Stagger: r,px,py,pz,e,d,Bx,By,Bz
     f = FortranFile(bifrost_name(snap.aux_file), "w", access="direct", recl=fmesh.n*4);
 
     tmp = exp.(snap.data["lpp"])

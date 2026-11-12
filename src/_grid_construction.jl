@@ -15,8 +15,6 @@ Grid(b::Box; order=[1, 2, 3]) = begin
 
     x, y, z = axis(b, :x)[:], axis(b, :y)[:], axis(b, :z)[:]
 
-    # Convert the axis to a higher precision
-
     axes = [Axis(x), Axis(y), Axis(z)][order]
 
     RegularBoxGrid(axes)
@@ -25,8 +23,6 @@ end
 Grid(b::Box, zscale::Symbol; order=[1, 2, 3], scale=log) = begin
 
     x, y, z = axis(b, :x)[:], axis(b, :y)[:], scale.(axis(b, zscale, 3)[:])
-
-    # Convert the axis to a higher precision
 
     axes = [Axis(x), Axis(y), Axis(z)][order]
 
@@ -106,19 +102,15 @@ function gresample(b::Box;
     b = deepcopy(b)
     natural_order = sortperm(order)
 
-	# The coordinate grid of the input box
 	grid = Grid(b, order=order)
 
-	# build the new axis
 	x_new = isnothing(nx) ? deepcopy(nodes(grid.axes[1])) : scale_axis(axis(b, :x), N=nx)
 	y_new = isnothing(ny) ? deepcopy(nodes(grid.axes[2])) : scale_axis(axis(b, :y), N=ny)
 	z_new = isnothing(nz) ? deepcopy(nodes(grid.axes[3])) : scale_axis(axis(b, :z), N=nz)
 	target_grid = Grid([x_new, y_new, z_new][order]...)
 
-	# interpolate
 	ip = ginterpolate(grid, target_grid, method=method)
 
-	# compute the interpolate quantities
 	data_new = Dict{Symbol,Any}()
     d_tmp = permutedims(first(values(b.data)), order)
 
@@ -133,11 +125,9 @@ function gresample(b::Box;
 			d_tmp .= PermutedDimsArray(b.data[f], order)
 		end
 
-        # interpolate without copying buffer
 		interpolated = gevaluate!(ip, d_tmp; return_copy=false)
         p_interpolated = PermutedDimsArray(interpolated, natural_order)
 
-        # fuse convert, permutation, and optional exp
 		data_new[f] = if is_log
 			@. TN(exp(p_interpolated))
 		else

@@ -106,7 +106,6 @@ function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false)
     patch_dimensions = zeros(Int,(length(snapshot.patches),3))
 
     for (i,patch) in enumerate(snapshot.patches)
-        # grid of this patch relative to the global grid
         x = pyconvert.(Float32, patch.xi)
         y = pyconvert.(Float32, patch.yi)
         z = pyconvert.(Float32, patch.zi)
@@ -115,7 +114,6 @@ function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false)
         patch_dimensions[i,2] = length(patch.yi)
         patch_dimensions[i,3] = length(patch.zi)
 
-        # New: Dont rely on numpy for mmaps
         fname = pyconvert(Any, patch.filename)
 		shp = Tuple(pyconvert.(Any, patch.ncell))
 		off = pyconvert(Vector{Int}, patch.offset)
@@ -123,7 +121,6 @@ function Space(snapshot::Py, quantities::Symbol...; density=:d, use_numpy=false)
 		ui = pyconvert(Vector{Int}, patch.ui)+1
         idxd = patch.idx.__dict__
 
-        # extract the quantites for this patch
         for (iq, q) in enumerate(quantities)
             q_matrix = use_numpy ?
                 pyconvert(Array{Float32, 3}, numpy.array(patch.var(String(q)))) :
@@ -244,17 +241,13 @@ MUST.Box type object
 
 """
 function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:AbstractFloat}
-    # filter the space to match the 3d cube
     region_mask = (;row...) ->  (minimum(x) .<= row[:x] .<= maximum(x)) .&
                                 (minimum(y) .<= row[:y] .<= maximum(y)) .&
                                 (minimum(z) .<= row[:z] .<= maximum(z))
     s_masked = filter(region_mask, s)
 
-    # 3D Mesh of the new coordinate Box
-    #x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
     x_grid, y_grid, z_grid = meshgrid(x, y, z)
 
-    # result dict
     results::Dict{Symbol,Array{T,3}} = Dict(q=>similar(x_grid) for q in keys(s.data) if !(q in [:x,:y,:z,:i_patch]))
 
     mask_data = []
@@ -272,7 +265,6 @@ function Box(s::Space, x::Vector{T}, y::Vector{T}, z::Vector{T}) where {T<:Abstr
         append!(grid_data, [z_grid])
     end
 
-    # Interpolate the Space onto the given grid
     for quantity in Symbol.(keys(s.data))
         quantity in [:x,:y,:z,:i_patch] ? continue : nothing
         results[quantity][1:length(x),1:length(y),1:length(z)] = pyconvert(Array{eltype(x_grid)}, scipy_interpolate.griddata(Tuple(mask_data),
@@ -342,12 +334,10 @@ end
 Convert Space to Box, assuming that the space has already uniform grid (No interpolation)
 """
 function Box(s::Space)
-    # create x,y,z from unique s.data -> meshgrid x,y,z -> pick data from dataframe where coordinates match
     x = sort(unique(s.data[:x]))
     y = sort(unique(s.data[:y]))
     z = sort(unique(s.data[:z]))
 
-    #x_grid, y_grid, z_grid = numpy.meshgrid(x, y, z, indexing="ij")
     x_grid, y_grid, z_grid = meshgrid(x, y, z)
 
     results::Dict{Symbol, Any} = Dict(q=>zeros(typeof(s.data[q][1]),size(x_grid))
@@ -367,7 +357,6 @@ function Box(s::Space)
         for quantity in keys(s.data)
             quantity in skip_q ? continue : nothing
 
-            # go though the data points and save the quantity
             results[quantity][ix,iy,iz] = s.data[quantity][irow]
         end
     end
@@ -405,7 +394,6 @@ _add_if_not_exists!(arr, data) = begin
 end
 
 function _build_cube(patch_data)
-	# (x, y, z), (li, ui), (patches...)
 	patch_range = zeros(Int, 3, 2, length(patch_data))
 
 	global_x = []
@@ -474,7 +462,6 @@ end
 Convert a snapshot to a `Box`. Assumes that the patch arangement is cubic, i.e. there is no local mesh refinement. If this is not true, convert to `Space` first, and the interpolate to `Box`.
 """
 function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
-	# first we loop through and get the sizes of all patches
 	patch_data = []
 	@inbounds for (i, patch) in enumerate(snap.patches)
 		x = pyconvert(Array{Float32}, patch.xi)
@@ -507,7 +494,6 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 	x, y, z, patch_range = _build_cube(patch_data)
     q_and_aux = [quantities..., Symbol.(pyconvert(Vector{String}, first(patch_data)[:aux_vars].keys()))...]
 
-	# now we create the data arrays
 	data = if !use_mmap
 		Dict{Symbol,Any}(
 			q=>Array{Float32, 3}(undef, length(x), length(y), length(z))
@@ -523,7 +509,6 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 		)
 	end
 
-	# and we loop through the patches, read the mmaps, and fill them in the data arrays
 	r = zeros(Int, 3, 2)
 	@inbounds for (i, pd) in enumerate(patch_data)
 		r .= patch_range[:, :, i]
@@ -540,7 +525,6 @@ function Box(snap::Py, quantities::Symbol...; density=:d, use_mmap=false)
 			)
 		end
 
-        # add aux variables
         av = pyconvert(Vector{String}, pd[:aux_vars].keys())
         li = pd[:li]
         ui = pd[:ui]
@@ -723,14 +707,6 @@ function add_from_EOS(b::MUST.Box, eos::AbstractEOS, quantity::Symbol;
             )
         )
 
-    #=@inbounds for j in axes(b.z, 2)
-        @inbounds for i in axes(b.z ,1)
-            r[i, j, :] = convert_to.(lookup(eos, String(quantity),
-                            view(b[EOS_paras[1]], i, j, :),
-                            view(b[EOS_paras[2]], i, j, :)))
-        end
-    end=#
-
     r
 end
 
@@ -871,7 +847,6 @@ function save(s::MUST.Space; folder=nothing, name=nothing)
     end
     fid["patch_dimensions"] = s.patch_dimensions
 
-    # Save the parameters
     save(s.parameter, fid)
 
     close(fid)
@@ -895,7 +870,6 @@ function save(s::MUST.Box; folder=nothing, name=nothing, mode="w")
         fid["z"] = s.z
     end
 
-    # Save the parameters
     save(s.parameter, fid)
 
     close(fid)
@@ -1092,21 +1066,16 @@ function converted_snapshots(folder; box_name="box", tau_name="tau")
 	for file in files_converted
 		snname = basename(file)
 
-        # this snapshot has no snapshot identification
         if !occursin("sn", snname)
             continue
         end
 
-        # continue if this is a numbered snapshot, that has a tau extension.
-        # we only want to collect the true snapshots here
-        # check if it is Integer snapshot number
 		snid = try
             parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
         catch
             snname[last(findfirst("sn", snname))+1:end-5]
         end
 
-        # we continue if this is not a true box
         if snname != "$(box_name)_sn$(snid).hdf5"
             continue
         end
@@ -1617,11 +1586,9 @@ function height_scale(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, :ux, 
     lgn = log.(10, b[new_scale])
     sorting, interps = interpolators(lgn, lgh; kwargs...)
 
-    # Save loop allocations
     sortingz = zeros(Int, size(b.x, 3))
     parameters = keys(new_box.data) |> collect
 
-    # Step by step construct a box object from individual planes
     @inbounds for j in axes(b.x, 2)
         @inbounds for k in axes(b.x, 1)
             sortingz .= sorting[k, j, :]
@@ -1663,7 +1630,6 @@ function height_scale(b::MUST.Box, new_scale; logspace=true, dont_log=[:T, :ux, 
     new_box
 end
 
-# for legacy code
 height_scale_fast = height_scale
 
 function interpolators(old_cube, new_scale; kwargs...)
@@ -1694,10 +1660,8 @@ end
 
     i_min2::Int64 = i_min
     if x[i_min] > x0
-        # If i_min is larger than the desired value, pick the smaller neighbor
         i_min2 = argmin([x[i_min-1], x[i_min+1]])
     elseif x[i_min] < x0
-        # If i_min is smaller than the desired value, pick the larger neighbor
         i_min2 = argmax([x[i_min-1], x[i_min+1]])
     else
         return y[i_min]
@@ -1765,27 +1729,24 @@ end
 # ============================================================================
 
 function time_statistic(f::Function, boxes)
-    ### Loop through the box and average point by point
-    ### storage arrays
     var = zeros(eltype(first(boxes).z), length(boxes))
     mat_var = zeros(eltype(first(boxes).z), size(first(boxes).z))
     storage = deepcopy(first(boxes))
     x,y,z = deepcopy(first(boxes).x), deepcopy(first(boxes).y), deepcopy(first(boxes).z)
 
-    for variable in keys(storage.data) ### Loop through the variables
+    for variable in keys(storage.data)
         variable == :i_patch && continue
         @assert all([ all(size(b.data[variable]) .== size(first(boxes).data[variable])) for b in boxes])
     end
 
-    for variable in keys(storage.data) ### Loop through the variables
+    for variable in keys(storage.data)
         variable == :i_patch && continue
         @inbounds for k in axes(z, 3)
             @inbounds for j in axes(y, 2)
-                @inbounds for i in axes(x, 1) ### Loop through the box
+                @inbounds for i in axes(x, 1)
                     for b in eachindex(boxes)
                         var[b] = boxes[b].data[variable][i,j,k]
                     end
-                    #### Save the statistic of those variables
                     mat_var[i,j,k] = f(var)
                 end
             end
@@ -1831,7 +1792,6 @@ function time_average_profile(f, model_folder, args...; hscale=:τ, kwargs...)
 		append!(y, [yi])
 	end
 
-	# interpolate to common x axis
 	x_common = range(
 		maximum(minimum.(x)),
 		minimum(maximum.(x)),
@@ -1843,7 +1803,6 @@ function time_average_profile(f, model_folder, args...; hscale=:τ, kwargs...)
 		append!(y_common, [linear_interpolation(x[i][m], y[i][m]).(x_common)])
 	end
 
-	# compute the mean and the std
 	y_mean = zeros(length(x_common))
 	y_std  = zeros(length(x_common))
 	yi     = zeros(length(x))
@@ -1864,7 +1823,6 @@ function average!(b::Box; depth=true, scale=:z)
     _, logρ = profile(mean, b, scale, :log10d, filter_out=:extrapolated)
     ρ = exp10.(logρ)
 
-    # Microturbulence
     b.data[:u2] = b[:ux] .^2 .+ b[:uy] .^2 .+ b[:uz] .^2
     _, vx = profile(mean, b, scale, :ux, filter_out=:extrapolated)
     _, vy = profile(mean, b, scale, :uy, filter_out=:extrapolated)
@@ -1886,7 +1844,6 @@ function average!(b::Box; depth=true, scale=:z)
         zeros(length(z)), zeros(length(z))
     end
 
-    # get the actual height coodinate
     z = collect(axis(b, scale, 3))
 
     flip_average!(z, ρ, T, ne, pe, vmic; depth=depth, scale=scale)
@@ -1905,14 +1862,12 @@ function flip_average!(z, ρ, args...; depth=false, scale=:z)
     end
 
     if scale==:z
-        # Now it is from bottom to top, so the first value in z should be the smalles value
         if z[1] > z[end]
             z .*= -1
         end
     end
 
     if depth
-        # it is bottom to top
         reverse!(d)
         reverse!(z)
         for f in args
@@ -1920,7 +1875,6 @@ function flip_average!(z, ρ, args...; depth=false, scale=:z)
         end
 
         if scale==:z
-            # now it is top to bottom, so the first z value should be the smallest
             if z[1] > z[end]
                 z .*= -1
             end
@@ -1941,7 +1895,6 @@ Flip the box object and possibly reverse the sign of the height scale (only geom
 It used the density to determine where the bottom is.
 """
 function flip!(box::Box; density=:d, uz=:uz, depth=false)
-    # Determine if it is oriented from bottom to top
     d = box[density][1, 1, :]
     is_upside_down = first(d) < last(d)
 
@@ -1955,7 +1908,6 @@ function flip!(box::Box; density=:d, uz=:uz, depth=false)
         reverse!(box.z, dims=3)
     end
 
-    # Now it is from bottom to top, so the first value in z should be the smallest value
     if box.z[1, 1, 1] > box.z[1, 1, end]
         box.z .*= -1
         if haskey(box.data, uz)

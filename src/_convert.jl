@@ -20,22 +20,17 @@ function snapshotBox_py(
         folder
     end
 
-    # Name of the namelist of the current folder
     nml_name = @in_dispatch splitpath(folder)[end]
 
-    # Init namelist
     nml = StellarNamelist(nml_name*".nml")
 
-    # read logg from the namelist
     logg = log10.(abs.(nml.stellar_params["g_cgs"]))
 
-    # Use the Squaregas EOS
     eos_path = replace(nml.eos_params["table_loc"], "'"=>"")
     eos_sq = SquareGasEOS(@in_dispatch(eos_path))
 
     save_info = ispath(joinpath(folder, "teff.dat"))
     teff_func = if save_info
-        # Read and interpolate teff data
         teff_interpolated(joinpath(folder, "teff.dat"))
     else
         nothing
@@ -51,40 +46,32 @@ function snapshotBox_py(
     @assert number in snapshots
 
     try
-        # remove cached data just in case
         rm.(glob("*.sr", snapshots_dir[findfirst(number .== snapshots)]))
 
-        # The dispatch snapshot object (Python)
         snap = dispatch.snapshot(number, data=folder)
 
-        # Units for conversion to CGS
         units = StandardUnits(snap)
 
-        # Convert its content to pure Julia
         s = if !is_box
             Space(snap, :d, :ee, :ux, :uy, :uz, :e)
         else
             Box(snap, :d, :ee, :ux, :uy, :uz, :e, use_mmap=use_mmap)
         end
 
-        # Apply the conversion
         convert!(s, units; d=:d, ee=:ee, e=:e,
                             ux=:u, uy=:u, uz=:u,
                             x=:l, y=:l, z=:l, time=:t, convert_units...)
 
-        # Add additional columns already in CGS after converting
         add_from_EOS!(s, eos_sq, :T)
         add_from_EOS!(s, eos_sq, :kr)
         add_from_EOS!(s, eos_sq, :Pg)
         add_from_EOS!(s, eos_sq, :Ne)
 
-        # Check if Teff should be added
         if save_info
             @info "setting teff for sn $(number)"
             set!(s.parameter, teff_func, nml)
         end
 
-        # Also save the snapshot as Box (a regular gridded 3D-cube) to save time later
         b_s = if !is_box
             b = Box(
                 s,
@@ -98,17 +85,13 @@ function snapshotBox_py(
             s
         end
 
-        # Add the optical depth
         τ = optical_depth(b_s, opacity=:kr, density=:d)
         add!(b_s, τ, :τ_ross)
 
-        # add logg
         b_s.parameter.logg = logg
 
-        # First save
         save_snapshot && save(b_s; name="box_sn$(number)", folder=folder)
 
-        # Convert the height scale from cm to optical depth
         b_τ = if optical_depth_scale
             b_τ = height_scale_fast(b_s, :τ_ross)
             save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=folder)
@@ -118,13 +101,11 @@ function snapshotBox_py(
             nothing
         end
 
-        # convert to Multi format and save in the same folder, keep the number of the snapshot!
         if to_multi
             b_s.data[:ne] = b_s.data[:Ne]
             multiBox(b_s, joinpath(folder, "m3dis_$(number)"))
         end
 
-        # remove the sr again
         rm.(glob("*.sr", snapshots_dir[findfirst(number .== snapshots)]))
 
         b_s, b_τ
@@ -154,7 +135,6 @@ function snapshotBox_jl(
     end
     out_folder = isnothing(save_folder) ? folder : save_folder
     b_s, b_τ = begin
-        # read patch data, collect to data cube
         b_s = @optionalTiming boxingTime MUST.Box(
             number,
             rundir=folder,
@@ -165,12 +145,10 @@ function snapshotBox_jl(
             save_snapshot=false
         )
 
-        # Add the optical depth
         τ = @optionalTiming opticalDepthTime optical_depth(b_s, opacity=:kr, density=:d)
         add!(b_s, τ, :τ_ross)
         save_snapshot && save(b_s; name="box_sn$(number)", folder=out_folder)
 
-        # interpolate to optical depth scale
         b_τ = if optical_depth_scale
             b_τ = @optionalTiming heightScaleTime height_scale(b_s, :τ_ross, extrapolation=:constant)
             save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=out_folder)
@@ -181,10 +159,8 @@ function snapshotBox_jl(
         end
 
         b_s, b_τ
-    #    nothing, nothing
     end
 
-    # convert to Multi format and save in the same folder, keep the number of the snapshot!
     if !isnothing(b_s)
         @optionalTiming multiTime if to_multi
             try
@@ -220,8 +196,6 @@ box, boxτ = snapshotBox(10, folder=@in_dispatch("data/mydispatchrun"))
 ```
 """
 snapshotBox(args...; legacy=false, kwargs...) = legacy ? snapshotBox_py(args...; kwargs...) : snapshotBox_jl(args...; kwargs...)
-
-# timers
 
 const boxingTime = Ref(false)
 const opticalDepthTime = Ref(false)

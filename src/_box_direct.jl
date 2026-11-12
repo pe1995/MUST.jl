@@ -10,7 +10,6 @@ include("_box_quants.jl")
 # ============================================================================
 
 function _build_cube_direct(patches)
-	# (x, y, z), (li, ui), (patches...)
 	patch_range = zeros(Int, 3, 2, length(patches))
 
 	global_x = []
@@ -70,14 +69,10 @@ function _var_from_patch_direct_arr!(res, var, fname, shp, off, li, ui, idxd, bu
     varidx = idxd[String(var)] + 1
     offset = off[varidx]
 
-    # seek to the correct offset
     seek(fname, offset)
 
-    # Read the full array data
     read!(fname, buffer)
 
-    # Slice the array and store the result in `res`; face-centred B is
-    # averaged to cell centres along its own direction
     sh = var == :bx ? 1 : var == :by ? 2 : var == :bz ? 3 : 0
     if sh > 0 && ui[sh] < size(buffer, sh)
         o = ntuple(d -> d == sh ? 1 : 0, 3)
@@ -219,12 +214,11 @@ end
 function _squaregaseos(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
 	eos_path = if isnothing(eos_path)
 		if isfile(inputNamelist*".nml")
-			nml = FreeNamelist(inputNamelist*".nml") #StellarNamelist(inputNamelist*".nml")
+			nml = FreeNamelist(inputNamelist*".nml")
 			@in_dispatch(replace(
 				nmlField(nml, :eos_params)["table_loc"],
 				"'"=>""
 			))
-			#@in_dispatch(nmlField(inputNamelist, :eos_params))
 		else
 			nothing
 		end
@@ -276,9 +270,6 @@ end
 function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 	patchDataFiles, idxs, auxnames, patchAuxFiles, variablesAndAux, variablesDerived,
 	quantities, eos_quantities, eos_sq, units, converters, l_conv, fid, lookup_generator=nothing, newformat=false)
-	# Lookup function can be generated from the input generator
-	# this is a useful hook to use EoS outside of MUST (e.g. TSO)
-	# without needing to include TSO inside MUST
 	lookup_function, lkp! = if isnothing(lookup_generator)
 		lookup_function = Dict(
 			q=>(res, d, ee) -> lookup!(
@@ -351,7 +342,6 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 			end
 		end
 
-		# Check if there are derived variables that we need to add
 		@optionalTiming derivedVariablesTime for d in variablesDerived
 			if !(String(d.name) in auxnames)
 				temp_storage[d.name] .= d.recipe(;
@@ -360,7 +350,6 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 			end
 		end
 
-		# Check if there are convertsion that we need to apply
 		@optionalTiming convertersTime for d in quantities
 			temp_storage[d.name] .*= converters[d.name]
 
@@ -427,7 +416,6 @@ function _save_box(number, fid, time, logg, folder)
     fid["time"] = time
     fid["logg"] = logg
 
-	# see if we can get teff
 	teff = _get_teff_from_fid(fid)
 
 	HDF5.delete_object(fid, "teff")
@@ -439,7 +427,6 @@ end
 function _save_box(number, fid::Dict, time, logg, folder)
     dtype = eltype(fid["x"])
 
-	# see if we can get teff
 	teff = _get_teff_from_fid(fid)
 
     p = AtmosphericParameters(
@@ -464,7 +451,6 @@ end
 function _to_box(number, fid::Dict, time, logg, folder)
     dtype = eltype(fid["x"])
 
-	# see if we can get teff
 	teff = _get_teff_from_fid(fid)
 
     p = AtmosphericParameters(
@@ -515,7 +501,6 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 	quantities=defaultQuantities,
 	eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing,
 	mmap=false, save_snapshot=false)
-	# check the inputs
     run, rundir, datadir, params_list, files = @optionalTiming checkFilesTime _check_files(iout, data, run, rundir)
 
 	mmap = if !save_snapshot
@@ -524,7 +509,6 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 		mmap
 	end
 
-	# load the units and prepare the converters
 	units = StandardUnits(rundir)
 	l_conv = standardConversion(:l)
 	converters = Dict(
@@ -532,10 +516,8 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 		for q in quantities
 	)
 
-	# add parameter groups from data/run/NNNNN/*snapshot.nml
 	snapshot_nml, variablesSym, idxVars, idxs = @optionalTiming snapshotVariablesTime _snapshot_variables(files)
 
-	# rank namelists
     rank_files = [f for f in glob("*", datadir) if occursin("_patches.nml", f)]
 	newformat = length(rank_files) == 0
 	rank_files = sort(if newformat
@@ -545,14 +527,11 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 	end)
 	rank_nmls = FreeNamelist.(rank_files, :patch_nml)
 
-	# general quantities
     logg = Base.convert(Float32, log10.(abs.(nmlValue(params_list, "g_cgs"))))
 	time = Base.convert(Float32, nmlValue(snapshot_nml, "time")) * units.t
 
-    # Use the Squaregas EOS
     eos_sq, eos_quantities = eos_reader(run)
 
-	# First we read the meta data so that we can build the data cube
 	patchMeta, patchDataFiles, patchAuxFiles, auxnames = @optionalTiming patchMetaTime _patchmeta(
 		datadir, rank_nmls, snapshot_nml, newformat
 	)
@@ -565,16 +544,12 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 		auxnames
 	end
 
-	# decide if there are quantities to skip because there is no aux data for them
-	# and they can not be derived otherwise
 	variableMaskOk = [ (!q.derived)|(q.name in Symbol.(auxnames))|(!isnothing(q.recipe)) for q in quantities]
 	quantities = quantities[variableMaskOk]
 
-	# build the 3D cube from patch meta data
 	global_x, global_y, global_z, patch_range = @optionalTiming buildCubeTime _build_cube_direct(patchMeta)
 	shape = length.([global_x, global_y, global_z])
 
-	# prepare the HDF5 file for the final box
 	variablesAndAux = [varnames(quantities)..., eos_quantities...]
 	variablesDerived = derived(quantities)
 	fid = @optionalTiming prepareMemTime prepare_memory(
@@ -582,8 +557,6 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 		mmap=mmap
 	)
 
-	# After building the cube we read the data
-	# the data can directly be added to the hdf5 box
 	r = zeros(Int, 3, 2)
 	li = patchMeta[1].li
 	ui = patchMeta[1].ui

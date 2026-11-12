@@ -4,12 +4,10 @@
 
 function srun_dispatch(nml_name; threads::Int, memMB::Int, timeout::String, wait=false)
     ddir = @in_dispatch("")
-    #run(pipeline(command, stdout=joinpath(ddir, "$(nml_name).log"),
 
     exec_name = "$(nml_name).export.sh"
 	exec_path = @in_dispatch("$(nml_name).export.sh")
 
-	# Do an export script before
 	open(exec_path, "w") do f
 		write(f, "#!/bin/bash\n")
 		write(f, "export KMP_NUM_THREADS=$(threads)\n")
@@ -31,7 +29,6 @@ function run_dispatch(nml_name; threads=70, wait=true, ddir=@in_dispatch(""))
     exec_name = "$(nml_name).export.sh"
     exec_path = @in_dispatch("$(nml_name).export.sh")
 
-    # Do an export script before
     open(exec_path, "w") do f
     write(f, "#!/bin/bash\n")
     write(f, "export KMP_NUM_THREADS=$(threads)\n")
@@ -59,7 +56,6 @@ function srun_m3dis(nml_name;
 	exec_name = "$(nml_name).export.sh"
 	exec_path = @in_m3dis("$(nml_name).export.sh")
 
-	# Do an export script before
 	open(exec_path, "w") do f
 		write(f, "#!/bin/bash\n")
 		write(f, "export KMP_NUM_THREADS=$(threads)\n")
@@ -81,7 +77,6 @@ function run_m3dis(nml_name; threads=70, wait=true, ddir=@in_m3dis(""))
     exec_name = "$(nml_name).export.sh"
     exec_path = @in_m3dis("$(nml_name).export.sh")
 
-    # Do an export script before
     open(exec_path, "w") do f
     write(f, "#!/bin/bash\n")
     write(f, "export KMP_NUM_THREADS=$(threads)\n")
@@ -126,7 +121,6 @@ function run!(grid::AbstractMUSTGrid; threads::Int=12, memMB::Int=1333, timeout=
         sleep(submission_pause)
     end
 
-    # wait for completion
     succ = []
     for (i,r)  in enumerate(results)
         s = success(r)
@@ -134,7 +128,6 @@ function run!(grid::AbstractMUSTGrid; threads::Int=12, memMB::Int=1333, timeout=
         @info "$(allowed_nmls[i]) finished with success status $(s)."
     end
 
-    # check success
     grid.info[!,"$(grid.name)_success"] = use_status ? succ : check_success(grid)
 end
 
@@ -150,7 +143,6 @@ check_success(grid::AbstractMUSTGrid) = begin
 end
 
 function check_success(grid::AbstractMUSTGrid, nml::AbstractNamelist, output_folder::String)
-    # Check if the simulation reached close to the end
     end_point = floor(nml.io_params["end_time"] / nml.io_params["out_time"])
 
     content_of_folder = glob("*/", output_folder)
@@ -175,7 +167,6 @@ function check_success(grid::RestartMUSTGrid, nml::AbstractNamelist, output_fold
         return false
     end
 
-    # Check if the simulation reached close to the end
     end_point = floor((nml.io_params["end_time"]-i_restart) / nml.io_params["out_time"])
 
     content_of_folder = glob("*/", output_folder)

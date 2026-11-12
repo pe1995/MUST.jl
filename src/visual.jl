@@ -12,10 +12,6 @@ const cbar_pad = 0.04
 
 gifs = MUST.@get_help_py gifs
 
-#
-#
-#    plot!(plot, framestyle=:box, minorticks=minorticks, tickfontsize=tickfontsize, legendfontsize=legendfontsize,
-
 """
     cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
                         vmax_3d=maximum(m_3d[var]),
@@ -62,7 +58,6 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
         cut_z=["auto", "auto"],
         fontsize="medium")
 
-    # Define dimensions
     Nx, Ny, Nz = size(m_3d)
     X, Y, Z    = m_3d.x ./ norm, m_3d.y ./norm, m_3d.z ./norm
 
@@ -80,29 +75,24 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
 
     data = deepcopy(m_3d[var][:,:,mask])
 
-    # Create a figure with 3D ax
     fig_3d = plt.figure(figsize=figsize)
     ax_3d = fig_3d.add_subplot(111, projection="3d")
 
-    # cut out part
     i_startx = findfirst(X[:, 1, 1] .> limx)
     i_starty = findlast(Y[1, :, 1]  .<= limy)
     i_startz = findfirst(Z[1, 1, :] .> limz)
 
-    # The cube faces
-    # X Face
-    im_3d = ax_3d.scatter(X[:, 1, 1:i_startz-1],   # all x until z window
+    im_3d = ax_3d.scatter(X[:, 1, 1:i_startz-1],
                           Y[:, 1, 1:i_startz-1],
                           Z[:, 1, 1:i_startz-1],
                      c=data[:, 1, 1:i_startz-1],
                         s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
     im_3d = ax_3d.scatter(X[1:i_startx, 1, :],
-                          Y[1:i_startx, 1, :],  # all z until x window
+                          Y[1:i_startx, 1, :],
                           Z[1:i_startx, 1, :],
                      c=data[1:i_startx, 1, :],
                         s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
 
-    # Y Face
     im_3d = ax_3d.scatter(X[end, i_starty+1:end, :],
                           Y[end, i_starty+1:end, :],
                           Z[end, i_starty+1:end, :],
@@ -114,7 +104,6 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
                      c=data[end, :, 1:i_startz-1],
                         s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)
 
-    # Z Face
     im_3d = ax_3d.scatter(X[1:i_startx-1, 1:i_starty, end],
                           Y[1:i_startx-1, 1:i_starty, end],
                           Z[1:i_startx-1, 1:i_starty, end],
@@ -125,13 +114,7 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
                           Z[:, i_starty+1:end, end],
                      c=data[:, i_starty+1:end, end],
                       s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=1, alpha=1, plotnonfinite=false)
-    #=im_3d = ax_3d.scatter(X[i_startx+1:end, i_starty+1:end, end],
-                          Y[i_startx+1:end, i_starty+1:end, end],
-                          Z[i_startx+1:end, i_starty+1:end, end],
-                     c=data[i_startx+1:end, i_starty+1:end, end],
-                        s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap, rasterized=true, marker="s", zorder=0, alpha=1, plotnonfinite=false)=#
 
-    # Draw the cut out part
     im_3d = ax_3d.scatter(  X[i_startx+1,   1:i_starty, i_startz:end],
                             Y[i_startx+1,   1:i_starty, i_startz:end],
                             Z[i_startx+1,   1:i_starty, i_startz:end],
@@ -150,7 +133,6 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
                        c=data[i_startx+1:end,   i_starty, i_startz:end],
                             s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=1, rasterized=true, marker="s")
 
-    # Add the velocity field on top
     ux = deepcopy(m_3d[:ux][:,:,mask] ./ maximum(abs.(m_3d[:ux][:,:,mask])))
     uy = deepcopy(m_3d[:uy][:,:,mask] ./ maximum(abs.(m_3d[:uy][:,:,mask])))
     uz = deepcopy(m_3d[:uz][:,:,mask] ./ maximum(abs.(m_3d[:uz][:,:,mask])))
@@ -187,10 +169,8 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
                                 pivot=arrow_pivot, arrow_length_ratio=arrow_length_ratio,
                                 zorder=100)
 
-    # Set limits of the plot from coord limits
     ax_3d.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
 
-    # Plot edges (only until start of the second cube)
     xmax_lim = X[i_startx, 1, 1]
     ymax_lim = Y[1, i_starty, 1]
     zmax_lim = Z[1, 1, i_startz]
@@ -213,13 +193,11 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
     color="k", linewidth=1, zorder=1e3)
     ax_3d.plot([xmax_lim, xmax_lim], [ymin, ymax_lim], 0.0,
     color="k", linewidth=1, zorder=1e3, alpha=0.5, ls=":")
-    #ax_3d.plot([xmax_lim, xmax_lim], [ymin, ymax_lim], zmax_lim,
 
     ax_3d.plot([xmax_lim, xmax], [ymax_lim, ymax_lim], zmax,
     color="k", linewidth=1, zorder=1e3)
     ax_3d.plot([xmax_lim, xmax], [ymax_lim, ymax_lim], 0.0,
     color="k", linewidth=1, zorder=1e3, alpha=0.5, ls=":")
-    #ax_3d.plot([xmax_lim, xmax], [ymax_lim, ymax_lim], zmax_lim,
 
     ax_3d.plot([xmax_lim, xmax], [ymin, ymin], zmax_lim,
     color="k", linewidth=1, zorder=1e3)
@@ -227,26 +205,20 @@ function cube_with_velocities(m_3d, var=:T; vmin_3d=minimum(m_3d[var]),
     ax_3d.plot([xmax, xmax], [ymin, ymax_lim], zmax_lim,
     color="k", linewidth=1, zorder=1e3)
 
-    # Set labels and zticks
-    #ax_3d.set(
     ax_3d.set_xlabel(xlabel="X [Mm]", fontsize=fontsize)
     ax_3d.set_ylabel(ylabel="Y [Mm]", fontsize=fontsize)
     ax_3d.set_zlabel(zlabel="\nZ [Mm]", fontsize=fontsize)
     ax_3d.tick_params(labelsize=fontsize)
 
-    # Set zoom and angle view
-
     norm = matplotlib.colors.Normalize(vmin=vmin_3d, vmax=vmax_3d)
     sm   = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
 
-    # Colorbar
     c = fig_3d.colorbar(sm, ax=ax_3d, label=clabel, pad=0.1)
     c.set_label(clabel, fontsize=fontsize)
     c.ax.tick_params(labelsize=fontsize)
 
     ax_3d.grid(false)
 
-    # make the panes transparent
     ax_3d.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax_3d.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax_3d.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -309,14 +281,12 @@ function cube_with_velocities(data, X, Y, Z, ux, uy, uz; vmin_3d=minimum(data),
     ymin, ymax = minimum(Y), maximum(Y)
     zmin, zmax = minimum(Z), maximum(Z)
 
-    # Create a figure with 3D ax
     fig_3d = plt.figure(figsize=figsize)
     ax_3d = fig_3d.add_subplot(111, projection="3d")
 
     mask_x1 = (X .>= limx) .& (Z .>= limz) .& (Y .<= limy)
     data[mask_x1] .= NaN
 
-    # The cube faces
     im_3d = ax_3d.scatter(  X[:,   1,  :],
                             Y[:,   1, :],
                             Z[:,   1, :],
@@ -333,7 +303,6 @@ function cube_with_velocities(data, X, Y, Z, ux, uy, uz; vmin_3d=minimum(data),
                             c=data[:,   :, end],
                             s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap)
 
-    # Draw the cut out part
     i_startx = findfirst(X[:, 1, 1] .> limx)
     i_starty = findlast(Y[1, :, 1]  .<= limy)
     i_startz = findfirst(Z[1, 1, :] .> limz)
@@ -356,7 +325,6 @@ function cube_with_velocities(data, X, Y, Z, ux, uy, uz; vmin_3d=minimum(data),
                             c=m_3d[var][i_startx:end,   i_starty, i_startz:end],
                             s=s_3d, vmin=vmin_3d, vmax=vmax_3d, cmap=cmap,zorder=0)
 
-    # Add the velocity field on top
     ux = ux ./ maximum(abs.(ux))
     uy = uy ./ maximum(abs.(uy))
     uz = uz ./ maximum(abs.(uz))
@@ -393,10 +361,8 @@ function cube_with_velocities(data, X, Y, Z, ux, uy, uz; vmin_3d=minimum(data),
                                 pivot="tail", arrow_length_ratio=arrow_length_ratio,
                                 zorder=100)
 
-    # Set limits of the plot from coord limits
     ax_3d.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
 
-    # Plot edges (only until start of the second cube)
     xmax_lim = X[i_startx, 1, 1]
     ymax_lim = Y[1, i_starty, 1]
     zmax_lim = Z[1, 1, i_startz]
@@ -419,13 +385,11 @@ function cube_with_velocities(data, X, Y, Z, ux, uy, uz; vmin_3d=minimum(data),
     color="k", linewidth=1, zorder=1e3)
     ax_3d.plot([xmax_lim, xmax_lim], [ymin, ymax_lim], 0.0,
     color="k", linewidth=1, zorder=1e3, alpha=0.5, ls=":")
-    #ax_3d.plot([xmax_lim, xmax_lim], [ymin, ymax_lim], zmax_lim,
 
     ax_3d.plot([xmax_lim, xmax], [ymax_lim, ymax_lim], zmax,
     color="k", linewidth=1, zorder=1e3)
     ax_3d.plot([xmax_lim, xmax], [ymax_lim, ymax_lim], 0.0,
     color="k", linewidth=1, zorder=1e3, alpha=0.5, ls=":")
-    #ax_3d.plot([xmax_lim, xmax], [ymax_lim, ymax_lim], zmax_lim,
 
     ax_3d.plot([xmax_lim, xmax], [ymin, ymin], zmax_lim,
     color="k", linewidth=1, zorder=1e3)
@@ -433,23 +397,18 @@ function cube_with_velocities(data, X, Y, Z, ux, uy, uz; vmin_3d=minimum(data),
     ax_3d.plot([xmax, xmax], [ymin, ymax_lim], zmax_lim,
     color="k", linewidth=1, zorder=1e3)
 
-    # Set labels and zticks
     ax_3d.set(
     ylabel="Y [Mm]",
     xlabel="X [Mm]",
     zlabel="Z [Mm]")
 
-    # Set zoom and angle view
-
     norm = matplotlib.colors.Normalize(vmin=vmin_3d, vmax=vmax_3d)
     sm   = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
 
-    # Colorbar
     plt.colorbar(sm, ax=ax_3d, label=clabel)
 
     ax_3d.grid(false)
 
-    # make the panes transparent
     ax_3d.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax_3d.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax_3d.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -479,7 +438,6 @@ function basic_subplot(nrows,ncols;
                         turn_off=[],
                         sharex=false,sharey=false,
                         fig_kwargs=Dict())
-    # Create the frame of a basic plot
     f,ax = PyPlot.subplots(nrows,ncols,figsize=(figsize[1]*ncols,figsize[2]*nrows),
                         sharex=sharex,sharey=sharey,fig_kwargs...)
 
@@ -488,7 +446,6 @@ function basic_subplot(nrows,ncols;
             axi.axis("off")
             continue
         end
-        # frame width
         try
             for loc in ["top","left","right","bottom"]
                 axi.spines[loc].set_linewidth(frame_linewidth)
@@ -502,7 +459,6 @@ function basic_subplot(nrows,ncols;
             end
         end
 
-        # Edit ticks
         axi.minorticks_on()
         axi.tick_params(which="major",direction="in",top=true,right=true,length=tick_length,labelsize=label_fs,width=frame_linewidth,colors=label_color)
         axi.tick_params(which="minor",direction="in",top=true,right=true,length=0.5*tick_length,width=frame_linewidth,colors=label_color)
@@ -519,9 +475,7 @@ function basic_subplot(nrows,ncols;
     end
     plt.subplots_adjust(wspace=wspace,hspace=hspace)
     if add_outer_axes
-        # add a big axis, hide frame
         ax_xframe = f.add_subplot(111, frameon=False)
-        # hide tick and tick label of the big axis
         ax_xframe.tick_params(labelcolor="none", top=false, bottom=false, left=false, right=false)
         out_ax = ax_xframe
 
@@ -540,16 +494,13 @@ function basic_plot(;
                     keep_axis_color=false,
                     tick_direction="in")
 
-    # Create the frame of a basic plot
     f = plt.figure(figsize=figsize)
     ax = f.add_subplot(111)
 
-    # Edit ticks
     ax.minorticks_on()
     ax.tick_params(which="major",direction=tick_direction,top=true,right=true,length=tick_length,labelsize=label_fs,width=frame_linewidth,colors=label_color)
     ax.tick_params(which="minor",direction=tick_direction,top=true,right=true,length=0.5*tick_length,width=frame_linewidth,colors=label_color)
 
-    # frame width
     try
         for loc in ["top","left","right","bottom"]
             ax.spines[loc].set_linewidth(frame_linewidth)
@@ -585,12 +536,10 @@ function basic_plot!(ax;
         keep_axis_color=false,
         tick_direction="in")
 
-    # Edit ticks
     ax.minorticks_on()
     ax.tick_params(which="major",direction=tick_direction,top=true,right=true,length=tick_length,labelsize=label_fs,width=frame_linewidth,colors=label_color)
     ax.tick_params(which="minor",direction=tick_direction,top=true,right=true,length=0.5*tick_length,width=frame_linewidth,colors=label_color)
 
-    # frame width
     try
         for loc in ["top","left","right","bottom"]
         ax.spines[loc].set_linewidth(frame_linewidth)

@@ -16,7 +16,6 @@ TUMULTRun(path::String, folder::String; kwargs...) = begin
     TUMULTRun(joinpath(folder, path); kwargs...)
 end
 
-# alias for old Multi package
 M3DISRun = TUMULTRun
 
 # ============================================================================
@@ -155,13 +154,11 @@ function NLTE_grid_correction(result_NLTE, result_LTE; λ_new, lnρ_new, lnT_new
     lnρ = log.(pyconvert(Array, result_NLTE.run.rho))
 	lnT = log.(pyconvert(Array, result_NLTE.run.temp))
 
-    # Interpolate in wavelength first
     χ_fraction = zeros(eltype(lnT_new), length(lnT), length(λ_new))
     S_fraction = zeros(eltype(lnT_new), length(lnT), length(λ_new))
     frac = similar(λ)
 
     for i in eachindex(lnρ)
-        # interpolate in wavelength
         frac .= χ_NLTE[:, 1, 1, i] ./ χ_LTE[:, 1, 1, i]
         f_χ_NLTE = linear_interpolation(λ, frac, extrapolation_bc=NaN)
         χ_fraction[i, :] .= f_χ_NLTE.(λ_new)
@@ -173,9 +170,6 @@ function NLTE_grid_correction(result_NLTE, result_LTE; λ_new, lnρ_new, lnT_new
         S_fraction[i, isnan.(@view(S_fraction[i, :]))] .= 1.0
     end
 
-    # Interpolate in rho-T second.
-    # For now we just pick the closest point in rho, and apply a gaussian filter
-    # based on the 2D distance from that point.
     correction_χ = zeros(eltype(lnT_new), length(lnT_new), length(lnρ_new), length(λ_new))
     correction_S = zeros(eltype(lnT_new), length(lnT_new), length(lnρ_new), length(λ_new))
     dist = zeros(eltype(lnT_new), length(lnT_new), length(lnρ_new))
@@ -213,7 +207,6 @@ end
 # ============================================================================
 
 function abund_abundances(;α=0.0, default="./input_multi3d/abund/abund_magg", eles...)
-	# read the default abundances
 	abund_default = readdlm(@in_m3dis(default))
 	abund_new = deepcopy(abund_default)
     ele_names = lowercase.(abund_new[:, 1])
@@ -265,18 +258,15 @@ IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis ma
 function whole_spectrum(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dict(), slurm=true)
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
-    # Create the default namelist (with adjustments)
     nml = whole_spectrum_namelist(model_name; namelist_kwargs...)
     write(nml, @in_m3dis("$(model_name).nml"))
 
-    # run multi (with waiting)
     if slurm
         srun_m3dis("$(model_name).nml"; wait=true, m3dis_kwargs...)
     else
         run_m3dis("$(model_name).nml"; wait=true, m3dis_kwargs...)
     end
 
-    # read the output
     TUMULTRun(joinpath(nml.io_params["datadir"], model_name), read_atmos=false)
 end
 
@@ -295,13 +285,11 @@ function whole_spectrum(model_names::AbstractVector{String}; namelist_kwargs=Dic
         @warn "You are submitting $(length(model_names)) jobs without resource management (slurm=false)!"
     end
 
-    # Create the default namelist (with adjustments)
     results = []
     for model_name in model_names
         nml = whole_spectrum_namelist(model_name; namelist_kwargs...)
         write(nml, @in_m3dis("$(model_name).nml"))
 
-        # run multi (with waiting)
         if slurm
             append!(results, [srun_m3dis("$(model_name).nml"; wait=false, m3dis_kwargs...)])
         else
@@ -309,13 +297,11 @@ function whole_spectrum(model_names::AbstractVector{String}; namelist_kwargs=Dic
         end
     end
 
-    # wait for success
     for (i, r) in enumerate(results)
         s = success(r)
         @info "$(model_names[i]) finished with success status $(s)."
     end
 
-    # read the output
     [TUMULTRun(joinpath(data_dir, model_name), read_atmos=false) for model_name in model_names]
 end
 
@@ -372,18 +358,13 @@ IMPORTANT: Make sure you have loaded m3dis in advance using the @import_m3dis ma
 function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Dict(), m3dis_kwargs=Dict(), twostep=true, name="", cleanup=true)
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
-    # Create the default namelist (with adjustments)
     mn(n) = join([n, name], "_")
 
-    # Check if NLTE and twostep, in that case we follow up with an LTE run
     nml = if NLTE & twostep
         nml_nlte = spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
         nml_spectrum = spectrum_namelist(model_name; NLTE=false, namelist_kwargs...)
         path_nlte = joinpath(nml_nlte.io_params["datadir"], "$(mn(model_name))_departure")
 
-        # NOTE: the departure hand-off is not ported to OpenMULTI3D v1.0. There
-        # `atom_params/precomputed_depart` is gone; departures are re-read via
-        # `atmos_params/read_departures=T` together with `atmos_format='save'`.
         @warn "twostep=true is not ported to OpenMULTI3D v1.0 (precomputed_depart -> read_departures)."
         set!(
             nml_spectrum;
@@ -395,7 +376,6 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
             rt_output_params=(:angle_quad=>"disk_center",)
         )
 
-        # run the initial namelist first
         write(nml_nlte, @in_m3dis("$(mn(model_name))_departure.nml"))
         if slurm
             srun_m3dis("$(mn(model_name))_departure.nml"; wait=true, m3dis_kwargs...)
@@ -410,7 +390,6 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
 
     write(nml, @in_m3dis("$(mn(model_name)).nml"))
 
-    # run multi (with waiting)
     if slurm
         srun_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
     else
@@ -422,7 +401,6 @@ function spectrum(model_name::String; NLTE=false, slurm=true, namelist_kwargs=Di
         rm.(nmls_created)
     end
 
-    # read the output
     TUMULTRun(joinpath(nml.io_params["datadir"], mn(model_name)))
 end
 
@@ -441,12 +419,10 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
         @warn "You are submitting $(length(model_names)) jobs without resource management (slurm=false)!"
     end
 
-    # Create the default namelist (with adjustments)
     results = []
     results_nlte = []
     nml = []
     for model_name in model_names
-        # Create the default namelist (with adjustments)
         nml_l = if NLTE & twostep
             path_nlte = joinpath(data_dir, join(["$(model_name)", name, "departure"], "_"))
             nml_nlte = spectrum_namelist(model_name; NLTE=NLTE, namelist_kwargs...)
@@ -463,7 +439,6 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
                 rt_output_params=(:angle_quad=>"disk_center",)
             )
 
-            # run the initial namelist first
             write(nml_nlte, @in_m3dis(join(["$(model_name)", name, "departure"], "_")*".nml"))
 
             r = if slurm
@@ -481,7 +456,6 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
         append!(nml, [nml_l])
     end
 
-    # wait for success
     for (i, r) in enumerate(results_nlte)
         s = success(r)
     end
@@ -489,7 +463,6 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
     for (i, model_name) in enumerate(model_names)
         write(nml[i], @in_m3dis(join([model_name, name], "_")*".nml"))
 
-        # run multi (with waiting)
         r = if slurm
             srun_m3dis(join([model_name, name], "_")*".nml"; wait=false, m3dis_kwargs...)
         else
@@ -504,12 +477,10 @@ function spectrum(model_names::AbstractVector{String}; NLTE=false, slurm=true, n
         append!(results, [r])
     end
 
-    # wait for success
     if wait
         for (i, r) in enumerate(results)
             s = success(r)
         end
-        # read the output
         [TUMULTRun(joinpath(data_dir, model_name)) for model_name in model_names]
 
     else
@@ -554,18 +525,15 @@ function heating(model_name::String, opacity_table=nothing; slurm=true, namelist
 
     binned_ext = isnothing(opacity_table) ? "_unbinned" : "_binned"
 
-    # Create the default namelist (with adjustments)
     nml = heating_namelist(model_name, opacity_table; namelist_kwargs...)
     write(nml, @in_m3dis("$(model_name)$(binned_ext).nml"))
 
-    # run multi (with waiting)
     if slurm
         srun_m3dis("$(model_name)$(binned_ext).nml"; wait=true, m3dis_kwargs...)
     else
         run_m3dis("$(model_name)$(binned_ext).nml"; wait=true, m3dis_kwargs...)
     end
 
-    # read the output
     TUMULTRun(joinpath(nml.io_params["datadir"], "$(model_name)$(binned_ext)"))
 end
 
@@ -579,13 +547,11 @@ function heating(model_names::AbstractVector{String}, opacity_table=nothing; nam
         @warn "You are submitting $(length(model_names)) jobs without resource management (slurm=false)!"
     end
 
-    # Create the default namelist (with adjustments)
     results = []
     for model_name in model_names
         nml = heating_namelist(model_name, opacity_table; namelist_kwargs...)
         write(nml, @in_m3dis("$(model_name)$(name)$(binned_ext).nml"))
 
-        # run multi (with waiting)
         if slurm
             append!(results, [srun_m3dis("$(model_name)$(name)$(binned_ext).nml"; wait=false, m3dis_kwargs...)])
         else
@@ -593,26 +559,21 @@ function heating(model_names::AbstractVector{String}, opacity_table=nothing; nam
         end
     end
 
-    # wait for success
     for (i, r) in enumerate(results)
         s = success(r)
     end
 
-    # read the output
     [TUMULTRun(joinpath(data_dir, "$(model_name)$(name)$(binned_ext)")) for model_name in model_names]
 end
 
 function multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dict(), name="", cleanup=true)
     isnothing(multi_location) && error("No Multi module has been loaded.")
 
-    # Create the default namelist (with adjustments)
     mn(n) = join([n, name], "_")
 
-    # Check if NLTE and twostep, in that case we follow up with an LTE run
     nml = tau500_namelist(model_name; namelist_kwargs...)
     write(nml, @in_m3dis("$(mn(model_name)).nml"))
 
-    # run multi (with waiting)
     run_m3dis("$(mn(model_name)).nml"; wait=true, m3dis_kwargs...)
 
     if cleanup
@@ -620,7 +581,6 @@ function multimodel(model_name::String; namelist_kwargs=Dict(), m3dis_kwargs=Dic
         rm.(nmls_created)
     end
 
-    # read the output
     TUMULTRun(joinpath(nml.io_params["datadir"], mn(model_name)))
 end
 

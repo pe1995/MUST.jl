@@ -53,13 +53,10 @@ function MURaMBox(model_path)
 end
 
 function MURaMBox_optical_depth(b, opacity)
-    ## lookup the rosseland opacity
     b.data[:kr] = opacity
 
-    ## optical depth form this
     τ = optical_depth(b, opacity=:kr, density=:d)
     b.data[:τ_ross] = τ
 
-    ## Interpolate cube
     height_scale(b, :τ_ross)
 end

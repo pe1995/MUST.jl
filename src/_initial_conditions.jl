@@ -80,7 +80,6 @@ end
 # ============================================================================
 # Methods for initial conditions
 # ============================================================================
-### Adiabatic intial conditions
 
 function initial_adiabat(eos, t_ini=1e4, d_ini=3e-7, g_ini=2.75e4;
 												  scaling=MUST.StaggerCGS(),
@@ -115,7 +114,7 @@ function initial_adiabat(eos, t_ini=1e4, d_ini=3e-7, g_ini=2.75e4;
 	t  = zeros(nz)
 	p  = zeros(nz)
 
-	z[i0]  = z0_position #/ scaling.l
+	z[i0]  = z0_position
     d[i0]  = d0 / scaling.d
     ee[i0] = ee0
     t[i0]  = MUST.lookup(eos, :T, d[i0] * scaling.d, ee[i0] * scaling.ee)
@@ -133,7 +132,6 @@ function initial_adiabat(eos, t_ini=1e4, d_ini=3e-7, g_ini=2.75e4;
 			p[i] = MUST.lookup(eos, :P, d[i]*scaling.d, ee[i] * scaling.ee) / scaling.p
 			# ============================================================================
 			# Use the step in pressure and the given step in ln(d) to compute dz and
-			# the step in internal energy per unit mass, dee
 			# ============================================================================
 			dp    = p[i] - p[i+1]
 			da    = (d[i+1]+d[i]) / 2.
@@ -142,7 +140,6 @@ function initial_adiabat(eos, t_ini=1e4, d_ini=3e-7, g_ini=2.75e4;
 			pd    = (p[i+1]+p[i]) / (d[i+1]+d[i])
 			dee   = pd*dlnd
 			ee[i] = ee[i+1] + dee
-			#iter ==3 && @show i,z[i],p[i],dee,ee[i],t[i]
 		end
 	end
 
@@ -161,7 +158,6 @@ function initial_adiabat(eos, t_ini=1e4, d_ini=3e-7, g_ini=2.75e4;
 		p[i] = MUST.lookup(eos, :P, d[i]*scaling.d, ee[i] * scaling.ee) / scaling.p
         # ============================================================================
         # Use the step in pressure and the given step in ln(d) to compute dz and
-        # the step in internal energy per unit mass, dee
         # ============================================================================
         dp = p[i-1]-p[i]
         da = (d[i-1]+d[i])/2.
@@ -182,13 +178,10 @@ function initial_conditions(model::MarcsInitialModel; kwargs...)
     ref_field, ref_val = keys(kwargs)[1], values(kwargs)[1]
     reference_point = argmin(abs.(getfield(model, ref_field) .- ref_val))
 
-    # Initial temperature
     ref_T = model.T[reference_point]
 
-    # Intial gas density
     ref_ρ = ρg_ideal(model.T[reference_point], model.Pg[reference_point], model.μ)
 
-    # pressure scale height for dimensions of the box
     hp = Hp(model.Teff, exp10(model.logg), model.μ)
 
     InitialConditions(ref_T, ref_ρ, exp10(model.logg), hp)
@@ -210,10 +203,7 @@ match(T_ini, ρ_ini, logg, z_goal, T_goal, d_goal, eos; ee_min=3.5, nz=400, i0=1
     z0
 end
 
-### 1D atmosphere initial conditions
-
 function regrid(model::SimpleInitialModel, z_new::AbstractVector{T}) where {T}
-    # interpolate
     iT = linear_interpolation(model.z, model.T,   extrapolation_bc=Line())
     iR = linear_interpolation(model.z, model.lnρ, extrapolation_bc=Line())
 

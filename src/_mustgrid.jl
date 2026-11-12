@@ -117,20 +117,15 @@ function create_namelists!(grid::AbstractMUSTGrid;
     summary = Dict("$(phase)_name"=>[])
 
     for i in 1:ngrid
-        # name of namelists
         id = "grid$(start_index-1+i)"
         name = "$(id)_$(phase).nml"
 
-        # copy the dummy namelist
         nml = deepcopy(dummy_nml)
 
-        # Set the values
         sync_nml_grid!(nml, grid, i)
 
-        # write the namelists
         MUST.write(nml, MUST.@in_dispatch(name))
 
-        # save the summary
         append!(summary["$(phase)_name"], [name])
     end
 

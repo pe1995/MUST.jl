@@ -51,16 +51,13 @@ sort_on_composition(spectra, element=nothing) = begin
         e => count([e in keys(comp) for comp in c])
         for e in all_elements
     )
-    # create a sorting tuple in the order of number of appearances
     n_appear = [how_many_times[e] for e in all_elements]
     appearance_sorted_elements = all_elements[sortperm(n_appear, rev=true)]
 
     mask = if isnothing(element)
-        # sort based on this
         st = [Tuple(e in keys(comp) ? comp[e] : 99.0 for e in appearance_sorted_elements) for comp in c]
         sortperm(st)
     else
-        # check if element is available in all, if not put those to the back
         st = [element in keys(comp) ? Tuple([comp[element], [comp[e] for e in appearance_sorted_elements if !(e==element)]...]) : Tuple([99.0, [comp[e] for e in appearance_sorted_elements if !(e==element)]...]) for comp in c]
         sortperm(st)
     end
@@ -75,16 +72,13 @@ sortperm_on_composition_strings(spectra, element=nothing; kwargs...) = begin
         e => count([e in keys(comp) for comp in c])
         for e in all_elements
     )
-    # create a sorting tuple in the order of number of appearances
     n_appear = [how_many_times[e] for e in all_elements]
     appearance_sorted_elements = all_elements[sortperm(n_appear, rev=true)]
 
     mask = if isnothing(element)
-        # sort based on this
         st = [Tuple(e in keys(comp) ? comp[e] : 99.0 for e in appearance_sorted_elements) for comp in c]
         sortperm(st)
     else
-        # check if element is available in all, if not put those to the back
         st = [element in keys(comp) ? Tuple([comp[element], [comp[e] for e in appearance_sorted_elements if !(e==element)]...]) : Tuple([99.0, [comp[e] for e in appearance_sorted_elements if !(e==element)]...]) for comp in c]
         sortperm(st)
     end
@@ -113,7 +107,6 @@ function interpolate(spectra::Vector{S}, abundance) where {S<:MeanSpectrum}
         vals[i, :] = linear_interpolation(s.λ, s.spectrum, extrapolation_bc=Line()).(λ_common)
     end
 
-    # interpolate in abundance wavelength by wavelength
     ip = zeros(eltype(vals), length(λ_common))
     @inbounds for i in eachindex(λ_common)
         ip[i] = linear_interpolation(ab, vals[:, i], extrapolation_bc=Line())(target)
