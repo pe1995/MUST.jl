@@ -247,7 +247,7 @@ function read_numbers(f, dtype=Int32)
 end
 
 function _add_axes(llc, ng, gn, ds)
-	first = llc .- ng .* ds
+	first = llc .- (ng .- 0.5) .* ds
 	n = gn
 
 	x=first[1] .+ ds[1] .* range(0, n[1]-1)
