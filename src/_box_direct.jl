@@ -237,12 +237,14 @@ end
 # Patch data
 # ============================================================================
 
-function _patchmeta(datadir, rank_nmls, snapshot_nml, newformat=false)
+function _patchmeta(datadir, rank_nmls, snapshot_nml)
 	patchMeta = []
 	patchDataFiles = []
 	patchAuxFiles = []
 	auxnames = []
 	save_aux = true
+	rankAuxFile(rank) = joinpath(datadir, "snapshot_"*@sprintf("%05d", rank-1)*".aux")
+	rankaux = any(isfile(rankAuxFile(rank)) for rank in eachindex(rank_nmls))
 	for rank in eachindex(rank_nmls)
 		rank_nml = rank_nmls[rank]
 		filename = joinpath(datadir, "snapshot_"*@sprintf("%05d", rank-1)*".dat")
@@ -251,10 +253,10 @@ function _patchmeta(datadir, rank_nmls, snapshot_nml, newformat=false)
 			pnml = rank_nml[p]
 			id = nmlValue(pnml, "id")
 
-			auxname = newformat ? joinpath(datadir, "snapshot_"*@sprintf("%05d", rank-1)*".aux") : joinpath(datadir, @sprintf("%05d", id)*".aux")
-			if save_aux && isfile(auxname) &&(!newformat)
-				aux = readaux(auxname)
-				append!(auxnames, [a.name for a in aux])
+			auxname = rankaux ? rankAuxFile(rank) : joinpath(datadir, @sprintf("%05d", id)*".aux")
+			if save_aux && isfile(auxname)
+				aux = rankaux ? reduce(vcat, values(readaux_rank(auxname)); init=AuxPatch[]) : readaux(auxname)
+				append!(auxnames, unique([a.name for a in aux]))
 				save_aux = false
 			end
 
@@ -264,12 +266,12 @@ function _patchmeta(datadir, rank_nmls, snapshot_nml, newformat=false)
 		end
 	end
 
-	patchMeta, patchDataFiles, patchAuxFiles, auxnames
+	patchMeta, patchDataFiles, patchAuxFiles, auxnames, rankaux
 end
 
 function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 	patchDataFiles, idxs, auxnames, patchAuxFiles, variablesAndAux, variablesDerived,
-	quantities, eos_quantities, eos_sq, units, converters, l_conv, fid, lookup_generator=nothing, newformat=false)
+	quantities, eos_quantities, eos_sq, units, converters, l_conv, fid, lookup_generator=nothing, rankaux=false)
 	lookup_function, lkp! = if isnothing(lookup_generator)
 		lookup_function = Dict(
 			q=>(res, d, ee) -> lookup!(
@@ -294,13 +296,19 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 	active_auxfile = Ref("")
 	files_read = []
 	faux = nothing
+	rank_aux = nothing
 	@inbounds for (i, patch) in enumerate(patchMeta)
 		r = patch_range[:, :, i]
 		li = patch.li
 		ui = patch.ui
 		liwg = patch.li_with_guards
 		uiwg = patch.ui_with_guards
-		faux = if active_auxfile[] != patchAuxFiles[i]
+		if rankaux
+			if (length(auxnames) > 0) && (active_auxfile[] != patchAuxFiles[i])
+				active_auxfile[] = patchAuxFiles[i]
+				rank_aux = readaux_rank(active_auxfile[])
+			end
+		elseif active_auxfile[] != patchAuxFiles[i]
 			@assert !(patchAuxFiles[i] in files_read)
 			append!(files_read, [patchAuxFiles[i]])
 			try
@@ -309,9 +317,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 				nothing
 			end
 			active_auxfile[] = patchAuxFiles[i]
-			MUST.FortranFiles.FortranFile(active_auxfile[])
-		else
-			faux
+			faux = MUST.FortranFiles.FortranFile(active_auxfile[])
 		end
 
 		@optionalTiming varFromPatchTime  open(patchDataFiles[i], "r") do f
@@ -333,7 +339,15 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 		xx, yy, zz = @optionalTiming meshgridTime meshgrid(patch.xi, patch.yi, patch.zi)
 
 		@optionalTiming auxTime if length(auxnames) > 0
-			aux = readaux(faux, newformat=newformat, nvars=length(auxnames))
+			aux = if rankaux
+				haskey(rank_aux, patch.id) || error("patch $(patch.id) missing in $(active_auxfile[])")
+				rank_aux[patch.id]
+			else
+				readaux(faux, nvars=length(auxnames))
+			end
+			for n in auxnames
+				any(a.name == n for a in aux) || error("aux item $(n) missing for patch $(patch.id) in $(active_auxfile[])")
+			end
 			for a in aux
 				asym = Symbol(a.name)
 				if asym in variablesAndAux
@@ -393,7 +407,7 @@ function _patchdata!(temp_storage, r, patchMeta, patch_range, variablesSym,
 		@optionalTiming saveToStructureTime _save_to_structure!(fid["y"], r, yy)
 		@optionalTiming saveToStructureTime _save_to_structure!(fid["z"], r, zz)
 
-		if (i == length(patchMeta))
+		if (i == length(patchMeta)) && !rankaux
 			close(faux)
 		end
 	end
@@ -532,17 +546,9 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 
     eos_sq, eos_quantities = eos_reader(run)
 
-	patchMeta, patchDataFiles, patchAuxFiles, auxnames = @optionalTiming patchMetaTime _patchmeta(
-		datadir, rank_nmls, snapshot_nml, newformat
+	patchMeta, patchDataFiles, patchAuxFiles, auxnames, rankaux = @optionalTiming patchMetaTime _patchmeta(
+		datadir, rank_nmls, snapshot_nml
 	)
-
-	auxnames = if newformat
-		a = nmlField(params_list, :aux_params)["select"]
-		v = (typeof(a) <: AbstractArray) ? a : [a]
-		v = [strip(replace(vi, '\''=>' ')) for vi in v]
-	else
-		auxnames
-	end
 
 	variableMaskOk = [ (!q.derived)|(q.name in Symbol.(auxnames))|(!isnothing(q.recipe)) for q in quantities]
 	quantities = quantities[variableMaskOk]
@@ -588,7 +594,7 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 		l_conv,
 		fid,
 		lookup_generator,
-		newformat
+		rankaux
 	)
 
 	@optionalTiming saveSnapshotTime if save_snapshot

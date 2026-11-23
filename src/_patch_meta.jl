@@ -111,10 +111,10 @@ end
 # Auxiliary data
 # ============================================================================
 
-function readaux(fname::String; newformat=false, nvars=-1)
+function readaux(fname::String; nvars=-1)
     if isfile(fname)
         f = FortranFiles.FortranFile(fname)
-        auxs = readaux(f, newformat=newformat, nvars=nvars)
+        auxs = readaux(f, nvars=nvars)
         close(f)
     end
     auxs
@@ -143,12 +143,12 @@ readaux_entry(f) = begin
     name, rnk, shp, tp, data
 end
 
-function readaux(f; newformat=false, nvars=-1)
+function readaux(f; nvars=-1)
     auxs = []
-    version, id = if !newformat
-        read(f, (Int32, 2))
-    else
-        -1, -1
+    header = read_numbers(f)
+    version, id = header[1], header[2]
+    if version >= 2
+        nvars = header[3]
     end
 
     if nvars < 0
@@ -167,6 +167,17 @@ function readaux(f; newformat=false, nvars=-1)
         end
     end
 
+    auxs
+end
+
+function readaux_rank(fname::String)
+    auxs = Dict{Int, Vector{AuxPatch}}()
+    FortranFiles.FortranFile(fname) do f
+        while !eof(f)
+            version, id, nitem = read(f, (Int32, 3))
+            auxs[id] = [AuxPatch(version, id, readaux_entry(f)...) for _ in 1:nitem]
+        end
+    end
     auxs
 end
 
