@@ -220,3 +220,7 @@ MUST.multiBox(b, "output_name", downsample_xy=2)
 ```
 
 where `downsample_xy` picks only every nth point in the horizontal. If `:ne` is not available, set `use_ne=.false.` in MULTI3D. The model can be read back as a `Box` with `MUST.multiBox("output_name")`. Spectra for converted snapshots are computed with `m3dis.jl` or `spectrum.jl` (see the M3DIS README), which store them as the `spectra` group of the snapshot file, to be loaded with `Box(path; data=:spectra)`.
+
+-------------------------
+
+*Claude Opus 5.5 has been used to improve text quality.*
