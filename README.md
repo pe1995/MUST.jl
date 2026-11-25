@@ -96,13 +96,6 @@ MUST.save!(path; tau=b_τ, mytest=b_test)              # replaces groups of that
 MUST.save(b; mode="r+")                               # write b back where it came from
 ```
 
-Files in the old layout, where the scales were separate files (`box_sn198.hdf5`, `box_tau_sn198.hdf5`, `box_tau500_sn198.hdf5`, `box_m3dis_sn198.hdf5`), can still be read in the same way. For these the snapshot number is taken from the file name, and stored in the file when it is first loaded. To merge them into the new layout use
-
-```julia
-migrateBoxes(folder)               # keeps the old files
-migrateBoxes(folder; delete=true)  # removes them once they are merged
-```
-
 ## Finding Snapshots
 
 To browse a folder for converted snapshots use
