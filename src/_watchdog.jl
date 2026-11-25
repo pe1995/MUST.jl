@@ -646,7 +646,26 @@ updatesnaps!(w::DISPATCHWatchDog) = begin
     w.snapshotsCompleted = snapshotnumber.(availableSnaps(w))
 end
 
-snapshotnumber(snap) = parse(Int, split(split(snap, "_", keepempty=false) |> last, ".hdf5", keepempty=false) |> first)
+"""
+    snapshotnumber(path)
+
+Snapshot number of a monitoring file or box, from its content; the file name is
+only used for files that do not contain it.
+"""
+snapshotnumber(path) = begin
+    s = try
+        HDF5.h5open(path, "r") do fid
+            if haskey(fid, "general") && haskey(fid["general"], "snapshot")
+                read(fid["general"]["snapshot"])
+            else
+                get(first(_read_meta(fid, path)), :snapshot, nothing)
+            end
+        end
+    catch
+        nothing
+    end
+    isnothing(s) ? parse(Int, split(split(basename(path), "_", keepempty=false) |> last, ".hdf5", keepempty=false) |> first) : s
+end
 
 monitoringPath(w::AbstractWatchDog) = joinpath(w.folder, "monitoring")
 monitoringPath(w::AbstractWatchDog, snap) = joinpath(w.folder, "monitoring", "snap_$(snap).hdf5")

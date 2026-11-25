@@ -90,11 +90,13 @@ function snapshotBox_py(
 
         b_s.parameter.logg = logg
 
-        save_snapshot && save(b_s; name="box_sn$(number)", folder=folder)
+        merge!(b_s.meta, Dict(:snapshot=>number, :kind=>"geo", :run=>last(splitpath(abspath(folder)))))
+        box_path = save_snapshot ? save(b_s; name="box_sn$(number)", folder=folder) : nothing
 
         b_τ = if optical_depth_scale
             b_τ = height_scale_fast(b_s, :τ_ross)
-            save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=folder)
+            merge!(b_τ.meta, b_s.meta, Dict(:kind=>"tau"))
+            save_snapshot && save!(box_path; tau=b_τ)
 
             b_τ
         else
@@ -147,11 +149,22 @@ function snapshotBox_jl(
 
         τ = @optionalTiming opticalDepthTime optical_depth(b_s, opacity=:kr, density=:d)
         add!(b_s, τ, :τ_ross)
-        save_snapshot && save(b_s; name="box_sn$(number)", folder=out_folder)
+        b_s.meta[:snapshot] = number
+        b_s.meta[:kind] = "geo"
+        b_s.meta[:run] = last(splitpath(abspath(folder)))
+        if save_snapshot
+            box_path = save(b_s; name="box_sn$(number)", folder=out_folder)
+            try
+                save_restart(box_path, folder, number)
+            catch e
+                @warn "restart data of snapshot $(number) could not be saved." exception=e
+            end
+        end
 
         b_τ = if optical_depth_scale
             b_τ = @optionalTiming heightScaleTime height_scale(b_s, :τ_ross, extrapolation=:constant)
-            save_snapshot && save(b_τ; name="box_tau_sn$(number)", folder=out_folder)
+            merge!(b_τ.meta, b_s.meta, Dict(:kind=>"tau"))
+            save_snapshot && save!(box_path; tau=b_τ)
 
             b_τ
         else

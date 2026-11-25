@@ -51,13 +51,12 @@ function _Box_py(simulation, snapshot; eos, opacity, data, add_selected=false, s
 	τ = MUST.optical_depth(bs, opacity=:kr, density=:d)
     MUST.add!(bs, τ, :τ_ross)
 
-    if save
-	    MUST.save(bs; name="box_sn$(snapshot)", folder=simulation)
-	end
+    merge!(bs.meta, Dict(:snapshot=>snapshot, :kind=>"geo", :run=>last(splitpath(abspath(simulation)))))
+    box_path = save ? MUST.save(bs; name="box_sn$(snapshot)", folder=simulation) : nothing
 
     bs_τ = MUST.height_scale_fast(bs, :τ_ross)
     if save
-        MUST.save(bs_τ; name="box_tau_sn$(snapshot)", folder=simulation)
+        MUST.save!(box_path; tau=bs_τ)
     end
 
 	bs, bs_τ

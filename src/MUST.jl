@@ -66,7 +66,7 @@ end
 export @import_dispatch, @in_dispatch, @import_m3dis, @in_m3dis, @import_tumult, @in_tumult, @ingredient
 export Space, spacebox, Box, add!, profile, time_average_profile, flip!
 export multiBox, snapshotBox
-export pick_snapshot, list_of_snapshots, converted_snapshots, list_snapshots, find_snapshots
+export pick_snapshot, list_of_snapshots, converted_snapshots, list_snapshots, find_snapshots, BoxRef, availableData, switch, switch!, migrateBoxes
 export ginterpolate, gevaluate, gevaluate!, gresample, Grid
 export plane_statistic
 export height_scale
@@ -116,6 +116,7 @@ include("_must1d.jl")
 include("_read_marcs.jl")
 include("_mafags.jl")
 include("_convert.jl")
+include("_restart.jl")
 
 include("_muram.jl")
 

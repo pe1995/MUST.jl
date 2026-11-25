@@ -21,7 +21,88 @@ mutable struct Box <:AbstractSpace
     z                ::Array{<:Union{Float32, Float64, Int16, Int32, Int64},3}
     data             ::Dict{Symbol, Any}
     parameter        ::AtmosphericParameters
+    meta             ::Dict{Symbol, Any}
 end
+
+Box(x, y, z, data, parameter) = Box(x, y, z, data, parameter, Dict{Symbol, Any}())
+
+"""
+    meta(b::Box)
+    meta(b::Box, key; default=nothing)
+
+Information about the box that is not data on the grid, e.g. `:snapshot`, `:run`,
+`:kind` ("geo", "tau", "tau500", "spectra"), and `:path` (file it was loaded from).
+"""
+meta(b::Box) = b.meta
+meta(b::Box, key; default=nothing) = get(b.meta, Symbol(key), default)
+
+"""
+    meta(path::String)
+
+Global meta information of the box file at `path` without loading data. Files
+written before the meta information existed get it from their file name, and it
+is stored in the file (if writable) so it is read from there next time.
+"""
+meta(path::String) = begin
+    m, new = HDF5.h5open(fid->_read_meta(fid, path), path, "r")
+    _store_meta(path, new)
+    m
+end
+
+function _read_meta(fid, path)
+    a = HDF5.attributes(fid)
+    m = Dict{Symbol, Any}(Symbol(k)=>read(a[k]) for k in keys(a))
+    fallback = _meta_from_name(path)
+    _has_root_box(fid) || delete!(fallback, :kind)
+    new = Dict{Symbol, Any}(k=>v for (k, v) in fallback if !haskey(m, k))
+    merge!(m, new)
+    m[:path] = abspath(path)
+    m, new
+end
+
+_store_meta(path, new) = isempty(new) || try
+    HDF5.h5open(path, "r+") do fid
+        for (k, v) in new
+            HDF5.attributes(fid)[String(k)] = v
+        end
+    end
+catch
+    @debug "meta information could not be stored in $(path)"
+end
+
+function _meta_from_name(path)
+    name = first(splitext(basename(path)))
+    r = Base.match(r"^(box\w*?)_sn(.+)$", name)
+    isnothing(r) && return Dict{Symbol, Any}()
+    snapshot = something(tryparse(Int, r[2]), String(r[2]))
+    kind = r[1] == "box" ? "geo" : (r[1] == "box_m3dis" ? "spectra" : String(r[1][5:end]))
+    Dict{Symbol, Any}(:snapshot=>snapshot, :kind=>kind, :run=>basename(dirname(abspath(path))))
+end
+
+# old files hold a box at the top level instead of in a group
+_has_root_box(fid) = haskey(fid, "x") && !(fid["x"] isa HDF5.Group)
+
+"""
+Boxes in an open file as `kind => group name` (`nothing` for a box at the top
+level of old files).
+"""
+function _entries(fid, path)
+    e = Dict{Symbol, Union{Nothing, String}}()
+    if _has_root_box(fid)
+        a = HDF5.attributes(fid)
+        e[Symbol(haskey(a, "kind") ? read(a["kind"]) : get(_meta_from_name(path), :kind, "geo"))] = nothing
+    end
+    for k in keys(fid)
+        ((fid[k] isa HDF5.Group) && haskey(fid[k], "x")) || continue
+        a = HDF5.attributes(fid[k])
+        e[Symbol(haskey(a, "kind") ? read(a["kind"]) : k)] = k
+    end
+    e
+end
+
+_layout(path) = (meta(path), HDF5.h5open(fid->_entries(fid, path), path, "r"))
+
+const _alignment = (0, 8)
 
 # ============================================================================
 # Functionality for AtmosphericParameters
@@ -853,27 +934,86 @@ function save(s::MUST.Space; folder=nothing, name=nothing)
     path
 end
 
+"""
+    save(b::Box; folder=nothing, name=nothing, mode="w")
+
+Save `b` as group `meta(b, :kind)` (default "geo") of the file `folder/name.hdf5`;
+the parameters and global meta information of a geo box go to the top level.
+Without `folder` and `name`, `b` is written back to where it was loaded from
+(needs `mode="r+"`).
+"""
 function save(s::MUST.Box; folder=nothing, name=nothing, mode="w")
-    path = _check_path(folder, name)
-    fid  = HDF5.h5open(path, mode)
+    from_meta = isnothing(folder) && isnothing(name) && haskey(s.meta, :path)
+    from_meta && (mode == "w") && error("saving to the file the box was loaded from needs mode=\"r+\"")
+    path = from_meta ? s.meta[:path] : _check_path(folder, name)
+    kind = Symbol(get(s.meta, :data, get(s.meta, :kind, "geo")))
+    HDF5.h5open(path, mode; alignment=_alignment) do fid
+        e = _entries(fid, path)
+        g = if haskey(e, kind)
+            isnothing(e[kind]) ? fid : fid[e[kind]]
+        else
+            _new_group(fid, String(kind))
+        end
+        _write_box!(g, s)
+        ((kind == :geo) || (g === fid) || (mode == "w")) && _write_global!(fid, s)
+    end
+    path
+end
+
+"""
+    save!(path; name=box, ...)
+    save!(b::Box; name=box, ...)
+
+Store each box as group `name` of the file at `path` (or of the file `b` was loaded
+from), replacing a group of that name. A group holds its own grid, so it can be on
+any grid (e.g. τ scale, down-sampled spectra). Load it with `Box(path; data=:name)`.
+"""
+function save!(path::String; boxes...)
+    HDF5.h5open(path, "r+"; alignment=_alignment) do fid
+        for (name, b) in boxes
+            haskey(fid, String(name)) && HDF5.delete_object(fid, String(name))
+            _write_box!(_new_group(fid, String(name)), b)
+        end
+    end
+    path
+end
+
+save!(b::Box; boxes...) = save!(meta(b, :path); boxes...)
+
+_new_group(fid, kind) = begin
+    g = HDF5.create_group(fid, kind)
+    HDF5.attributes(g)["kind"] = kind
+    g
+end
+
+function _write_box!(g, s::Box)
     for q in keys(s.data)
         sq = String(q)
-        if haskey(fid, sq)
-            delete_object(fid, sq)
+        v = s.data[q]
+        if haskey(g, sq) && (v isa AbstractArray) && (g[sq] isa HDF5.Dataset) &&
+            (size(g[sq]) == size(v)) && (HDF5.get_jl_type(g[sq]) == eltype(v))
+            write(g[sq], v)
+            continue
         end
-        fid[sq] = s.data[q]
+        haskey(g, sq) && HDF5.delete_object(g, sq)
+        g[sq] = v
     end
 
-    if !haskey(fid, "x")
-        fid["x"] = s.x
-        fid["y"] = s.y
-        fid["z"] = s.z
+    if !haskey(g, "x")
+        g["x"] = s.x
+        g["y"] = s.y
+        g["z"] = s.z
     end
+end
 
+function _write_global!(fid, s::Box)
     save(s.parameter, fid)
-
-    close(fid)
-    path
+    a = HDF5.attributes(fid)
+    for (k, v) in s.meta
+        k in (:path, :data, :kind) && continue
+        haskey(a, String(k)) && HDF5.delete_attribute(fid, String(k))
+        a[String(k)] = v
+    end
 end
 
 function delete(to_delete; folder=nothing, name=nothing, mode="r+")
@@ -955,6 +1095,7 @@ function Space(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
 
     for q in keys(fid)
         q in aux_fieldnames ? continue : nothing
+        fid[q] isa HDF5.Group && continue
         res[Symbol(q)] = HDF5.readmmap(fid[q])
     end
     patch_dimensions = HDF5.readmmap(fid["patch_dimensions"])
@@ -965,7 +1106,14 @@ function Space(name::String; folder::F=nothing) where {F<:Union{String,Nothing}}
     Space(res, patch_dimensions, params)
 end
 
-function Box(name::String; folder::F=nothing, mmap=true) where {F<:Union{String,Nothing}}
+"""
+    Box(name; folder=nothing, mmap=true, data=nothing)
+
+Load a box from HDF5. `data` selects which box of the file (e.g. `:geo`, `:tau`,
+`:tau500`, `:spectra`, see `availableData`); default is `:geo`, or the only box
+of the file. Files of the old layout (box at the top level) are read as well.
+"""
+function Box(name::String; folder::F=nothing, mmap=true, data=nothing) where {F<:Union{String,Nothing}}
     if !isfile(name)
         path = isnothing(folder) ? @in_dispatch(name*".hdf5") : joinpath(folder, name*".hdf5")
         if !isfile(path)
@@ -977,39 +1125,171 @@ function Box(name::String; folder::F=nothing, mmap=true) where {F<:Union{String,
         path = name
     end
 
+    m = meta(path)
     fid = HDF5.h5open(path, "r")
+    e = _entries(fid, path)
+    data = if !isnothing(data)
+        Symbol(data)
+    elseif haskey(e, :geo)
+        :geo
+    elseif length(e) == 1
+        only(keys(e))
+    else
+        close(fid)
+        error("$(path) holds several boxes, choose one with `data`: $(availableData(path))")
+    end
+    if !haskey(e, data)
+        close(fid)
+        error("$(path) has no data '$(data)'. Available: $(availableData(path))")
+    end
+    g = isnothing(e[data]) ? fid : fid[e[data]]
+    a = HDF5.attributes(g)
+    g === fid || merge!(m, Dict(Symbol(k)=>read(a[k]) for k in keys(a)))
+    m[:data] = data
+    m[:kind] = String(data)
+
     res = Dict{Symbol, Any}()
 
     aux_fieldnames = _get_para_fieldnames(AtmosphericParameters)
     append!(aux_fieldnames, ["x","y","z"])
 
-    for q in keys(fid)
+    for q in keys(g)
         q in aux_fieldnames ? continue : nothing
-        res[Symbol(q)] = if (mmap && HDF5.ismmappable(fid[q]))
-            HDF5.readmmap(fid[q])
+        g[q] isa HDF5.Group && continue
+        res[Symbol(q)] = if (mmap && HDF5.ismmappable(g[q]))
+            HDF5.readmmap(g[q])
         else
-            HDF5.read(fid[q])
+            HDF5.read(g[q])
         end
     end
-    x = (mmap && HDF5.ismmappable(fid["x"])) ? HDF5.readmmap(fid["x"]) : HDF5.read(fid["x"])
-    y = (mmap && HDF5.ismmappable(fid["y"])) ? HDF5.readmmap(fid["y"]) : HDF5.read(fid["y"])
-    z = (mmap && HDF5.ismmappable(fid["z"])) ? HDF5.readmmap(fid["z"]) : HDF5.read(fid["z"])
+    x = (mmap && HDF5.ismmappable(g["x"])) ? HDF5.readmmap(g["x"]) : HDF5.read(g["x"])
+    y = (mmap && HDF5.ismmappable(g["y"])) ? HDF5.readmmap(g["y"]) : HDF5.read(g["y"])
+    z = (mmap && HDF5.ismmappable(g["z"])) ? HDF5.readmmap(g["z"]) : HDF5.read(g["z"])
 
-    params = _read_params(AtmosphericParameters, fid)
+    params = _read_params(AtmosphericParameters, haskey(g, "time") ? g : fid)
 
     close(fid)
 
     x, y, z = if (typeof(x) <: Base.ReshapedArray) | (typeof(y) <: Base.ReshapedArray) | (typeof(z) <: Base.ReshapedArray)
-        @warn "Type error detected in axes of box. Converting them to array (no mmap anymore)."
-        @warn typeof(x)
-        @warn typeof(y)
-        @warn typeof(z)
         Base.convert(Array, x), Base.convert(Array, y), Base.convert(Array, z)
     else
         x, y, z
     end
 
-    Box(x, y, z, res, params)
+    Box(x, y, z, res, params, m)
+end
+
+"""
+    availableData(path)
+    availableData(b::Box)
+
+Boxes stored in the file (e.g. `[:geo, :spectra, :tau]`).
+"""
+availableData(path) = sort(collect(keys(last(_layout(path)))), by=k->(k != :geo, String(k)))
+availableData(b::Box) = availableData(meta(b, :path))
+
+"""
+    BoxRef(file, data)
+
+Reference to a box: file name (without .hdf5) and which box of the file.
+`Box(ref; folder)` loads it.
+"""
+struct BoxRef
+    file::String
+    data::Symbol
+end
+
+Box(r::BoxRef; kwargs...) = Box(r.file; data=r.data, kwargs...)
+
+"""
+    switch(b::Box; data, kwargs...)
+
+New box with the data `data` (e.g. `:tau`, `:spectra`, `:geo`) of the snapshot `b`
+was loaded from: from its file, or for old snapshots stored in separate files,
+from the file of the same snapshot holding that data.
+"""
+function switch(b::Box; data, kwargs...)
+    path = meta(b, :path)
+    isnothing(path) && error("the box was not loaded from a file")
+    data = Symbol(data)
+    data in availableData(path) && return Box(path; data=data, kwargs...)
+    other = snapshot_path(dirname(path), meta(b, :snapshot); kind=String(data))
+    isnothing(other) && error("no data '$(data)' for snapshot $(meta(b, :snapshot)) of $(path). Available: $(availableData(b))")
+    Box(other; data=data, kwargs...)
+end
+
+"""
+    switch!(b::Box; data, kwargs...)
+
+Replace grid, data, parameters and meta of `b` by those of `switch(b; data)`.
+Unsaved changes of `b` are lost.
+"""
+function switch!(b::Box; data, kwargs...)
+    o = switch(b; data=data, kwargs...)
+    for f in fieldnames(Box)
+        setfield!(b, f, getfield(o, f))
+    end
+    b
+end
+
+"""
+    migrateBoxes(folder; delete=false)
+
+Bring the box files in `folder` to the current layout: a box at the top level
+of a file is moved into a group (no data is copied), and boxes in separate files
+(e.g. `box_tau_snN`, `box_tau500_snN`, `box_m3dis_snN`) are copied into groups of
+the file of the geo box of the same snapshot. The separate files are removed only
+with `delete=true`, after the group has been read back. Returns the moved files.
+"""
+function migrateBoxes(folder; delete=false)
+	files = Dict()
+	for file in glob("*.hdf5", normpath(folder))
+		m, e = try
+			_layout(file)
+		catch
+			continue
+		end
+		haskey(m, :snapshot) || continue
+		_root_to_group!(file)
+		for kind in keys(e)
+			push!(get!(files, m[:snapshot], []), (kind, file))
+		end
+	end
+
+	moved = String[]
+	for (snapshot, fs) in files
+		geo = unique([f for (k, f) in fs if k == :geo])
+		length(geo) == 1 || continue
+		geo = only(geo)
+		for (kind, file) in fs
+			(file == geo) && continue
+			(kind in availableData(geo)) || save!(geo; kind=>Box(file; data=kind, mmap=false))
+			Box(geo; data=kind, mmap=false)
+			push!(moved, file)
+			delete && rm(file)
+		end
+	end
+
+	moved
+end
+
+"""
+Move a box at the top level of an old file into group `kind` (links only, no copy).
+"""
+function _root_to_group!(path)
+	HDF5.h5open(path, "r+") do fid
+		_has_root_box(fid) || return
+		a = HDF5.attributes(fid)
+		kind = haskey(a, "kind") ? read(a["kind"]) : get(_meta_from_name(path), :kind, "geo")
+		params = _get_para_fieldnames(AtmosphericParameters)
+		names = [k for k in keys(fid) if !(fid[k] isa HDF5.Group) && !(k in params)]
+		_new_group(fid, kind)
+		for k in names
+			HDF5.move_link(fid, k, "$(kind)/$(k)")
+		end
+		haskey(a, "kind") && HDF5.delete_attribute(fid, "kind")
+	end
+	path
 end
 
 _get_para_fieldnames(t::Type{AtmosphericParameters}) = ["time", "teff", "logg", "composition_e", "composition_v", "parameter_type"]
@@ -1034,13 +1314,13 @@ function Boxes(folder::String; snaps=nothing)
 
     for (i_s,snap) in enumerate(snapshots)
         try
-            append!(boxes, [MUST.Box("box_sn$(snapshots[i_s])", folder=folder)])
+            append!(boxes, [first(pick_snapshot(folder, snapshots[i_s]))])
         catch
             nothing
         end
 
         try
-            append!(boxesT, [MUST.Box("box_tau_sn$(snapshots[i_s])", folder=folder)])
+            append!(boxesT, [last(pick_snapshot(folder, snapshots[i_s]))])
         catch
             nothing
         end
@@ -1055,45 +1335,53 @@ function Boxes(folder::String; snaps=nothing)
 end
 
 """
-    converted_snapshots(folder)
+    converted_snapshots(folder; box_name="box", tau_name="tau")
 
-Return a list of already converted snapshots in the convert.jl
-naming convention.
+Converted snapshots in `folder` as `Dict(snapshot=>(main, partner))` of `BoxRef`s
+(partner `nothing` if missing), identified by the meta information of the files.
+`box_name` selects the main box ("box" → :geo, "box_m3dis" → :spectra), `tau_name`
+its partner (:tau, :tau500). Old files with separate boxes are found as well.
 """
 function converted_snapshots(folder; box_name="box", tau_name="tau")
-	files_converted = glob("$(box_name)*.hdf5", folder)
-	snaps = Dict()
-	for file in files_converted
-		snname = basename(file)
+	main = Symbol(box_name == "box" ? "geo" : (box_name == "box_m3dis" ? "spectra" : box_name[5:end]))
+	partner = Symbol(main == :geo ? tau_name : "$(main)_$(tau_name)")
 
-        if !occursin("sn", snname)
-            continue
-        end
-
-		snid = try
-            parse(Int, snname[last(findfirst("sn", snname))+1:end-5])
-        catch
-            snname[last(findfirst("sn", snname))+1:end-5]
-        end
-
-        if snname != "$(box_name)_sn$(snid).hdf5"
-            continue
-        end
-
-		is_τ = isfile(joinpath(folder,"$(box_name)_$(tau_name)_sn$(snid).hdf5"))
-
-		snname  = String(split(snname, ".hdf5") |> first)
-		sntname = "$(box_name)_$(tau_name)_sn$(snid)"
-
-		if is_τ
-			snaps[snid] = (snname, sntname)
-		else
-			snaps[snid] = (snname, nothing)
+	boxes = Dict()
+	partners = Dict()
+	for file in glob("*.hdf5", normpath(folder))
+		m, e = try
+			_layout(file)
+		catch
+			continue
 		end
+		haskey(m, :snapshot) || continue
+		s = m[:snapshot]
+		name = first(splitext(basename(file)))
+		haskey(e, main) && (boxes[s] = BoxRef(name, main))
+		haskey(e, partner) && (!haskey(partners, s) || !isnothing(e[partner])) && (partners[s] = BoxRef(name, partner))
 	end
 
+	snaps = Dict{Any, Any}(s=>(r, get(partners, s, nothing)) for (s, r) in boxes)
 	snaps["folder"] = folder
 	snaps
+end
+
+"""
+    snapshot_path(folder, snapshot; kind="geo")
+
+Path of the file in `folder` that holds the box of the given kind for `snapshot`,
+`nothing` if there is none.
+"""
+function snapshot_path(folder, snapshot; kind="geo")
+	for file in glob("*.hdf5", normpath(folder))
+		m, e = try
+			_layout(file)
+		catch
+			continue
+		end
+		(get(m, :snapshot, nothing) == snapshot) && haskey(e, Symbol(kind)) && return file
+	end
+	nothing
 end
 
 find_snapshots(args...; kwargs...) = converted_snapshots(args...; kwargs...)

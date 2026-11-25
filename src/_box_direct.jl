@@ -429,13 +429,19 @@ function _save_box(number, fid, time, logg, folder)
     HDF5.delete_object(fid, "logg")
     fid["time"] = time
     fid["logg"] = logg
+    a = HDF5.attributes(fid)
+    a["snapshot"] = number
+    a["kind"] = "geo"
+    a["run"] = last(splitpath(abspath(folder)))
 
 	teff = _get_teff_from_fid(fid)
 
 	HDF5.delete_object(fid, "teff")
     fid["teff"] = teff
 
+    path = HDF5.filename(fid)
     close(fid)
+    _root_to_group!(path)
 end
 
 function _save_box(number, fid::Dict, time, logg, folder)
