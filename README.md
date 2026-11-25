@@ -153,10 +153,10 @@ b_s = MUST.Box(s, 200)
 # or give axes directly
 b_s = MUST.Box(s, x, y, z)
 
-MUST.save(b_s; name="box_sn$(snapshots[i_s])", folder=folder)
+path = MUST.save(b_s; name="box_sn$(snapshots[i_s])", folder=folder)
 ```
 
-If you want to pick snapshots later using the rest of the API, it is important to name snapshots like specified in the `name` kwarg above. This will allow the code later to specify between geometrical and $\rm \tau$. If you want to convert the cube to the optical depth scale (recommended for visualisation) you can do this simply by specifying what fields of the `Box` relate to opacity and desity.
+The file name does not matter for the rest of the API, because the snapshot number and everything else the code needs is stored inside the file (see [File Layout](#file-layout) below). If you want to convert the cube to the optical depth scale (recommended for visualisation) you can do this simply by specifying what fields of the `Box` relate to opacity and desity, and add it to the same file.
 
 ```julia
 τ = MUST.optical_depth(b_s, opacity=:kr, density=:d)
@@ -164,7 +164,7 @@ MUST.add!(b_s, τ, :τ_ross)
 
 # Convert the height scale from cm to optical depth
 b_τ = MUST.height_scale_fast(b_s, :τ_ross)
-MUST.save(b_τ; name="box_tau_sn$(snapshots[i_s])", folder=folder)
+MUST.save!(path; tau=b_τ)
 ```
 
 A handy shortcut that contains the above procedure is provided as well. After loading the dispatch2 module through the usage of the macro mentioned above it is possible to use the following function, that incorporates above steps
@@ -183,37 +183,92 @@ snapshots = list_of_snapshots(folder)
 b, bτ = snapshotBox(snapshots[end-1], folder=folder)
 ```
 Note that `snapshotBox` has the kwarg `is_box=true`, which assumes that the given snapshot already is box-like, meaning that it is gridded. If set to false (e.g. because of possible mesh refinement) the cube will first be converted to a `Space` object, and then be interpolated to a regular grid in a new `Box` object.
-The naming convention of the saved snapshots will make it possible to browse the folder for converted models on different scales later, such that we can pick specific snapshots using e.g.
+With `save_snapshot=true`, `snapshotBox` stores both cubes in `box_sn<number>.hdf5` in the folder of the run, together with everything that is needed to restart `DISPATCH` from this snapshot later (see [Restarting from a Box](#restarting-from-a-box)).
+
+## File Layout
+
+Every snapshot is stored in one `HDF5` file that can hold the same snapshot on several scales, or anything else that belongs to it. Each of them is a group of the file with its own `x`, `y`, `z` and data arrays, so a group can also be on a different grid (e.g. a downsampled cube with spectra):
+
+```
+box_sn198.hdf5
+├── geo/       geometrical height scale
+├── tau/       Rosseland optical depth scale
+├── tau500/    500nm optical depth scale (added when shipping)
+├── spectra/   downsampled cube with the spectra (added by spectrum.jl)
+└── restart/   namelists needed to restart DISPATCH from this snapshot
+```
+
+The top level holds what is the same for all groups: the snapshot number and run name as attributes, and the time, Teff, logg and chemical composition. These are the same for every group, so each group uses them.
+
+Loading a file only needs its path. By default you get the geometrical cube (or the only one in the file):
+
+```julia
+b = MUST.Box("path/to/box_sn198.hdf5")
+
+availableData(b)                 # [:geo, :tau, ...]
+b_τ = MUST.Box(path; data=:tau)  # or: switch(b; data=:tau)
+switch!(b; data=:tau)            # in place: b now holds the optical depth cube
+```
+
+`switch` returns a new `Box` and leaves the original untouched, while `switch!` replaces the data of `b` itself. The data arrays are loaded as memory maps automatically (`mmap=false` to read them into memory).
+
+Information that is not data, like the snapshot number, the run, the scale and the file the box was loaded from, is in the `meta` dictionary of the box:
+
+```julia
+MUST.meta(b)               # Dict(:snapshot => 198, :kind => "geo", :path => ..., ...)
+MUST.meta(b, :snapshot)    # 198
+```
+
+You can add any box as a new group, or write a modified box back to the group it was loaded from:
+
+```julia
+MUST.save!(path; tau500=b_τ500, mytest=b_test)   # replaces groups of that name
+MUST.save(b; mode="r+")                          # write b back where it came from
+```
+
+To browse a folder for converted snapshots use
 
 ```julia
 pick_snapshot(folder, :recent)
 ```
 
-which will return geometrical and optical depth snapshots, if available with above names. `:recent` will return the last available snapshot, but you can pass any snapshot number that is converted. You can obtain a list of converted snapshots from
+which returns the geometrical and the optical depth cube of a snapshot (the latter is `nothing` if it is not there). `:recent` returns the last available snapshot, but you can pass any snapshot number that is converted, and e.g. `tau_name="tau500"` to get the 500nm scale instead. A list of converted snapshots is given by
 
 ```julia
 converted_snapshots(folder)
 ```
-which will return a dictionary, containing the folder, and for every found snapshot number the corresponding box names, if they were found at all.
-You can however pick them any way you like. You can load them later using a simple
+
+which returns a dictionary containing the folder, and for every snapshot number the corresponding boxes, as `BoxRef`s that can be loaded with `Box(ref)`. `MUST.snapshot_path(folder, 198)` returns the file of a given snapshot.
+
+Files in the old layout, where the scales were separate files (`box_sn198.hdf5`, `box_tau_sn198.hdf5`, `box_tau500_sn198.hdf5`, `box_m3dis_sn198.hdf5`), can still be read in the same way. For these the snapshot number is taken from the file name, and stored in the file when it is first loaded. To merge them into the new layout use
 
 ```julia
-b = MUST.Box(name, folder=nothing)
+migrateBoxes(folder)               # keeps the old files
+migrateBoxes(folder; delete=true)  # removes them once they are merged
 ```
 
-that will check if name is a file, if not it will join
-
-```julia
-path = isnothing(folder) ? @in_dispatch(name*".hdf5") : joinpath(folder, name*".hdf5")
-```
-
-It will load the data arrays as memory maps automatically. If you want to enforce the naming convention you can also try the automatic detection of the vertical scale using
+If you save a `Box` with a snapshot number instead of a name, the code checks if all z columns are identical (geometrical scale) and stores it as group `geo` or `tau` of `box_sn<number>.hdf5`:
 
 ```julia
 MUST.save(b_τ, snapshots[i_s], folder=folder)
 ```
 
-which will check if all z columns are identical and assume that the scale is cartesian if they are.
+## Restarting from a Box
+
+The cubes contain everything that is needed to restart `DISPATCH`, so the native `DISPATCH` output does not have to be kept. To restart, the watchdog can write a restart folder from a single box and exit:
+
+```bash
+julia monitor.jl your_model --snapshot 198 --restart
+```
+
+This creates `<run>/m3dis_198.restart` (converting the snapshot first, if needed) and prints the line to add to the namelist, e.g.
+
+```
+&restart_params data='data/your_model/', run='m3dis_198.restart', snapshot=198 /
+```
+
+From within Julia the same can be done with `MUST.write_restart(MUST.snapshot_path(folder, 198), "path/to/m3dis_198.restart")`.
+
 From this internal `Box` model we can convert to other formats, like e.g. the `MULTI3D` format.
 Note that you can always ensure a consistent orientation (from bottom to top, negative z values at the bottom, increasing upwards) by using the `flip!` function on this `Box` model.
 
@@ -672,7 +727,7 @@ After your DISPATCH run is finished, it may be a wise idea to collect your outpu
 julia ship_models.jl -r your_interpolated_model --move --n_snaps=10 -n 'shipped' --out_dir='shipped_models'
 ```
 
-Which will create a new folder in `shipped_models` and store the last 10 snapshots of your model there. It will also add the τ500 opacity to your datacube, if a corresponding table is available in the folder of the EoS table. Note that in the final folder there will be three cubes per snapshot `isnap`, the `box_snisnap.hdf5` on the geometrical scale, `box_tau_snisnap.hdf5` on the rosseland optical depth scale, and `box_tau500_snisnap.hdf5` on the 500nm scale. The latter box can then simply be read back by using `pick_snapshot(folder, isnap, tau_name="tau500")` for . See `--help` for more options. You can e.g. run the shipping for entire grids easily by creating a folder with all the namelists of the models you want to ship, and specify that folder with `-d`. 
+Which will create a new folder in `shipped_models` and store the last 10 snapshots of your model there. It will also add the τ500 opacity to your datacube, if a corresponding table is available in the folder of the EoS table. Note that in the final folder there will be one file per snapshot `isnap`, `box_snisnap.hdf5`, with the groups `geo` (geometrical scale), `tau` (Rosseland optical depth scale) and `tau500` (500nm scale), see [File Layout](#file-layout). The latter can then simply be read back by using `Box(path; data=:tau500)` or `pick_snapshot(folder, isnap, tau_name="tau500")`. See `--help` for more options. You can e.g. run the shipping for entire grids easily by creating a folder with all the namelists of the models you want to ship, and specify that folder with `-d`. 
 
 Now that your model has been secured, you can compute spectra. There is the very convenient and flexible script `spectrum.jl`, which does the work for you! All you need to do is run e.g. for the CH-G Band:
 
@@ -680,6 +735,6 @@ Now that your model has been secured, you can compute spectra. There is the very
 julia spectrum.jl -r your_interpolated_model --datafolder=shipped_models --add_m3dis=GBand --remove -n -1 -x 50 -z 180 -s 5880.0 -e 5900.0 -d 0.001 --feh=0.0 --alpha=0.0 --composition= C_3.0,N_0.4,O_0.5 --linelists=input_multi3d/LINE-LISTS/
 ```
 
-To compute the CH G Band for the snapshot `-1`, which is the most recent one, at a horizontal resolution of `50` points, vertical of `180` points, from `5880 Å` to `5900 Å`, with a spacing of `0.001 Å`, and composition you specified. There are many more options available, so please check out `--help` again. The script will run M3D and store the output in a new data cube, containing the downsampled atmosphere as well as the spectrum. It will be stored as `box_m3dis_snsnapid.hdf5` cube, and can be read back simply by using `pick_snapshot(folder, isnap, box_name="box_m3dis")`.
+To compute the CH G Band for the snapshot `-1`, which is the most recent one, at a horizontal resolution of `50` points, vertical of `180` points, from `5880 Å` to `5900 Å`, with a spacing of `0.001 Å`, and composition you specified. There are many more options available, so please check out `--help` again. The script will run M3D and store the output in a new data cube, containing the downsampled atmosphere as well as the spectrum. It will be stored as group `spectra` in the file of the snapshot, and can be read back simply by using `Box(path; data=:spectra)` or `pick_snapshot(folder, isnap, box_name="box_m3dis")`.
 
 

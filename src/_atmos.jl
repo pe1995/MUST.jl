@@ -1032,12 +1032,15 @@ end
 """
     save(s::Box, number::Int)
 
-Identify on which scale the box is and save it with the correct name.
+Identify on which scale the box is and save it as group `geo` or `tau` of `box_sn<number>.hdf5`.
 """
 save(s::Box, number::Int; folder=nothing) = begin
-    name = is_geo_scale(s) ? "box_sn$(number)" : "box_tau_sn$(number)"
+    s.meta[:snapshot] = number
+    s.meta[:kind] = is_geo_scale(s) ? "geo" : "tau"
+    delete!(s.meta, :data)
+    path = _check_path(folder, "box_sn$(number)")
 
-    save(s, name=name, folder=folder)
+    save(s, name="box_sn$(number)", folder=folder, mode=isfile(path) ? "r+" : "w")
 end
 
 function save(p::AtmosphericParameters, fid)
