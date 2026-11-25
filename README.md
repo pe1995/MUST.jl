@@ -1,4 +1,4 @@
-<a href="url"><img src="must_logo2.png" height=100% width=100%/></a> 
+<img src="must_logo2.png" height=100% width=100%/> 
 Julia package for reading, converting and analysing 3D stellar atmosphere models computed with `DISPATCH` (M3DIS). It converts the native `DISPATCH` output to data cubes (`MUST.Box`), computes statistics while a simulation is running, and prepares models for the MULTI3D radiative transfer code. It is complementary to the `TSO.jl` package, which handles the EoS and opacity tables.
 
 The complete pipeline (tables, binning, initial conditions, running, shipping and spectra) is run through `m3dis.jl` in the `stellar_atmospheres` experiment; see the M3DIS README for that. This page gives an overview of what you can do with `MUST.jl` directly.
