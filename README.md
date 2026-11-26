@@ -206,7 +206,7 @@ A `Box` can be converted to the MULTI3D format. MULTI3D needs the electron densi
 ```julia
 using TSO
 
-eos = TSO.reload(TSO.SqEoS, "path/to/eos_T.hdf5") |> TSO.extended
+eos = TSO.EquationOfState("path/to/table"; parts=(:eos,))
 b.data[:ne] = exp.(TSO.sample(eos, :lnNe; rho=b.data[:d], T=b.data[:T]))
 
 MUST.multiBox(b, "output_name", downsample_xy=2)

@@ -13,12 +13,7 @@ function snaps2multi(folder, snaps...;
         end
 
         if !isnothing(eos)
-            aos = @axed eos
-            ne = lookup(
-                aos, :lnNe,
-                log.(snapshot[:d]),
-                log.(snapshot[:ee])
-            )
+            ne = TSO.sample(eos, :lnNe; lnRho=log.(snapshot[:d]), lnEi=log.(snapshot[:ee]))
             snapshot.data[:ne] = exp.(ne)
         elseif !haskey(snapshot.data, :ne)
             @warn "No electron density (:ne) found! Filling it with 1.0..."
@@ -70,12 +65,7 @@ function snaps2multi(snaps::MUST.Box...;
         output_name = joinpath(outfolder, join([name, "$(labels[i])"], "_"))
 
         if !isnothing(eos)
-            aos = @axed eos
-            ne = lookup(
-                aos, :lnNe,
-                log.(snapshotsresample[:d]),
-                log.(snapshotsresample[:ee])
-            )
+            ne = TSO.sample(eos, :lnNe; lnRho=log.(snapshotsresample[:d]), lnEi=log.(snapshotsresample[:ee]))
             snapshotsresample.data[:ne] = exp.(ne)
         elseif !haskey(snapshotsresample.data, :ne)
             @warn "No electron density (:ne) found! Filling it with 1.0..."

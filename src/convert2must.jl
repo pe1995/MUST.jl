@@ -12,7 +12,7 @@ MUST.Box(simulation, snapshot; data=MUST.@in_dispatch("data"), legacy=false, eos
 	end
 end
 
-function _Box_py(simulation, snapshot; eos, opacity, data, add_selected=false, save=true)
+function _Box_py(simulation, snapshot; eos, data, add_selected=false, save=true)
 	data = joinpath(data, simulation)
 	snap = dispatch.snapshot(snapshot, data=data)
     units = MUST.StandardUnits(snap)
@@ -43,9 +43,9 @@ function _Box_py(simulation, snapshot; eos, opacity, data, add_selected=false, s
     bs = MUST.Box(s)
 	s = nothing
 
-	κross = lookup(eos, opacity, :κ_ross, log.(bs[:d]), log.(bs[:ee]))
-	T = exp.(lookup(eos, :lnT, log.(bs[:d]), log.(bs[:ee])))
-	MUST.add!(bs, κross, :kr)
+	lnRoss, lnT = TSO.sample(eos, :lnRoss, :lnT; lnRho=log.(bs[:d]), lnEi=log.(bs[:ee]))
+	T = exp.(lnT)
+	MUST.add!(bs, exp.(lnRoss), :kr)
 	MUST.add!(bs, T, :T)
 
 	τ = MUST.optical_depth(bs, opacity=:kr, density=:d)
@@ -78,42 +78,19 @@ function sqeos_reader(run; inputNamelist=@in_dispatch(run), eos_path=nothing)
 	eos_path = if isnothing(eos_path)
 		if isfile(inputNamelist*".nml")
 			inputNamelist = MUST.StellarNamelist(inputNamelist*".nml")
-			p = replace(
-				MUST.nmlField(inputNamelist, :eos_params)["table_loc"],
-				"'"=>""
-			)
-			MUST.@in_dispatch(joinpath(p, "eos.hdf5"))
+			MUST.@in_dispatch(replace(MUST.nmlField(inputNamelist, :eos_params)["table_loc"], "'"=>""))
 		else
 			nothing
 		end
 	else
 		eos_path
 	end
-	if (!isnothing(eos_path)) && isfile(eos_path)
-		TSO.reload(SqEoS, eos_path), [:T, :kr, :Pg, :Ne]
+	if !isnothing(eos_path) && ispath(eos_path)
+		TSO.dispatch_eos_reader(eos_path)(run)
 	else
 		@warn "No EoS found!"
 		nothing, []
 	end
 end
 
-function lookup_function_generator(eos, q)
-	q = if q == :T
-		:lnT
-	elseif q == :Pg
-		:lnPg
-	elseif q == :Ne
-		:lnNe
-	elseif q == :kr
-		:lnRoss
-	else
-		q
-	end
-
-	lf = TSO.lookup_function(TSO.@axed(eos), q)
-	lkp!(res, args...) = begin
-		res .= exp.(TSO.lookup(args...))
-	end
-
-	lf, lkp!
-end
+lookup_function_generator(eos, q) = TSO.dispatch_lookup_generator(eos, q)
