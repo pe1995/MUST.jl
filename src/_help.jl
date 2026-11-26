@@ -216,15 +216,15 @@ end
 # Integration functions
 # ============================================================================
 
-function integrate(x, y; method=QuadGKJL())
+"""
+    integrate(x, y)
+
+Integral of `y` over `x`, linear between the points (trapezoidal rule).
+"""
+function integrate(x, y)
 	mask = sortperm(x)
 	xs, ys = x[mask], y[mask]
-
-	ip = Interpolations.linear_interpolation(xs, ys)
-	func(xi, p) = ip(xi)
-
-	prob = IntegralProblem(func, first(xs), last(xs))
-	solve(prob, method).u
+	sum((xs[i+1] - xs[i]) * (ys[i+1] + ys[i]) / 2 for i in 1:length(xs)-1)
 end
 
 # ============================================================================

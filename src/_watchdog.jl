@@ -497,91 +497,46 @@ end
 # ============================================================================
 
 resolvedSpectra(lambda_min, lambda_max, w, b, bτ; R=SPECTRUM_RESOLUTION[], Δλ=nothing) = begin
-    dλ = if isnothing(Δλ)
-        (lambda_max+lambda_min)/2.0/R
-    else
-        Δλ
-    end
+    dλ = isnothing(Δλ) ? (lambda_max+lambda_min)/2.0/R : Δλ
     d = Dict{Any, Any}()
 
     if w.refinement > 0
+        isnap = w.currentSnapshot
         try
-            λs = lambda_min
-            λe = lambda_max
-            Δλ = dλ
-            name = w.name
-            run = w.folder
-            isnap = w.currentSnapshot
-            _, _, feh = parametersFromName(name)
-            multi_name = joinpath(run, "m3dis_$(isnap)")
-
-            linelists = String[
-                "input_multi3d/LINE-LISTS/ADDITIONAL-LISTS/Hlinedata",
-                "input_multi3d/LINE-LISTS/nlte_ges_linelist_jmg04sep2023_I_II"
-            ]
-
-            if !isdir(@in_m3dis("input_multi3d/MUST"))
-                @warn "There is not yet a MUST directory in M3D. This is needed to keep the paths short!"
-                symlink(@in_dispatch("data"), @in_m3dis("input_multi3d/MUST"))
-            end
-
-            linelists = if !isdir(@in_m3dis("input_multi3d/LINE-LISTS"))
-                @warn "The default linelists can not be found! Provide the following: $(linelists)"
-                []
-            else
-                linelists
-            end
-
             bDown = gresample(b; nx=SPECTRUM_DOWNSAMPLING[], ny=SPECTRUM_DOWNSAMPLING[], nz=size(b, 3) * 2 - 1)
             bDown.data[:ne] = pop!(bDown.data, :Ne)
-            multiBox(bDown, joinpath(run, "m3dis_$(isnap)"))
+            atmos = joinpath(w.folder, "m3dis_$(isnap)")
+            multiBox(bDown, atmos)
 
-            spectrum_namelist = Dict(
-                :model_folder=>joinpath("input_multi3d","MUST", name),
-                :linelist=>nothing,
-                :absmet=>nothing,
-                :linelist_params=>(:linelist_file=>linelists,),
-                :atom_params=>(:atom_file=>"",),
-                :spectrum_params=>(:daa=>Δλ, :aa_blue=>λs, :aa_red=>λe, :in_log=>false),
-                :atmos_params=>(
-                    :dims=>30,
-                    :atmos_format=>"must",
-                    :use_rho=>true,
-                    :use_ne=>false,
-                    :FeH=>feh
-                ),
-                :output_params=>(:save_resolved=>true,),
-                :rt_output_params=>(:angle_quad=>"disk_center",),
+            linelists = filter(isfile, [@in_m3dis(l) for l in SPECTRUM_LINELISTS[]])
+            settings = Dict(
+                "spectrum_params" => Dict("daa"=>dλ, "aa_blue"=>lambda_min, "aa_red"=>lambda_max, "in_log"=>false),
+                "atmos_params" => Dict("dims"=>30, "nx"=>size(bDown, 1), "ny"=>size(bDown, 2), "nz"=>size(bDown, 3)),
+                "output_params" => Dict("save_resolved"=>true),
+                "rt_output_params" => Dict("angle_quad"=>"disk_center"),
             )
-            m3dis_kwargs = Dict(:threads=>SPECTRUM_THREADS[])
+            isempty(linelists) || (settings["linelist_params"] = Dict("linelist_file"=>linelists))
 
             @info "Spectrum synthesis between $(lambda_min)Å and $(lambda_max)Å (Δλ=$(dλ)) requested for snapshot $(isnap)."
             result = spectrum(
-                "m3dis_$(isnap)";
-                name=name,
-                NLTE=false,
-                slurm=false,
-                namelist_kwargs=spectrum_namelist,
-                m3dis_kwargs=m3dis_kwargs
+                atmos;
+                format="multi",
+                name=joinpath("MUST", w.name, "m3dis_$(isnap)"),
+                composition=b.parameter.composition,
+                settings=settings,
+                presets=("3d",),
+                threads=SPECTRUM_THREADS[]
             )
 
-            i = pyconvert(Array, result.i3)
-            c = pyconvert(Array, result.c3)
-            l = pyconvert(Array, result.lam)
-
-            d["intensity"] = i
-            d["continuum"] = c
-            d["wavelength"] = l
+            d["intensity"] = pyconvert(Array, result.run.i3)
+            d["continuum"] = pyconvert(Array, result.run.c3)
+            d["wavelength"] = pyconvert(Array, result.run.lam)
             d["x"] = bDown.x[:, :, end]
             d["y"] = bDown.y[:, :, end]
 
-            mn = join(["m3dis_$(isnap)", name], "_")
-            output_folder = @in_m3dis("data/$(mn)")
-            if isdir(output_folder)
-                rm(output_folder, recursive=true)
-            end
-        catch
-            @warn "Spectrum synthesis between $(lambda_min)Å and $(lambda_max)Å (Δλ=$(dλ)) failes for snapshot $(isnap)."
+            rm(run_folder(result), recursive=true)
+        catch e
+            @warn "Spectrum synthesis between $(lambda_min)Å and $(lambda_max)Å (Δλ=$(dλ)) failed for snapshot $(isnap)." exception=e
         end
     end
 
@@ -850,3 +805,4 @@ end
 const SPECTRUM_THREADS = Ref(2)
 const SPECTRUM_RESOLUTION = Ref(0.05)
 const SPECTRUM_DOWNSAMPLING = Ref(40)
+const SPECTRUM_LINELISTS = Ref(["input/linelists/SIU_masterline_Bergemann2026.txt"])

@@ -1044,9 +1044,6 @@ save(s::Box, number::Int; folder=nothing) = begin
 end
 
 function save(p::AtmosphericParameters, fid)
-    eles = [keys(p.composition)...]
-    vals = eltype(values(p.composition))[p.composition[e] for e in eles]
-
     haskey(fid, "time") && delete_object(fid, "time")
     fid["time"] = p.time
 
@@ -1056,11 +1053,32 @@ function save(p::AtmosphericParameters, fid)
     haskey(fid, "logg") && delete_object(fid, "logg")
     fid["logg"] = p.logg
 
-    haskey(fid, "composition_e") && delete_object(fid, "composition_e")
-    fid["composition_e"] = String[String(e) for e in eles]
+    _write_composition!(fid, p.composition)
+end
 
-    haskey(fid, "composition_v") && delete_object(fid, "composition_v")
-    fid["composition_v"] = vals
+"""
+The composition is the group `composition` with one attribute per entry, e.g.
+`[Fe/H]`, `[alpha/Fe]` and `[C/Fe]`.
+"""
+function _write_composition!(fid, composition)
+    for k in ("composition", "composition_e", "composition_v")
+        haskey(fid, k) && delete_object(fid, k)
+    end
+    a = HDF5.attributes(HDF5.create_group(fid, "composition"))
+    for (e, v) in composition
+        a[String(e)] = v
+    end
+end
+
+function _read_composition(fid, T)
+    if haskey(fid, "composition")
+        a = HDF5.attributes(fid["composition"])
+        Dict{Symbol, T}(Symbol(k) => read(a[k]) for k in keys(a))
+    elseif haskey(fid, "composition_e")
+        Dict{Symbol, T}(Symbol(e) => v for (e, v) in zip(HDF5.read(fid["composition_e"]), HDF5.read(fid["composition_v"])))
+    else
+        Dict{Symbol, T}()
+    end
 end
 
 # ============================================================================
@@ -1295,12 +1313,12 @@ function _root_to_group!(path)
 	path
 end
 
-_get_para_fieldnames(t::Type{AtmosphericParameters}) = ["time", "teff", "logg", "composition_e", "composition_v", "parameter_type"]
+_get_para_fieldnames(t::Type{AtmosphericParameters}) = ["time", "teff", "logg", "composition", "composition_e", "composition_v", "parameter_type"]
 
 _read_params(T::Type{AtmosphericParameters}, res) = begin
-    T(HDF5.read(res["time"]), HDF5.read(res["teff"]), HDF5.read(res["logg"]),
-                                                Dict(Symbol(e) => v for (e,v) in zip(HDF5.read(res["composition_e"]), HDF5.read(res["composition_v"]))) )
-
+    time, teff, logg = HDF5.read(res["time"]), HDF5.read(res["teff"]), HDF5.read(res["logg"])
+    F = promote_type(typeof(time), typeof(teff), typeof(logg))
+    T(F(time), F(teff), F(logg), _read_composition(res, F))
 end
 
 # ============================================================================
@@ -1342,7 +1360,7 @@ end
 
 Converted snapshots in `folder` as `Dict(snapshot=>(main, partner))` of `BoxRef`s
 (partner `nothing` if missing), identified by the meta information of the files.
-`box_name` selects the main box ("box" → :geo, "box_m3dis" → :spectra), `tau_name`
+`box_name` selects the main box ("box" → :geo, "box_spectra" → :spectra), `tau_name`
 its partner (:tau, :tau500). Old files with separate boxes are found as well.
 """
 function converted_snapshots(folder; box_name="box", tau_name="tau")
@@ -2231,12 +2249,6 @@ function flip(box::Box; kwargs...)
     flip!(b; kwargs...)
     b
 end
-
-# ============================================================================
-# Spectra capability
-# ============================================================================
-
-include("_box_spectra.jl")
 
 # ============================================================================
 # Convert from Dispatch entirely in Julia

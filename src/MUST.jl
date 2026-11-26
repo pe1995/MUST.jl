@@ -19,7 +19,6 @@ using ArgParse
 using DelimitedFiles
 using TimerOutputs
 using NCDatasets
-using Integrals
 using Mmap
 using Downloads
 import Base.filter, Base.filter!
@@ -73,7 +72,7 @@ export height_scale
 
 export save_must1d, save_must1d_all, read_must1d, must1d_columns, averageBox
 
-export whole_spectrum, spectrum, Teff, flux, M3DISRun, window, TUMULTRun
+export synthesize, spectrum, composition_settings, Teff, flux, M3DISRun, window, TUMULTRun
 
 export marcsBox
 
@@ -84,7 +83,7 @@ export ingredients
 
 export defaultWatchDog, monitor
 
-export MeanSpectra, spectra_tags, spectra_keys, spectra
+export Spectrum, spectra, load_spectra, snapshot_spectra, average_spectra, μ_z, intensity, composition_string, curve_of_growth
 
 # ============================================================================
 # Julia code files
@@ -101,7 +100,6 @@ include("_dispatch.jl")
 include("_scaling.jl")
 include("_stagger.jl")
 include("_namelist.jl")
-include("_spectra.jl")
 include("_atmos.jl")
 include("_grid_construction.jl")
 include("_mustgrid.jl")
@@ -110,6 +108,7 @@ include("_stagger_grid.jl")
 include("_initial_conditions.jl")
 include("_running.jl")
 include("_multi.jl")
+include("_spectra.jl")
 include("_atmos2legacy.jl")
 include("_atmos2multi.jl")
 include("_must1d.jl")

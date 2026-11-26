@@ -129,6 +129,7 @@ function snapshotBox_jl(
     eos_path=nothing,
     eos_reader=(x)->_squaregaseos(x, eos_path=eos_path, inputNamelist=joinpath(folder, "params")),
     lookup_generator=nothing,
+    composition=Dict{Symbol, Float64}(),
     kwargs...)
     folder = if !isdir(folder)
         @in_dispatch folder
@@ -144,7 +145,8 @@ function snapshotBox_jl(
             mmap=use_mmap,
             eos_reader=eos_reader,
             lookup_generator=lookup_generator,
-            save_snapshot=false
+            save_snapshot=false,
+            composition=composition
         )
 
         τ = @optionalTiming opticalDepthTime optical_depth(b_s, opacity=:kr, density=:d)

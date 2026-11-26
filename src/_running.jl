@@ -49,54 +49,6 @@ function run_dispatch(nml_name; threads=70, wait=true, ddir=@in_dispatch(""))
     r
 end
 
-function srun_m3dis(nml_name;
-					threads=70, memMB=100000, timeout="15:00:00", wait=false)
-	ddir = @in_m3dis("")
-
-	exec_name = "$(nml_name).export.sh"
-	exec_path = @in_m3dis("$(nml_name).export.sh")
-
-	open(exec_path, "w") do f
-		write(f, "#!/bin/bash\n")
-		write(f, "export KMP_NUM_THREADS=$(threads)\n")
-		write(f, "export OMP_NUM_THREADS=$(threads)\n")
-        write(f, "export KMP_STACKSIZE=256M\n")
-        write(f, "export OMP_STACKSIZE=256M\n")
-		write(f, "./dispatch.x $(nml_name)")
-	end
-
-	run(`chmod +x $(exec_path)`)
-    command = `srun -N 1 -n 1 -J m3dis -c $(threads) --mem=$(memMB)mb --time=$(timeout) --exclusive -D $(ddir) ./$(exec_name)`
-
-    run(pipeline(command, stdout=joinpath(ddir, "$(nml_name).log"),
-                          stderr=joinpath(ddir, "$(nml_name).err")), wait=wait)
-end
-
-function run_m3dis(nml_name; threads=70, wait=true, ddir=@in_m3dis(""))
-
-    exec_name = "$(nml_name).export.sh"
-    exec_path = @in_m3dis("$(nml_name).export.sh")
-
-    open(exec_path, "w") do f
-    write(f, "#!/bin/bash\n")
-    write(f, "export KMP_NUM_THREADS=$(threads)\n")
-    write(f, "export OMP_NUM_THREADS=$(threads)\n")
-    write(f, "export KMP_STACKSIZE=256M\n")
-    write(f, "export OMP_STACKSIZE=256M\n")
-    write(f, "./dispatch.x $(nml_name)")
-    end
-
-    run(`chmod +x $(exec_path)`)
-    currdir = pwd()
-    cd(ddir)
-    command = `./$(exec_name)`
-    r = run(pipeline(command, stdout=joinpath(ddir, "$(nml_name).log"),
-            stderr=joinpath(ddir, "$(nml_name).err")), wait=wait)
-    cd(currdir)
-
-    r
-end
-
 # ============================================================================
 # Grid related running
 # ============================================================================

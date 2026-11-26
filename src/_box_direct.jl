@@ -424,7 +424,7 @@ end
     fid[r[1,1]:r[1,2], r[2,1]:r[2,2], r[3,1]:r[3,2]] .= arr
 end
 
-function _save_box(number, fid, time, logg, folder)
+function _save_box(number, fid, time, logg, folder; composition=Dict{Symbol, Float64}())
     HDF5.delete_object(fid, "time")
     HDF5.delete_object(fid, "logg")
     fid["time"] = time
@@ -439,12 +439,14 @@ function _save_box(number, fid, time, logg, folder)
 	HDF5.delete_object(fid, "teff")
     fid["teff"] = teff
 
+    _write_composition!(fid, composition)
+
     path = HDF5.filename(fid)
     close(fid)
     _root_to_group!(path)
 end
 
-function _save_box(number, fid::Dict, time, logg, folder)
+function _save_box(number, fid::Dict, time, logg, folder; composition=Dict{Symbol, Float64}())
     dtype = eltype(fid["x"])
 
 	teff = _get_teff_from_fid(fid)
@@ -453,7 +455,7 @@ function _save_box(number, fid::Dict, time, logg, folder)
         Base.convert(dtype, time),
         Base.convert(dtype, teff),
         Base.convert(dtype, logg),
-        Dict{Symbol, dtype}()
+        Dict{Symbol, dtype}(composition)
     )
 
     data = Dict{Symbol, Any}(Symbol(p)=>v for (p, v) in fid if !(p in ["x", "y", "z"]))
@@ -468,7 +470,7 @@ function _save_box(number, fid::Dict, time, logg, folder)
     save(b, number, folder=folder)
 end
 
-function _to_box(number, fid::Dict, time, logg, folder)
+function _to_box(number, fid::Dict, time, logg, folder; composition=Dict{Symbol, Float64}())
     dtype = eltype(fid["x"])
 
 	teff = _get_teff_from_fid(fid)
@@ -477,7 +479,7 @@ function _to_box(number, fid::Dict, time, logg, folder)
         Base.convert(dtype, time),
         Base.convert(dtype, teff),
         Base.convert(dtype, logg),
-        Dict{Symbol, dtype}()
+        Dict{Symbol, dtype}(composition)
     )
 
     data = Dict{Symbol, Any}(Symbol(p)=>v for (p, v) in fid if !(p in ["x", "y", "z"]))
@@ -508,19 +510,20 @@ end
 # ============================================================================
 
 """
-    Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing, mmap=false, save_snapshot=false)
+    Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing, quantities=defaultQuantities, eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing, mmap=false, save_snapshot=false, composition=Dict{Symbol, Float64}())
 
 Read and convert data from the given run, saved in the given data folder. This function entirely relies
 on julia functions and does not use the dispatch python interface.
 Quantities by default are d, e, ux, uy, uz, ee, dt, flux, and whatever is available in the EoS. To add more quantites see the `MUST.Quantity` type.
 __Note__: TSO hooks are included to use the TSO EoS interface directly by passing the suitable `eos_reader` and `lookup_generator`.
+`composition` (e.g. `TSO.composition_dict(TableInfo(table_dir))`) is stored in the parameters of the box.
 This is implemented for you and ready to be used in the ingredient `convert2must.jl`. Without using this ingredient, the dafault setup will be used,
 which is the `MUST` EoS reader.
 """
 function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 	quantities=defaultQuantities,
 	eos_path=nothing, eos_reader=(x)->_squaregaseos(x, eos_path=eos_path), lookup_generator=nothing,
-	mmap=false, save_snapshot=false)
+	mmap=false, save_snapshot=false, composition=Dict{Symbol, Float64}())
     run, rundir, datadir, params_list, files = @optionalTiming checkFilesTime _check_files(iout, data, run, rundir)
 
 	mmap = if !save_snapshot
@@ -604,13 +607,13 @@ function Box(iout::Int; run="", data=@in_dispatch("data"), rundir=nothing,
 	)
 
 	@optionalTiming saveSnapshotTime if save_snapshot
-		_save_box(iout, fid, time, logg, rundir)
+		_save_box(iout, fid, time, logg, rundir; composition=composition)
 		Box(
 			"box_sn$(iout)",
 			folder=rundir
 		)
 	else
-		_to_box(iout, fid, time, logg, rundir)
+		_to_box(iout, fid, time, logg, rundir; composition=composition)
 	end
 end
 

@@ -16,6 +16,10 @@ The complete pipeline (tables, binning, initial conditions, running, shipping an
 3. [Atmosphere Analysis](#atmosphere-analysis)
 4. [Monitoring a Run](#monitoring-a-run)
 5. [MULTI3D Models](#multi3d-models)
+6. [Spectra](#spectra)
+    1. [Reading Spectra](#reading-spectra)
+    2. [Averaging and Combining](#averaging-and-combining)
+    3. [Abundance Corrections](#abundance-corrections)
 
 -------------------------
 # Installation
@@ -56,18 +60,18 @@ b.parameter
 
 ## File Layout
 
-Every snapshot is stored in one `HDF5` file that can hold the same snapshot on several scales, or anything else that belongs to it. Each of them is a group of the file with its own `x`, `y`, `z` and data arrays, so a group can also be on a different grid (e.g. a downsampled cube with spectra):
+Every snapshot is stored in one `HDF5` file that can hold the same snapshot on several scales, or anything else that belongs to it. Each of them is a group of the file with its own `x`, `y`, `z` and data arrays, so a group can also be on a different grid (e.g. the τ scale); the spectra of the snapshot are groups of their own:
 
 ```
 box_sn198.hdf5
 ├── geo/       geometrical height scale
 ├── tau/       Rosseland optical depth scale
 ├── tau500/    500nm optical depth scale (added when shipping)
-├── spectra/   downsampled cube with the spectra (added by spectrum.jl)
+├── spectra/   one group per spectrum, spectra/<name> (added by spectrum.jl)
 └── restart/   namelists needed to restart DISPATCH from this snapshot
 ```
 
-The top level holds what is the same for all groups: the snapshot number and run name as attributes, and the time, Teff, logg and chemical composition. These are the same for every group, so each group uses them.
+The top level holds what is the same for all groups: the snapshot number and run name as attributes, and the time, Teff, logg and chemical composition. These are the same for every group, so each group uses them. The composition is the group `composition` with one attribute per entry, `[Fe/H]`, `[alpha/Fe]` and `[X/Fe]` of individual elements, taken from the opacity table the model was computed with (`b.parameter.composition`). Files that store it as the datasets `composition_e` and `composition_v` are read as well.
 
 Loading a file only needs its path. By default you get the geometrical cube (or the only one in the file):
 
@@ -212,7 +216,88 @@ b.data[:ne] = exp.(TSO.sample(eos, :lnNe; rho=b.data[:d], T=b.data[:T]))
 MUST.multiBox(b, "output_name", downsample_xy=2)
 ```
 
-where `downsample_xy` picks only every nth point in the horizontal. If `:ne` is not available, set `use_ne=.false.` in MULTI3D. The model can be read back as a `Box` with `MUST.multiBox("output_name")`. Spectra for converted snapshots are computed with `m3dis.jl` or `spectrum.jl` (see the M3DIS README), which store them as the `spectra` group of the snapshot file, to be loaded with `Box(path; data=:spectra)`.
+where `downsample_xy` picks only every nth point in the horizontal. If `:ne` is not available, set `use_ne=.false.` in MULTI3D. The model can be read back as a `Box` with `MUST.multiBox("output_name")`. Spectra for converted snapshots are computed with `m3dis.jl spectrum` (see the M3DIS README), which stores each of them as `spectra/<name>` of the snapshot file: `spectra(path)` lists them, `Spectrum(path, name)` loads one, with its wavelength, flux, intensities, composition and setup.
+
+You can also run OpenMULTI3D for a converted model yourself from Julia:
+
+```julia
+MUST.@import_tumult "path/to/OpenMULTI3D"
+run = MUST.spectrum("m3dis_198"; 
+    format="multi", 
+    name="my_spectrum", 
+    presets=("3d",),
+    composition=b.parameter.composition,
+    settings=Dict(
+        "spectrum_params"=>Dict("aa_blue"=>5160.0, "aa_red"=>5170.0, "daa"=>0.01)
+    )
+)
+s = Spectrum(run, "my_spectrum"; composition=b.parameter.composition)
+```
+
+`settings` can hold any entries of the OpenMULTI3D namelist.
+
+-------------------------
+# Spectra
+
+Spectra are computed with OpenMULTI3D, usually through `m3dis.jl spectrum` (see the M3DIS README), or with `MUST.spectrum` as above. Each spectrum is stored under its name as the group `spectra/<name>` of the model's `HDF5` file (for 3D models the file of the snapshot), so one model can hold the spectra of any number of setups. A spectrum (`MUST.Spectrum`) contains
+
+- the wavelengths `s.λ` [Å, air], the ray directions `s.μ` and their integration weights `s.weights`,
+- the flux and the intensities averaged over the surface, with their continua, and for NLTE runs also the LTE spectrum of the same run,
+- optionally the horizontally resolved intensities of 3D models,
+- the composition it was computed with, `s.composition` ([Fe/H], [α/Fe] and [X/Fe]), and its setup, `s.meta` (model, snapshot, Teff, logg, window, NLTE, atom).
+
+## Reading Spectra
+
+```julia
+path = "my_run/box_sn481.hdf5"
+
+spectra(path)                       # names of the spectra in the file
+s = Spectrum(path, "GridMn1")       # one spectrum; resolved=true also loads the 3D intensities
+ss = load_spectra(path)             # all of them
+
+λ, F = MUST.flux(s)                 # flux normalized by the continuum
+λ, F = MUST.flux(s; norm=false)     # absolute flux [erg/s/cm²/Å]
+λ, F = MUST.flux(s; lte=true)       # LTE spectrum of an NLTE run
+μ_z(s)                              # the μ of the rays
+λ, I = intensity(s, 1.0)            # intensity at μ = 1 (norm and lte as for the flux)
+s[:resolved_intensity]              # λ × x × y × rays, if loaded with resolved=true
+```
+
+Spectra written by older versions (`box_m3dis_snN.hdf5` files and `<tag>_<quantity>` entries) are read the same way.
+
+## Averaging and Combining
+
+The name of a spectrum ties together the runs of the same setup. Compute it with the same name for several snapshots and average it over the snapshots:
+
+```julia
+snapshot_spectra("my_run")                        # Dict(snapshot => spectra of that snapshot)
+s = average_spectra("my_run", "GridMn1")          # mean over all snapshots with that spectrum
+s = average_spectra("my_run", "GridMn1"; snapshots=470:481)
+s = MUST.average([s1, s2, s3]; name="mean")       # or any spectra with the same wavelengths, rays and composition
+```
+
+The average is a spectrum like any other:
+
+```julia
+MUST.save(s, "averages.hdf5")                     # stored as spectra/GridMn1 of that file
+Spectrum("averages.hdf5", "GridMn1")
+MUST.save_text(s, "GridMn1.txt")                  # flux and intensity per μ as text; norm=true, lte=true as above
+```
+
+## Abundance Corrections
+
+Spectra with different compositions are compared through the composition they carry, never through their names. Compute the same window for a few values of an element and a reference spectrum, and get the abundance correction from the curve of growth:
+
+```julia
+grid = [average_spectra("my_run", "GridMn$(i)") for i in 1:3]
+ref = Spectrum("my_1d_model/my_1d_model.hdf5", "Mn1D")
+
+MUST.equivalentwidth(ref; λs=6012.0, λe=6014.0)   # equivalent width [Å] of the normalized flux
+ab_ref, ew_ref, ab, ew, correction = curve_of_growth(:Mn, ref, grid; λs=6012.0, λe=6014.0)
+λ, F = MUST.interpolate_spectra(grid, :Mn => -0.1) # normalized flux interpolated to [Mn/Fe] = -0.1
+```
+
+`curve_of_growth` returns the [Mn/Fe] and equivalent width of the reference and of the grid, and the change of [Mn/Fe] the grid needs to reproduce the equivalent width of the reference. `lte=true` uses the LTE spectra of NLTE runs.
 
 -------------------------
 
