@@ -141,7 +141,7 @@ _pynamelist(settings) = pydict(Dict(
 # Equivalent width & abundance calculations from Tumult
 # ============================================================================
 
-_line(run::TUMULTRun, i) = run.run.atoms[0].line[i-1]
+_line(run::TUMULTRun, i) = run.run.atoms[0].bbtrans[i-1]
 
 getabundances(run::TUMULTRun) = pyconvert(Float64, run.run.atoms[0].abnd)
 

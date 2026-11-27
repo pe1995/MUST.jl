@@ -2011,15 +2011,15 @@ end
 
 optical_depth(b::MUST.Box, k, rho) = optical_depth(b, k .* rho)
 
-function optical_depth(b::MUST.Box, rk)
-    Nx = size(b.x,1)
-    Ny = size(b.x,2)
-    Nz = size(b.x,3)
+optical_depth(b::MUST.Box, rk) = _optical_depth(b.z, rk)
+
+function _optical_depth(bz, rk)
+    Nx, Ny, Nz = size(bz)
     optical_depth = zeros(Nx,Ny,Nz)
 
     @inbounds for j in 1:Ny
         @inbounds for i in 1:Nx
-            z = b.z[i,j,:]
+            z = bz[i,j,:]
             @inbounds for k in Nz:-1:1
                 optical_depth[i,j,k] = if k==Nz
                     0 + abs(z[Nz-1] - z[Nz]) * 0.5 * (rk[i, j, k])
